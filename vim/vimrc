@@ -1,0 +1,179 @@
+set nocompatible              " be iMproved, required
+filetype off                  " required
+
+" set the runtime path to include Vundle and initialize
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+
+Plugin 'gmarik/Vundle.vim'
+Plugin 'Valloric/YouCompleteMe'
+Plugin 'kien/ctrlp.vim'
+Plugin 'scrooloose/syntastic'
+Plugin 'scrooloose/nerdtree'
+Plugin 'SirVer/ultisnips'
+Plugin 'honza/vim-snippets'
+Plugin 'bling/vim-airline'
+Plugin 'Raimondi/delimitMate'
+Plugin 'morhetz/gruvbox'
+
+call vundle#end()
+filetype plugin indent on
+
+"" Plugins
+" Airline
+if !exists('g:airline_symbols')
+    let g:airline_symbols = {}
+endif
+
+let g:airline_powerline_fonts = 1
+let g:airline_symbols.linenr = 'LN'
+let g:airline_detect_paste = 0
+let g:airline#extensions#tabline#enabled = 1
+let g:airline#extensions#whitespace#show_message = 1
+
+" Syntastic
+let g:syntastic_error_symbol = '✗'
+let g:syntastic_warning_symbol = '⚠'
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 1
+let g:syntastic_cpp_include_dirs = ['/usr/local/Cellar/boost/1.57.0/include']
+
+" NERDTree
+map <F2> :NERDTreeToggle<CR>
+autocmd bufenter * if (winnr("$") == 1
+    \ && exists("b:NERDTreeType")
+    \ && b:NERDTreeType == "primary") | q | endif
+
+" UltiSnips
+let g:UltiSnipsExpandTrigger="<Nul>"
+let g:UltiSnipsJumpForwardTrigger="<c-f>"
+let g:UltiSnipsJumpBackwardTrigger="<c-b>"
+"let g:UltiSnipsEditSplit="vertical"
+
+" Tasklist
+map <leader>td <Plug>TaskList
+
+" Taglist
+map <F3> :TlistToggle<CR>
+let Tlist_GainFocus_On_ToggleOpen = 1
+let Tlist_Close_On_Select = 1
+let Tlist_Exit_OnlyWindow = 1
+let Tlist_Process_File_Always = 1
+let Tlist_Show_One_File = 0
+let Tlist_File_Fold_Auto_Close = 1
+let Tlist_WinWidth = 50
+let Tlist_Compact_Format = 1
+let Tlist_Enable_Fold_Column = 1
+
+" Gruvbox
+let g:gruvbox_contrast_dark='medium'
+let g:gruvbox_contrast_light='medium'
+
+"" General
+syntax on
+
+set backspace=indent,eol,start
+set clipboard=unnamed
+set ambiwidth=single
+set laststatus=2
+set noshowmode
+set ttimeoutlen=50
+set wildmenu
+set history=50
+set incsearch
+
+"" Backup
+"set nobackup
+"set nowritebackup
+"set noswapfile
+set backupdir=~/.tmp/vim,~/tmp/vim,~/.tmp,~/tmp,/var/tmp,/tmp
+set directory=~/.tmp/vim,~/tmp/vim,~/.tmp,~/tmp,/var/tmp,/tmp
+
+"" Encoding
+scriptencoding utf-8
+set encoding=utf-8
+
+"" Indentation
+set autoindent
+set smartindent
+set tabstop=4
+set softtabstop=4
+set shiftwidth=4
+set expandtab
+
+"" View
+set ruler
+set number
+set showcmd
+set cursorline
+set hlsearch
+set t_Co=256
+set colorcolumn=99
+set background=dark
+colorscheme gruvbox
+
+" When you type the first tab, it will complete as much as possible, the second
+" tab hit will provide a list, the third and subsequent tabs will cycle through
+" completion options so you can complete the file without further keys
+set wildmode=longest,list,full
+set wildmenu            " completion with menu
+" This changes the default display of tab and CR chars in list mode
+set listchars=tab:▸\ ,eol:¬
+
+
+"" FileTypes
+" When editing a file, always jump to the last known cursor position.
+" Don't do it when the position is invalid or when inside an event handler
+" (happens when dropping a file on gvim).
+" Also don't do it when the mark is in the first line, that is the default
+" position when opening a file.
+autocmd BufReadPost *
+\ if line("'\"") > 1 && line("'\"") <= line("$") |
+\   exe "normal! g`\"" |
+\ endif
+autocmd BufRead,BufNewFile *.as setf actionscript
+autocmd BufRead,BufNewFile *.cmake,CMakeLists.txt setf cmake
+
+"" Keys
+let mapleader = ","
+
+" Tabs
+map <Tab>t :tabnew<CR>
+map <Tab>l :tabnext<CR>
+map <Tab>h :tabprevious<CR>
+map <Tab>0 :tabnext1<CR>
+map <Tab>1 :tabnext2<CR>
+map <Tab>2 :tabnext3<CR>
+map <Tab>3 :tabnext4<CR>
+map <Tab>4 :tabnext5<CR>
+map <Tab>5 :tabnext6<CR>
+map <Tab>6 :tabnext7<CR>
+map <Tab>7 :tabnext8<CR>
+map <Tab>8 :tabnext9<CR>
+map <Tab>9 :tabnext10<CR>
+
+" Buffers and Windows
+nmap <C-h> <C-w>h
+nmap <C-j> <C-w>j
+nmap <C-k> <C-w>k
+nmap <C-l> <C-w>l
+
+nmap <Tab>e :vsplit<CR>
+nmap <Tab>o :split<CR>
+nmap <Tab>d :bdelete<CR>
+
+nmap <Tab>j <C-]>
+nmap <Tab>k <C-t>
+
+" Usefulness
+nmap <Enter> o<Esc>
+nmap <S-Enter> O<Esc>
+nmap <Leader>s :write<CR>
+nmap <Leader>w :wq<CR>
+nmap <Leader>r :%s/\<<C-r><C-w>\>/<C-r><C-w>/g<Left><Left>
+inoremap <C-u> <Esc>viwUea
+
+nmap J 5j
+nmap K 5k
+xmap J 5j
+xmap K 5k

@@ -1,0 +1,18 @@
+export PATH=$HOME/bin:/usr/local/bin:/opt/local/bin:$PATH
+export EDITOR=vim
+
+completion="$(brew --prefix)/etc/bash_completion"
+if [[ -f $completion ]]
+then
+    source $completion
+fi
+
+palette="$HOME/.vim/bundle/gruvbox/gruvbox_256palette_osx.sh"
+if [[ -f $palette ]]
+then
+    source $palette
+fi
+
+alias sudo='sudo '
+alias ls='ls -G'
+alias ll='ls -lah'
