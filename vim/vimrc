@@ -18,6 +18,7 @@ Plugin 'Raimondi/delimitMate'
 Plugin 'morhetz/gruvbox'
 Plugin 'tpope/vim-fugitive'
 Plugin 'tpope/vim-git'
+Plugin 'majutsushi/tagbar'
 Plugin 'rizzatti/dash.vim'
 
 call vundle#end()
@@ -69,7 +70,7 @@ let g:UltiSnipsJumpForwardTrigger="<c-l>"
 map <leader>td <Plug>TaskList
 
 " Taglist
-map <F3> :TlistToggle<CR>
+map <F3> :TagbarToggle<CR>
 let Tlist_GainFocus_On_ToggleOpen = 1
 let Tlist_Close_On_Select = 1
 let Tlist_Exit_OnlyWindow = 1
