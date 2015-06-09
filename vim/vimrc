@@ -29,12 +29,6 @@ set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
 
 "" Plugins
 
-" YouCompleteMe
-"let g:ycm_add_preview_to_completeopt = 0
-"set completeopt-=preview
-let g:ycm_autoclose_preview_window_after_completion = 1
-"let g:ycm_autoclose_preview_window_after_insertion = 1
-
 " Airline
 if !exists('g:airline_symbols')
     let g:airline_symbols = {}
@@ -66,11 +60,7 @@ let g:UltiSnipsJumpBackwardTrigger="<c-h>"
 let g:UltiSnipsJumpForwardTrigger="<c-l>"
 "let g:UltiSnipsEditSplit="vertical"
 
-" Tasklist
-map <leader>td <Plug>TaskList
-
 " Taglist
-map <F3> :TagbarToggle<CR>
 let Tlist_GainFocus_On_ToggleOpen = 1
 let Tlist_Close_On_Select = 1
 let Tlist_Exit_OnlyWindow = 1
@@ -101,6 +91,8 @@ augroup vimrc
         \   exe "normal! g`\"" |
         \ endif
     autocmd BufRead,BufNewFile *.as set filetype=as3
+    autocmd BufNewFile,BufRead *.cpp  set formatprg=astyle\ --pad-oper\ --pad-paren-in\ --break-blocks\ --add-brackets\ --convert-tabs\ --mode=c\ --style=allman\ --align-pointer=middle\ --align-reference=name
+    autocmd BufNewFile,BufRead *.cs  set formatprg=astyle\ --pad-oper\ --pad-paren-in\ --break-blocks\ --add-brackets\ --convert-tabs\ --mode=cs\ --style=allman\ --align-pointer=middle\ --align-reference=name
 augroup END
 
 set backspace=indent,eol,start
@@ -179,13 +171,8 @@ nmap <Tab>e :vsplit<CR>
 nmap <Tab>o :split<CR>
 nmap <Tab>d :bdelete<CR>
 
-nmap <Tab>j <C-]>
-nmap <Tab>k <C-t>
-
-" Git
-nmap <Leader>gs :Gstatus<CR>
-nmap <Leader>gc :Gcommit<CR>
-nmap <Leader>gb :Gblame<CR>
+" nmap <Tab>j <C-]>
+nmap <Tab>k <C-o>
 
 " Other
 nmap <Enter> o<Esc>
@@ -213,3 +200,32 @@ noremap <Leader>sn ]s
 noremap <Leader>sp [s
 noremap <Leader>sa zg
 noremap <Leader>su a<C-x>s
+
+" Code formatting
+" file
+nmap <Leader>ff gggqG
+" line
+nmap <Leader>fl gqgq
+
+"" PLUGINS
+
+" YouCompleteMe
+let g:ycm_autoclose_preview_window_after_completion = 1
+"let g:ycm_add_preview_to_completeopt = 0
+"set completeopt-=preview
+"let g:ycm_autoclose_preview_window_after_insertion = 1
+
+nmap <Leader>yd :YcmDebugInfo<CR>
+nmap <Leader>yt :YcmCompleter GetType<CR>
+nmap <Tab>j :YcmCompleter GoTo<CR>
+
+" Tagbar
+let g:tagbar_autofocus = 1
+let g:tagbar_width = 50
+
+map <F3> :TagbarToggle<CR><C-w>=
+
+" Git
+nmap <Leader>gs :Gstatus<CR>
+nmap <Leader>gc :Gcommit<CR>
+nmap <Leader>gb :Gblame<CR>
