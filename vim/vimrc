@@ -71,16 +71,14 @@ let Tlist_WinWidth = 50
 let Tlist_Compact_Format = 1
 let Tlist_Enable_Fold_Column = 1
 
-" Gruvbox
-let g:gruvbox_contrast_dark='medium'
-let g:gruvbox_contrast_light='medium'
 
-
-"" General
+"
+" General
 syntax on
 
 augroup vimrc
     autocmd!
+    "
     " When editing a file, always jump to the last known cursor position.
     " Don't do it when the position is invalid or when inside an event handler
     " (happens when dropping a file on gvim).
@@ -90,9 +88,18 @@ augroup vimrc
         \ if line("'\"") > 1 && line("'\"") <= line("$") |
         \   exe "normal! g`\"" |
         \ endif
+
+    "
+    " ActionScript 3
     autocmd BufRead,BufNewFile *.as set filetype=as3
-    autocmd BufNewFile,BufRead *.cpp  set formatprg=astyle\ --pad-oper\ --pad-paren-in\ --break-blocks\ --add-brackets\ --convert-tabs\ --mode=c\ --style=allman\ --align-pointer=middle\ --align-reference=name
-    autocmd BufNewFile,BufRead *.cs  set formatprg=astyle\ --pad-oper\ --pad-paren-in\ --break-blocks\ --add-brackets\ --convert-tabs\ --mode=cs\ --style=allman\ --align-pointer=middle\ --align-reference=name
+
+    "
+    " Formatting All
+    autocmd BufNewFile,BufRead *  set formatprg=astyle\ --unpad-paren\ --pad-oper\ --pad-first-paren-out\ --pad-header\ --break-blocks\ --add-brackets\ --convert-tabs\ --mode=c\ --style=allman\ --align-pointer=middle\ --align-reference=name
+
+    "
+    " Formatting C#
+    autocmd BufNewFile,BufRead *.cs set formatprg=astyle\ --unpad-paren\ --pad-oper\ --pad-header\ --break-blocks\ --add-brackets\ --convert-tabs\ --mode=cs\ --style=allman\ --align-pointer=middle\ --align-reference=name
 augroup END
 
 set backspace=indent,eol,start
@@ -105,18 +112,21 @@ set wildmenu
 set history=50
 set incsearch
 
-"" Backup
+"
+" Backup
 "set nobackup
 "set nowritebackup
 "set noswapfile
 set backupdir=~/.tmp/vim,~/tmp/vim,~/.tmp,~/tmp,/var/tmp,/tmp
 set directory=~/.tmp/vim,~/tmp/vim,~/.tmp,~/tmp,/var/tmp,/tmp
 
-"" Encoding
+"
+" Encoding
 scriptencoding utf-8
 set encoding=utf-8
 
-"" Indentation
+"
+" Indentation
 set autoindent
 set smartindent
 set tabstop=4
@@ -124,7 +134,8 @@ set softtabstop=4
 set shiftwidth=4
 set expandtab
 
-"" View
+"
+" View
 set ruler
 set number
 set showcmd
@@ -135,17 +146,23 @@ set colorcolumn=99
 set background=dark
 colorscheme gruvbox
 
+"
 " When you type the first tab, it will complete as much as possible, the second
 " tab hit will provide a list, the third and subsequent tabs will cycle through
 " completion options so you can complete the file without further keys
 set wildmode=longest,list,full
 set wildmenu            " completion with menu
+
+"
 " This changes the default display of tab and CR chars in list mode
 set listchars=tab:▸\ ,eol:¬
 
-"" Keys
+"
+" KEYS
+"
 let mapleader = ","
 
+"
 " Tabs
 map <Tab>t :tabnew<CR>
 map <Tab>l :tabnext<CR>
@@ -161,37 +178,50 @@ map <Tab>7 :tabnext8<CR>
 map <Tab>8 :tabnext9<CR>
 map <Tab>9 :tabnext10<CR>
 
+"
+" Splits
+nmap <Tab>e :vsplit<CR>
+nmap <Tab>o :split<CR>
+nmap <Tab>d :bdelete<CR>
+
+"
 " Buffers and Windows
 nmap <C-h> <C-w>h
 nmap <C-j> <C-w>j
 nmap <C-k> <C-w>k
 nmap <C-l> <C-w>l
 
-nmap <Tab>e :vsplit<CR>
-nmap <Tab>o :split<CR>
-nmap <Tab>d :bdelete<CR>
-
-" nmap <Tab>j <C-]>
-nmap <Tab>k <C-o>
-
-" Other
-nmap <Enter> o<Esc>
-nmap ✠ O<Esc>
-nmap <silent> <Leader>d :Dash<CR>
-nmap <Leader>w :write<CR>
-nmap <Leader>W :wq<CR>
-nmap <Leader>r :%s/\<<C-r><C-w>\>/<C-r><C-w>/g<Left><Left>
-inoremap <C-v>u <Esc>viwUea
-
+"
+" Jumps
 nmap J 5j
 nmap K 5k
 xmap J 5j
 xmap K 5k
 
+"
+" nmap <Tab>j <C-]>
+nmap <Tab>k <C-o>
+
+"
+" Padding
+nmap <Enter> o<Esc>
+nmap ✠ O<Esc>
+
+"
+" Saving
+nmap <Leader>w :write<CR>
+nmap <Leader>W :wq<CR>
+
+"
+" Replace
+nmap <Leader>r :%s/\<<C-r><C-w>\>/<C-r><C-w>/g<Left><Left>
+
+"
 " Toggle and untoggle spell checking
 noremap <Leader>ss :setlocal spell! spelllang=en_us<cr>
 
-" spelling shortcuts using <leader>
+"
+" Spelling
 " ]s next misspelled word
 " [s previous misspelled word
 " zg add to dict
@@ -201,14 +231,18 @@ noremap <Leader>sp [s
 noremap <Leader>sa zg
 noremap <Leader>su a<C-x>s
 
+"
 " Code formatting
 " file
 nmap <Leader>ff gggqG
 " line
 nmap <Leader>fl gqgq
 
-"" PLUGINS
+"
+" PLUGINS
+"
 
+"
 " YouCompleteMe
 let g:ycm_autoclose_preview_window_after_completion = 1
 "let g:ycm_add_preview_to_completeopt = 0
@@ -219,13 +253,24 @@ nmap <Leader>yd :YcmDebugInfo<CR>
 nmap <Leader>yt :YcmCompleter GetType<CR>
 nmap <Tab>j :YcmCompleter GoTo<CR>
 
+"
+" Dash
+nmap <silent> <Leader>d :Dash<CR>
+
+"
 " Tagbar
 let g:tagbar_autofocus = 1
 let g:tagbar_width = 50
 
 map <F3> :TagbarToggle<CR><C-w>=
 
+"
 " Git
 nmap <Leader>gs :Gstatus<CR>
 nmap <Leader>gc :Gcommit<CR>
 nmap <Leader>gb :Gblame<CR>
+
+"
+" Gruvbox
+let g:gruvbox_contrast_dark='medium'
+let g:gruvbox_contrast_light='medium'
