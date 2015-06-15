@@ -8,6 +8,7 @@ call vundle#begin()
 Plugin 'gmarik/Vundle.vim'
 Plugin 'Valloric/YouCompleteMe'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
+Plugin 'justinmk/vim-syntax-extra'
 Bundle 'solarnz/thrift.vim'
 Bundle 'wannesm/wmgraphviz.vim'
 Plugin 'kien/ctrlp.vim'
@@ -80,6 +81,11 @@ syntax on
 
 augroup vimrc
     autocmd!
+
+    "
+    " Reload .vimrc
+    autocmd bufwritepost .vimrc source $MYVIMRC
+
     "
     " When editing a file, always jump to the last known cursor position.
     " Don't do it when the position is invalid or when inside an event handler
@@ -239,6 +245,10 @@ noremap <Leader>su a<C-x>s
 nmap <Leader>ff gggqG
 " line
 nmap <Leader>fl gqgq
+
+"
+" Buffer
+nmap <Leader>br :edit<CR>
 
 "
 " PLUGINS
