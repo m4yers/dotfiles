@@ -51,12 +51,6 @@ let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_cpp_include_dirs = ['/usr/local/Cellar/boost/1.57.0/include']
 
-" NERDTree
-map <F2> :NERDTreeToggle<CR>
-autocmd bufenter * if (winnr("$") == 1
-    \ && exists("b:NERDTreeType")
-    \ && b:NERDTreeType == "primary") | q | endif
-
 " UltiSnips
 let g:UltiSnipsSnippetDirectories=["UltiSnips"]
 let g:UltiSnipsExpandTrigger="<Nul>"
@@ -264,8 +258,12 @@ nmap <Leader>yt :YcmCompleter GetType<CR>
 nmap <Tab>j :YcmCompleter GoTo<CR>
 
 "
-" Dash
-nmap <silent> <Leader>d :Dash<CR>
+" NERDTree
+map <F2> :NERDTreeToggle<CR>
+let NERDTreeWinSize = 45
+autocmd bufenter * if (winnr("$") == 1
+    \ && exists("b:NERDTreeType")
+    \ && b:NERDTreeType == "primary") | q | endif
 
 "
 " Tagbar
@@ -273,6 +271,10 @@ let g:tagbar_autofocus = 1
 let g:tagbar_width = 50
 
 map <F3> :TagbarToggle<CR><C-w>=
+
+"
+" Dash
+nmap <silent> <Leader>d :Dash<CR>
 
 "
 " Git
