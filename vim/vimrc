@@ -6,6 +6,7 @@ set rtp+=~/.vim/bundle/Vundle.vim
 call vundle#begin()
 
 Plugin 'gmarik/Vundle.vim'
+Plugin 'kshenoy/vim-signature'
 Plugin 'Valloric/YouCompleteMe'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
 Plugin 'justinmk/vim-syntax-extra'
@@ -225,10 +226,6 @@ nmap <Leader>W :wq<CR>
 nmap <Leader>r :%s/\<<C-r><C-w>\>/<C-r><C-w>/g<Left><Left>
 
 "
-" Toggle and untoggle spell checking
-noremap <Leader>ss :setlocal spell! spelllang=en_us<cr>
-
-"
 " Spelling
 " ]s next misspelled word
 " [s previous misspelled word
@@ -238,6 +235,7 @@ noremap <Leader>sn ]s
 noremap <Leader>sp [s
 noremap <Leader>sa zg
 noremap <Leader>su a<C-x>s
+noremap <Leader>ss :setlocal spell! spelllang=en_us<cr>
 
 "
 " Code formatting
