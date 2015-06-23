@@ -8,6 +8,7 @@ call vundle#begin()
 Plugin 'gmarik/Vundle.vim'
 Plugin 'kshenoy/vim-signature'
 Plugin 'Valloric/YouCompleteMe'
+Plugin 'rdnetto/YCM-Generator'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
 Plugin 'justinmk/vim-syntax-extra'
 Bundle 'solarnz/thrift.vim'
