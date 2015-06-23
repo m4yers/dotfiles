@@ -5,6 +5,7 @@ filetype off                  " required
 set rtp+=~/.vim/bundle/Vundle.vim
 call vundle#begin()
 
+Plugin 'FSwitch'
 Plugin 'gmarik/Vundle.vim'
 Plugin 'kshenoy/vim-signature'
 Plugin 'Valloric/YouCompleteMe'
@@ -257,6 +258,11 @@ let g:ycm_autoclose_preview_window_after_completion = 1
 nmap <Leader>yd :YcmDebugInfo<CR>
 nmap <Leader>yt :YcmCompleter GetType<CR>
 nmap <Tab>j :YcmCompleter GoTo<CR>
+
+"
+" FSwitch
+nnoremap <Leader>jj :FSHere<cr>
+nnoremap <Leader>jr :FSSplitRight<cr>
 
 "
 " NERDTree
