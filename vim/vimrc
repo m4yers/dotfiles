@@ -264,6 +264,15 @@ nmap <Tab>j :YcmCompleter GoTo<CR>
 " FSwitch
 nnoremap <Leader>jj :FSHere<cr>
 nnoremap <Leader>jr :FSSplitRight<cr>
+augroup vimrc
+    au!
+    au BufEnter *.cpp let b:fswitchdst  = 'hpp,h'
+    au BufEnter *.cpp let b:fswitchlocs = 'reg:/src/include/,reg:/Private/Public/,reg:|src|include/**|,../include'
+    au BufEnter *.c   let b:fswitchdst  = 'h'
+    au BufEnter *.c   let b:fswitchlocs = 'reg:/src/include/,reg:/Private/Public/,reg:|src|include/**|,../include'
+    au BufEnter *.h   let b:fswitchdst  = 'cpp,cc,c'
+    au BufEnter *.h   let b:fswitchlocs = 'reg:/include/src/,reg:/Public/Private/,reg:/include.*/src/,../src'
+augroup END
 
 "
 " NERDTree
