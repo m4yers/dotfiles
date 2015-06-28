@@ -53,25 +53,6 @@ let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_cpp_include_dirs = ['/usr/local/Cellar/boost/1.57.0/include']
 
-" UltiSnips
-let g:UltiSnipsSnippetDirectories=["UltiSnips"]
-let g:UltiSnipsExpandTrigger="<Nul>"
-let g:UltiSnipsJumpBackwardTrigger="<c-h>"
-let g:UltiSnipsJumpForwardTrigger="<c-l>"
-"let g:UltiSnipsEditSplit="vertical"
-
-" Taglist
-let Tlist_GainFocus_On_ToggleOpen = 1
-let Tlist_Close_On_Select = 1
-let Tlist_Exit_OnlyWindow = 1
-let Tlist_Process_File_Always = 1
-let Tlist_Show_One_File = 0
-let Tlist_File_Fold_Auto_Close = 1
-let Tlist_WinWidth = 50
-let Tlist_Compact_Format = 1
-let Tlist_Enable_Fold_Column = 1
-
-
 "
 " General
 syntax on
@@ -247,6 +228,14 @@ nmap <Leader>br :edit<CR>
 "
 " PLUGINS
 "
+
+" UltiSnips
+let g:snips_author = "Artyom Goncharov"
+let g:UltiSnipsSnippetDirectories = ["UltiSnips"]
+let g:UltiSnipsExpandTrigger = "<Nul>"
+let g:UltiSnipsJumpBackwardTrigger = "<c-h>"
+let g:UltiSnipsJumpForwardTrigger = "<c-l>"
+"let g:UltiSnipsEditSplit="vertical"
 
 "
 " YouCompleteMe
