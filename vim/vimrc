@@ -131,6 +131,10 @@ set t_Co=256
 set colorcolumn=99
 set background=dark
 colorscheme gruvbox
+if has("gui_running")
+    set guifont=Menlo\ For\ Powerline:h12
+    set guioptions=""
+endif
 
 "
 " When you type the first tab, it will complete as much as possible, the second
@@ -232,9 +236,13 @@ nmap <Leader>br :edit<CR>
 " UltiSnips
 let g:snips_author = "Artyom Goncharov"
 let g:UltiSnipsSnippetDirectories = ["UltiSnips"]
-let g:UltiSnipsExpandTrigger = "<Nul>"
 let g:UltiSnipsJumpBackwardTrigger = "<c-h>"
 let g:UltiSnipsJumpForwardTrigger = "<c-l>"
+if has("gui_running")
+    let g:UltiSnipsExpandTrigger = "<C-Space>"
+else
+    let g:UltiSnipsExpandTrigger = "<Nul>"
+endif
 "let g:UltiSnipsEditSplit="vertical"
 
 "
@@ -242,6 +250,7 @@ let g:UltiSnipsJumpForwardTrigger = "<c-l>"
 let g:ycm_complete_in_comments = 1
 let g:ycm_autoclose_preview_window_after_completion = 1
 let g:ycm_goto_buffer_command = 'new-tab'
+let g:ycm_key_invoke_completion = ''
 "let g:ycm_add_preview_to_completeopt = 0
 "set completeopt-=preview
 "let g:ycm_autoclose_preview_window_after_insertion = 1
