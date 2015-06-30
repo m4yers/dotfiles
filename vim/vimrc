@@ -10,6 +10,7 @@ Plugin 'gmarik/Vundle.vim'
 Plugin 'kshenoy/vim-signature'
 Plugin 'Valloric/YouCompleteMe'
 Plugin 'rdnetto/YCM-Generator'
+Plugin 'Chiel92/vim-autoformat'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
 Plugin 'justinmk/vim-syntax-extra'
 Bundle 'solarnz/thrift.vim'
@@ -78,14 +79,6 @@ augroup vimrc
     "
     " ActionScript 3
     autocmd BufRead,BufNewFile *.as set filetype=as3
-
-    "
-    " Formatting All
-    autocmd BufNewFile,BufRead *  set formatprg=astyle\ --unpad-paren\ --pad-oper\ --pad-first-paren-out\ --pad-header\ --break-blocks\ --add-brackets\ --convert-tabs\ --mode=c\ --style=allman\ --align-pointer=middle\ --align-reference=name
-
-    "
-    " Formatting C#
-    autocmd BufNewFile,BufRead *.cs set formatprg=astyle\ --unpad-paren\ --pad-oper\ --pad-header\ --break-blocks\ --add-brackets\ --convert-tabs\ --mode=cs\ --style=allman\ --align-pointer=middle\ --align-reference=name
 augroup END
 
 set backspace=indent,eol,start
@@ -218,12 +211,12 @@ noremap <Leader>sa zg
 noremap <Leader>su a<C-x>s
 noremap <Leader>ss :setlocal spell! spelllang=en_us<cr>
 
-"
-" Code formatting
-" file
-nmap <Leader>ff gggqG
-" line
-nmap <Leader>fl gqgq
+""
+"" Code formatting
+"" file
+"nmap <Leader>ff gggqG
+"" line
+"nmap <Leader>fl gqgq
 
 "
 " Buffer
@@ -274,6 +267,24 @@ augroup vimrc
     au BufEnter *.h   let b:fswitchdst  = 'cpp,cc,c'
     au BufEnter *.h   let b:fswitchlocs = 'reg:/include/src/,reg:/Public/Private/,reg:/include.*/src/,../src'
 augroup END
+
+"
+" Autoformat
+noremap <leader>ff :Autoformat<CR>
+
+" C
+let g:formatdef_astyle_c = '"astyle --mode=c --style=ansi -pcH".(&expandtab ? "s".&shiftwidth : "t")'
+let g:formatters_c = ['clangformat', 'astyle_c']
+"let g:formatters_c = ['astyle_c']
+
+" C++
+let g:formatdef_astyle_cpp = '"astyle --mode=c --style=ansi -pcH".(&expandtab ? "s".&shiftwidth : "t")'
+let g:formatters_cpp = ['clangformat', 'astyle_cpp']
+
+" C#
+let g:formatdef_astyle_cs = '"astyle --mode=cs --style=ansi --indent-namespaces -pcH".(&expandtab ? "s".&shiftwidth : "t")'
+let g:formatters_cs = ['astyle_cs']
+
 
 "
 " NERDTree
