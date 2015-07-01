@@ -27,6 +27,8 @@ Plugin 'tpope/vim-fugitive'
 Plugin 'tpope/vim-git'
 Plugin 'majutsushi/tagbar'
 Plugin 'suan/vim-instant-markdown'
+Plugin 'xolox/vim-misc'
+Plugin 'xolox/vim-session'
 Plugin 'rizzatti/dash.vim'
 
 call vundle#end()
@@ -127,7 +129,8 @@ set background=dark
 colorscheme gruvbox
 if has("gui_running")
     set guifont=Menlo\ For\ Powerline:h12
-    set guioptions="gtm"
+    set guioptions=gtm
+    set visualbell t_vb="
 endif
 
 "
@@ -290,7 +293,7 @@ let g:formatters_cs = ['astyle_cs']
 "
 " NERDTree
 map <F2> :NERDTreeToggle<CR><C-w>=
-let NERDTreeWinSize = 45
+let NERDTreeWinSize = 30
 autocmd bufenter * if (winnr("$") == 1
     \ && exists("b:NERDTreeType")
     \ && b:NERDTreeType == "primary") | q | endif
@@ -298,7 +301,7 @@ autocmd bufenter * if (winnr("$") == 1
 "
 " Tagbar
 let g:tagbar_autofocus = 1
-let g:tagbar_width = 50
+let g:tagbar_width = 30
 
 map <F3> :TagbarToggle<CR><C-w>=
 
@@ -315,6 +318,16 @@ nmap <Leader>gb :Gblame<CR>
 "
 " Instant Markdown
 let g:instant_markdown_autostart = 0
+
+"
+" Sessions
+let g:session_default_overwrite = 0
+let g:session_autosave_periodic = 1
+let g:session_persist_colors    = 0
+let g:session_autoload          = 'no'
+let g:session_autosave          = 'yes'
+let g:session_default_to_last   = 'yes'
+let g:session_directory         = '~/tmp/vim/sessions'
 
 "
 " Gruvbox
