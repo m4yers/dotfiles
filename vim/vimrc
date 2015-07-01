@@ -10,6 +10,7 @@ Plugin 'gmarik/Vundle.vim'
 Plugin 'kshenoy/vim-signature'
 Plugin 'Valloric/YouCompleteMe'
 Plugin 'rdnetto/YCM-Generator'
+Plugin 'Chiel92/vim-autoformat'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
 Plugin 'justinmk/vim-syntax-extra'
 Bundle 'solarnz/thrift.vim'
@@ -79,14 +80,6 @@ augroup vimrc
     "
     " ActionScript 3
     autocmd BufRead,BufNewFile *.as set filetype=as3
-
-    "
-    " Formatting All
-    autocmd BufNewFile,BufRead *  set formatprg=astyle\ --unpad-paren\ --pad-oper\ --pad-first-paren-out\ --pad-header\ --break-blocks\ --add-brackets\ --convert-tabs\ --mode=c\ --style=allman\ --align-pointer=middle\ --align-reference=name
-
-    "
-    " Formatting C#
-    autocmd BufNewFile,BufRead *.cs set formatprg=astyle\ --unpad-paren\ --pad-oper\ --pad-header\ --break-blocks\ --add-brackets\ --convert-tabs\ --mode=cs\ --style=allman\ --align-pointer=middle\ --align-reference=name
 augroup END
 
 set backspace=indent,eol,start
@@ -132,6 +125,10 @@ set t_Co=256
 set colorcolumn=99
 set background=dark
 colorscheme gruvbox
+if has("gui_running")
+    set guifont=Menlo\ For\ Powerline:h12
+    set guioptions=""
+endif
 
 "
 " When you type the first tab, it will complete as much as possible, the second
@@ -215,12 +212,12 @@ noremap <Leader>sa zg
 noremap <Leader>su a<C-x>s
 noremap <Leader>ss :setlocal spell! spelllang=en_us<cr>
 
-"
-" Code formatting
-" file
-nmap <Leader>ff gggqG
-" line
-nmap <Leader>fl gqgq
+""
+"" Code formatting
+"" file
+"nmap <Leader>ff gggqG
+"" line
+"nmap <Leader>fl gqgq
 
 "
 " Buffer
@@ -233,9 +230,13 @@ nmap <Leader>br :edit<CR>
 " UltiSnips
 let g:snips_author = "Artyom Goncharov"
 let g:UltiSnipsSnippetDirectories = ["UltiSnips"]
-let g:UltiSnipsExpandTrigger = "<Nul>"
 let g:UltiSnipsJumpBackwardTrigger = "<c-h>"
 let g:UltiSnipsJumpForwardTrigger = "<c-l>"
+if has("gui_running")
+    let g:UltiSnipsExpandTrigger = "<C-Space>"
+else
+    let g:UltiSnipsExpandTrigger = "<Nul>"
+endif
 "let g:UltiSnipsEditSplit="vertical"
 
 "
@@ -243,6 +244,7 @@ let g:UltiSnipsJumpForwardTrigger = "<c-l>"
 let g:ycm_complete_in_comments = 1
 let g:ycm_autoclose_preview_window_after_completion = 1
 let g:ycm_goto_buffer_command = 'new-tab'
+let g:ycm_key_invoke_completion = ''
 "let g:ycm_add_preview_to_completeopt = 0
 "set completeopt-=preview
 "let g:ycm_autoclose_preview_window_after_insertion = 1
@@ -266,6 +268,24 @@ augroup vimrc
     au BufEnter *.h   let b:fswitchdst  = 'cpp,cc,c'
     au BufEnter *.h   let b:fswitchlocs = 'reg:/include/src/,reg:/Public/Private/,reg:/include.*/src/,../src'
 augroup END
+
+"
+" Autoformat
+noremap <leader>ff :Autoformat<CR>
+
+" C
+let g:formatdef_astyle_c = '"astyle --mode=c --style=ansi -pcH".(&expandtab ? "s".&shiftwidth : "t")'
+let g:formatters_c = ['clangformat', 'astyle_c']
+"let g:formatters_c = ['astyle_c']
+
+" C++
+let g:formatdef_astyle_cpp = '"astyle --mode=c --style=ansi -pcH".(&expandtab ? "s".&shiftwidth : "t")'
+let g:formatters_cpp = ['clangformat', 'astyle_cpp']
+
+" C#
+let g:formatdef_astyle_cs = '"astyle --mode=cs --style=ansi --indent-namespaces -pcH".(&expandtab ? "s".&shiftwidth : "t")'
+let g:formatters_cs = ['astyle_cs']
+
 
 "
 " NERDTree
