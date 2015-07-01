@@ -25,6 +25,7 @@ Plugin 'morhetz/gruvbox'
 Plugin 'tpope/vim-fugitive'
 Plugin 'tpope/vim-git'
 Plugin 'majutsushi/tagbar'
+Plugin 'suan/vim-instant-markdown'
 Plugin 'rizzatti/dash.vim'
 
 call vundle#end()
@@ -290,6 +291,10 @@ nmap <silent> <Leader>d :Dash<CR>
 nmap <Leader>gs :Gstatus<CR>
 nmap <Leader>gc :Gcommit<CR>
 nmap <Leader>gb :Gblame<CR>
+
+"
+" Instant Markdown
+let g:instant_markdown_autostart = 0
 
 "
 " Gruvbox
