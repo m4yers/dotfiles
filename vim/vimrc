@@ -127,7 +127,7 @@ set background=dark
 colorscheme gruvbox
 if has("gui_running")
     set guifont=Menlo\ For\ Powerline:h12
-    set guioptions=""
+    set guioptions="gtm"
 endif
 
 "
