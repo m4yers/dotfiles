@@ -191,8 +191,13 @@ nmap <Tab>k <C-o>
 
 "
 " Padding
-nmap <Enter> o<Esc>
-nmap ✠ O<Esc>
+if has("gui_running")
+    nmap <Enter> o<Esc>
+    nmap <S-Enter> O<Esc>
+else
+    nmap <Enter> o<Esc>
+    nmap ✠ O<Esc>
+endif
 
 "
 " Saving
