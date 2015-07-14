@@ -149,7 +149,7 @@ set listchars=tab:▸\ ,eol:¬
 "
 " KEYS
 "
-let mapleader = ","
+let mapleader = " "
 
 " Leave insert and command mode
 inoremap <C-i> <ESC>
