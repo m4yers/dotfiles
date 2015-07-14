@@ -7,6 +7,7 @@ call vundle#begin()
 
 Plugin 'FSwitch'
 Plugin 'gmarik/Vundle.vim'
+Plugin 'Lokaltog/vim-easymotion'
 Plugin 'kshenoy/vim-signature'
 Plugin 'Valloric/YouCompleteMe'
 Plugin 'rdnetto/YCM-Generator'
@@ -27,6 +28,7 @@ Plugin 'tpope/vim-fugitive'
 Plugin 'tpope/vim-git'
 Plugin 'majutsushi/tagbar'
 Plugin 'suan/vim-instant-markdown'
+Plugin 'tomtom/tcomment_vim'
 Plugin 'xolox/vim-misc'
 Plugin 'xolox/vim-session'
 Plugin 'rizzatti/dash.vim'
@@ -234,6 +236,10 @@ nmap <Leader>br :edit<CR>
 "
 " PLUGINS
 "
+
+"
+" EasyMotion
+nmap s <Plug>(easymotion-s)
 
 " UltiSnips
 let g:snips_author = "Artyom Goncharov"
