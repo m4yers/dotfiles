@@ -282,13 +282,12 @@ augroup END
 noremap <leader>ff :Autoformat<CR>
 
 " C
-let g:formatdef_astyle_c = '"astyle --mode=c --style=ansi -pcH".(&expandtab ? "s".&shiftwidth : "t")'
-let g:formatters_c = ['clangformat', 'astyle_c']
-"let g:formatters_c = ['astyle_c']
+let g:formatdef_astyle_c = '"astyle --mode=c --style=ansi --unpad-paren --pad-oper --pad-first-paren-out --pad-header --add-brackets --convert-tabs --align-pointer=middle --align-reference=name"'
+let g:formatters_c = ['astyle_c']
 
 " C++
-let g:formatdef_astyle_cpp = '"astyle --mode=c --style=ansi -pcH".(&expandtab ? "s".&shiftwidth : "t")'
-let g:formatters_cpp = ['clangformat', 'astyle_cpp']
+let g:formatdef_astyle_cpp = '"astyle --mode=c --style=ansi --unpad-paren --pad-oper --pad-first-paren-out --pad-header --add-brackets --convert-tabs --align-pointer=middle --align-reference=name"'
+let g:formatters_cpp = ['astyle_cpp']
 
 " C#
 let g:formatdef_astyle_cs = '"astyle --mode=cs --style=ansi --indent-namespaces -pcH".(&expandtab ? "s".&shiftwidth : "t")'
