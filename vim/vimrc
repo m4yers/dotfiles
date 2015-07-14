@@ -151,6 +151,10 @@ set listchars=tab:▸\ ,eol:¬
 "
 let mapleader = ","
 
+" Leave insert and command mode
+inoremap <C-i> <ESC>
+cnoremap <C-i> <C-c>
+
 "
 " Tabs
 map <Tab>t :tabnew<CR>
