@@ -149,11 +149,11 @@ set listchars=tab:▸\ ,eol:¬
 "
 " KEYS
 "
-let mapleader = " "
+let mapleader = ","
 
 " Leave insert and command mode
-inoremap <C-k> <ESC>
-cnoremap <C-k> <C-c>
+inoremap kk <ESC>
+cnoremap kk <C-c>
 
 "
 " Tabs
@@ -243,12 +243,12 @@ nmap <Leader>br :edit<CR>
 
 "
 " EasyMotion
-nmap s <Plug>(easymotion-s)
+nmap <Space> <Plug>(easymotion-s)
 
 " UltiSnips
 let g:snips_author = "Artyom Goncharov"
 let g:UltiSnipsSnippetDirectories = ["UltiSnips"]
-let g:UltiSnipsJumpBackwardTrigger = "<c-h>"
+let g:UltiSnipsJumpBackwardTrigger = "<c-m>"
 let g:UltiSnipsJumpForwardTrigger = "<c-l>"
 if has("gui_running")
     let g:UltiSnipsExpandTrigger = "<C-Space>"
