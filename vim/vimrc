@@ -19,6 +19,7 @@ Bundle 'wannesm/wmgraphviz.vim'
 Plugin 'kien/ctrlp.vim'
 Plugin 'scrooloose/syntastic'
 Plugin 'scrooloose/nerdtree'
+Bundle 'jistr/vim-nerdtree-tabs'
 Plugin 'SirVer/ultisnips'
 Plugin 'honza/vim-snippets'
 Plugin 'bling/vim-airline'
@@ -306,7 +307,7 @@ let g:formatters_cs = ['astyle_cs']
 
 "
 " NERDTree
-map <F2> :NERDTreeToggle<CR><C-w>=
+map <F2> <Plug>NERDTreeTabsToggle<CR><C-w>=
 let NERDTreeWinSize = 30
 autocmd bufenter * if (winnr("$") == 1
     \ && exists("b:NERDTreeType")
