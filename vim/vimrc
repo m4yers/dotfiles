@@ -227,6 +227,11 @@ noremap <Leader>sa zg
 noremap <Leader>su a<C-x>s
 noremap <Leader>ss :setlocal spell! spelllang=en_us<cr>
 
+" Command line
+cnoremap <C-A> <Home>
+cnoremap <C-F> <Right>
+cnoremap <C-B> <Left>
+
 ""
 "" Code formatting
 "" file
