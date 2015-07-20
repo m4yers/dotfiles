@@ -334,6 +334,7 @@ nmap <silent> <Leader>d :Dash<CR>
 nmap <Leader>gs :Gstatus<CR>
 nmap <Leader>gc :Gcommit<CR>
 nmap <Leader>gb :Gblame<CR>
+nmap <Leader>gd :Gvdiff<CR>
 
 "
 " Instant Markdown
