@@ -1,7 +1,7 @@
+" Prologue {{{
 set nocompatible              " be iMproved, required
 filetype off                  " required
 
-" set the runtime path to include Vundle and initialize
 set rtp+=~/.vim/bundle/Vundle.vim
 call vundle#begin()
 
@@ -39,37 +39,13 @@ filetype plugin indent on
 
 set rtp+=~/Development/Projects/dotfiles/vim/after
 set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
-
-"" Plugins
-
-" Airline
-if !exists('g:airline_symbols')
-    let g:airline_symbols = {}
-endif
-
-let g:airline_powerline_fonts = 1
-let g:airline_symbols.linenr = 'LN'
-let g:airline_detect_paste = 0
-let g:airline#extensions#tabline#enabled = 1
-let g:airline#extensions#whitespace#show_message = 1
-
-" Syntastic
-let g:syntastic_error_symbol = '✗'
-let g:syntastic_warning_symbol = '⚠'
-let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_cpp_include_dirs = ['/usr/local/Cellar/boost/1.57.0/include']
+" }}}
 
 "
 " General
-syntax on
 
 augroup vimrc
     autocmd!
-
-    "
-    " Reload .vimrc
-    autocmd bufwritepost .vimrc source $MYVIMRC
 
     "
     " When editing a file, always jump to the last known cursor position.
@@ -87,6 +63,7 @@ augroup vimrc
     autocmd BufRead,BufNewFile *.as set filetype=as3
 augroup END
 
+" Settings {{{
 set backspace=indent,eol,start
 set clipboard=unnamed
 set ambiwidth=single
@@ -119,8 +96,8 @@ set softtabstop=4
 set shiftwidth=4
 set expandtab
 
-"
-" View
+" View {{{1
+syntax on
 set ruler
 set number
 set showcmd
@@ -135,6 +112,7 @@ if has("gui_running")
     set guioptions=gtm
     set visualbell t_vb="
 endif
+" 1}}}
 
 "
 " When you type the first tab, it will complete as much as possible, the second
@@ -145,7 +123,21 @@ set wildmenu            " completion with menu
 
 "
 " This changes the default display of tab and CR chars in list mode
-set listchars=tab:▸\ ,eol:¬
+set list
+set listchars=tab:▸\ ,eol:¬,extends:❯,precedes:❮
+" }}}"
+
+" Vim {{{ "
+augroup ft_vim
+    au!
+    au FileType vim setlocal keywordprg=:help
+    au FileType vim nmap <buffer> <leader>d :help <C-r><C-w><CR>
+    au FileType vim setlocal foldmethod=marker
+    au FileType help setlocal textwidth=78
+    au BufWritePost .vimrc source $MYVIMRC
+    au BufWinEnter *.txt if &ft == 'help' | wincmd H | endif
+augroup END
+" }}} Vim "
 
 "
 " KEYS
@@ -246,6 +238,25 @@ nmap <Leader>br :edit<CR>
 "
 " PLUGINS
 "
+
+" Airline
+if !exists('g:airline_symbols')
+    let g:airline_symbols = {}
+endif
+
+let g:airline_powerline_fonts = 1
+let g:airline_symbols.linenr = 'LN'
+let g:airline_detect_paste = 0
+let g:airline#extensions#tabline#enabled = 1
+let g:airline#extensions#whitespace#show_message = 1
+
+" Syntastic
+let g:syntastic_error_symbol = '✗'
+let g:syntastic_warning_symbol = '⚠'
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 1
+let g:syntastic_cpp_include_dirs = ['/usr/local/Cellar/boost/1.57.0/include']
+
 
 "
 " EasyMotion
