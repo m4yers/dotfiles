@@ -40,29 +40,6 @@ filetype plugin indent on
 set rtp+=~/Development/Projects/dotfiles/vim/after
 set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
 " }}}
-
-"
-" General
-
-augroup vimrc
-    autocmd!
-
-    "
-    " When editing a file, always jump to the last known cursor position.
-    " Don't do it when the position is invalid or when inside an event handler
-    " (happens when dropping a file on gvim).
-    " Also don't do it when the mark is in the first line, that is the default
-    " position when opening a file.
-    autocmd BufReadPost *
-        \ if line("'\"") > 1 && line("'\"") <= line("$") |
-        \   exe "normal! g`\"" |
-        \ endif
-
-    "
-    " ActionScript 3
-    autocmd BufRead,BufNewFile *.as set filetype=as3
-augroup END
-
 " Settings {{{
 set backspace=indent,eol,start
 set clipboard=unnamed
@@ -96,7 +73,8 @@ set softtabstop=4
 set shiftwidth=4
 set expandtab
 
-" View {{{1
+" 
+" View
 syntax on
 set ruler
 set number
@@ -108,11 +86,11 @@ set colorcolumn=99
 set background=dark
 colorscheme gruvbox
 if has("gui_running")
+    " https://github.com/abertsch/Menlo-for-Powerline
     set guifont=Menlo\ For\ Powerline:h12
     set guioptions=gtm
     set visualbell t_vb="
 endif
-" 1}}}
 
 "
 " When you type the first tab, it will complete as much as possible, the second
@@ -125,9 +103,8 @@ set wildmenu            " completion with menu
 " This changes the default display of tab and CR chars in list mode
 set list
 set listchars=tab:▸\ ,eol:¬,extends:❯,precedes:❮
-" }}}"
-
-" Vim {{{ "
+" }}}
+" Vim {{{
 augroup ft_vim
     au!
     au FileType vim setlocal keywordprg=:help
@@ -138,10 +115,13 @@ augroup ft_vim
     au BufWinEnter *.txt if &ft == 'help' | wincmd H | endif
 augroup END
 " }}} Vim "
-
-"
-" KEYS
-"
+" ActionScript {{{
+augroup ft_as3
+    au!
+    au BufRead,BufNewFile *.as set filetype=as3
+augroup END
+" }}}
+" Keys {{{
 let mapleader = ","
 
 " Leave insert and command mode
@@ -234,10 +214,8 @@ cnoremap <C-B> <Left>
 "
 " Buffer
 nmap <Leader>br :edit<CR>
-
-"
-" PLUGINS
-"
+" }}}
+" Plugins {{{
 
 " Airline
 if !exists('g:airline_symbols')
@@ -365,3 +343,4 @@ let g:session_directory         = '~/tmp/vim/sessions'
 " Gruvbox
 let g:gruvbox_contrast_dark='medium'
 let g:gruvbox_contrast_light='medium'
+" }}}
