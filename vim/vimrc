@@ -41,6 +41,10 @@ set rtp+=~/Development/Projects/dotfiles/vim/after
 set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
 " }}}
 " Settings {{{
+
+"
+" Basic
+set encoding=utf-8
 set backspace=indent,eol,start
 set clipboard=unnamed
 set ambiwidth=single
@@ -48,8 +52,20 @@ set laststatus=2
 set noshowmode
 set ttimeoutlen=50
 set wildmenu
-set history=50
+set history=1000
+set lazyredraw
 set incsearch
+set autowrite
+set autoread
+set splitbelow
+set splitright
+
+"
+" Invisible chars
+set list
+set listchars=tab:▸\ ,extends:❯,precedes:❮
+" set listchars=tab:▸\ ,eol:¬,extends:❯,precedes:❮
+" set showbreak=↪
 
 "
 " Backup
@@ -58,11 +74,6 @@ set incsearch
 "set noswapfile
 set backupdir=~/.tmp/vim,~/tmp/vim,~/.tmp,~/tmp,/var/tmp,/tmp
 set directory=~/.tmp/vim,~/tmp/vim,~/.tmp,~/tmp,/var/tmp,/tmp
-
-"
-" Encoding
-scriptencoding utf-8
-set encoding=utf-8
 
 "
 " Indentation
@@ -99,10 +110,6 @@ endif
 set wildmode=longest,list,full
 set wildmenu            " completion with menu
 
-"
-" This changes the default display of tab and CR chars in list mode
-set list
-set listchars=tab:▸\ ,eol:¬,extends:❯,precedes:❮
 " }}}
 " Vim {{{
 augroup ft_vim
@@ -133,16 +140,16 @@ cnoremap kk <C-c>
 map <Tab>t :tabnew<CR>
 map <Tab>l :tabnext<CR>
 map <Tab>h :tabprevious<CR>
-map <Tab>0 :tabnext1<CR>
-map <Tab>1 :tabnext2<CR>
-map <Tab>2 :tabnext3<CR>
-map <Tab>3 :tabnext4<CR>
-map <Tab>4 :tabnext5<CR>
-map <Tab>5 :tabnext6<CR>
-map <Tab>6 :tabnext7<CR>
-map <Tab>7 :tabnext8<CR>
-map <Tab>8 :tabnext9<CR>
-map <Tab>9 :tabnext10<CR>
+map <Tab>1 :tabnext1<CR>
+map <Tab>2 :tabnext2<CR>
+map <Tab>3 :tabnext3<CR>
+map <Tab>4 :tabnext4<CR>
+map <Tab>5 :tabnext5<CR>
+map <Tab>6 :tabnext6<CR>
+map <Tab>7 :tabnext7<CR>
+map <Tab>8 :tabnext8<CR>
+map <Tab>9 :tabnext9<CR>
+map <Tab>0 :tabnext10<CR>
 
 "
 " Splits
@@ -226,6 +233,7 @@ let g:airline_powerline_fonts = 1
 let g:airline_symbols.linenr = 'LN'
 let g:airline_detect_paste = 0
 let g:airline#extensions#tabline#enabled = 1
+let g:airline#extensions#tabline#tab_nr_type = 1
 let g:airline#extensions#whitespace#show_message = 1
 
 " Syntastic
