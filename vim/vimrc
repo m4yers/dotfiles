@@ -19,7 +19,7 @@ Bundle 'wannesm/wmgraphviz.vim'
 Plugin 'kien/ctrlp.vim'
 Plugin 'scrooloose/syntastic'
 Plugin 'scrooloose/nerdtree'
-Bundle 'jistr/vim-nerdtree-tabs'
+" Bundle 'jistr/vim-nerdtree-tabs'
 Plugin 'SirVer/ultisnips'
 Plugin 'honza/vim-snippets'
 Plugin 'bling/vim-airline'
@@ -43,7 +43,7 @@ set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
 " Settings {{{
 
 "
-" Basic
+" basic
 set encoding=utf-8
 set backspace=indent,eol,start
 set clipboard=unnamed
@@ -61,14 +61,14 @@ set splitbelow
 set splitright
 
 "
-" Invisible chars
+" invisible chars
 set list
 set listchars=tab:▸\ ,extends:❯,precedes:❮
 " set listchars=tab:▸\ ,eol:¬,extends:❯,precedes:❮
-" set showbreak=↪
+set showbreak=↪
 
 "
-" Backup
+" backup
 "set nobackup
 "set nowritebackup
 "set noswapfile
@@ -76,7 +76,7 @@ set backupdir=~/.tmp/vim,~/tmp/vim,~/.tmp,~/tmp,/var/tmp,/tmp
 set directory=~/.tmp/vim,~/tmp/vim,~/.tmp,~/tmp,/var/tmp,/tmp
 
 "
-" Indentation
+" indentation
 set autoindent
 set smartindent
 set tabstop=4
@@ -84,11 +84,11 @@ set softtabstop=4
 set shiftwidth=4
 set expandtab
 
-" 
-" View
+"
+" view
 syntax on
 set ruler
-set number
+set nonumber
 set showcmd
 set cursorline
 set hlsearch
@@ -173,7 +173,7 @@ xmap K 5k
 
 "
 " nmap <Tab>j <C-]>
-nmap <Tab>k <C-o>
+nmap <Tab>k <C-o>zz
 
 "
 " Padding
@@ -272,7 +272,7 @@ let g:ycm_key_invoke_completion = ''
 
 nmap <Leader>yd :YcmDebugInfo<CR>
 nmap <Leader>yt :YcmCompleter GetType<CR>
-nmap <Tab>j :YcmCompleter GoTo<CR>
+nmap <Tab>j :YcmCompleter GoTo<CR>zz
 
 "
 " FSwitch
@@ -306,10 +306,9 @@ let g:formatters_cpp = ['astyle_cpp']
 let g:formatdef_astyle_cs = '"astyle --mode=cs --style=ansi --indent-namespaces -pcH".(&expandtab ? "s".&shiftwidth : "t")'
 let g:formatters_cs = ['astyle_cs']
 
-
 "
 " NERDTree
-map <F2> <Plug>NERDTreeTabsToggle<CR><C-w>=
+map <F2> :NERDTreeToggle<CR><C-w>=
 let NERDTreeWinSize = 30
 autocmd bufenter * if (winnr("$") == 1
     \ && exists("b:NERDTreeType")
