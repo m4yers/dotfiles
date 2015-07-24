@@ -42,10 +42,10 @@ set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
 " }}}
 " Settings {{{
 
-"
-" basic
+" Basic
 set encoding=utf-8
 set backspace=indent,eol,start
+set completeopt=longest,menuone
 set clipboard=unnamed
 set ambiwidth=single
 set laststatus=2
@@ -60,32 +60,45 @@ set autoread
 set splitbelow
 set splitright
 
-"
-" invisible chars
+" Invisible chars {{{
 set list
 set listchars=tab:▸\ ,extends:❯,precedes:❮
 " set listchars=tab:▸\ ,eol:¬,extends:❯,precedes:❮
 set showbreak=↪
+" }}}
 
-"
-" backup
+" Backup {{{
 "set nobackup
 "set nowritebackup
 "set noswapfile
-set backupdir=~/.tmp/vim,~/tmp/vim,~/.tmp,~/tmp,/var/tmp,/tmp
-set directory=~/.tmp/vim,~/tmp/vim,~/.tmp,~/tmp,/var/tmp,/tmp
 
-"
-" indentation
+set undodir=~/.vim/tmp/undo//
+set backupdir=~/.vim/tmp/backup//
+set directory=~/.vim/tmp/swap//
+
+" Make those folders automatically if they don't already exist.
+if !isdirectory(expand(&undodir))
+    call mkdir(expand(&undodir), "p")
+endif
+if !isdirectory(expand(&backupdir))
+    call mkdir(expand(&backupdir), "p")
+endif
+if !isdirectory(expand(&directory))
+    call mkdir(expand(&directory), "p")
+endif
+" }}}
+
+" Indentation {{{
+set wrap
 set autoindent
 set smartindent
 set tabstop=4
 set softtabstop=4
 set shiftwidth=4
 set expandtab
+" }}}
 
-"
-" view
+" View {{{
 syntax on
 set ruler
 set nonumber
@@ -102,13 +115,30 @@ if has("gui_running")
     set guioptions=gtm
     set visualbell t_vb="
 endif
+" }}}
 
-"
+" Wildmenu {{{
 " When you type the first tab, it will complete as much as possible, the second
 " tab hit will provide a list, the third and subsequent tabs will cycle through
 " completion options so you can complete the file without further keys
+set wildmenu
 set wildmode=longest,list,full
-set wildmenu            " completion with menu
+" }}}
+
+" Auto {{{
+augroup default_group
+    au!
+
+    " Save when losing focus, TODO: make it work in iTerm
+    au FocusLost * :silent! wall
+
+    " Make sure Vim returns to the same line when you reopen a file.
+    au BufReadPost *
+        \ if line("'\"") > 0 && line("'\"") <= line("$") |
+        \     execute 'normal! g`"zvzz' |
+        \ endif
+augroup END
+" }}}
 
 " }}}
 " Vim {{{
@@ -128,14 +158,16 @@ augroup ft_as3
     au BufRead,BufNewFile *.as set filetype=as3
 augroup END
 " }}}
-" Keys {{{
-let mapleader = ","
+" Mappings {{{
 
-" Leave insert and command mode
+" Leader
+let mapleader = ","
+let maplocalleader = "\\"
+
+" Hate hitting Esc
 inoremap kk <ESC>
 cnoremap kk <C-c>
 
-"
 " Tabs
 map <Tab>t :tabnew<CR>
 map <Tab>l :tabnext<CR>
@@ -151,31 +183,26 @@ map <Tab>8 :tabnext8<CR>
 map <Tab>9 :tabnext9<CR>
 map <Tab>0 :tabnext10<CR>
 
-"
 " Splits
 nmap <Tab>e :vsplit<CR>
 nmap <Tab>o :split<CR>
 nmap <Tab>d :bdelete<CR>
 
-"
 " Buffers and Windows
 nmap <C-h> <C-w>h
 nmap <C-j> <C-w>j
 nmap <C-k> <C-w>k
 nmap <C-l> <C-w>l
 
-"
 " Jumps
 nmap J 5j
 nmap K 5k
 xmap J 5j
 xmap K 5k
 
-"
 " nmap <Tab>j <C-]>
 nmap <Tab>k <C-o>zz
 
-"
 " Padding
 if has("gui_running")
     nmap <Enter> o<Esc>
@@ -185,16 +212,13 @@ else
     nmap ✠ O<Esc>
 endif
 
-"
 " Saving
 nmap <Leader>w :write<CR>
 nmap <Leader>W :wq<CR>
 
-"
 " Replace
 nmap <Leader>r :%s/\<<C-r><C-w>\>/<C-r><C-w>/g<Left><Left>
 
-"
 " Spelling
 " ]s next misspelled word
 " [s previous misspelled word
@@ -237,7 +261,7 @@ let g:airline#extensions#tabline#tab_nr_type = 1
 let g:airline#extensions#whitespace#show_message = 1
 
 " Syntastic
-let g:syntastic_error_symbol = '✗'
+let g:syntastic_error_symbol = '✖'
 let g:syntastic_warning_symbol = '⚠'
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
@@ -267,7 +291,6 @@ let g:ycm_autoclose_preview_window_after_completion = 1
 let g:ycm_goto_buffer_command = 'new-tab'
 let g:ycm_key_invoke_completion = ''
 "let g:ycm_add_preview_to_completeopt = 0
-"set completeopt-=preview
 "let g:ycm_autoclose_preview_window_after_insertion = 1
 
 nmap <Leader>yd :YcmDebugInfo<CR>
