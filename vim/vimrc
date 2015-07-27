@@ -362,7 +362,7 @@ let g:instant_markdown_autostart = 0
 "
 " Sessions
 let g:session_default_overwrite = 0
-let g:session_autosave_periodic = 1
+let g:session_autosave_periodic = 10
 let g:session_persist_colors    = 0
 let g:session_autoload          = 'no'
 let g:session_autosave          = 'yes'
