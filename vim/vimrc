@@ -54,11 +54,17 @@ set ttimeoutlen=50
 set wildmenu
 set history=1000
 set lazyredraw
-set incsearch
 set autowrite
 set autoread
 set splitbelow
 set splitright
+
+" Search {{{
+set ignorecase
+set smartcase
+set incsearch
+set showmatch
+" }}}
 
 " Invisible chars {{{
 set list
@@ -168,6 +174,13 @@ let maplocalleader = "\\"
 inoremap kk <ESC>
 cnoremap kk <C-c>
 
+" Toggles
+nnoremap <leader>tn :setlocal number!<cr>
+nnoremap <leader>ti :setlocal list!<cr>
+
+" Uppercasing
+inoremap <C-f>u <esc>gUiwea
+
 " Tabs
 map <Tab>t :tabnew<CR>
 map <Tab>l :tabnext<CR>
@@ -262,7 +275,7 @@ let g:airline#extensions#whitespace#show_message = 1
 
 " Syntastic
 let g:syntastic_error_symbol = '✖'
-let g:syntastic_warning_symbol = '⚠'
+let g:syntastic_warning_symbol = '⚈'
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_cpp_include_dirs = ['/usr/local/Cellar/boost/1.57.0/include']
