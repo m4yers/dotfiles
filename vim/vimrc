@@ -59,11 +59,17 @@ set autoread
 set splitbelow
 set splitright
 
-" Search {{{
+" SnSnS {{{
+" Scroll n Search n Substitute
+set scrolloff=0
+set sidescroll=1
+set sidescrolloff=5
+
 set ignorecase
 set smartcase
 set incsearch
 set showmatch
+set hlsearch
 " }}}
 
 " Invisible chars {{{
@@ -110,7 +116,6 @@ set ruler
 set nonumber
 set showcmd
 set cursorline
-set hlsearch
 set t_Co=256
 set colorcolumn=99
 set background=dark
@@ -175,8 +180,10 @@ inoremap kk <ESC>
 cnoremap kk <C-c>
 
 " Toggles
+" Mnemonic: t - toggle, turn
 nnoremap <leader>tn :setlocal number!<cr>
 nnoremap <leader>ti :setlocal list!<cr>
+nnoremap <Leader>th :setlocal hlsearch!<cr>
 
 " Uppercasing
 inoremap <C-f>u <esc>gUiwea
