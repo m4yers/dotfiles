@@ -180,7 +180,7 @@ inoremap kk <ESC>
 cnoremap kk <C-c>
 
 " Toggles
-" Mnemonic: t - toggle, turn
+" Mnemonic: t - toggle, turn on
 nnoremap <leader>tn :setlocal number!<cr>
 nnoremap <leader>ti :setlocal list!<cr>
 nnoremap <Leader>th :setlocal hlsearch!<cr>
@@ -287,7 +287,6 @@ let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_cpp_include_dirs = ['/usr/local/Cellar/boost/1.57.0/include']
 
-
 "
 " EasyMotion
 nmap <Space> <Plug>(easymotion-s)
@@ -304,7 +303,6 @@ else
 endif
 "let g:UltiSnipsEditSplit="vertical"
 
-"
 " YouCompleteMe
 let g:ycm_complete_in_comments = 1
 let g:ycm_autoclose_preview_window_after_completion = 1
@@ -317,13 +315,17 @@ nmap <Leader>yd :YcmDebugInfo<CR>
 nmap <Leader>yt :YcmCompleter GetType<CR>
 nmap <Tab>j :YcmCompleter GoTo<CR>zz
 
+" TComment
+nnoremap <C-S-j> :TComment<cr>j
+nnoremap <C-S-k> :TComment<cr>k
+
 "
 " FSwitch
 nnoremap <Leader>jj :FSHere<cr>
 nnoremap <Leader>jr :FSSplitRight<cr>
 augroup vimrc
     au!
-    au BufEnter *.cpp let b:fswitchdst  = 'hpp,h'
+    " au BufEnter *.cpp let b:fswitchdst  = 'hpp,h'
     au BufEnter *.cpp let b:fswitchlocs = 'reg:/src/include/,reg:/Private/Public/,reg:|src|include/**|,../include'
     au BufEnter *.cc  let b:fswitchdst  = 'h'
     au BufEnter *.cc  let b:fswitchlocs = 'reg:/src/include/,reg:/Private/Public/,reg:|src|include/**|,../include'
@@ -331,15 +333,15 @@ augroup vimrc
     au BufEnter *.c   let b:fswitchlocs = 'reg:/src/include/,reg:/Private/Public/,reg:|src|include/**|,../include'
     au BufEnter *.h   let b:fswitchdst  = 'cpp,cc,c'
     au BufEnter *.h   let b:fswitchlocs = 'reg:/include/src/,reg:/Public/Private/,reg:/include.*/src/,../src'
-augroup END
-
+" augroup END
+"
 "
 " Autoformat
 noremap <leader>ff :Autoformat<CR>
 
 " C
 let g:formatdef_astyle_c = '"astyle --mode=c --style=ansi --unpad-paren --pad-oper --pad-first-paren-out --pad-header --add-brackets --convert-tabs --align-pointer=middle --align-reference=name"'
-let g:formatters_c = ['astyle_c']
+" let g:formatters_c = ['astyle_c']
 
 " C++
 let g:formatdef_astyle_cpp = '"astyle --mode=c --style=ansi --unpad-paren --pad-oper --pad-first-paren-out --pad-header --add-brackets --convert-tabs --align-pointer=middle --align-reference=name"'
