@@ -346,8 +346,8 @@ nmap <Leader>yt :YcmCompleter GetType<CR>
 nmap <Tab>j :YcmCompleter GoTo<CR>zz
 
 " TComment
-nnoremap <C-S-j> :TComment<cr>j
-nnoremap <C-S-k> :TComment<cr>k
+" nnoremap <C-S-j> :TComment<cr>j
+" nnoremap <C-S-k> :TComment<cr>k
 
 "
 " FSwitch
