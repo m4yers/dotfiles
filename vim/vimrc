@@ -84,6 +84,11 @@ else
 endif
 " }}}
 
+" Folding {{{
+set foldlevelstart=99
+set foldminlines=1
+" }}}
+
 " Backup {{{
 "set nobackup
 "set nowritebackup
