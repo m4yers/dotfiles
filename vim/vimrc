@@ -72,11 +72,16 @@ set showmatch
 set hlsearch
 " }}}
 
-" Invisible chars {{{
+" Special chars {{{
 set list
 set listchars=tab:▸\ ,extends:❯,precedes:❮
 " set listchars=tab:▸\ ,eol:¬,extends:❯,precedes:❮
 set showbreak=↪
+if has("gui_running")
+    set fillchars=diff:⣿,vert:│,fold:\ 
+else
+    set fillchars=diff:⣿,vert:\|,fold:\ 
+endif
 " }}}
 
 " Backup {{{
@@ -169,6 +174,18 @@ augroup ft_as3
     au BufRead,BufNewFile *.as set filetype=as3
 augroup END
 " }}}
+" C {{{
+augroup ft_c
+    au!
+    au FileType c setlocal foldmethod=syntax
+augroup END
+" "}}}
+" C++ {{{
+augroup ft_cpp
+    au!
+    au FileType cpp setlocal foldmethod=syntax
+augroup END
+" "}}}
 " Mappings {{{
 
 " Leader
@@ -180,13 +197,30 @@ inoremap kk <ESC>
 cnoremap kk <C-c>
 
 " Toggles
-" Mnemonic: t - toggle, turn on
+" Mnemonic: t - toggle, turn on/off
 nnoremap <leader>tn :setlocal number!<cr>
 nnoremap <leader>ti :setlocal list!<cr>
 nnoremap <Leader>th :setlocal hlsearch!<cr>
 
 " Uppercasing
 inoremap <C-f>u <esc>gUiwea
+
+" Movement
+noremap j gj
+noremap k gk
+noremap gj j
+noremap gk k
+
+" Jumps
+nmap J 5j
+nmap K 5k
+xmap J 5j
+xmap K 5k
+
+" Changes
+nnoremap g; g;zz
+nnoremap g, g,zz
+nnoremap gI '.
 
 " Tabs
 map <Tab>t :tabnew<CR>
@@ -214,12 +248,6 @@ nmap <C-j> <C-w>j
 nmap <C-k> <C-w>k
 nmap <C-l> <C-w>l
 
-" Jumps
-nmap J 5j
-nmap K 5k
-xmap J 5j
-xmap K 5k
-
 " nmap <Tab>j <C-]>
 nmap <Tab>k <C-o>zz
 
@@ -240,10 +268,6 @@ nmap <Leader>W :wq<CR>
 nmap <Leader>r :%s/\<<C-r><C-w>\>/<C-r><C-w>/g<Left><Left>
 
 " Spelling
-" ]s next misspelled word
-" [s previous misspelled word
-" zg add to dict
-" z= get suggestions
 noremap <Leader>sn ]s
 noremap <Leader>sp [s
 noremap <Leader>sa zg
@@ -251,9 +275,10 @@ noremap <Leader>su a<C-x>s
 noremap <Leader>ss :setlocal spell! spelllang=en_us<cr>
 
 " Command line
-cnoremap <C-A> <Home>
-cnoremap <C-F> <Right>
-cnoremap <C-B> <Left>
+cnoremap <C-a> <home>
+cnoremap <C-e> <end>
+cnoremap <C-f> <right>
+cnoremap <C-b> <left>
 
 ""
 "" Code formatting
