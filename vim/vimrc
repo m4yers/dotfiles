@@ -41,8 +41,8 @@ set rtp+=~/Development/Projects/dotfiles/vim/after
 set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
 " }}}
 " Settings {{{
+" Basic {{{
 
-" Basic
 set encoding=utf-8
 set backspace=indent,eol,start
 set completeopt=longest,menuone
@@ -59,8 +59,10 @@ set autoread
 set splitbelow
 set splitright
 
+" }}}
 " SnSnS {{{
 " Scroll n Search n Substitute
+
 set scrolloff=0
 set sidescroll=1
 set sidescrolloff=5
@@ -70,9 +72,10 @@ set smartcase
 set incsearch
 set showmatch
 set hlsearch
-" }}}
 
+" }}}
 " Special chars {{{
+
 set list
 set listchars=tab:▸\ ,extends:❯,precedes:❮
 " set listchars=tab:▸\ ,eol:¬,extends:❯,precedes:❮
@@ -82,14 +85,16 @@ if has("gui_running")
 else
     set fillchars=diff:⣿,vert:\|,fold:\ 
 endif
-" }}}
 
+" }}}
 " Folding {{{
+
 set foldlevelstart=99
 set foldminlines=1
-" }}}
 
+" }}}
 " Backup {{{
+
 "set nobackup
 "set nowritebackup
 "set noswapfile
@@ -108,9 +113,10 @@ endif
 if !isdirectory(expand(&directory))
     call mkdir(expand(&directory), "p")
 endif
-" }}}
 
+" }}}
 " Indentation {{{
+
 set wrap
 set autoindent
 set smartindent
@@ -118,9 +124,10 @@ set tabstop=4
 set softtabstop=4
 set shiftwidth=4
 set expandtab
-" }}}
 
+" }}}
 " View {{{
+
 syntax on
 set ruler
 set nonumber
@@ -136,17 +143,19 @@ if has("gui_running")
     set guioptions=gtm
     set visualbell t_vb="
 endif
-" }}}
 
+" }}}
 " Wildmenu {{{
+
 " When you type the first tab, it will complete as much as possible, the second
 " tab hit will provide a list, the third and subsequent tabs will cycle through
 " completion options so you can complete the file without further keys
 set wildmenu
 set wildmode=longest,list,full
-" }}}
 
+" }}}
 " Auto {{{
+
 augroup default_group
     au!
 
@@ -159,10 +168,11 @@ augroup default_group
         \     execute 'normal! g`"zvzz' |
         \ endif
 augroup END
-" }}}
 
 " }}}
+" }}}
 " Vim {{{
+
 augroup ft_vim
     au!
     au FileType vim setlocal keywordprg=:help
@@ -172,24 +182,31 @@ augroup ft_vim
     au BufWritePost .vimrc source $MYVIMRC
     au BufWinEnter *.txt if &ft == 'help' | wincmd H | endif
 augroup END
+
 " }}} Vim "
 " ActionScript {{{
+
 augroup ft_as3
     au!
     au BufRead,BufNewFile *.as set filetype=as3
 augroup END
+
 " }}}
 " C {{{
+
 augroup ft_c
     au!
     au FileType c setlocal foldmethod=syntax
 augroup END
+
 " "}}}
 " C++ {{{
+
 augroup ft_cpp
     au!
     au FileType cpp setlocal foldmethod=syntax
 augroup END
+
 " "}}}
 " Mappings {{{
 
@@ -295,10 +312,11 @@ cnoremap <C-b> <left>
 "
 " Buffer
 nmap <Leader>br :edit<CR>
+
 " }}}
 " Plugins {{{
+" Airline {{{
 
-" Airline
 if !exists('g:airline_symbols')
     let g:airline_symbols = {}
 endif
@@ -310,18 +328,23 @@ let g:airline#extensions#tabline#enabled = 1
 let g:airline#extensions#tabline#tab_nr_type = 1
 let g:airline#extensions#whitespace#show_message = 1
 
-" Syntastic
+" }}}
+" Syntastic {{{
+
 let g:syntastic_error_symbol = '✖'
 let g:syntastic_warning_symbol = '⚈'
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_cpp_include_dirs = ['/usr/local/Cellar/boost/1.57.0/include']
 
-"
-" EasyMotion
+" }}}
+" EasyMotion {{{
+
 nmap <Space> <Plug>(easymotion-s)
 
-" UltiSnips
+" }}}
+" UltiSnips {{{
+
 let g:snips_author = "Artyom Goncharov"
 let g:UltiSnipsSnippetDirectories = ["UltiSnips"]
 let g:UltiSnipsJumpBackwardTrigger = "<c-m>"
@@ -333,7 +356,9 @@ else
 endif
 "let g:UltiSnipsEditSplit="vertical"
 
-" YouCompleteMe
+" }}}
+" YouCompleteMe {{{
+
 let g:ycm_complete_in_comments = 1
 let g:ycm_autoclose_preview_window_after_completion = 1
 let g:ycm_goto_buffer_command = 'new-tab'
@@ -345,12 +370,14 @@ nmap <Leader>yd :YcmDebugInfo<CR>
 nmap <Leader>yt :YcmCompleter GetType<CR>
 nmap <Tab>j :YcmCompleter GoTo<CR>zz
 
-" TComment
+" }}}
+" TComment {{{
+
 " nnoremap <C-S-j> :TComment<cr>j
 " nnoremap <C-S-k> :TComment<cr>k
 
-"
-" FSwitch
+" }}}
+" FSwitch {{{
 nnoremap <Leader>jj :FSHere<cr>
 nnoremap <Leader>jr :FSSplitRight<cr>
 augroup vimrc
@@ -364,9 +391,10 @@ augroup vimrc
     au BufEnter *.h   let b:fswitchdst  = 'cpp,cc,c'
     au BufEnter *.h   let b:fswitchlocs = 'reg:/include/src/,reg:/Public/Private/,reg:/include.*/src/,../src'
 " augroup END
-"
-"
-" Autoformat
+
+" }}}
+" Autoformat {{{
+
 noremap <leader>ff :Autoformat<CR>
 
 " C
@@ -381,38 +409,44 @@ let g:formatters_cpp = ['astyle_cpp']
 let g:formatdef_astyle_cs = '"astyle --mode=cs --style=ansi --indent-namespaces -pcH".(&expandtab ? "s".&shiftwidth : "t")'
 let g:formatters_cs = ['astyle_cs']
 
-"
-" NERDTree
+" }}}
+" NERDTree {{{
+
 map <F2> :NERDTreeToggle<CR><C-w>=
 let NERDTreeWinSize = 30
 autocmd bufenter * if (winnr("$") == 1
     \ && exists("b:NERDTreeType")
     \ && b:NERDTreeType == "primary") | q | endif
 
-"
-" Tagbar
+" }}}
+" Tagbar {{{
+
 let g:tagbar_autofocus = 1
 let g:tagbar_width = 30
 
 map <F3> :TagbarToggle<CR><C-w>=
 
-"
-" Dash
+" }}}
+" Dash {{{
+
 nmap <silent> <Leader>d :Dash<CR>
 
-"
-" Git
+" }}}
+" Git {{{
+
 nmap <Leader>gs :Gstatus<CR>
 nmap <Leader>gc :Gcommit<CR>
 nmap <Leader>gb :Gblame<CR>
 nmap <Leader>gd :Gvdiff<CR>
 
-"
-" Instant Markdown
+" }}}
+" Instant Markdown {{{
+
 let g:instant_markdown_autostart = 0
 
-"
-" Sessions
+" }}}
+" Sessions {{{
+
 let g:session_default_overwrite = 0
 let g:session_autosave_periodic = 10
 let g:session_persist_colors    = 0
@@ -421,8 +455,11 @@ let g:session_autosave          = 'yes'
 let g:session_default_to_last   = 'yes'
 let g:session_directory         = '~/tmp/vim/sessions'
 
-"
-" Gruvbox
+" }}}
+" Gruvbox {{{
+
 let g:gruvbox_contrast_dark='medium'
 let g:gruvbox_contrast_light='medium'
+
+"}}}
 " }}}
