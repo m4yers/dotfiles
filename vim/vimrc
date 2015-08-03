@@ -179,6 +179,7 @@ augroup ft_vim
     au FileType vim nmap <buffer> <leader>d :help <C-r><C-w><CR>
     au FileType vim setlocal foldmethod=marker
     au FileType help setlocal textwidth=78
+    au FileType help nmap <silent><buffer> q :q<cr>
     au BufWritePost .vimrc source $MYVIMRC
     au BufWinEnter *.txt if &ft == 'help' | wincmd H | endif
 augroup END
