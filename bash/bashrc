@@ -16,3 +16,4 @@ fi
 alias sudo='sudo '
 alias ls='ls -G'
 alias ll='ls -lah'
+alias ggl='git log --graph --all --pretty --abbrev-commit --decorate'
