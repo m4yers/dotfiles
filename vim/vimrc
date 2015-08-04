@@ -32,6 +32,7 @@ Plugin 'suan/vim-instant-markdown'
 Plugin 'tomtom/tcomment_vim'
 Plugin 'xolox/vim-misc'
 Plugin 'xolox/vim-session'
+Plugin 'rking/ag.vim'
 Plugin 'rizzatti/dash.vim'
 
 call vundle#end()
