@@ -298,6 +298,10 @@ noremap <Leader>sa zg
 noremap <Leader>su a<C-x>s
 noremap <Leader>ss :setlocal spell! spelllang=en_us<cr>
 
+" Insert
+inoremap <C-a> <esc>I
+inoremap <C-e> <esc>A
+
 " Command line
 cnoremap <C-a> <home>
 cnoremap <C-e> <end>
