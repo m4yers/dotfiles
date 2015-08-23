@@ -218,6 +218,7 @@ let maplocalleader = "\\"
 
 " Hate hitting Esc
 inoremap kk <ESC>
+inoremap jk <ESC>
 cnoremap kk <C-c>
 
 " Toggles
@@ -292,11 +293,12 @@ nmap <Leader>W :wq<CR>
 nmap <Leader>r :%s/\<<C-r><C-w>\>/<C-r><C-w>/g<Left><Left>
 
 " Spelling
+nnoremap <F4> :setlocal spell! spelllang=en_us<cr>
+inoremap <F4> <esc>:setlocal spell! spelllang=en_us<cr>a
 noremap <Leader>sn ]s
 noremap <Leader>sp [s
 noremap <Leader>sa zg
 noremap <Leader>su a<C-x>s
-noremap <Leader>ss :setlocal spell! spelllang=en_us<cr>
 
 " Insert
 inoremap <C-a> <esc>I
