@@ -11,6 +11,8 @@ Plugin 'Lokaltog/vim-easymotion'
 Plugin 'kshenoy/vim-signature'
 Plugin 'Valloric/YouCompleteMe'
 Plugin 'rdnetto/YCM-Generator'
+Plugin 'marijnh/tern_for_vim'
+Plugin 'pangloss/vim-javascript'
 Plugin 'Chiel92/vim-autoformat'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
 Plugin 'justinmk/vim-syntax-extra'
@@ -194,6 +196,15 @@ augroup ft_as3
 augroup END
 
 " }}}
+" JavaScript {{{
+
+augroup ft_js
+    au!
+    au FileType javascript nmap <buffer> <Leader>yt :TernType<cr>
+    au FileType javascript nmap <buffer> <Tab>j :TernDef<cr>
+augroup END
+
+" }}}
 " C {{{
 
 augroup ft_c
@@ -371,6 +382,7 @@ let g:ycm_complete_in_comments = 1
 let g:ycm_autoclose_preview_window_after_completion = 1
 let g:ycm_goto_buffer_command = 'new-tab'
 let g:ycm_key_invoke_completion = ''
+let g:ycm_filetype_specific_completion_to_disable = {'javascript': 1}
 "let g:ycm_add_preview_to_completeopt = 0
 "let g:ycm_autoclose_preview_window_after_insertion = 1
 
