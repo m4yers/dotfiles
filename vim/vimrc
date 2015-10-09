@@ -208,6 +208,7 @@ augroup END
 " }}}
 " C {{{
 
+" TODO make todos settings nicier
 augroup ft_c
     au!
     au FileType c setlocal foldmethod=syntax
@@ -222,6 +223,8 @@ augroup END
 augroup ft_cpp
     au!
     au FileType cpp setlocal foldmethod=syntax
+    au FileType cpp syntax match __todo  "TODO.*$" | syntax match __fixme "FIXME.*$" | syntax match __shit  "SHIT.*$" | highlight __todo  guifg=#222222 guibg=#00875f ctermfg=0 ctermbg=29 | highlight __fixme guifg=#222222 guibg=#df5f00 ctermfg=0 ctermbg=166 | highlight __shit  guifg=#222222 guibg=#af0000 ctermfg=0 ctermbg=124
+    au FileType cpp syntax cluster cCommentGroup contains=__todo,__fixme,__shit
 augroup END
 
 " "}}}
