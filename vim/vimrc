@@ -227,8 +227,11 @@ augroup END
 augroup ft_cpp
     au!
     au FileType cpp setlocal foldmethod=syntax
-    au FileType cpp syntax match __todo  "TODO.*$" | syntax match __fixme "FIXME.*$" | syntax match __shit  "SHIT.*$" | highlight __todo  guifg=#222222 guibg=#00875f ctermfg=0 ctermbg=29 | highlight __fixme guifg=#222222 guibg=#df5f00 ctermfg=0 ctermbg=166 | highlight __shit  guifg=#222222 guibg=#af0000 ctermfg=0 ctermbg=124
-    au FileType cpp syntax cluster cCommentGroup contains=__todo,__fixme,__shit
+    au FileType c syntax match __todo  "TODO.*$"  | highlight __todo  guifg=#222222 guibg=#00875f ctermfg=0 ctermbg=29
+    au FileType c syntax match __hmm   "HMM.*$"   | highlight __hmm   guifg=#222222 guibg=#d3869b ctermfg=0 ctermbg=175
+    au FileType c syntax match __fixme "FIXME.*$" | highlight __fixme guifg=#222222 guibg=#df5f00 ctermfg=0 ctermbg=166
+    au FileType c syntax match __shit  "SHIT.*$"  | highlight __shit  guifg=#222222 guibg=#af0000 ctermfg=0 ctermbg=124
+    au FileType c syntax cluster cCommentGroup contains=__todo,__hmm,__fixme,__shit
 augroup END
 
 " "}}}
