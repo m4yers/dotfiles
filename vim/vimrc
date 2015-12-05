@@ -13,6 +13,7 @@ Plugin 'kshenoy/vim-signature'
 Plugin 'Valloric/YouCompleteMe'
 Plugin 'rdnetto/YCM-Generator'
 Plugin 'marijnh/tern_for_vim'
+Plugin 'rust-lang/rust.vim'
 Plugin 'pangloss/vim-javascript'
 Plugin 'Chiel92/vim-autoformat'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
@@ -247,6 +248,10 @@ nnoremap <Tab>k <C-o>zz
 if has("gui_running")
     nmap <Enter> o<Esc>
     nmap <S-Enter> O<Esc>
+    if has("gui_macvim")
+        nmap <Tab>n :macaction selectNextWindow:<cr>
+        nmap <Tab>p :macaction selectPreviousWindow:<cr>
+    endif
 else
     nmap <Enter> o<Esc>
     nmap ✠ O<Esc>
