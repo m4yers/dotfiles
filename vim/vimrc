@@ -185,6 +185,9 @@ augroup END
 let mapleader = ","
 let maplocalleader = "\\"
 
+"
+nnoremap <ESC> <ESC> \| :nohlsearch<cr>
+
 " Hate hitting Esc
 inoremap kk <ESC>
 inoremap jk <ESC>
@@ -458,6 +461,16 @@ map <leader>A :Ag! <C-R><C-W><CR>
 
 " }}}
 " }}}
+" Auto {{{
+" Global {{{
+
+augroup ft_all
+    au!
+    au InsertEnter * set timeoutlen=200
+    au InsertLeave * set timeoutlen=1000
+augroup END
+
+" "}}}
 " Vim {{{
 
 augroup ft_vim
@@ -530,4 +543,5 @@ augroup ft_cs
     au FileType cs syntax cluster csCommentHook contains=__todo,__hmm,__fixme,__shit
 augroup END
 
+" "}}}
 " "}}}
