@@ -7,7 +7,7 @@ set rtp+=~/.vim/bundle/Vundle.vim
 call vundle#begin()
 
 Plugin 'FSwitch'
-Plugin 'gmarik/Vundle.vim'
+Plugin 'VundleVim/Vundle.vim'
 Plugin 'Lokaltog/vim-easymotion'
 Plugin 'kshenoy/vim-signature'
 Plugin 'Valloric/YouCompleteMe'
@@ -18,9 +18,9 @@ Plugin 'pangloss/vim-javascript'
 Plugin 'Chiel92/vim-autoformat'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
 Plugin 'justinmk/vim-syntax-extra'
-Bundle 'solarnz/thrift.vim'
+Plugin 'solarnz/thrift.vim'
 Plugin 'PProvost/vim-ps1'
-Bundle 'wannesm/wmgraphviz.vim'
+Plugin 'wannesm/wmgraphviz.vim'
 Plugin 'kien/ctrlp.vim'
 Plugin 'tacahiroy/ctrlp-funky'
 Plugin 'scrooloose/syntastic'
@@ -185,8 +185,10 @@ augroup END
 let mapleader = ","
 let maplocalleader = "\\"
 
-"
-nnoremap <ESC> <ESC> \| :nohlsearch<cr>
+" Make Esc turn off search highlight
+if has("gui_running")
+    nnoremap <ESC> <ESC> \| :nohlsearch<cr>
+endif
 
 " Hate hitting Esc
 inoremap kk <ESC>
