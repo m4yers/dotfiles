@@ -487,6 +487,14 @@ augroup ft_vim
 augroup END
 
 " }}} Vim "
+" Helium {{{
+
+augroup ft_helium
+    au!
+    au BufRead,BufNewFile *.he set filetype=helium
+augroup END
+
+" }}}
 " ActionScript {{{
 
 augroup ft_as3
