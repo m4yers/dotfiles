@@ -247,6 +247,25 @@ nmap <C-j> <C-w>j
 nmap <C-k> <C-w>k
 nmap <C-l> <C-w>l
 
+" resizing
+if has("gui_macvim")
+    " i've already facepalmed on it, so do not bother ¯\_(ツ)_/¯
+    nnoremap ∆ <C-w>-
+    nnoremap ˚ <C-w>+
+    nnoremap ˙ <C-w><
+    nnoremap ¬ <C-w>>
+elseif has("unix")
+    nnoremap j <C-w>-
+    nnoremap k <C-w>+
+    nnoremap h <C-w><
+    nnoremap l <C-w>>
+else
+    nnoremap <M-j> <C-w>-
+    nnoremap <M-k> <C-w>+
+    nnoremap <M-h> <C-w><
+    nnoremap <M-l> <C-w>>
+endif
+
 " nmap <Tab>j <C-]>
 nnoremap <Tab>k <C-o>zz
 
