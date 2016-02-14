@@ -1,9 +1,17 @@
 priority 0
 
-snippet co "Start a block comment" b
+##
+## Comments
+snippet /* "comment block"
 /*
- * $1
- */$2
+ * ${0}
+ */
+endsnippet
+
+snippet /** "doc block"
+/**
+ * ${0}
+ */
 endsnippet
 
 snippet todo "//TODO ..."

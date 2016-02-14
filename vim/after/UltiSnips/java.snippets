@@ -1,0 +1,370 @@
+##
+## MUST haves
+snippet todo "//TODO ..."
+// TODO ${2:message}
+endsnippet
+
+snippet test "//TEST ..."
+// TEST ${2:message}
+endsnippet
+
+snippet hmm "//HMM ..."
+// HMM... ${2:message}
+endsnippet
+
+snippet fixme "//FIXME ..."
+// FIXME ${2:message}
+endsnippet
+
+snippet shit "//SHIT ..."
+// SHIT ${2:message}
+endsnippet
+
+snippet def "#define ..."
+#define ${1}
+endsnippet
+
+##
+## Access Modifiers
+snippet po
+protected ${0}
+endsnippet
+snippet pu
+public ${0}
+endsnippet
+snippet pr
+private ${0}
+endsnippet
+
+##
+## Annotations
+snippet before
+@Before
+static void ${1:intercept}(${2:args}) { ${0} }
+endsnippet
+snippet mm
+@ManyToMany
+${0}
+endsnippet
+snippet mo
+@ManyToOne
+${0}
+endsnippet
+snippet om
+@OneToMany${1:(cascade=CascadeType.ALL)}
+${0}
+endsnippet
+snippet oo
+@OneToOne
+${1}
+endsnippet
+
+##
+## Class
+snippet cl
+class ${1:`vim_snippets#Filename("$1", "untitled")`} ${0}
+endsnippet
+snippet pcl
+public class ${1:`vim_snippets#Filename("$1", "untitled")`} ${0}
+endsnippet
+snippet in
+interface ${1:`vim_snippets#Filename("$1", "untitled")`} ${2:extends Parent}
+endsnippet
+snippet tc
+public class ${1:`vim_snippets#Filename("$1")`} extends ${0:TestCase}
+endsnippet
+
+##
+## Class Enhancements
+snippet ext
+extends ${0}
+endsnippet
+snippet imp
+implements ${0}
+endsnippet
+
+##
+## Comments
+snippet /*
+/*
+ * ${0}
+ */
+endsnippet
+
+##
+## Javadocs
+snippet /**
+/**
+ * ${0}
+ */
+endsnippet
+snippet @au
+@author `system("grep \`id -un\` /etc/passwd | cut -d \":\" -f5 | cut -d \",\" -f1")`
+endsnippet
+snippet @br
+@brief ${0:Description}
+endsnippet
+snippet @fi
+@file ${0:`vim_snippets#Filename("$1")`}.java
+endsnippet
+snippet @pa
+@param ${0:param}
+endsnippet
+snippet @re
+@return ${0:param}
+endsnippet
+
+##
+## Constants
+snippet co
+static public final ${1:String} ${2:var} = ${3};
+endsnippet
+snippet cos
+static public final String ${1:var} = "${2}";
+endsnippet
+
+##
+## Control Statements
+snippet case
+case ${1}:
+${0}
+endsnippet
+snippet def
+default:
+${0}
+endsnippet
+snippet el
+else
+endsnippet
+snippet eif
+else if (${1}) ${0}
+endsnippet
+snippet if
+if (${1}) ${0}
+endsnippet
+snippet sw
+switch (${1}) {
+	${0}
+}
+endsnippet
+
+##
+## Create a Method
+snippet m
+${1:void} ${2:method}(${3}) ${4:throws }
+endsnippet
+
+##
+## Create a Variable
+snippet v
+${1:String} ${2:var}${3: = null}${4};
+endsnippet
+
+##
+## Declaration for ArrayList
+snippet d.al
+List<${1:Object}> ${2:list} = new ArrayList<$1>();${0}
+endsnippet
+## Declaration for HashMap
+snippet d.hm
+Map<${1:Object}, ${2:Object}> ${3:map} = new HashMap<$1, $2>();${0}
+endsnippet
+
+## Declaration for HashSet
+snippet d.hs
+Set<${1:Object}> ${2:set} = new HashSet<$1>();${0}
+endsnippet
+
+## Declaration for Stack
+snippet d.st
+Stack<${1:Object}> ${2:stack} = new Stack<$1>();${0}
+endsnippet
+
+##
+## Singleton Pattern
+snippet singlet
+private static class Holder {
+	private static final ${1:`vim_snippets#Filename("$1")`} INSTANCE = new $1();
+}
+
+private $1() { }
+
+public static $1 getInstance() {
+	return Holder.INSTANCE;
+}
+endsnippet
+
+##
+## Enhancements to Methods, variables, classes, etc.
+snippet ab
+abstract ${0}
+endsnippet
+snippet fi
+final ${0}
+endsnippet
+snippet st
+static ${0}
+endsnippet
+snippet sy
+synchronized ${0}
+endsnippet
+
+##
+## Error Methods
+snippet err
+System.err.print("${0:Message}");
+endsnippet
+snippet errf
+System.err.printf("${1:Message}", ${0:exception});
+endsnippet
+snippet errln
+System.err.println("${0:Message}");
+endsnippet
+
+##
+## Exception Handling
+snippet as
+assert ${1:test} : "${2:Failure message}";
+endsnippet
+snippet ae
+assertEquals("${1:Failure message}", ${2:expected}, ${3:actual});
+endsnippet
+snippet aae
+assertArrayEquals("${1:Failure message}", ${2:expecteds}, ${3:actuals});
+endsnippet
+snippet af
+assertFalse("${1:Failure message}", ${2:condition});
+endsnippet
+snippet at
+assertTrue("${1:Failure message}", ${2:condition});
+endsnippet
+snippet an
+assertNull("${1:Failure message}", ${2:object});
+endsnippet
+snippet ann
+assertNotNull("${1:Failure message}", ${2:object});
+endsnippet
+snippet ass
+assertSame("${1:Failure message}", ${2:expected}, ${3:actual});
+endsnippet
+snippet asns
+assertNotSame("${1:Failure message}", ${2:expected}, ${3:actual});
+endsnippet
+snippet fa
+fail("${1:Failure message}");
+endsnippet
+snippet ca
+catch(${1:Exception} ${2:e}) ${0}
+endsnippet
+snippet thr
+throw ${0}
+endsnippet
+snippet ths
+throws ${0}
+endsnippet
+snippet try
+try {
+	${0}
+} catch(${1:Exception} ${2:e}) {
+}
+snippet tryf
+try {
+	${0}
+} catch(${1:Exception} ${2:e}) {
+} finally {
+}
+endsnippet
+
+##
+## Find Methods
+snippet findall
+List<${1:listName}> ${2:items} = ${1}.findAll();
+snippet findbyid
+${1:var} ${2:item} = ${1}.findById(${3});
+endsnippet
+
+##
+## Logger Methods
+snippet debug
+Logger.debug(${1:param});
+endsnippet
+snippet error
+Logger.error(${1:param});
+endsnippet
+snippet info
+Logger.info(${1:param});
+endsnippet
+snippet warn
+Logger.warn(${1:param});
+endsnippet
+
+##
+## Loops
+snippet enfor
+for (${1} : ${2}) ${0}
+endsnippet
+snippet for
+for (${1}; ${2}; ${3}) ${0}
+endsnippet
+snippet wh
+while (${1}) ${0}
+endsnippet
+
+##
+## Main method
+snippet main
+public static void main (String[] args) {
+	${0}
+}
+endsnippet
+
+##
+## Print Methods
+snippet print
+System.out.print("${0:Message}");
+endsnippet
+snippet printf
+System.out.printf("${1:Message}", ${0:args});
+endsnippet
+snippet println
+System.out.println(${0});
+endsnippet
+snippet printlna
+System.out.println(Arrays.toString(${0}));
+endsnippet
+
+##
+## Setter and Getter Methods
+snippet set
+${1:public} void set${3:}(${2:String} ${0:}){
+	this.$4 = $4;
+}
+endsnippet
+snippet get
+${1:public} ${2:String} get${3:}(){
+	return this.${0:};
+}
+endsnippet
+
+##
+## Terminate Methods or Loops
+snippet re
+return ${0}
+endsnippet
+snippet br
+break;
+endsnippet
+
+##
+## Test Methods
+snippet t
+public void test${1:Name}() throws Exception {
+	${0}
+}
+endsnippet
+snippet test
+@Test
+public void test${1:Name}() throws Exception {
+	${0}
+}
+endsnippet
