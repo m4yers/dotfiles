@@ -575,4 +575,12 @@ augroup ft_cs
 augroup END
 
 " "}}}
+" Java {{{
+
+augroup ft_java
+    au!
+    au FileType java setlocal foldmethod=syntax
+augroup END
+
+" "}}}
 " "}}}
