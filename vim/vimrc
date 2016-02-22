@@ -427,6 +427,7 @@ let g:formatters_cs = ['astyle_cs']
 " }}}
 " NERDTree {{{
 
+nmap <Leader>nf :NERDTreeFind<cr>
 map <F2> :NERDTreeToggle<CR><C-w>=
 let NERDTreeWinSize = 30
 autocmd bufenter * if (winnr("$") == 1
