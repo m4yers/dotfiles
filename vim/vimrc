@@ -79,8 +79,11 @@ set sidescrolloff=5
 set ignorecase
 set smartcase
 set incsearch
-set showmatch
 set hlsearch
+
+" Show matching pairs
+set showmatch
+set matchtime=5
 
 " }}}
 " Special chars {{{
@@ -201,10 +204,13 @@ cnoremap kk <C-c>
 " Mnemonic: t - toggle, turn on/off
 nnoremap <leader>tn :setlocal number!<cr>
 nnoremap <leader>ti :setlocal list!<cr>
-nnoremap <Leader>th :setlocal hlsearch!<cr>
+nnoremap <leader>th :setlocal hlsearch!<cr>
 
 " Uppercasing
 inoremap <C-f>u <esc>gUiwea
+inoremap <C-f>l <esc>guiwea
+nnoremap <C-f>u gUiw
+nnoremap <C-f>l guiw
 
 " Movement
 noremap j gj
