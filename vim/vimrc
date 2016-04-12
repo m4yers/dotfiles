@@ -327,6 +327,11 @@ cnoremap <C-b> <left>
 nnoremap <Leader>br :edit<CR>
 
 " }}}
+" Abbreviations {{{
+
+iabbrev @@ m4yers@gmail.com
+
+" }}}
 " Plugins {{{
 " Airline {{{
 
