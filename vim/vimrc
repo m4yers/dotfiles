@@ -219,10 +219,10 @@ noremap gj j
 noremap gk k
 
 " Jumps
-nmap J 5j
-nmap K 5k
-xmap J 5j
-xmap K 5k
+nnoremap J 5j
+nnoremap K 5k
+xnoremap J 5j
+xnoremap K 5k
 
 " Changes
 nnoremap g; g;zz
@@ -230,30 +230,30 @@ nnoremap g, g,zz
 nnoremap gI '.
 
 " Tabs
-map <Tab>t :tabnew<CR>
-map <Tab>l :tabnext<CR>
-map <Tab>h :tabprevious<CR>
-map <Tab>1 :tabnext1<CR>
-map <Tab>2 :tabnext2<CR>
-map <Tab>3 :tabnext3<CR>
-map <Tab>4 :tabnext4<CR>
-map <Tab>5 :tabnext5<CR>
-map <Tab>6 :tabnext6<CR>
-map <Tab>7 :tabnext7<CR>
-map <Tab>8 :tabnext8<CR>
-map <Tab>9 :tabnext9<CR>
-map <Tab>0 :tabnext10<CR>
+nnoremap <Tab>t :tabnew<CR>
+nnoremap <Tab>l :tabnext<CR>
+nnoremap <Tab>h :tabprevious<CR>
+nnoremap <Tab>1 :tabnext1<CR>
+nnoremap <Tab>2 :tabnext2<CR>
+nnoremap <Tab>3 :tabnext3<CR>
+nnoremap <Tab>4 :tabnext4<CR>
+nnoremap <Tab>5 :tabnext5<CR>
+nnoremap <Tab>6 :tabnext6<CR>
+nnoremap <Tab>7 :tabnext7<CR>
+nnoremap <Tab>8 :tabnext8<CR>
+nnoremap <Tab>9 :tabnext9<CR>
+nnoremap <Tab>0 :tabnext10<CR>
 
 " Splits
-nmap <Tab>e :vsplit<CR>
-nmap <Tab>o :split<CR>
-nmap <Tab>d :bdelete<CR>
+nnoremap <Tab>e :vsplit<CR>
+nnoremap <Tab>o :split<CR>
+nnoremap <Tab>d :bdelete<CR>
 
 " Buffers and Windows
-nmap <C-h> <C-w>h
-nmap <C-j> <C-w>j
-nmap <C-k> <C-w>k
-nmap <C-l> <C-w>l
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
 
 " resizing
 if has("gui_macvim")
@@ -279,23 +279,23 @@ nnoremap <Tab>k <C-o>zz
 
 " Padding
 if has("gui_running")
-    nmap <Enter> o<Esc>
-    nmap <S-Enter> O<Esc>
+    nnoremap <Enter> o<Esc>
+    nnoremap <S-Enter> O<Esc>
     if has("gui_macvim")
-        nmap <Tab>n :macaction selectNextWindow:<cr>
-        nmap <Tab>p :macaction selectPreviousWindow:<cr>
+        nnoremap <Tab>n :macaction selectNextWindow:<cr>
+        nnoremap <Tab>p :macaction selectPreviousWindow:<cr>
     endif
 else
-    nmap <Enter> o<Esc>
-    nmap ✠ O<Esc>
+    nnoremap <Enter> o<Esc>
+    nnoremap ✠ O<Esc>
 endif
 
 " Saving
-nmap <Leader>w :write<CR>
-nmap <Leader>W :wq<CR>
+nnoremap <Leader>w :write<CR>
+nnoremap <Leader>W :wq<CR>
 
 " Replace
-nmap <Leader>r :%s/\<<C-r><C-w>\>/<C-r><C-w>/g<Left><Left>
+nnoremap <Leader>r :%s/\<<C-r><C-w>\>/<C-r><C-w>/g<Left><Left>
 
 " Spelling
 nnoremap <F4> :setlocal spell! spelllang=en_us<cr>
@@ -324,7 +324,7 @@ cnoremap <C-b> <left>
 
 "
 " Buffer
-nmap <Leader>br :edit<CR>
+nnoremap <Leader>br :edit<CR>
 
 " }}}
 " Plugins {{{
