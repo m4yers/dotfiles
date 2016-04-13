@@ -352,9 +352,6 @@ let g:airline#extensions#tabline#enabled = 1
 let g:airline#extensions#tabline#tab_nr_type = 1
 let g:airline#extensions#whitespace#show_message = 1
 
-" redraw screen after source .vimrc
-AirlineRefresh
-
 " }}}
 " Syntastic {{{
 
@@ -536,7 +533,7 @@ augroup ft_vim
     au FileType vim setlocal foldmethod=marker
     au FileType help setlocal textwidth=78
     au FileType help nmap <silent><buffer> q :q<cr>
-    au BufWritePost *vimrc source $MYVIMRC
+    au BufWritePost *vimrc source $MYVIMRC | AirlineRefresh
     au BufWinEnter *.txt if &ft == 'help' | wincmd L | endif
 augroup END
 
