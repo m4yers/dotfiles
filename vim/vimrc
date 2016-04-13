@@ -346,6 +346,9 @@ let g:airline#extensions#tabline#enabled = 1
 let g:airline#extensions#tabline#tab_nr_type = 1
 let g:airline#extensions#whitespace#show_message = 1
 
+" redraw screen after source .vimrc
+AirlineRefresh
+
 " }}}
 " Syntastic {{{
 
@@ -605,6 +608,16 @@ augroup ft_java
     au!
     au FileType java setlocal foldmethod=syntax
 augroup END
+
+" "}}}
+" "}}}
+" Other {{{
+" RU {{{
+
+set keymap=russian-jcukenwin
+set iminsert=0
+set imsearch=0
+highlight lCursor guifg=NONE guibg=Cyan
 
 " "}}}
 " "}}}
