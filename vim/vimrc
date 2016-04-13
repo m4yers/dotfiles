@@ -339,6 +339,12 @@ if !exists('g:airline_symbols')
     let g:airline_symbols = {}
 endif
 
+function! AirlineInit()
+    let g:airline_section_a = airline#section#create(['mode', ' ', 'iminsert'])
+endfunction
+autocmd User AirlineAfterInit call AirlineInit()
+
+let g:airline_detect_iminsert=1
 let g:airline_powerline_fonts = 1
 let g:airline_symbols.linenr = 'LN'
 let g:airline_detect_paste = 0
@@ -615,6 +621,7 @@ augroup END
 " RU {{{
 
 set keymap=russian-jcukenwin
+
 set iminsert=0
 set imsearch=0
 highlight lCursor guifg=NONE guibg=Cyan
