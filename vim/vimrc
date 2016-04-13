@@ -167,22 +167,6 @@ set wildmenu
 set wildmode=longest,list,full
 
 " }}}
-" Auto {{{
-
-augroup default_group
-    au!
-
-    " Save when losing focus, TODO: make it work in iTerm
-    au FocusLost * :silent! wall
-
-    " Make sure Vim returns to the same line when you reopen a file.
-    au BufReadPost *
-        \ if line("'\"") > 0 && line("'\"") <= line("$") |
-        \     execute 'normal! g`"zvzz' |
-        \ endif
-augroup END
-
-" }}}
 " }}}
 " Mappings {{{
 
@@ -322,10 +306,6 @@ cnoremap <C-b> <left>
 "" line
 "nmap <Leader>fl gqgq
 
-"
-" Buffer
-nnoremap <Leader>br :edit<CR>
-
 " }}}
 " Abbreviations {{{
 
@@ -342,12 +322,16 @@ endif
 function! AirlineInit()
     let g:airline_section_a = airline#section#create(['mode', ' ', 'iminsert'])
 endfunction
-autocmd User AirlineAfterInit call AirlineInit()
 
-let g:airline_detect_iminsert=1
+augroup pl_Airline
+    au!
+    au User AirlineAfterInit call AirlineInit()
+augroup END
+
+let g:airline_detect_iminsert = 1
+let g:airline_detect_paste = 0
 let g:airline_powerline_fonts = 1
 let g:airline_symbols.linenr = 'LN'
-let g:airline_detect_paste = 0
 let g:airline#extensions#tabline#enabled = 1
 let g:airline#extensions#tabline#tab_nr_type = 1
 let g:airline#extensions#whitespace#show_message = 1
@@ -412,9 +396,11 @@ nmap <Tab>j :YcmCompleter GoTo<CR>zz
 
 " }}}
 " FSwitch {{{
+
 nnoremap <Leader>jj :FSHere<cr>
 nnoremap <Leader>jr :FSSplitRight<cr>
-augroup vimrc
+
+augroup pl_FSwitch
     au!
     au BufEnter *.cpp let b:fswitchdst  = 'hpp,h'
     au BufEnter *.cpp let b:fswitchlocs = 'reg:/src/include/,reg:/Private/Public/,reg:|src|include/**|,../include'
@@ -426,7 +412,7 @@ augroup vimrc
     au BufEnter *.h   let b:fswitchlocs = 'reg:/include/src/,reg:/Public/Private/,reg:/include.*/src/,../src'
     au BufEnter *.m   let b:fswitchdst  = 'h'
     au BufEnter *.m   let b:fswitchlocs = 'reg:/src/include/,reg:/Private/Public/,reg:|src|include/**|,../include'
-" augroup END
+augroup END
 
 " }}}
 " Autoformat {{{
@@ -448,12 +434,16 @@ let g:formatters_cs = ['astyle_cs']
 " }}}
 " NERDTree {{{
 
-nmap <Leader>nf :NERDTreeFind<cr>
-map <F2> :NERDTreeToggle<CR><C-w>=
 let NERDTreeWinSize = 30
+
+nnoremap <Leader>nf :NERDTreeFind<cr>
+nnoremap <F2> :NERDTreeToggle<CR><C-w>=
+
+augroup pl_NERDTree
 autocmd bufenter * if (winnr("$") == 1
     \ && exists("b:NERDTreeType")
     \ && b:NERDTreeType == "primary") | q | endif
+augroup END
 
 " }}}
 " Tagbar {{{
@@ -461,20 +451,20 @@ autocmd bufenter * if (winnr("$") == 1
 let g:tagbar_autofocus = 1
 let g:tagbar_width = 30
 
-map <F3> :TagbarToggle<CR><C-w>=
+noremap <F3> :TagbarToggle<CR><C-w>=
 
 " }}}
 " Dash {{{
 
-nmap <silent> <Leader>d :Dash<CR>
+nnoremap <silent> <Leader>d :Dash<CR>
 
 " }}}
 " Git {{{
 
-nmap <Leader>gs :Gstatus<CR>
-nmap <Leader>gc :Gcommit<CR>
-nmap <Leader>gb :Gblame<CR>
-nmap <Leader>gd :Gvdiff<CR>
+nnoremap <Leader>gs :Gstatus<CR>
+nnoremap <Leader>gc :Gcommit<CR>
+nnoremap <Leader>gb :Gblame<CR>
+nnoremap <Leader>gd :Gvdiff<CR>
 
 " }}}
 " Instant Markdown {{{
@@ -501,12 +491,28 @@ let g:gruvbox_contrast_light='medium'
 "}}}
 " Ag {{{
 
-map <leader>a :Ag!<space>
-map <leader>A :Ag! <C-R><C-W><CR>
+nnoremap <leader>a :Ag!<space>
+nnoremap <leader>A :Ag! <C-R><C-W><CR>
 
 " }}}
 " }}}
 " Auto {{{
+" Default {{{
+
+augroup au_Default
+    au!
+
+    " Save when losing focus, TODO: make it work in iTerm
+    au FocusLost * :silent! wall
+
+    " Make sure Vim returns to the same line when you reopen a file.
+    au BufReadPost *
+        \ if line("'\"") > 0 && line("'\"") <= line("$") |
+        \     execute 'normal! g`"zvzz' |
+        \ endif
+augroup END
+
+" }}}
 " Global {{{
 
 augroup ft_all
