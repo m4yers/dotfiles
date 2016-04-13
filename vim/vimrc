@@ -510,6 +510,14 @@ augroup ft_all
 augroup END
 
 " "}}}
+" Markdown {{{
+
+augroup ft_markdown
+    au!
+    au FileType markdown nnoremap <buffer> <localleader>v :InstantMarkdownPreview<cr>
+augroup END
+
+" "}}}
 " Vim {{{
 
 augroup ft_vim
