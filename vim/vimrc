@@ -546,13 +546,16 @@ augroup END
 
 augroup ft_vim
     autocmd!
+
     autocmd FileType vim setlocal keywordprg=:help
-    autocmd FileType vim nmap <buffer> <leader>d :help <C-r><C-w><cr>
     autocmd FileType vim setlocal foldmethod=marker
+    autocmd FileType vim nmap <buffer> <leader>d :help <C-r><C-w><cr>
+
     autocmd FileType help setlocal textwidth=78
     autocmd FileType help nmap <silent><buffer> q :q<cr>
+
     autocmd BufWritePost *vimrc source $MYVIMRC | AirlineRefresh
-    autocmd BufWinEnter *.txt if &ft == 'help' | wincmd L | endif
+    autocmd BufWinEnter *.txt if &filetype == 'help' | wincmd L | endif
 augroup END
 
 " }}}
