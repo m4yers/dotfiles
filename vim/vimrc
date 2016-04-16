@@ -221,6 +221,10 @@ nnoremap g, g,zz
 " last position of the last change
 nnoremap gI '.
 
+" Search
+nnoremap / /\v
+nnoremap ? ?\v
+
 " Tabs
 nnoremap <tab>t :tabnew<cr>
 nnoremap <tab>l :tabnext<cr>
@@ -381,13 +385,13 @@ let g:ycm_complete_in_comments = 1
 let g:ycm_autoclose_preview_window_after_completion = 1
 let g:ycm_goto_buffer_command = 'new-tab'
 let g:ycm_key_invoke_completion = ''
-let g:ycm_filetype_specific_completion_to_disable = {'java': 1}
+let g:ycm_filetype_specific_completion_to_disable = {'java': 1, 'help': 1}
 "let g:ycm_add_preview_to_completeopt = 0
 "let g:ycm_autoclose_preview_window_after_insertion = 1
 
-nmap <leader>yd :YcmDebugInfo<cr>
-nmap <leader>yt :YcmCompleter GetType<cr>
-nmap <tab>j :YcmCompleter GoTo<cr>zz
+nnoremap <leader>yd :YcmDebugInfo<cr>
+nnoremap <leader>yt :YcmCompleter GetType<cr>
+nnoremap <tab>j :YcmCompleter GoTo<cr>zz
 
 " }}}
 " TComment {{{
@@ -552,7 +556,8 @@ augroup ft_vim
     autocmd FileType vim nmap <buffer> <leader>d :help <C-r><C-w><cr>
 
     autocmd FileType help setlocal textwidth=78
-    autocmd FileType help nmap <silent><buffer> q :q<cr>
+    autocmd FileType help nnoremap <silent><buffer> q :q<cr>
+    autocmd FileType help nnoremap <tab>j <c-]>
 
     autocmd BufWritePost *vimrc source $MYVIMRC | AirlineRefresh
     autocmd BufWinEnter *.txt if &filetype == 'help' | wincmd L | endif
