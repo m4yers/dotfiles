@@ -143,6 +143,8 @@ set expandtab
 syntax on
 set ruler
 set nonumber
+set relativenumber
+set numberwidth=2
 set showcmd
 set cursorline
 set t_Co=256
@@ -186,7 +188,7 @@ cnoremap kk <C-c>
 
 " Toggles
 " Mnemonic: t - toggle, turn on/off
-nnoremap <leader>tn :setlocal number!<cr>
+nnoremap <leader>tn :setlocal relativenumber!<cr>
 nnoremap <leader>ti :setlocal list!<cr>
 nnoremap <leader>th :setlocal hlsearch!<cr>
 
@@ -503,9 +505,9 @@ nnoremap <leader>A :Ag! <C-R><C-W><cr>
 " }}}
 " }}}
 " Auto {{{
-" Default {{{
+" Global {{{
 
-augroup au_Default
+augroup au_global
     autocmd!
 
     " Save when losing focus, TODO: make it work in iTerm
@@ -516,15 +518,20 @@ augroup au_Default
         \ if line("'\"") > 0 && line("'\"") <= line("$") |
         \     execute 'normal! g`"zvzz' |
         \ endif
+
+    autocmd InsertEnter * set timeoutlen=200
+    autocmd InsertLeave * set timeoutlen=1000
 augroup END
 
 " }}}
-" Global {{{
+" Quickfix {{{
 
-augroup ft_all
+augroup ft_quickfix
     autocmd!
-    autocmd InsertEnter * set timeoutlen=200
-    autocmd InsertLeave * set timeoutlen=1000
+    autocmd FileType qf nnoremap <buffer> <Enter> :.cc<cr>
+    autocmd FileType qf nnoremap <buffer> q :q<cr>
+    autocmd FileType qf nnoremap <buffer> n :cnext<cr>
+    autocmd FileType qf nnoremap <buffer> p :cprevious<cr>
 augroup END
 
 " }}}
