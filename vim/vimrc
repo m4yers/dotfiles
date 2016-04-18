@@ -43,6 +43,8 @@ Plugin 'xolox/vim-session'
 Plugin 'rking/ag.vim'
 Plugin 'rizzatti/dash.vim'
 
+" Plugin 'file:///Users/agoncharov/Development/Projects/vim-potion'
+
 call vundle#end()
 filetype plugin indent on
 
@@ -199,16 +201,16 @@ nnoremap <C-f>u gUiw
 nnoremap <C-f>l guiw
 
 " Movement
-noremap j gj
-noremap k gk
-noremap gj j
-noremap gk k
+" nnoremap j gj
+" nnoremap k gk
+" nnoremap gj j
+" nnoremap gk k
 
 " Jumps
-nnoremap J 5j
-nnoremap K 5k
-xnoremap J 5j
-xnoremap K 5k
+nmap J 5j
+nmap K 5k
+xmap J 5j
+xmap K 5k
 
 " jump back
 nnoremap gp <c-o>zz
