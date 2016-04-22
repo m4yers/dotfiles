@@ -6,33 +6,42 @@ filetype off                  " required
 set rtp+=~/.vim/bundle/Vundle.vim
 call vundle#begin()
 
-Plugin 'FSwitch'
 Plugin 'VundleVim/Vundle.vim'
-" Plugin 'ryanoasis/vim-devicons'
-Plugin 'Lokaltog/vim-easymotion'
+
+" Switching between companion files (e.g. .h and .cpp files)
+Plugin 'FSwitch'
+
+" Place, toggle and display marks.
 Plugin 'kshenoy/vim-signature'
+
 Plugin 'Valloric/YouCompleteMe'
 Plugin 'rdnetto/YCM-Generator'
-Plugin 'marijnh/tern_for_vim'
 Plugin 'rust-lang/rust.vim'
 Plugin 'Xe/lolcode.vim'
-Plugin 'pangloss/vim-javascript'
+
+" JavaScript
+Plugin 'othree/yajs.vim'
+Plugin 'othree/javascript-libraries-syntax.vim'
+Plugin 'elzr/vim-json'
+
 Plugin 'Chiel92/vim-autoformat'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
 Plugin 'tfnico/vim-gradle'
+
+" Vim syntax highlighting for c, bison, flex
 Plugin 'justinmk/vim-syntax-extra'
+
+" A thrift syntax plugin for vim
 Plugin 'solarnz/thrift.vim'
+
 Plugin 'PProvost/vim-ps1'
 Plugin 'wannesm/wmgraphviz.vim'
-Plugin 'kien/ctrlp.vim'
 Plugin 'tacahiroy/ctrlp-funky'
 Plugin 'scrooloose/syntastic'
 Plugin 'scrooloose/nerdtree'
 Plugin 'SirVer/ultisnips'
 Plugin 'honza/vim-snippets'
-Plugin 'bling/vim-airline'
 Plugin 'Raimondi/delimitMate'
-Plugin 'morhetz/gruvbox'
 Plugin 'tpope/vim-fugitive'
 Plugin 'tpope/vim-git'
 Plugin 'majutsushi/tagbar'
@@ -41,9 +50,14 @@ Plugin 'tomtom/tcomment_vim'
 Plugin 'xolox/vim-misc'
 Plugin 'xolox/vim-session'
 Plugin 'rking/ag.vim'
-Plugin 'rizzatti/dash.vim'
 
-" Plugin 'file:///Users/agoncharov/Development/Projects/vim-potion'
+" Fuzzy file, buffer, mru, tag, ... finder for Vim
+Plugin 'ctrlpvim/ctrlp.vim'
+Plugin 'bling/vim-airline'
+
+Plugin 'morhetz/gruvbox'
+
+Plugin 'rizzatti/dash.vim'
 
 call vundle#end()
 filetype plugin indent on
@@ -156,7 +170,7 @@ colorscheme gruvbox
 
 if has("gui_running")
     " https://github.com/abertsch/Menlo-for-Powerline
-    set guifont=Menlo\ For\ Powerline:h12
+    set guifont=Menlo\ for\ Powerline:h12
     set guioptions=gtm
     set visualbell t_vb="
 endif
@@ -352,7 +366,7 @@ let g:syntastic_error_symbol = '✖'
 let g:syntastic_warning_symbol = '⚈'
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
-let g:syntastic_cpp_include_dirs = ['/usr/local/Cellar/boost/1.57.0/include']
+let g:syntastic_javascript_checkers = ['eslint']
 
 " }}}
 " CtrlP {{{
@@ -496,7 +510,7 @@ let g:session_directory         = '~/tmp/vim/sessions'
 " Gruvbox {{{
 
 let g:gruvbox_contrast_dark='medium'
-let g:gruvbox_contrast_light='medium'
+" let g:gruvbox_contrast_light='hard'
 
 "}}}
 " Ag {{{
@@ -586,15 +600,6 @@ augroup END
 augroup ft_as3
     autocmd!
     autocmd BufRead,BufNewFile *.as set filetype=as3
-augroup END
-
-" }}}
-" JavaScript {{{
-
-augroup ft_js
-    autocmd!
-    autocmd FileType javascript nmap <buffer> <leader>yt :TernType<cr>
-    autocmd FileType javascript nmap <buffer> <tab>j :TernDef<cr>
 augroup END
 
 " }}}
