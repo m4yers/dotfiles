@@ -63,6 +63,7 @@ call vundle#end()
 filetype plugin indent on
 
 set rtp+=~/Development/Projects/dotfiles/vim/after
+set rtp+=~/Development/Projects/vim-camel
 set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
 
 " }}}
@@ -107,12 +108,8 @@ set matchtime=5
 set list
 set listchars=tab:▸\ ,extends:❯,precedes:❮
 " set listchars=tab:▸\ ,eol:¬,extends:❯,precedes:❮
+set fillchars=diff:⣿,vert:│
 set showbreak=↪
-if has("gui_running")
-    set fillchars=diff:⣿,vert:│,fold:\ 
-else
-    set fillchars=diff:⣿,vert:\|,fold:\ 
-endif
 
 " }}}
 " Folding {{{
@@ -367,6 +364,10 @@ let g:syntastic_warning_symbol = '⚈'
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_javascript_checkers = ['eslint']
+let g:syntastic_python_checkers = ['flake8']
+let g:syntastic_python_flake8_args = '--max-line-length=80 ' .
+            \ '--max-complexity=10 --ignore=E111,E114,E121,E125,E126,E127,E128,E129,' .
+            \ 'E131,E133,E201,E202,E203,E211,E221,E222,E241,E251,E261,E303,E402,W503'
 
 " }}}
 " CtrlP {{{
@@ -454,6 +455,11 @@ let g:formatters_cpp = ['astyle_cpp']
 let g:formatdef_astyle_cs = '"astyle --mode=cs --style=ansi --indent-namespaces -pcH".(&expandtab ? "s".&shiftwidth : "t")'
 let g:formatters_cs = ['astyle_cs']
 
+" Python
+let g:formatdef_autopep8 = '"autopep8 - --max-line-length=80 --indent-size=2 ' .
+            \ '--ignore=E111,E121,E125,E126,E127,E128,E129,E131,E133,' .
+            \ 'E201,E202,E203,E211,E221,E222,E241,E251,E261,E303,E402,W503"'
+
 " }}}
 " NERDTree {{{
 
@@ -465,8 +471,8 @@ nnoremap <F2> :NERDTreeToggle<cr><C-w>=
 augroup pl_NERDTree
     autocmd!
     autocmd bufenter * if (winnr("$") == 1
-        \ && exists("b:NERDTreeType")
-        \ && b:NERDTreeType == "primary") | q | endif
+                \ && exists("b:NERDTreeType")
+                \ && b:NERDTreeType == "primary") | q | endif
 augroup END
 
 " }}}
@@ -531,9 +537,9 @@ augroup au_global
 
     " Make sure Vim returns to the same line when you reopen a file.
     autocmd BufReadPost *
-        \ if line("'\"") > 0 && line("'\"") <= line("$") |
-        \     execute 'normal! g`"zvzz' |
-        \ endif
+                \ if line("'\"") > 0 && line("'\"") <= line("$") |
+                \     execute 'normal! g`"zvzz' |
+                \ endif
 
     autocmd InsertEnter * set timeoutlen=200
     autocmd InsertLeave * set timeoutlen=1000
@@ -556,6 +562,17 @@ augroup END
 augroup ft_markdown
     autocmd!
     autocmd FileType markdown nnoremap <buffer> <localleader>v :InstantMarkdownPreview<cr>
+augroup END
+
+" }}}
+" Python {{{
+
+augroup ft_python
+    autocmd!
+    autocmd FileType python
+                \ setlocal tabstop=2 |
+                \ setlocal shiftwidth=2 |
+                \ setlocal softtabstop=2
 augroup END
 
 " }}}
