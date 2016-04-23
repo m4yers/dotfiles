@@ -14,8 +14,11 @@ Plugin 'FSwitch'
 " Place, toggle and display marks.
 Plugin 'kshenoy/vim-signature'
 
+" Static, Semantic analysys
 Plugin 'Valloric/YouCompleteMe'
 Plugin 'rdnetto/YCM-Generator'
+Plugin 'scrooloose/syntastic'
+
 Plugin 'rust-lang/rust.vim'
 Plugin 'Xe/lolcode.vim'
 
@@ -28,35 +31,51 @@ Plugin 'Chiel92/vim-autoformat'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
 Plugin 'tfnico/vim-gradle'
 
-" Vim syntax highlighting for c, bison, flex
+" Python
+Plugin 'python.vim'
+
+" C, Bison, Flex syntax
 Plugin 'justinmk/vim-syntax-extra'
 
-" A thrift syntax plugin for vim
+" Thrift syntax
 Plugin 'solarnz/thrift.vim'
 
+" PowerShell syntax
 Plugin 'PProvost/vim-ps1'
+
+" Graphwiz Support
 Plugin 'wannesm/wmgraphviz.vim'
-Plugin 'tacahiroy/ctrlp-funky'
-Plugin 'scrooloose/syntastic'
-Plugin 'scrooloose/nerdtree'
+Plugin 'Raimondi/delimitMate'
+
+" Snippets
 Plugin 'SirVer/ultisnips'
 Plugin 'honza/vim-snippets'
-Plugin 'Raimondi/delimitMate'
+
+" Git
 Plugin 'tpope/vim-fugitive'
 Plugin 'tpope/vim-git'
+
+" Support windows
+Plugin 'tacahiroy/ctrlp-funky'
+Plugin 'scrooloose/nerdtree'
 Plugin 'majutsushi/tagbar'
+
 Plugin 'suan/vim-instant-markdown'
 Plugin 'tomtom/tcomment_vim'
 Plugin 'xolox/vim-misc'
 Plugin 'xolox/vim-session'
+
+" AG search integration
 Plugin 'rking/ag.vim'
 
 " Fuzzy file, buffer, mru, tag, ... finder for Vim
 Plugin 'ctrlpvim/ctrlp.vim'
 Plugin 'bling/vim-airline'
 
+" Colors
 Plugin 'morhetz/gruvbox'
 
+" Dash integration
 Plugin 'rizzatti/dash.vim'
 
 call vundle#end()
