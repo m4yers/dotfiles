@@ -329,7 +329,7 @@ cnoremap <C-b> <left>
 " }}}
 " Abbreviations {{{
 
-iabbrev @@ m4yers@gmail.com
+" iabbrev @@ m4yers@gmail.com
 
 " }}}
 " Plugins {{{
