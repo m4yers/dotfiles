@@ -11,6 +11,8 @@ Plugin 'VundleVim/Vundle.vim'
 " Switching between companion files (e.g. .h and .cpp files)
 Plugin 'FSwitch'
 
+Plugin 'easymotion/vim-easymotion'
+
 " Place, toggle and display marks.
 Plugin 'kshenoy/vim-signature'
 
@@ -398,11 +400,6 @@ let g:syntastic_python_flake8_args = '--max-line-length=80 ' .
 let g:ctrlp_funky_matchtype = 'path'
 let g:ctrlp_funky_syntax_highlight = 1
 nnoremap <C-o> :CtrlPFunky<Cr>
-
-" }}}
-" EasyMotion {{{
-
-nnoremap <space> <plug>(easymotion-s)
 
 " }}}
 " UltiSnips {{{
