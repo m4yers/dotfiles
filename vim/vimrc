@@ -16,6 +16,7 @@ Plugin 'rdnetto/YCM-Generator'
 Plugin 'marijnh/tern_for_vim'
 Plugin 'rust-lang/rust.vim'
 Plugin 'Xe/lolcode.vim'
+Plugin 'OrangeT/vim-csharp'
 Plugin 'pangloss/vim-javascript'
 Plugin 'Chiel92/vim-autoformat'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
@@ -43,7 +44,7 @@ Plugin 'xolox/vim-session'
 Plugin 'rking/ag.vim'
 Plugin 'rizzatti/dash.vim'
 
-" Plugin 'file:///Users/agoncharov/Development/Projects/vim-potion'
+Plugin 'file:///Users/agoncharov/Development/Projects/vim-potion'
 
 call vundle#end()
 filetype plugin indent on
