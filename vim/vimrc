@@ -491,6 +491,9 @@ let NERDTreeWinSize = 30
 nnoremap <leader>nf :NERDTreeFind<cr>
 nnoremap <F2> :NERDTreeToggle<cr><C-w>=
 
+" make sure relative line numbers are used
+autocmd FileType nerdtree setlocal relativenumber
+
 augroup pl_NERDTree
     autocmd!
     autocmd bufenter * if (winnr("$") == 1
