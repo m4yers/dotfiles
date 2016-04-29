@@ -31,6 +31,7 @@ Plugin 'OrangeT/vim-csharp'
 Plugin 'othree/yajs.vim'
 Plugin 'othree/javascript-libraries-syntax.vim'
 Plugin 'elzr/vim-json'
+Plugin 'wavded/vim-stylus'
 
 Plugin 'Chiel92/vim-autoformat'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
