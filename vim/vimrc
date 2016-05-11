@@ -691,12 +691,12 @@ augroup ft_cs
     autocmd FileType cs syntax match __shit  "SHIT.*$"  | highlight __shit  guifg=#222222 guibg=#af0000 ctermfg=0 ctermbg=124
     autocmd FileType cs syntax cluster csCommentHook contains=__todo,__hmm,__fixme,__shit
 
-    autocmd FileType python
+    autocmd FileType cs
                 \ setlocal tabstop=4         |
                 \ setlocal shiftwidth=4      |
                 \ setlocal softtabstop=4     |
                 \ setlocal foldmethod=indent |
-                \ setlocal foldlevel=0       |
+                \ setlocal foldlevel=1       |
                 \ setlocal foldnestmax=2
 augroup END
 
