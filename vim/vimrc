@@ -24,6 +24,9 @@ Plugin 'scrooloose/syntastic'
 Plugin 'rust-lang/rust.vim'
 Plugin 'Xe/lolcode.vim'
 
+" Swift
+Plugin 'keith/swift.vim'
+
 " CSharp
 Plugin 'OrangeT/vim-csharp'
 
