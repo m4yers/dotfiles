@@ -251,9 +251,10 @@ nmap K 5k
 xmap J 5j
 xmap K 5k
 
-" jump back
+" Center jumps
+nnoremap p pzz
+nnoremap n nzz
 nnoremap gp <c-o>zz
-" jump forward
 nnoremap gn <c-i>zz
 
 " goto older position in change list
