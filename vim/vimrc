@@ -92,6 +92,8 @@ filetype plugin indent on
 
 set rtp+=~/Development/Projects/dotfiles/vim/after
 set rtp+=~/Development/Projects/vim-camel
+set rtp+=~/Development/Projects/Swift/swift/utils/vim
+
 set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
 
 " }}}
