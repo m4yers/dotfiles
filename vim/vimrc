@@ -253,10 +253,12 @@ nmap K 5k
 xmap J 5j
 xmap K 5k
 
-" Center jumps
-nnoremap p pzz
+" Repeat seach and Center 
 nnoremap n nzz
+nnoremap N Nzz
+" Jump to Older cursor position in jump list and Center
 nnoremap gp <c-o>zz
+" Jump to Newer cursor position in jump list and Center
 nnoremap gn <c-i>zz
 
 " goto older position in change list
