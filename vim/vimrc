@@ -256,22 +256,20 @@ xmap K 5k
 " Repeat seach and Center 
 nnoremap n nzz
 nnoremap N Nzz
+" Jump to the Last change and Center
+nnoremap gI '.zz
 " Jump to Older cursor position in jump list and Center
 nnoremap gp <c-o>zz
 " Jump to Newer cursor position in jump list and Center
 nnoremap gn <c-i>zz
-
-" goto older position in change list
+" Jump to Older position in change list and Center
 nnoremap g; g;zz
-" goto newer position in change list
+" Jump to Newer position in change list and Center
 nnoremap g, g,zz
 
-" last position of the last change
-nnoremap gI '.
-
 " Search
-nnoremap / /\v
-nnoremap ? ?\v
+nnoremap / /\v\c
+nnoremap ? ?\v\c
 
 " Tabs
 nnoremap <tab>t :tabnew<cr>
