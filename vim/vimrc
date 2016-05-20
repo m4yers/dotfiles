@@ -711,7 +711,13 @@ augroup END
 
 augroup ft_java
     autocmd!
-    autocmd FileType java setlocal foldmethod=syntax
+    autocmd FileType java
+                \ setlocal tabstop=4         |
+                \ setlocal shiftwidth=4      |
+                \ setlocal softtabstop=4     |
+                \ setlocal foldmethod=syntax |
+                \ setlocal foldlevel=1       |
+                \ setlocal foldnestmax=2
 augroup END
 
 " }}}
