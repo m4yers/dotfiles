@@ -1,5 +1,11 @@
 " Prologue {{{
 
+let s:is_mac = has('mac')
+let s:is_gui = has("gui_running")
+
+" }}}
+" Plugins {{{
+
 set nocompatible              " be iMproved, required
 filetype off                  " required
 
@@ -100,16 +106,16 @@ set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
 " Settings {{{
 " Basic {{{
 
-set encoding=utf-8
-set backspace=indent,eol,start
-set completeopt=longest,menuone
-set clipboard=unnamed
-set ambiwidth=single
-set laststatus=2
+set encoding       =utf-8
+set backspace      =indent,eol,start
+set completeopt    =longest,menuone
+set clipboard      =unnamed
+set ambiwidth      =single
+set laststatus     =2
 set noshowmode
-set ttimeoutlen=50
+set ttimeoutlen    =50
 set wildmenu
-set history=1000
+set history        =1000
 set lazyredraw
 set autowrite
 set autoread
@@ -119,46 +125,44 @@ set splitright
 " }}}
 " Scroll n Search n Substitute {{{
 
-set scrolloff=0
-set sidescroll=1
-set sidescrolloff=5
+set scrolloff      =0
+set sidescroll     =1
+set sidescrolloff  =5
 
 set noignorecase
 set smartcase
 set incsearch
 set hlsearch
 
-" Show matching pairs
 set showmatch
-set matchtime=5
+set matchtime      =5
 
 " }}}
 " Special chars {{{
 
 set list
-set listchars=tab:▸\ ,extends:❯,precedes:❮
-" set listchars=tab:▸\ ,eol:¬,extends:❯,precedes:❮
-set fillchars=diff:⣿,vert:│
-set showbreak=↪
+set listchars      =tab:▸\ ,extends:❯,precedes:❮
+set fillchars      =diff:⣿,vert:│
+set showbreak      =↪
 
 " }}}
 " Folding {{{
 
-set foldlevelstart=99
-set foldminlines=1
+set foldlevelstart =99
+set foldminlines   =1
 
 " }}}
-" Backup {{{
+" Backup {{{2
 
 "set nobackup
 "set nowritebackup
 "set noswapfile
 
-set undodir=~/.vim/tmp/undo//
-set backupdir=~/.vim/tmp/backup//
-set directory=~/.vim/tmp/swap//
+set undodir        =~/.vim/tmp/undo/
+set backupdir      =~/.vim/tmp/backup/
+set directory      =~/.vim/tmp/swap/
 
-" Make those folders automatically if they don't already exist.
+" Create Backup Folders {{{3
 if !isdirectory(expand(&undodir))
     call mkdir(expand(&undodir), "p")
 endif
@@ -168,6 +172,7 @@ endif
 if !isdirectory(expand(&directory))
     call mkdir(expand(&directory), "p")
 endif
+" }}}
 
 " }}}
 " Indentation {{{
@@ -175,73 +180,62 @@ endif
 set wrap
 set autoindent
 set smartindent
-set tabstop=4
-set softtabstop=4
-set shiftwidth=4
 set expandtab
+set softtabstop    =4
+set shiftwidth     =4
+set tabstop        =4
 
 " }}}
 " View {{{
 
-syntax on
+syntax             on
+colorscheme        gruvbox
+set numberwidth    =2
+set colorcolumn    =99
+set background     =dark
+set t_Co           =256
 set ruler
 set nonumber
 set relativenumber
-set numberwidth=2
 set showcmd
 set cursorline
-set t_Co=256
-set colorcolumn=99
-set background=dark
-colorscheme gruvbox
 
-if has("gui_running")
-    " https://github.com/abertsch/Menlo-for-Powerline
-    set guifont=Menlo\ for\ Powerline:h12
-    set guioptions=gtm
-    set visualbell t_vb="
+if s:is_gui
+    set guifont         =Menlo\ for\ Powerline:h12
+    set guioptions      =gtm
+    set visualbell t_vb ="
 endif
 
 " }}}
 " Wildmenu {{{
 
-" When you type the first tab, it will complete as much as possible, the second
-" tab hit will provide a list, the third and subsequent tabs will cycle through
-" completion options so you can complete the file without further keys
 set wildmenu
-set wildmode=longest,list,full
+set wildmode       =longest,list,full
 
 " }}}
 " }}}
 " Mappings {{{
 
-" leader
 let mapleader = ","
 let maplocalleader = "\\"
 
-" Make Esc turn off search highlight
-if has("gui_running")
+if s:is_gui
     nnoremap <esc> <esc> \| :nohlsearch<cr>
 endif
 
-" Hate hitting Esc
 inoremap kk <esc>
 inoremap jk <esc>
 cnoremap kk <C-c>
 
-" Toggles
-" Mnemonic: t - toggle, turn on/off
 nnoremap <leader>tn :setlocal relativenumber!<cr>
 nnoremap <leader>ti :setlocal list!<cr>
 nnoremap <leader>th :setlocal hlsearch!<cr>
 
-" Uppercasing
 inoremap <C-f>u <esc>gUiwea
 inoremap <C-f>l <esc>guiwea
 nnoremap <C-f>u gUiw
 nnoremap <C-f>l guiw
 
-" Movement
 " nnoremap j gj
 " nnoremap k gk
 " nnoremap gj j
@@ -260,11 +254,9 @@ nnoremap gn <c-i>zvzz
 nnoremap g; g;zvzz
 nnoremap g, g,zvzz
 
-" Search
 nnoremap / /\v\c
 nnoremap ? ?\v\c
 
-" Tabs
 nnoremap <tab>t :tabnew<cr>
 nnoremap <tab>l :tabnext<cr>
 nnoremap <tab>h :tabprevious<cr>
@@ -279,20 +271,16 @@ nnoremap <tab>8 :tabnext8<cr>
 nnoremap <tab>9 :tabnext9<cr>
 nnoremap <tab>0 :tabnext10<cr>
 
-" Splits
 nnoremap <tab>e :vsplit<cr>
 nnoremap <tab>o :split<cr>
 nnoremap <tab>d :bdelete<cr>
 
-" Buffers and Windows
 nnoremap <C-h> <C-w>h
 nnoremap <C-j> <C-w>j
 nnoremap <C-k> <C-w>k
 nnoremap <C-l> <C-w>l
 
-" resizing
-if has("gui_macvim")
-    " i've already facepalmed on it, so do not bother ¯\_(ツ)_/¯
+if s:is_mac && s:is_gui
     nnoremap ∆ <C-w>-
     nnoremap ˚ <C-w>+
     nnoremap ˙ <C-w><
