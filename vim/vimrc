@@ -1,5 +1,6 @@
 " Prologue {{{
 
+let s:is_unix = has('unix')
 let s:is_mac = has('mac')
 let s:is_gui = has("gui_running")
 
@@ -285,7 +286,7 @@ if s:is_mac && s:is_gui
     nnoremap ˚ <C-w>+
     nnoremap ˙ <C-w><
     nnoremap ¬ <C-w>>
-elseif has("unix")
+elseif s:is_unix
     nnoremap j <C-w>-
     nnoremap k <C-w>+
     nnoremap h <C-w><
@@ -300,11 +301,10 @@ endif
 " nnoremap <tab>j <C-]>
 nnoremap <tab>k <C-o>zz
 
-" Padding
-if has("gui_running")
+if s:is_gui
     nnoremap <Enter> o<Esc>
     nnoremap <S-Enter> O<Esc>
-    if has("gui_macvim")
+    if s:is_mac
         nnoremap <tab>n :macaction selectNextWindow:<cr>
         nnoremap <tab>p :macaction selectPreviousWindow:<cr>
     endif
@@ -313,14 +313,11 @@ else
     nnoremap ✠ O<Esc>
 endif
 
-" Saving
 nnoremap <leader>w :write<cr>
 nnoremap <leader>W :wq<cr>
 
-" Replace
 nnoremap <leader>r :%s/\<<C-r><C-w>\>/<C-r><C-w>/g<Left><Left>
 
-" Spelling
 nnoremap <F4> :setlocal spell! spelllang=en_us<cr>
 inoremap <F4> <esc>:setlocal spell! spelllang=en_us<cr>a
 nnoremap <leader>sn ]s
@@ -328,20 +325,13 @@ nnoremap <leader>sp [s
 nnoremap <leader>sa zg
 nnoremap <leader>su a<C-x>s
 
-" Insert
 inoremap <C-a> <esc>I
 inoremap <C-e> <esc>A
 
-" Command line
 cnoremap <C-a> <home>
 cnoremap <C-e> <end>
 cnoremap <C-f> <right>
 cnoremap <C-b> <left>
-
-" }}}
-" Abbreviations {{{
-
-" iabbrev @@ m4yers@gmail.com
 
 " }}}
 " Plugins {{{
@@ -360,69 +350,68 @@ augroup pl_Airline
     autocmd User AirlineAfterInit call AirlineInit()
 augroup END
 
-let g:airline_detect_iminsert = 1
-let g:airline_detect_paste = 0
-let g:airline_powerline_fonts = 1
-let g:airline_symbols.linenr = 'LN'
-let g:airline#extensions#tabline#enabled = 1
-let g:airline#extensions#tabline#show_splits = 0
-let g:airline#extensions#tabline#tab_nr_type = 1
-" Show filename only, usually i am aware of the current dir anyway
-let g:airline#extensions#tabline#fnamemod = ':t'
-let g:airline#extensions#whitespace#show_message = 1
+let g:airline_detect_iminsert                     = 1
+let g:airline_detect_paste                        = 0
+let g:airline_powerline_fonts                     = 1
+
+let g:airline#extensions#tabline#enabled          = 1
+let g:airline#extensions#tabline#show_splits      = 0
+let g:airline#extensions#tabline#tab_nr_type      = 1
+let g:airline#extensions#tabline#fnamemod         = ':t'
+
+let g:airline#extensions#whitespace#show_message  = 1
 
 " }}}
 " Syntastic {{{
 
-let g:syntastic_error_symbol = '✖'
-let g:syntastic_warning_symbol = '⚈'
-let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_ignore_files = ['\m\c\.html$']
-" let g:syntastic_html_tidy_ignore_errors=[' proprietary attribute "ng-', 'lacks "src" attribute']
-let g:syntastic_javascript_checkers = ['eslint']
-let g:syntastic_python_checkers = ['flake8']
-let g:syntastic_python_flake8_args = '--max-line-length=80 ' .
-            \ '--max-complexity=10 --ignore=E111,E114,E121,E125,E126,E127,E128,E129,' .
-            \ 'E131,E133,E201,E202,E203,E211,E221,E222,E241,E251,E261,E303,E402,W503'
+let g:syntastic_error_symbol                = '✖'
+let g:syntastic_warning_symbol              = '⚈'
+let g:syntastic_always_populate_loc_list    = 1
+let g:syntastic_auto_loc_list               = 1
+let g:syntastic_ignore_files                = ['\m\c\.html$']
 
-" }}}
-" CtrlP {{{
+let g:syntastic_javascript_checkers         = ['eslint']
 
-let g:ctrlp_funky_matchtype = 'path'
-let g:ctrlp_funky_syntax_highlight = 1
-nnoremap <C-o> :CtrlPFunky<Cr>
-
-" }}}
-" UltiSnips {{{
-
-let g:snips_author = "Artyom Goncharov"
-let g:UltiSnipsSnippetDirectories = ["UltiSnips"]
-let g:UltiSnipsJumpBackwardTrigger = "<c-m>"
-let g:UltiSnipsJumpForwardTrigger = "<c-l>"
-if has("gui_running")
-    let g:UltiSnipsExpandTrigger = "<C-Space>"
-else
-    let g:UltiSnipsExpandTrigger = "<Nul>"
-endif
-"let g:UltiSnipsEditSplit="vertical"
+let g:syntastic_python_checkers             = ['flake8']
+let g:syntastic_python_flake8_args          = '--max-line-length=80 --max-complexity=10 '.
+            \ '--ignore=E111,E114,E121,E125,E126,E127,E128,E129,E131,E133,'.
+            \ 'E201,E202,E203,E211,E221,E222,E241,E251,E261,E303,E402,W503'
 
 " }}}
 " YouCompleteMe {{{
 
-let g:ycm_error_symbol = '✖'
-let g:ycm_warning_symbol = '⚈'
-let g:ycm_complete_in_comments = 1
-let g:ycm_autoclose_preview_window_after_completion = 1
-let g:ycm_goto_buffer_command = 'new-tab'
-let g:ycm_key_invoke_completion = ''
-let g:ycm_filetype_specific_completion_to_disable = {'java': 1, 'help': 1}
-"let g:ycm_add_preview_to_completeopt = 0
-"let g:ycm_autoclose_preview_window_after_insertion = 1
+let g:ycm_error_symbol                               = '✖'
+let g:ycm_warning_symbol                             = '⚈'
+let g:ycm_complete_in_comments                       = 1
+let g:ycm_goto_buffer_command                        = 'new-tab'
+let g:ycm_key_invoke_completion                      = ''
+let g:ycm_autoclose_preview_window_after_completion  = 1
+let g:ycm_filetype_specific_completion_to_disable    = { 'java': 1, 'help': 1 }
 
 nnoremap <leader>yd :YcmDebugInfo<cr>
 nnoremap <leader>yt :YcmCompleter GetType<cr>
 nnoremap <tab>j :YcmCompleter GoTo<cr>zz
+
+" }}}
+" CtrlP {{{
+
+let g:ctrlp_funky_matchtype                 = 'path'
+let g:ctrlp_funky_syntax_highlight          = 1
+nnoremap <c-o> :CtrlPFunky<cr>
+
+" }}}
+" UltiSnips {{{
+
+let g:snips_author                          = "Artyom Goncharov"
+let g:UltiSnipsSnippetDirectories           = ["UltiSnips"]
+let g:UltiSnipsJumpBackwardTrigger          = "<c-m>"
+let g:UltiSnipsJumpForwardTrigger           = "<c-l>"
+
+if s:is_gui
+    let g:UltiSnipsExpandTrigger            = "<C-Space>"
+else
+    let g:UltiSnipsExpandTrigger            = "<Nul>"
+endif
 
 " }}}
 " TComment {{{
