@@ -247,25 +247,18 @@ nnoremap <C-f>l guiw
 " nnoremap gj j
 " nnoremap gk k
 
-" Jumps
 nmap J 5j
 nmap K 5k
 xmap J 5j
 xmap K 5k
 
-" Repeat seach and Center 
-nnoremap n nzz
-nnoremap N Nzz
-" Jump to the Last change and Center
-nnoremap gI '.zz
-" Jump to Older cursor position in jump list and Center
-nnoremap gp <c-o>zz
-" Jump to Newer cursor position in jump list and Center
-nnoremap gn <c-i>zz
-" Jump to Older position in change list and Center
-nnoremap g; g;zz
-" Jump to Newer position in change list and Center
-nnoremap g, g,zz
+nnoremap n nzvzz
+nnoremap N Nzvzz
+nnoremap gI '.zvzz
+nnoremap gp <c-o>zvzz
+nnoremap gn <c-i>zvzz
+nnoremap g; g;zvzz
+nnoremap g, g,zvzz
 
 " Search
 nnoremap / /\v\c
