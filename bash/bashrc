@@ -13,6 +13,12 @@ then
     source $palette
 fi
 
+if [ -f "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh" ]; then
+    GIT_PROMPT_THEME=Solarized
+    source "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh"
+    GIT_PROMPT_END=
+fi
+
 alias sudo='sudo '
 alias ls='ls -G'
 alias ll='ls -lah'
