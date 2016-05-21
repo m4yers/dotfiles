@@ -210,6 +210,8 @@ if s:is_gui
     set visualbell t_vb      ="
 endif
 
+highlight VertSplit ctermbg=bg ctermfg=0 guibg=bg guifg=#0
+
 " }}}
 " Wildmenu {{{
 
