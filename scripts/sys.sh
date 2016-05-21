@@ -1,3 +1,5 @@
+#!/bin/bash
+
 SYS_OSX="darwin"
 SYS_CYGWIN="cygwin"
 SYS_LINUX="linux"
