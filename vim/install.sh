@@ -1,6 +1,3 @@
-if [[ ! -a ~/.vimrc ]]
-then
-    ln -s $here/vim/vimrc ~/.vimrc
-    ln -s $here/vim/vimrc ~/.ideavimrc
-fi
+ln -s -f $here/vim/vimrc ~/.vimrc
+ln -s -f $here/vim/vimrc ~/.ideavimrc
 
