@@ -505,6 +505,8 @@ nnoremap <silent> <leader>d :Dash<cr>
 " Git {{{
 
 nnoremap <leader>gs :Gstatus<cr>
+nnoremap <leader>gl :silent! Glog --reverse \| botright copen \| clast \| redraw!<cr>
+nnoremap <leader>ge :Gedit<cr>
 nnoremap <leader>gc :Gcommit<cr>
 nnoremap <leader>gb :Gblame<cr>
 nnoremap <leader>gd :Gvdiff<cr>
