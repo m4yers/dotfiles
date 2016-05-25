@@ -597,6 +597,20 @@ augroup ft_python
 augroup END
 
 " }}}
+" JavaScript {{{
+
+augroup ft_javascript
+    autocmd!
+    autocmd FileType javascript
+                \ setlocal tabstop=2         |
+                \ setlocal shiftwidth=2      |
+                \ setlocal softtabstop=2     |
+                \ setlocal foldmethod=indent |
+                \ setlocal foldlevel=0       |
+                \ setlocal foldnestmax=2
+augroup END
+
+" }}}
 " HTML {{{
 
 augroup filetype_html
