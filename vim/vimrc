@@ -122,6 +122,7 @@ set autowrite
 set autoread
 set splitbelow
 set splitright
+set noequalalways
 
 " }}}
 " Scroll n Search n Substitute {{{
