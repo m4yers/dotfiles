@@ -478,7 +478,7 @@ let g:formatdef_autopep8 = '"autopep8 - --max-line-length=80 --indent-size=2 ' .
 let NERDTreeWinSize = 30
 
 nnoremap <leader>nf :NERDTreeFind<cr>
-nnoremap <F2> :NERDTreeToggle<cr><C-w>=
+nnoremap <F2> :NERDTreeToggle<cr>
 
 " make sure relative line numbers are used
 autocmd FileType nerdtree setlocal relativenumber
