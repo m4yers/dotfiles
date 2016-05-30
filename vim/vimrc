@@ -496,7 +496,7 @@ augroup END
 let g:tagbar_autofocus = 1
 let g:tagbar_width = 30
 
-nnoremap <F3> :TagbarToggle<cr><C-w>=
+nnoremap <F3> :TagbarToggle<cr>
 
 " }}}
 " Dash {{{
