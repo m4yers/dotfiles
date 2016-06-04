@@ -614,7 +614,7 @@ augroup END
 " }}}
 " JSON {{{
 
-augroup ft_javascript
+augroup ft_json
     autocmd!
     autocmd FileType json
                 \ setlocal tabstop=2         |
