@@ -395,7 +395,7 @@ let g:syntastic_python_flake8_args          = '--max-line-length=80 --max-comple
 let g:ycm_error_symbol                               = '✖'
 let g:ycm_warning_symbol                             = '⚈'
 let g:ycm_complete_in_comments                       = 1
-let g:ycm_goto_buffer_command                        = 'new-tab'
+let g:ycm_goto_buffer_command                        = 'new-or-existing-tab'
 let g:ycm_key_invoke_completion                      = ''
 let g:ycm_autoclose_preview_window_after_completion  = 1
 let g:ycm_filetype_specific_completion_to_disable    = { 'java': 1, 'help': 1 }
