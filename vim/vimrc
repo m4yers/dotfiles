@@ -328,7 +328,7 @@ endif
 nnoremap <leader>w           :write<cr>
 nnoremap <leader>W           :wq<cr>
 
-                             " replace the word under cursor in current buffer
+" replace the word under cursor in current buffer
 nnoremap <leader>r           :%s/\<<c-r><c-w>\>/<c-r><c-w>/g<left><left>
 
 nnoremap <F4>                :setlocal spell! spelllang=en_us<cr>
@@ -582,6 +582,18 @@ augroup END
 augroup ft_markdown
     autocmd!
     autocmd FileType markdown nnoremap <buffer> <localleader>v :InstantMarkdownPreview<cr>
+augroup END
+
+" }}}
+" LLVM {{{
+
+set rtp+=~/Development/Projects/llvm/utils/vim
+
+augroup au_llvm
+    autocmd!
+    autocmd! BufRead,BufNewFile *.ll  set filetype=llvm
+    autocmd! BufRead,BufNewFile *.td  set filetype=tablegen
+    autocmd! BufRead,BufNewFile *.rst set filetype=rest
 augroup END
 
 " }}}
