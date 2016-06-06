@@ -286,6 +286,7 @@ nnoremap <tab>0              :tabnext10<cr>
 nnoremap <tab>e              :vsplit<cr>
 nnoremap <tab>o              :split<cr>
 nnoremap <tab>d              :bdelete<cr>
+nnoremap <tab>c              :tabclose
 
 nnoremap <c-h>               <c-w>h
 nnoremap <c-j>               <c-w>j
@@ -634,6 +635,14 @@ augroup filetype_html
     " select current tag block and fold
     autocmd FileType html nnoremap <buffer> <localleader>f Vatzf
 augroup END
+
+autocmd FileType html
+            \ setlocal tabstop=2         |
+            \ setlocal shiftwidth=2      |
+            \ setlocal softtabstop=2     |
+            \ setlocal foldmethod=indent |
+            \ setlocal foldlevel=2       |
+            \ setlocal foldnestmax=10
 
 " }}}
 " Vim {{{
