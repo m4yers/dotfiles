@@ -286,7 +286,7 @@ nnoremap <tab>0              :tabnext10<cr>
 nnoremap <tab>e              :vsplit<cr>
 nnoremap <tab>o              :split<cr>
 nnoremap <tab>d              :bdelete<cr>
-nnoremap <tab>c              :tabclose
+nnoremap <tab>c              :tabclose<cr>
 
 nnoremap <c-h>               <c-w>h
 nnoremap <c-j>               <c-w>j
