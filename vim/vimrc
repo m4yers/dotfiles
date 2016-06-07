@@ -763,6 +763,14 @@ augroup ft_java
 augroup END
 
 " }}}
+" Log {{{
+
+augroup ft_log
+    autocmd!
+    autocmd BufNewFile,BufReadPost *.log :set filetype=messages
+augroup END
+
+" }}}
 " }}}
 " Other {{{
 " Cursor {{{
