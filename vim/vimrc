@@ -55,6 +55,8 @@ Plugin 'python.vim'
 " C, Bison, Flex syntax
 Plugin 'justinmk/vim-syntax-extra'
 
+Plugin 'octol/vim-cpp-enhanced-highlight'
+
 " Thrift syntax
 Plugin 'solarnz/thrift.vim'
 
