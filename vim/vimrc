@@ -770,6 +770,9 @@ augroup END
 augroup ft_log
     autocmd!
     autocmd BufNewFile,BufReadPost *.log :set filetype=messages
+    autocmd FileType messages
+                \ set nowrap |
+                \ setlocal foldmethod=marker
 augroup END
 
 " }}}
