@@ -19,7 +19,12 @@ if [ -f "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh" ]; then
     GIT_PROMPT_END=
 fi
 
+# Common
 alias sudo='sudo '
 alias ls='ls -G'
 alias ll='ls -lah'
 alias ggl='git log --graph --all --pretty --abbrev-commit --decorate'
+
+# Ranger
+export RANGER_LOAD_DEFAULT_RC=FALSE
+alias ra='ranger'
