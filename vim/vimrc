@@ -260,11 +260,13 @@ nnoremap gn                  <c-i>zvzz
 nnoremap g;                  g;zvzz
 nnoremap g,                  g,zvzz
 
+nnoremap <c-w>q              :copen<cr>
 nnoremap [q                  :cprevious<cr>
 nnoremap ]q                  :cnext<cr>
 nnoremap [Q                  :cfirst<cr>
 nnoremap ]Q                  :clast<cr>
 
+nnoremap <c-w>l              :lopen<cr>
 nnoremap [l                  :lprevious<cr>
 nnoremap ]l                  :lnext<cr>
 nnoremap [L                  :lfirst<cr>
@@ -582,8 +584,6 @@ augroup ft_quickfix
     autocmd!
     autocmd FileType qf nnoremap <buffer> <Enter> :.cc<cr>
     autocmd FileType qf nnoremap <buffer> q :q<cr>
-    autocmd FileType qf nnoremap <buffer> n :cnext<cr>
-    autocmd FileType qf nnoremap <buffer> p :cprevious<cr>
 augroup END
 
 " }}}
