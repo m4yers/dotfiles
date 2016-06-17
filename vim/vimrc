@@ -46,6 +46,8 @@ Plugin 'elzr/vim-json'
 Plugin 'wavded/vim-stylus'
 Plugin 'leafgarland/typescript-vim'
 
+Plugin 'editorconfig/editorconfig-vim'
+
 Plugin 'Chiel92/vim-autoformat'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
 Plugin 'tfnico/vim-gradle'
@@ -528,6 +530,11 @@ nnoremap <leader>gc :Gcommit<cr>
 nnoremap <leader>gb :Gblame<cr>
 nnoremap <leader>gd :Gvdiff<cr>
 nnoremap <leader>gp :Gpush<cr>
+
+" }}}
+" Editor Config {{{
+
+let g:EditorConfig_exclude_patterns = ['fugitive://.*']
 
 " }}}
 " Instant Markdown {{{
