@@ -583,6 +583,9 @@ augroup au_global
 
     autocmd InsertEnter * set timeoutlen=200
     autocmd InsertLeave * set timeoutlen=1000
+
+    autocmd InsertEnter * set nocursorline
+    autocmd InsertLeave * set cursorline
 augroup END
 
 " }}}
