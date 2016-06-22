@@ -1,0 +1,7 @@
+let mapleader               = ","
+let vimport                 = 8801
+let defaultengine           = "google"
+let vimcommand              = "macvim"
+
+map J 5j
+map K 5k
