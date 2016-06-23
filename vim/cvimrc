@@ -85,11 +85,11 @@ map <C-b>                    createBookmark
 map g-                       decrementURLPath
 map g+                       incrementURLPath
 
-map gt,                      nextTab
-map gT,                      previousTab
-map g0, lastTab
-map <C-S-h>,                 openLastLinkInTab
-map <C-S-l>,                 openNextLinkInTab
+map gt                       nextTab
+map gT                       previousTab
+map g0                       lastTab
+map <C-S-h>                  openLastLinkInTab
+map <C-S-l>                  openNextLinkInTab
 map x                        closeTab
 map gxT                      closeTabLeft
 map gxt                      closeTabRight
@@ -100,8 +100,8 @@ map t                        :tabnew
 map T                        @%
 map O                        @%
 map <N>%                     goToTab
-map H,                       goBack
-map L,                       goForward
+map H                        goBack
+map L                        goForward
 map B                        :buffer
 map <                        moveTabLeft
 map >                        moveTabRight
