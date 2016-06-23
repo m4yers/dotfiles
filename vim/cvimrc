@@ -1,3 +1,8 @@
+let configpath               = "~/.cvimrc"
+
+let noautofocus
+let nosmoothscroll
+
 let mapleader                = ","
 let barposition              = "bottom"
 let vimport                  = 8801
