@@ -1,7 +1,8 @@
-let configpath               = "~/.cvimrc"
+set localconfig
+set noautofocus
+set nosmoothscroll
 
-let noautofocus
-let nosmoothscroll
+let configpath               = "~/.cvimrc"
 
 let mapleader                = ","
 let barposition              = "bottom"
