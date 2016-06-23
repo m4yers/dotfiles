@@ -6,7 +6,7 @@ let configpath               = "~/.cvimrc"
 
 let mapleader                = ","
 let barposition              = "bottom"
-let vimport                  = 8801
+let vimport                  = 8001
 let defaultengine            = "google"
 let vimcommand               = "macvim"
 
@@ -98,7 +98,7 @@ map <C-S-h>                  openLastLinkInTab
 map <C-S-l>                  openNextLinkInTab
 map <Tab>c                   closeTab
 map <Tab>x                   lastClosedTab
-map <Tab>n                   :tabnew
+map <Tab>t                   :tabnew<Space>
 map T                        @%
 map O                        @%
 map <N>%                     goToTab
