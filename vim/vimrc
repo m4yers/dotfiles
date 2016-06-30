@@ -758,7 +758,7 @@ augroup ft_cs
                 \ setlocal softtabstop=4     |
                 \ setlocal foldmethod=indent |
                 \ setlocal foldlevel=1       |
-                \ setlocal foldnestmax=2
+                \ setlocal foldnestmax=3
 augroup END
 
 " }}}
