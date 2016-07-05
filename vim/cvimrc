@@ -2,6 +2,7 @@ let mapleader               = ","
 let vimport                 = 8801
 let defaultengine           = "google"
 let vimcommand              = "macvim"
+let scrolllimit             = 35
 
-map J 5j
-map K 5k
+map J scrollDown(10)
+map K scrollUp(10)
