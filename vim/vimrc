@@ -78,6 +78,8 @@ Plugin 'honza/vim-snippets'
 Plugin 'tpope/vim-fugitive'
 Plugin 'tpope/vim-git'
 
+Plugin 'tpope/vim-surround'
+
 " Support windows
 Plugin 'tacahiroy/ctrlp-funky'
 Plugin 'scrooloose/nerdtree'
@@ -758,7 +760,7 @@ augroup ft_cs
                 \ setlocal softtabstop=4     |
                 \ setlocal foldmethod=indent |
                 \ setlocal foldlevel=1       |
-                \ setlocal foldnestmax=2
+                \ setlocal foldnestmax=3
 augroup END
 
 " }}}
