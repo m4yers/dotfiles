@@ -99,6 +99,8 @@ Plugin 'bling/vim-airline'
 
 " Colors
 Plugin 'morhetz/gruvbox'
+Plugin 'rakr/vim-two-firewatch'
+Plugin 'altercation/vim-colors-solarized'
 
 " Dash integration
 Plugin 'rizzatti/dash.vim'
@@ -416,7 +418,10 @@ let g:ycm_complete_in_comments                       = 1
 let g:ycm_goto_buffer_command                        = 'new-or-existing-tab'
 let g:ycm_key_invoke_completion                      = ''
 let g:ycm_autoclose_preview_window_after_completion  = 1
+let g:ycm_autoclose_preview_window_after_insertion   = 1
+let g:ycm_add_preview_to_completeopt                 = 1
 let g:ycm_filetype_specific_completion_to_disable    = { 'java': 1, 'help': 1 }
+let g:ycm_disable_for_files_larger_than_kb           = 0
 
 nnoremap <leader>yd :YcmDebugInfo<cr>
 nnoremap <leader>yt :YcmCompleter GetType<cr>
@@ -458,15 +463,28 @@ nnoremap <leader>jr :FSSplitRight<cr>
 augroup pl_FSwitch
     autocmd!
     autocmd BufEnter *.cpp let b:fswitchdst  = 'hpp,h'
-    autocmd BufEnter *.cpp let b:fswitchlocs = 'reg:/src/include/,reg:/Private/Public/,reg:|src|include/**|,../include'
+    autocmd BufEnter *.cpp let b:fswitchlocs =
+                \ 'reg:/src/include/,' .
+                \ 'reg:/lib/include/,' .
+                \ 'reg:|src|include/**|'.
+                \ ',../include'
+
     autocmd BufEnter *.cc  let b:fswitchdst  = 'hh,h'
-    autocmd BufEnter *.cc  let b:fswitchlocs = 'reg:/src/include/,reg:/Private/Public/,reg:|src|include/**|,../include'
+    autocmd BufEnter *.cc  let b:fswitchlocs = b:fswitchlocs
+
     autocmd BufEnter *.c   let b:fswitchdst  = 'h'
-    autocmd BufEnter *.c   let b:fswitchlocs = 'reg:/src/include/,reg:/Private/Public/,reg:|src|include/**|,../include'
-    autocmd BufEnter *.h   let b:fswitchdst  = 'cpp,cc,c,m'
-    autocmd BufEnter *.h   let b:fswitchlocs = 'reg:/include/src/,reg:/Public/Private/,reg:/include.*/src/,../src'
+    autocmd BufEnter *.c   let b:fswitchlocs = b:fswitchlocs
+
     autocmd BufEnter *.m   let b:fswitchdst  = 'h'
-    autocmd BufEnter *.m   let b:fswitchlocs = 'reg:/src/include/,reg:/Private/Public/,reg:|src|include/**|,../include'
+    autocmd BufEnter *.m   let b:fswitchlocs = b:fswitchlocs
+
+    autocmd BufEnter *.h   let b:fswitchdst  = 'cpp,cc,c,m'
+    autocmd BufEnter *.h   let b:fswitchlocs =
+                \ 'reg:/include/src/,' .
+                \ 'reg:|include/llvm|lib|,' .
+                \ 'reg:/include/lib/,' .
+                \ 'reg:/include.*/src/,' .
+                \ '../src'
 augroup END
 
 " }}}
@@ -519,6 +537,9 @@ nnoremap <F3> :TagbarToggle<cr>
 
 " }}}
 " Dash {{{
+
+" TODO make llvm and clang relative to project that use them
+let g:dash_map = { 'cpp' : ['llvm', 'clang', 'cpp'] }
 
 nnoremap <silent> <leader>d :Dash<cr>
 

@@ -1,4 +1,4 @@
-priority 0
+priority 100
 
 ##
 ## Comments
@@ -41,13 +41,13 @@ endsnippet
 snippet ifndef "#ifndef ... #define ... #endif"
 #ifndef ${1/([A-Za-z0-9_]+).*/$1/}
 #define ${1:SYMBOL} ${2:value}
-#endif
+#endif$0
 endsnippet
 
 snippet #if "#if #endif" b
 #if ${1:0}
-${VISUAL}${0}
-#endif
+${VISUAL}${2}
+#endif$0
 endsnippet
 
 snippet inc "#include local header (inc)"
@@ -62,38 +62,36 @@ snippet mark "#pragma mark (mark)"
 #if 0
 ${1:#pragma mark -
 }#pragma mark $2
-#endif
-
-$0
+#endif$0
 endsnippet
 
 snippet main "main() (main)"
 int main(int argc, char *argv[])
 {
-	${VISUAL}${0}
+	${VISUAL}${1}
 	return 0;
-}
+}$0
 endsnippet
 
 snippet for "for loop (for)"
 for (${2:i} = 0; $2 < ${1:count}; ${3:++$2})
 {
-	${VISUAL}${0}
-}
+	${VISUAL}${4}
+}$0
 endsnippet
 
 snippet fori "for int loop (fori)"
 for (${4:int} ${2:i} = 0; $2 < ${1:count}; ${3:++$2})
 {
-	${VISUAL}${0}
-}
+	${VISUAL}${4}
+}$0
 endsnippet
 
 snippet forl "for list loop (forl)"
 for (${1:ListType} ${2:l} = ${3:init}; $2; $2 = $2->tail)
 {
-	${VISUAL}${0}
-}
+	${VISUAL}${4}
+}$0
 endsnippet
 
 snippet enum "Enumeration"
@@ -111,9 +109,9 @@ else:
 	snip.rv = snip.c`}
 #define $1
 
-${VISUAL}${0}
+${VISUAL}${2}
 
-#endif /* end of include guard: $1 */
+#endif /* end of include guard: $1 */$0
 endsnippet
 
 snippet td "Typedef"
@@ -123,15 +121,15 @@ endsnippet
 snippet wh "while loop"
 while(${1:/* condition */})
 {
-	${VISUAL}${0}
-}
+	${VISUAL}${2}
+}$0
 endsnippet
 
 snippet do "do...while loop (do)"
 do
 {
-	${VISUAL}${0}
-} while(${1:/* condition */});
+	${VISUAL}${2}
+} while(${1:/* condition */}); $0
 endsnippet
 
 snippet fprintf "fprintf ..."
@@ -141,22 +139,22 @@ endsnippet
 snippet if "if .. (if)"
 if (${1:/* condition */})
 {
-	${VISUAL}${0}
-}
+	${VISUAL}${2}
+}$0
 endsnippet
 
 snippet el "else .. (else)"
 else
 {
-	${VISUAL}${0}
-}
+	${VISUAL}${2}
+}$0
 endsnippet
 
 snippet eli "else if .. (eli)"
 else if (${1:/* condition */})
 {
-	${VISUAL}${0}
-}
+	${VISUAL}${2}
+}$0
 endsnippet
 
 snippet ife "if .. else (ife)"
@@ -167,8 +165,46 @@ if (${1:/* condition */})
 else
 {
 	${3:/* else */}
-}
+}$0
 endsnippet
+
+# ternary
+snippet t
+	${1:/* condition */} ? ${2:a} : ${3:b}
+endsnippet
+
+# switch
+snippet sw
+switch (${1:/* variable */}) {
+	${2}
+}$0
+endsnippet
+
+# case
+snippet ca
+case ${1:/* case */}:
+{
+	${2}
+	${3:break;}
+}$0
+endsnippet
+
+# default
+snippet de
+default:
+{
+	${1}
+	${2:break;}
+}$0
+endsnippet
+
+##
+## Loops
+# for
+snippet for
+for (${2:i} = 0; $2 < ${1:count}; $2${3:++}) {
+	${4}
+}$0
 
 snippet printf "printf .. (printf)"
 printf("${1:%s}\n"${1/([^%]|%%)*(%.)?.*/(?2:, :\);)/}$2${1/([^%]|%%)*(%.)?.*/(?2:\);)/}
@@ -177,22 +213,22 @@ endsnippet
 snippet st "struct"
 struct ${1:`!p snip.rv = (snip.basename or "name") + "_t"`}
 {
-	${0:/* data */}
-};
+	${2:/* data */}
+};$0
 endsnippet
 
 snippet un "union"
 union ${1:`!p snip.rv = (snip.basename or "name") + "_t"`}
 {
-	${0:/* data */}
-};
+	${2:/* data */}
+};$0
 endsnippet
 
 snippet fun "function" b
 ${1:void} ${2:function_name}(${3})
 {
-	${VISUAL}${0}
-}
+	${VISUAL}${4}
+}$0
 endsnippet
 
 snippet fund "function declaration" b

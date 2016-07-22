@@ -1,27 +1,101 @@
-snippet map "std::map (map)"
-std::map<${1:key}, ${2:value}> ${3:map};
+# NOTE These snippts depend on vim-snippets plagin installed
+
+extends c
+
+# We want to overwrite everything in parent ft.
+priority 100
+
+#######################################################################
+#                              Language                               #
+#######################################################################
+
+###############
+#  namespace  #
+###############
+
+snippet ns "namespace .. (namespace)"
+namespace${1/.+/ /m}${1:`!p snip.rv = snip.basename or "name"`}
+{
+	${VISUAL}${0}
+}${1/.+/ \/* /m}$1${1/.+/ *\/ /m}
 endsnippet
 
-snippet vec "std::vector (v)"
-std::vector<${1:char}> ${3:vector};
+snippet ans "anonymous namespace"
+namespace
+{
+	${VISUAL}${0}
+} // end anonymous namespace
 endsnippet
 
-snippet ss "std::string"
-std::string $0
+###########
+#  class  #
+###########
+
+snippet cl
+class ${1:`vim_snippets#Filename('$1', 'name')`}
+{
+public:
+	$1(${2}) {${3}};
+	~$1() {${4}};
+};
 endsnippet
 
-snippet sv "std::vector"
-std::vector< ${1:std::string} > $2
+#######################################################################
+#                                 STD                                 #
+#######################################################################
+
+################
+#  Containers  #
+################
+
+snippet ss "std::string" is
+std::string$0
 endsnippet
 
-snippet sd "std::"
-std::
+snippet sm "std::map (map)" is
+std::map<${1:std::string}, ${2:std::string}>$0
 endsnippet
+
+snippet sv "std::vector" is
+std::vector<${1:std::string}>$0
+endsnippet
+
+snippet par "std::pair" is
+std::pair<${1:std::string}, ${2:std::string}>$0
+endsnippet
+
+snippet mov "std::move" is
+std::move($1)$0
+endsnippet
+
+snippet smp "std::make_pair()" is
+std::make_pair($1, $2)$0
+endsnippet
+
+###########
+#  Smart  #
+###########
+
+snippet sup "std::unique_ptr<T>" is
+std::unique_ptr<${1:std::string}>$0
+endsnippet
+
+snippet ssp "std::shared_ptr<T>" is
+std::shared_ptr<${1:std::string}>$0
+endsnippet
+
+snippet smu "std::make_unique<T>" is
+std::make_unique<${1:std::string}>($2)$0
+endsnippet
+
+############
+#  Stream  #
+############
 
 snippet sco "std::cout"
 std::cout << $0
 endsnippet
 
 snippet sel "std::endl"
-<< std::endl
+<< std::endl$0
 endsnippet
