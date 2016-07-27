@@ -527,6 +527,23 @@ augroup pl_NERDTree
                 \ && b:NERDTreeType == "primary") | q | endif
 augroup END
 
+" NERDTress File highlighting
+function! NERDTreeHighlightExt(group, pattern, fg, bg, guifg, guibg)
+ exec 'autocmd filetype nerdtree highlight ' . a:group .' ctermbg='. a:bg .' ctermfg='. a:fg .' guibg='. a:guibg .' guifg='. a:guifg
+ exec 'autocmd filetype nerdtree syn match ' . a:group .' /\v\c^\s+.*\.('. a:pattern . ')$/'
+endfunction
+
+function! NERDTreeHighlightFile(group, pattern, fg, bg, guifg, guibg)
+ exec 'autocmd filetype nerdtree highlight ' . a:group .' ctermbg='. a:bg .' ctermfg='. a:fg .' guibg='. a:guibg .' guifg='. a:guifg
+ exec 'autocmd filetype nerdtree syn match ' . a:group .' /\v\c^\s+('. a:pattern . ')$/'
+endfunction
+
+call NERDTreeHighlightExt ('Text',        'txt',                      'DarkGray',  'none', '#665c54',  'bg')
+call NERDTreeHighlightExt ('Shell',       'sh',                       'Red',       'none', '#fb4934',  'bg')
+call NERDTreeHighlightExt ('Headers_CPP', 'h|hpp|hxx',                'LightCyan', 'none', '#83a598',  'bg')
+call NERDTreeHighlightExt ('Source_CPP',  'c|cpp|cxx',                'DarkCyan',  'none', '#458588',  'bg')
+call NERDTreeHighlightFile('Make',        'Makefile|CMakeLists\.txt', 'Red',       'none', '#fb4934',  'bg')
+
 " }}}
 " Tagbar {{{
 
