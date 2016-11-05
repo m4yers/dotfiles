@@ -15,25 +15,24 @@ call vundle#begin()
 
 Plugin 'VundleVim/Vundle.vim'
 
+if s:is_gui
+    Plugin 'Valloric/YouCompleteMe'
+    Plugin 'rdnetto/YCM-Generator'
+endif
+
 " Switching between companion files (e.g. .h and .cpp files)
 Plugin 'FSwitch'
 
+Plugin 'editorconfig/editorconfig-vim'
 Plugin 'easymotion/vim-easymotion'
-
-" Place, toggle and display marks.
 Plugin 'kshenoy/vim-signature'
-
 Plugin 'junegunn/vim-easy-align'
+Plugin 'fidian/hexmode'
 
-" Static, Semantic analysys
-Plugin 'Valloric/YouCompleteMe'
-Plugin 'rdnetto/YCM-Generator'
 Plugin 'scrooloose/syntastic'
 
+" Rust
 Plugin 'rust-lang/rust.vim'
-Plugin 'Xe/lolcode.vim'
-
-Plugin 'fidian/hexmode'
 
 " Swift
 Plugin 'keith/swift.vim'
@@ -47,8 +46,6 @@ Plugin 'othree/javascript-libraries-syntax.vim'
 Plugin 'elzr/vim-json'
 Plugin 'wavded/vim-stylus'
 Plugin 'leafgarland/typescript-vim'
-
-Plugin 'editorconfig/editorconfig-vim'
 
 Plugin 'Chiel92/vim-autoformat'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
