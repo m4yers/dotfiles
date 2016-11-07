@@ -1,10 +1,13 @@
 export PATH=$HOME/bin:/usr/local/bin:/opt/local/bin:$PATH
 export EDITOR=vim
 
-completion="$(brew --prefix)/etc/bash_completion"
-if [[ -f $completion ]]
+if command -v brew > /dev/null
 then
-    source $completion
+    completion="$(brew --prefix)/etc/bash_completion"
+    if [[ -f $completion ]]
+    then
+        source $completion
+    fi
 fi
 
 palette="$HOME/.vim/bundle/gruvbox/gruvbox_256palette_osx.sh"
@@ -21,8 +24,8 @@ fi
 
 # Common
 alias sudo='sudo '
-alias ls='ls -G'
-alias ll='ls -lah'
+alias ls='ls -G --color'
+alias ll='ls -lah --color'
 alias ggl='git log --graph --all --pretty --abbrev-commit --decorate'
 
 # Ranger
