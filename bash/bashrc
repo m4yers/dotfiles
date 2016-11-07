@@ -1,31 +1,54 @@
 export PATH=$HOME/bin:/usr/local/bin:/opt/local/bin:$PATH
 export EDITOR=vim
 
-if command -v brew > /dev/null
-then
-    completion="$(brew --prefix)/etc/bash_completion"
-    if [[ -f $completion ]]
-    then
-        source $completion
+platform='unknown'
+unamestr=`uname`
+is_linux=false
+is_mac=false
+
+if [[ "$unamestr" == 'Darwin' ]]; then
+    platform='Mac'
+    is_mac=true
+elif [[ "$unamestr" == 'Linux' ]]; then
+    platform='Linux'
+    is_linux=true
+fi
+
+if $is_mac; then
+    if command -v brew > /dev/null; then
+        completion="$(brew --prefix)/etc/bash_completion"
+        if [[ -f $completion ]]
+        then
+            source $completion
+        fi
+
+        # if [ -f "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh" ]; then
+        #     GIT_PROMPT_THEME=Solarized
+        #     source "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh"
+        #     GIT_PROMPT_END=
+        # fi
     fi
 fi
 
 palette="$HOME/.vim/bundle/gruvbox/gruvbox_256palette_osx.sh"
-if [[ -f $palette ]]
-then
+if [[ -f $palette ]]; then
     source $palette
 fi
 
-# if [ -f "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh" ]; then
-#     GIT_PROMPT_THEME=Solarized
-#     source "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh"
-#     GIT_PROMPT_END=
-# fi
+
+#--------------------------------------
+# Aliases
+#--------------------------------------
+
+if $is_mac; then
+    alias ls='ls -G'
+elif $is_linux; then
+    alias ls='ls --color'
+fi
 
 # Common
 alias sudo='sudo '
-alias ls='ls -G --color'
-alias ll='ls -lah --color'
+alias ll='ls -lah'
 alias ggl='git log --graph --all --pretty --abbrev-commit --decorate'
 
 # Ranger
