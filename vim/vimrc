@@ -15,10 +15,8 @@ call vundle#begin()
 
 Plugin 'VundleVim/Vundle.vim'
 
-if s:is_gui
-    Plugin 'Valloric/YouCompleteMe'
-    Plugin 'rdnetto/YCM-Generator'
-endif
+Plugin 'Valloric/YouCompleteMe'
+Plugin 'rdnetto/YCM-Generator'
 
 " Switching between companion files (e.g. .h and .cpp files)
 Plugin 'FSwitch'
