@@ -1,6 +1,8 @@
 export PATH=$HOME/bin:/usr/local/bin:/opt/local/bin:$PATH
 export EDITOR=vim
 
+[ -z "$PS1" ] && return
+
 platform='unknown'
 unamestr=`uname`
 is_linux=false
