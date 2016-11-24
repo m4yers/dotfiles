@@ -22,7 +22,6 @@ Plugin 'rdnetto/YCM-Generator'
 Plugin 'FSwitch'
 
 Plugin 'editorconfig/editorconfig-vim'
-Plugin 'easymotion/vim-easymotion'
 Plugin 'kshenoy/vim-signature'
 Plugin 'junegunn/vim-easy-align'
 Plugin 'fidian/hexmode'
@@ -78,6 +77,7 @@ Plugin 'tpope/vim-git'
 Plugin 'tpope/vim-surround'
 
 " Support windows
+Plugin 'ctrlpvim/ctrlp.vim'
 Plugin 'tacahiroy/ctrlp-funky'
 Plugin 'scrooloose/nerdtree'
 Plugin 'majutsushi/tagbar'
@@ -91,13 +91,8 @@ Plugin 'xolox/vim-session'
 " AG search integration
 Plugin 'rking/ag.vim'
 
-" Fuzzy file, buffer, mru, tag, ... finder for Vim
-Plugin 'ctrlpvim/ctrlp.vim'
-
 Plugin 'vim-airline/vim-airline'
 Plugin 'vim-airline/vim-airline-themes'
-
-Plugin 'nathanaelkane/vim-indent-guides'
 
 " Colors
 Plugin 'morhetz/gruvbox'
@@ -125,7 +120,7 @@ set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
 set encoding                 =utf-8
 set backspace                =indent,eol,start
 set completeopt              =longest,menuone
-set clipboard                =unnamed
+" set clipboard                =unnamed
 set ambiwidth                =single
 set history                  =1000
 set ttimeoutlen              =50
@@ -138,6 +133,18 @@ set autoread
 set splitbelow
 set splitright
 set noequalalways
+
+" }}}
+" Sessions {{{
+
+set sessionoptions           =blank,curdir,folds,globals,
+                             \options,tabpages,winsize
+
+" }}}
+" Buffers {{{
+
+set bufhidden                =unload
+set switchbuf                =usetab
 
 " }}}
 " Scroll n Search n Substitute {{{
@@ -618,14 +625,6 @@ let g:session_directory         = '~/tmp/vim/sessions'
 
 let g:gruvbox_contrast_dark='medium'
 " let g:gruvbox_contrast_light='medium'
-
-"}}}
-" Indent Guides {{{
-
-let g:indent_guides_start_level=1
-let g:indent_guides_indent_levels=4
-let g:indent_guides_color_change_percent=3
-let g:indent_guides_exclude_filetypes = ['help', 'nerdtree']
 
 "}}}
 " Ag {{{
