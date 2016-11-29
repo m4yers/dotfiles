@@ -283,6 +283,7 @@ nnoremap gp                  <c-o>zvzz
 nnoremap gn                  <c-i>zvzz
 nnoremap g;                  g;zvzz
 nnoremap g,                  g,zvzz
+nnoremap ``                  ``zvzz
 
 nnoremap <c-w>q              :copen<cr>
 nnoremap [q                  :cprevious<cr>
