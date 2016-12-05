@@ -48,7 +48,7 @@ Plugin 'Chiel92/vim-autoformat'
 Plugin 'Valloric/Vim-Jinja2-Syntax'
 Plugin 'tfnico/vim-gradle'
 
-" Python
+" Py
 Plugin 'python.vim'
 
 " C, Bison, Flex syntax
@@ -159,6 +159,7 @@ set noignorecase
 set smartcase
 set incsearch
 set hlsearch
+set nowrapscan
 
 set matchtime                =5
 set showmatch
@@ -285,12 +286,14 @@ nnoremap g;                  g;zvzz
 nnoremap g,                  g,zvzz
 nnoremap ``                  ``zvzz
 
+nnoremap g>>                 i<space><esc>l
+nnoremap g<<                 h<del><esc>
+
 nnoremap <c-w>q              :copen<cr>
 nnoremap [q                  :cprevious<cr>
 nnoremap ]q                  :cnext<cr>
 nnoremap [Q                  :cfirst<cr>
 nnoremap ]Q                  :clast<cr>
-
 nnoremap <c-w>l              :lopen<cr>
 nnoremap [l                  :lprevious<cr>
 nnoremap ]l                  :lnext<cr>
@@ -350,6 +353,10 @@ else
     nnoremap <Enter>         o<esc>
     nnoremap ✠               O<esc>
 endif
+
+nnoremap <c-n>               J
+nnoremap <c-u>               kJ
+vnoremap <c-n>               J
 
 if s:is_mac && s:is_gui
     nnoremap <tab>n          :macaction selectNextWindow:<cr>
@@ -445,7 +452,6 @@ let g:ycm_key_invoke_completion                      = ''
 let g:ycm_autoclose_preview_window_after_completion  = 1
 let g:ycm_autoclose_preview_window_after_insertion   = 1
 let g:ycm_add_preview_to_completeopt                 = 1
-let g:ycm_filetype_specific_completion_to_disable    = { 'java': 1, 'help': 1 }
 let g:ycm_disable_for_files_larger_than_kb           = 0
 
 nnoremap <leader>yd :YouCompleter GetDoc<cr>
@@ -531,7 +537,7 @@ let g:formatters_cpp = ['astyle_cpp']
 let g:formatdef_astyle_cs = '"astyle --mode=cs --style=ansi --indent-namespaces -pcH".(&expandtab ? "s".&shiftwidth : "t")'
 let g:formatters_cs = ['astyle_cs']
 
-" Python
+" Py
 let g:formatdef_autopep8 = '"autopep8 - --max-line-length=80 --indent-size=2 ' .
             \ '--ignore=E111,E121,E125,E126,E127,E128,E129,E131,E133,' .
             \ 'E201,E202,E203,E211,E221,E222,E241,E251,E261,E303,E402,W503"'
@@ -541,6 +547,7 @@ let g:formatdef_autopep8 = '"autopep8 - --max-line-length=80 --indent-size=2 ' .
 
 "TODO make it depend on current window size?
 let NERDTreeWinSize = 50
+let NERDTreeMinimalUI = 1
 
 nnoremap <leader>nf :NERDTreeFind<cr>
 nnoremap <F2> :NERDTreeToggle<cr>
@@ -549,14 +556,20 @@ nnoremap <F2> :NERDTreeToggle<cr>
 autocmd FileType nerdtree setlocal relativenumber
 
 " NERDTress File highlighting
-function! NERDTreeHighlightExt(group, pattern, fg, bg, guifg, guibg)
- exec 'autocmd filetype nerdtree highlight ' . a:group .' ctermbg='. a:bg .' ctermfg='. a:fg .' guibg='. a:guibg .' guifg='. a:guifg
- exec 'autocmd filetype nerdtree syn match ' . a:group .' /\v\c^\s+.*\.('. a:pattern . ')$/'
+function! NERDHLExt(group, pattern, fg, bg, guifg, guibg)
+ exec 'autocmd filetype nerdtree highlight ' . a:group
+    \.' ctermbg=' . a:bg    .' ctermfg='. a:fg
+    \.'   guibg=' . a:guibg .'   guifg='. a:guifg
+ exec 'autocmd filetype nerdtree syn match '
+    \. a:group .' /\v\c^\s+.*\.('. a:pattern . ')$/'
 endfunction
 
-function! NERDTreeHighlightFile(group, pattern, fg, bg, guifg, guibg)
- exec 'autocmd filetype nerdtree highlight ' . a:group .' ctermbg='. a:bg .' ctermfg='. a:fg .' guibg='. a:guibg .' guifg='. a:guifg
- exec 'autocmd filetype nerdtree syn match ' . a:group .' /\v\c^\s+('. a:pattern . ')$/'
+function! NERDHLFile(group, pattern, fg, bg, guifg, guibg)
+ exec 'autocmd filetype nerdtree highlight ' . a:group
+    \.' ctermbg='. a:bg    .' ctermfg='. a:fg
+    \.'   guibg='. a:guibg .'   guifg='. a:guifg
+ exec 'autocmd filetype nerdtree syn match '
+    \. a:group .' /\v\c^\s+('. a:pattern . ')$/'
 endfunction
 
 augroup pl_NERDTree
@@ -565,14 +578,17 @@ augroup pl_NERDTree
                 \ && exists("b:NERDTreeType")
                 \ && b:NERDTreeType == "primary") | q | endif
 
-    call NERDTreeHighlightExt ('Text',        'txt',                                  'Gray',      'none', '#665c54',  'bg')
-    call NERDTreeHighlightExt ('Text',        'tmp',                                  'DarkGray',  'none', '#504945',  'bg')
-    call NERDTreeHighlightExt ('Shell',       'sh',                                   'Red',       'none', '#fb4934',  'bg')
-    call NERDTreeHighlightExt ('Headers_CPP', 'h|hpp|hxx',                            'LightCyan', 'none', '#83a598',  'bg')
-    call NERDTreeHighlightExt ('Source_CPP',  'c|cpp|cxx',                            'DarkCyan',  'none', '#458588',  'bg')
-    call NERDTreeHighlightExt ('Python',      'py|pyc',                               'DarkGreen', 'none', '#689d6a',  'bg')
-    call NERDTreeHighlightFile('Make',        'Makefile|CMakeLists\.txt|.*Build.txt', 'LightRed',  'none', '#fe8019',  'bg')
-    call NERDTreeHighlightFile('Exec',        '.*\*\ze(\s+.*)?',                      'Red',       'none', '#fb4934',  'bg')
+    call NERDHLExt('Text',  'txt',       'Gray',      'none', '#665c54',  'bg')
+    call NERDHLExt('Text',  'tmp',       'DarkGray',  'none', '#504945',  'bg')
+    call NERDHLExt('Shell', 'sh',        'Red',       'none', '#fb4934',  'bg')
+    call NERDHLExt('CPPh',  'h|hpp|hxx', 'LightCyan', 'none', '#83a598',  'bg')
+    call NERDHLExt('CPPs',  'c|cpp|cxx', 'DarkCyan',  'none', '#458588',  'bg')
+    call NERDHLExt('Py',    'py|pyc',    'DarkGreen', 'none', '#689d6a',  'bg')
+
+    call NERDHLFile('Make',  'Makefile',        'LightRed',  'none', '#fe8019',  'bg')
+    call NERDHLFile('CMake', 'CMakeLists\.txt', 'LightRed',  'none', '#fe8019',  'bg')
+    call NERDHLFile('Build', '.*Build.txt',     'LightRed',  'none', '#fe8019',  'bg')
+    call NERDHLFile('Exec',  '.*\*\ze(\s+.*)?', 'Red',       'none', '#fb4934',  'bg')
 augroup END
 
 " }}}
@@ -684,13 +700,14 @@ set rtp+=~/Development/Projects/llvm/utils/vim
 augroup au_llvm
     autocmd!
     autocmd! BufRead,BufNewFile *.ll  set filetype=llvm
+    autocmd! BufRead,BufNewFile *.mir set filetype=yaml
     autocmd! BufRead,BufNewFile *.td  set filetype=tablegen
     autocmd! BufRead,BufNewFile *.rst set filetype=rest
     autocmd! BufRead,BufNewFile LLVMBuild.txt set filetype=cfg
 augroup END
 
 " }}}
-" Python {{{
+" Py {{{
 
 augroup ft_python
     autocmd!
@@ -759,7 +776,6 @@ augroup ft_vim
     autocmd FileType vim setlocal foldmethod=marker
     autocmd FileType vim nmap <buffer> <leader>d :help <C-r><C-w><cr>
 
-    autocmd FileType help setlocal textwidth=78
     autocmd FileType help nnoremap <silent><buffer> q :q<cr>
     autocmd FileType help nnoremap <tab>j <c-]>
 
