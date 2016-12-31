@@ -9,44 +9,55 @@ is_linux=false
 is_mac=false
 
 if [[ "$unamestr" == 'Darwin' ]]; then
-    platform='Mac'
-    is_mac=true
+  platform='Mac'
+  is_mac=true
 elif [[ "$unamestr" == 'Linux' ]]; then
-    platform='Linux'
-    is_linux=true
+  platform='Linux'
+  is_linux=true
 fi
 
 if $is_mac; then
-    if command -v brew > /dev/null; then
-        completion="$(brew --prefix)/etc/bash_completion"
-        if [[ -f $completion ]]
-        then
-            source $completion
-        fi
-
-        # if [ -f "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh" ]; then
-        #     GIT_PROMPT_THEME=Solarized
-        #     source "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh"
-        #     GIT_PROMPT_END=
-        # fi
+  if command -v brew > /dev/null; then
+    completion="$(brew --prefix)/etc/bash_completion"
+    if [[ -f $completion ]]
+    then
+      source $completion
     fi
+
+    # if [ -f "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh" ]; then
+    #     GIT_PROMPT_THEME=Solarized
+    #     source "$(brew --prefix)/opt/bash-git-prompt/share/gitprompt.sh"
+    #     GIT_PROMPT_END=
+    # fi
+  fi
 fi
 
 palette="$HOME/.vim/bundle/gruvbox/gruvbox_256palette_osx.sh"
 if [[ -f $palette ]]; then
-    source $palette
+  source $palette
 fi
 
 
-#--------------------------------------
-# Aliases
-#--------------------------------------
+#------------------------------------------------------------------------------
+# Color
+#------------------------------------------------------------------------------
+
+PS1='\[\033[01;31m\]\h\[\033[00m\]🍀 \[\033[01;33m\]\W⤷ \[\033[00m\]'
 
 if $is_mac; then
-    alias ls='ls -G'
+  alias ls='ls -G'
 elif $is_linux; then
-    alias ls='ls --color'
+  alias ls='ls --color'
 fi
+
+alias grep='grep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias egrep='egrep --color=auto'
+
+
+#------------------------------------------------------------------------------
+# Aliases
+#------------------------------------------------------------------------------
 
 # Common
 alias sudo='sudo '
