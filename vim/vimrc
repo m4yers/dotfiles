@@ -83,6 +83,7 @@ Plugin 'scrooloose/nerdtree'
 Plugin 'majutsushi/tagbar'
 
 Plugin 'suan/vim-instant-markdown'
+Plugin 'mzlogin/vim-markdown-toc'
 Plugin 'Rykka/riv.vim'
 Plugin 'tomtom/tcomment_vim'
 Plugin 'xolox/vim-misc'
