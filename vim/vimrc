@@ -54,8 +54,6 @@ Plugin 'python.vim'
 " C, Bison, Flex syntax
 Plugin 'justinmk/vim-syntax-extra'
 
-Plugin 'octol/vim-cpp-enhanced-highlight'
-
 " Thrift syntax
 Plugin 'solarnz/thrift.vim'
 
@@ -64,6 +62,7 @@ Plugin 'PProvost/vim-ps1'
 
 " Graphwiz Support
 Plugin 'wannesm/wmgraphviz.vim'
+
 Plugin 'Raimondi/delimitMate'
 
 " Snippets
@@ -92,18 +91,19 @@ Plugin 'xolox/vim-session'
 " AG search integration
 Plugin 'rking/ag.vim'
 
-Plugin 'vim-airline/vim-airline'
-Plugin 'vim-airline/vim-airline-themes'
+Plugin 'rizzatti/dash.vim'
+Plugin 'wakatime/vim-wakatime'
 
 " Colors
 Plugin 'morhetz/gruvbox'
 Plugin 'rakr/vim-two-firewatch'
-Plugin 'altercation/vim-colors-solarized'
-Plugin 'aereal/vim-colors-japanesque'
-Plugin 'lifepillar/vim-wwdc16-theme'
+Plugin 'NLKNguyen/papercolor-theme'
+Plugin 'reedes/vim-colors-pencil'
 
-" Dash integration
-Plugin 'rizzatti/dash.vim'
+" Plugin 'octol/vim-cpp-enhanced-highlight'
+
+Plugin 'vim-airline/vim-airline'
+Plugin 'vim-airline/vim-airline-themes'
 
 call vundle#end()
 filetype plugin indent on
@@ -118,24 +118,26 @@ set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
 " Settings {{{
 " Basic {{{
 
-set encoding                 =utf-8
-set backspace                =indent,eol,start
-set completeopt              =longest,menuone
 if s:is_gui
   set clipboard              =unnamed
 endif
+
 set ambiwidth                =single
-set history                  =1000
-set ttimeoutlen              =50
-set laststatus               =2
-set noshowmode
-set wildmenu
-set lazyredraw
-set autowrite
 set autoread
+set autowrite
+set backspace                =indent,eol,start
+set completeopt              =longest,menuone
+set encoding                 =utf-8
+set formatoptions            =croqlj
+set history                  =1000
+set laststatus               =2
+set lazyredraw
+set noequalalways
+set noshowmode
 set splitbelow
 set splitright
-set noequalalways
+set ttimeoutlen              =50
+set wildmenu
 
 " }}}
 " Sessions {{{
@@ -218,9 +220,10 @@ set wrap
 
 syntax                       on
 if s:is_gui
-  colorscheme                two-firewatch
+  colorscheme                PaperColor
 else
-  colorscheme                gruvbox
+  colorscheme                PaperColor
+  set t_Co                     =256
 endif
 
 set numberwidth              =2
@@ -229,7 +232,6 @@ set nonumber
 
 set colorcolumn              =81
 set background               =dark
-set t_Co                     =256
 set ruler
 set showcmd
 set cursorline
@@ -239,8 +241,6 @@ if s:is_gui
   set guioptions             =gtm
   set visualbell t_vb        ="
 endif
-
-highlight VertSplit ctermbg=bg ctermfg=0 guibg=bg guifg=#000000
 
 " }}}
 " Wildmenu {{{
@@ -386,14 +386,53 @@ cnoremap <c-b>               <left>
 
 " }}}
 " Plugins {{{
+" JSON {{{
+"
+let g:vim_json_syntax_conceal = 0
+
+" }}}
+" Colorscheme Modification {{{
+
+highlight Normal              guifg=#999999
+highlight LineNr              guifg=#333333
+highlight Comment             guifg=#444444
+highlight Delimiter           guifg=#444444
+
+highlight cType               guifg=#90c000
+highlight cppBoolean          guifg=#90c000
+highlight cDelimiter          guifg=#444444
+highlight cOperator           guifg=#888888
+
+highligh  Folded              guifg=#444444 guibg=#252525
+highlight NERDTreeDirSlash    guifg=#444444
+
+highlight VertSplit           ctermbg=0 ctermfg=bg guibg=#111111 guifg=bg
+highlight ColorColumn         guibg=#222222
+highlight CursorLine          guibg=#222222
+
+" }}}
 " Airline {{{
 
 if !exists('g:airline_symbols')
   let g:airline_symbols = {}
 endif
 
+let g:airline_left_sep = ''
+let g:airline_right_sep = ''
+let g:airline_left_alt_sep = ''
+let g:airline_right_alt_sep = ''
+let g:airline_symbols.linenr = '☰'
+let g:airline_symbols.maxlinenr = ''
+let g:airline_symbols.branch = '⎇'
+let g:airline_symbols.paste = 'ρ'
+let g:airline_symbols.spell = 'Ꞩ'
+let g:airline_symbols.notexists = '∄'
+let g:airline_symbols.whitespace = 'Ξ'
+let g:airline_symbols.readonly = '⭤'
+
 function! AirlineInit()
   let g:airline_section_a = airline#section#create(['mode', ' ', 'iminsert'])
+  let g:airline_section_x = airline#section#create(['filetype'])
 endfunction
 
 augroup pl_Airline
@@ -412,10 +451,14 @@ let g:airline#extensions#tabline#fnamemod        = ':t'
 
 let g:airline#extensions#whitespace#show_message = 1
 
-let g:airline_theme='lucius'
+let g:airline_theme='distinguished'
 
 " }}}
 " Syntastic {{{
+ 
+let g:syntastic_mode_map = {
+  \ 'mode': 'active',
+  \ 'passive_filetypes' : ['python']}
 
 let g:syntastic_error_symbol                = '✖'
 let g:syntastic_warning_symbol              = '⚈'
@@ -425,11 +468,10 @@ let g:syntastic_ignore_files                = ['\m\c\.html$']
 
 let g:syntastic_javascript_checkers         = ['eslint']
 
-let g:syntastic_python_checkers             = ['flake8']
-let g:syntastic_python_flake8_args          = '--max-line-length=80'.
-      \ '--max-complexity=10 '.
-      \ '--ignore=E111,E114,E121,E125,E126,E127,E128,E129,E131,E133,'.
-      \ 'E201,E202,E203,E211,E221,E222,E241,E251,E261,E303,E402,W503'
+let g:syntastic_python_checkers             = ['pylint']
+let g:syntastic_python_pylint_args          = '--rcfile=/Users/m4yers/Development/Projects/crutch/.pylintrc'
+
+nnoremap <leader>ss :SyntasticCheck<cr>
 
 " }}}
 " Hexmode {{{
@@ -524,48 +566,31 @@ augroup END
 " }}}
 " Autoformat {{{
 
+let g:formatterpath = ['/usr/local/opt/llvm/bin']
+
 noremap <leader>ff :Autoformat<cr>
 
 " C
-" let g:formatters_c = ['astyle_c']
-let g:formatdef_astyle_c = '"astyle'
-      \ .' --mode=c'
-      \ .' --style=ansi'
-      \ .' --unpad-paren'
-      \ .' --pad-oper'
-      \ .' --pad-first-paren-out'
-      \ .' --pad-header'
-      \ .' --add-brackets'
-      \ .' --convert-tabs'
-      \ .' --align-pointer=middle'
-      \ .' --align-reference=name"'
+let g:formatters_c = ['astyle_c']
+let g:formatdef_astyle_c = '"astyle --mode=c --style=google'
+      \ .' -pcH".(&expandtab ? "s".shiftwidth() : "t")'
 
 " C++
-let g:formatters_cpp = ['astyle_cpp']
-let g:formatdef_astyle_cpp = '"astyle'
-      \ .' --mode=c'
-      \ .' --style=ansi'
-      \ .' --unpad-paren'
-      \ .' --pad-oper'
-      \ .' --pad-first-paren-out'
-      \ .' --pad-header'
-      \ .' --add-brackets'
-      \ .' --convert-tabs'
-      \ .' --align-pointer=middle'
-      \ .' --align-reference=name"'
+let g:formatters_cpp = ['clangformat', 'astyle_cpp']
+let g:formatdef_clangformat = '"clang-format -style=LLVM"'
+let g:formatdef_astyle_cpp = '"astyle --mode=c --style=google'
+      \ . ' -pcH".(&expandtab ? "s".shiftwidth() : "t")'
 
 " C#
 let g:formatters_cs = ['astyle_cs']
 let g:formatdef_astyle_cs = '"astyle'
       \ .' --mode=cs'
-      \ .' --style=ansi'
+      \ .' --style=google'
       \ .' --indent-namespaces'
       \ .' -pcH".(&expandtab ? "s".&shiftwidth : "t")'
 
 " Py
-let g:formatdef_autopep8 = '"autopep8 - --max-line-length=80 --indent-size=2 ' .
-      \ '--ignore=E111,E121,E125,E126,E127,E128,E129,E131,E133,' .
-      \ 'E201,E202,E203,E211,E221,E222,E241,E251,E261,E303,E402,W503"'
+let g:formatdef_autopep8 = '"autopep8 - --max-line-length=80 --indent-size=2"' 
 
 " }}}
 " NERDTree {{{
@@ -608,8 +633,10 @@ augroup pl_NERDTree
   call NERDHLExt('Shell', 'sh',        'Red',       'none', '#fb4934', 'bg')
   call NERDHLExt('CPPh',  'h|hpp|hxx', 'LightCyan', 'none', '#83a598', 'bg')
   call NERDHLExt('CPPs',  'c|cpp|cxx', 'DarkCyan',  'none', '#458588', 'bg')
-  call NERDHLExt('Py',    'py|pyc',    'DarkGreen', 'none', '#689d6a', 'bg')
+  call NERDHLExt('Py',    'py',        'DarkGreen', 'none', '#689d6a', 'bg')
+  call NERDHLExt('Pyc',   'pyc',       'DarkGrey',  'none', '#3a3a3a', 'bg')
 
+  call NERDHLFile('Dot',   '\..*',            'DarkGrey', 'none', '#3a3a3a', 'bg')
   call NERDHLFile('Make',  'Makefile',        'LightRed', 'none', '#fe8019', 'bg')
   call NERDHLFile('CMake', 'CMakeLists\.txt', 'LightRed', 'none', '#fe8019', 'bg')
   call NERDHLFile('Build', '.*Build.txt',     'LightRed', 'none', '#fe8019', 'bg')
@@ -665,12 +692,6 @@ let g:session_default_to_last   = 'yes'
 let g:session_directory         = '~/tmp/vim/sessions'
 
 " }}}
-" Gruvbox {{{
-
-let g:gruvbox_contrast_dark='medium'
-" let g:gruvbox_contrast_light='medium'
-
-"}}}
 " Ag {{{
 
 nnoremap <leader>a :Ag!<space>
@@ -732,7 +753,7 @@ augroup au_llvm
 augroup END
 
 " }}}
-" Py {{{
+" Python {{{
 
 augroup ft_python
   autocmd!
@@ -804,7 +825,6 @@ augroup ft_vim
   autocmd FileType help nnoremap <silent><buffer> q :q<cr>
   autocmd FileType help nnoremap <tab>j <c-]>
 
-  autocmd BufWritePost *vimrc source $MYVIMRC | AirlineRefresh
   autocmd BufWinEnter *.txt if &filetype == 'help' | wincmd L | endif
 augroup END
 
@@ -833,7 +853,6 @@ augroup ft_c
   autocmd FileType c setlocal foldmethod=syntax
   autocmd FileType c syntax match __note  "NOTE.*$"  | highlight __note  guifg=#222222 guibg=#55606d ctermfg=bg ctermbg=29
   autocmd FileType c syntax match __todo  "TODO.*$"  | highlight __todo  guifg=#222222 guibg=#00875f ctermfg=0 ctermbg=29
-  autocmd FileType c syntax match __test  "TEST.*$"  | highlight __test  guifg=#222222 guibg=#bbbbbb ctermfg=0 ctermbg=241
   autocmd FileType c syntax match __hmm   "HMM.*$"   | highlight __hmm   guifg=#222222 guibg=#d3869b ctermfg=0 ctermbg=175
   autocmd FileType c syntax match __hmm   "???.*$"   | highlight __hmm   guifg=#222222 guibg=#d3869b ctermfg=0 ctermbg=175
   autocmd FileType c syntax match __fixme "FIXME.*$" | highlight __fixme guifg=#222222 guibg=#df5f00 ctermfg=0 ctermbg=166
@@ -849,7 +868,6 @@ augroup ft_cpp
   autocmd FileType cpp setlocal foldmethod=syntax
   autocmd FileType cpp syntax match __note  "NOTE.*$"  | highlight __note  guifg=#222222 guibg=#55606d ctermfg=bg ctermbg=29
   autocmd FileType cpp syntax match __todo  "TODO.*$"  | highlight __todo  guifg=#222222 guibg=#00875f ctermfg=0 ctermbg=29
-  autocmd FileType cpp syntax match __test  "TEST.*$"  | highlight __test  guifg=#222222 guibg=#bbbbbb ctermfg=0 ctermbg=241
   autocmd FileType cpp syntax match __hmm   "HMM.*$"   | highlight __hmm   guifg=#222222 guibg=#d3869b ctermfg=0 ctermbg=175
   autocmd FileType cpp syntax match __hmm   "???.*$"   | highlight __hmm   guifg=#222222 guibg=#d3869b ctermfg=0 ctermbg=175
   autocmd FileType cpp syntax match __fixme "FIXME.*$" | highlight __fixme guifg=#222222 guibg=#df5f00 ctermfg=0 ctermbg=166

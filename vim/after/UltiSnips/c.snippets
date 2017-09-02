@@ -34,8 +34,20 @@ snippet shit "//SHIT ..."
 // SHIT ${2:message}
 endsnippet
 
+snippet #deb "DEBUG macro"
+#if 1
+#define DEBUG(x) {x;}
+#else
+#define DEBUG(x) 0
+#endif
+endsnippet
+
+snippet deb "DEBUG() closure"
+DEBUG(${VISUAL}${1});$0
+endsnippet
+
 snippet def "#define ..."
-#define ${1}
+#define $0
 endsnippet
 
 snippet ifndef "#ifndef ... #define ... #endif"
@@ -66,32 +78,36 @@ ${1:#pragma mark -
 endsnippet
 
 snippet main "main() (main)"
-int main(int argc, char *argv[])
-{
-	${VISUAL}${1}
+int main(int argc, char *argv[]) {
+	$0
 	return 0;
-}$0
+}
 endsnippet
 
 snippet for "for loop (for)"
-for (${2:i} = 0; $2 < ${1:count}; ${3:++$2})
-{
+for (${1:i} = 0; $2 < ${2:COUNT}; ${3:++$2}) {
 	${VISUAL}${4}
 }$0
 endsnippet
 
 snippet fori "for int loop (fori)"
-for (${4:int} ${2:i} = 0; $2 < ${1:count}; ${3:++$2})
-{
+for (${1:int} ${2:i} = 0; $2 < ${3:COUNT}; ${4:++$2}) {
+	${VISUAL}${5}
+}$0
+endsnippet
+
+snippet foril "for int loop single line (fori)"
+for (${1:int} ${2:i} = 0; $2 < ${3:COUNT}; ${4:++$2}) ${VISUAL}${5}$0
+endsnippet
+
+snippet fore "for each loop (forl)"
+for (${1:auto} ${2:E} : ${3:CONTAINER}) {
 	${VISUAL}${4}
 }$0
 endsnippet
 
-snippet forl "for list loop (forl)"
-for (${1:ListType} ${2:l} = ${3:init}; $2; $2 = $2->tail)
-{
-	${VISUAL}${4}
-}$0
+snippet forel "for each loop single line (forel)"
+for (${1:auto} ${2:E} : ${3:CONTAINER}) ${VISUAL}${4};$0
 endsnippet
 
 snippet enum "Enumeration"
@@ -109,9 +125,9 @@ else:
 	snip.rv = snip.c`}
 #define $1
 
-${VISUAL}${2}
+${VISUAL}${0}
 
-#endif /* end of include guard: $1 */$0
+#endif /* end of include guard: $1 */
 endsnippet
 
 snippet td "Typedef"
@@ -119,15 +135,13 @@ typedef ${1:int} ${2:MyCustomType};
 endsnippet
 
 snippet wh "while loop"
-while(${1:/* condition */})
-{
+while(${1:/* condition */}) {
 	${VISUAL}${2}
 }$0
 endsnippet
 
 snippet do "do...while loop (do)"
-do
-{
+do {
 	${VISUAL}${2}
 } while(${1:/* condition */}); $0
 endsnippet
@@ -137,33 +151,27 @@ fprintf(${1:stderr}, "${2:%s}\n"${2/([^%]|%%)*(%.)?.*/(?2:, :\);)/}$3${2/([^%]|%
 endsnippet
 
 snippet if "if .. (if)"
-if (${1:/* condition */})
-{
+if (${1:/* condition */}) {
 	${VISUAL}${2}
 }$0
 endsnippet
 
 snippet el "else .. (else)"
-else
-{
+else {
 	${VISUAL}${2}
 }$0
 endsnippet
 
 snippet eli "else if .. (eli)"
-else if (${1:/* condition */})
-{
+else if (${1:/* condition */}) {
 	${VISUAL}${2}
 }$0
 endsnippet
 
 snippet ife "if .. else (ife)"
-if (${1:/* condition */})
-{
+if (${1:/* condition */}) {
 	${2}
-}
-else
-{
+} else {
 	${3:/* else */}
 }$0
 endsnippet
@@ -182,8 +190,7 @@ endsnippet
 
 # case
 snippet ca
-case ${1:/* case */}:
-{
+case ${1:/* case */}: {
 	${2}
 	${3:break;}
 }$0
@@ -191,42 +198,30 @@ endsnippet
 
 # default
 snippet de
-default:
-{
+default: {
 	${1}
 	${2:break;}
 }$0
 endsnippet
-
-##
-## Loops
-# for
-snippet for
-for (${2:i} = 0; $2 < ${1:count}; $2${3:++}) {
-	${4}
-}$0
 
 snippet printf "printf .. (printf)"
 printf("${1:%s}\n"${1/([^%]|%%)*(%.)?.*/(?2:, :\);)/}$2${1/([^%]|%%)*(%.)?.*/(?2:\);)/}
 endsnippet
 
 snippet st "struct"
-struct ${1:`!p snip.rv = (snip.basename or "name") + "_t"`}
-{
+struct ${1:`!p snip.rv = (snip.basename or "name") + "_t"`} {
 	${2:/* data */}
 };$0
 endsnippet
 
 snippet un "union"
-union ${1:`!p snip.rv = (snip.basename or "name") + "_t"`}
-{
+union ${1:`!p snip.rv = (snip.basename or "name") + "_t"`} {
 	${2:/* data */}
 };$0
 endsnippet
 
 snippet fun "function" b
-${1:void} ${2:function_name}(${3})
-{
+${1:void} ${2:function_name}(${3}) {
 	${VISUAL}${4}
 }$0
 endsnippet
