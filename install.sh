@@ -1,15 +1,27 @@
 #!/bin/bash
 
-export here="$( cd "$( dirname "$0" )" && pwd )"
+export ROOT="$( cd "$( dirname "$0" )" && pwd )"
 
-for install in $(ls $here/*/install.sh) ; do
-    source $install
-done
+source $ROOT/scripts/shared.sh
+source $ROOT/scripts/brew.sh
 
-# Vim
-# install everything only it is a fresh install
-vundle=~/.vim/bundle/Vundle.vim
-if [ ! -f $vundle ]; then
-    git clone https://github.com/VundleVim/Vundle.vim.git $vundle
-    vim +PluginInstall +qall
+if ! is_mac; then
+  echo "Mac only installer is available"
+  exit 1
 fi
+
+install() {
+  for installer in $(ls $ROOT/*/install.sh); do
+    install_brew_requirements $installer
+    install_cask_requirements $installer
+    source $installer
+  done
+}
+
+main() {
+  brew_init
+  install
+  brew_fini
+}
+
+main

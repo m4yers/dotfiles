@@ -1,11 +1,15 @@
-dest=~/.config/ranger
+#!/bin/bash
 
-if [[ ! -a $dest ]]
-then
-    mkdir $dest
-fi
+#brew: ranger
+install() {
+  local DEST=~/.config/ranger
 
-ln -s -f $here/ranger/commands.py $dest/commands.py
-ln -s -f $here/ranger/rc.conf     $dest/rc.conf
-ln -s -f $here/ranger/rifle.conf  $dest/rifle.conf
-ln -s -f $here/ranger/scope.sh    $dest/scope.sh
+  if [[ ! -a $DEST ]]; then
+    mkdir $DEST
+  fi
+
+  ln -s -f $ROOT/ranger/commands.py $DEST/commands.py
+  ln -s -f $ROOT/ranger/rc.conf     $DEST/rc.conf
+  ln -s -f $ROOT/ranger/rifle.conf  $DEST/rifle.conf
+  ln -s -f $ROOT/ranger/scope.sh    $DEST/scope.sh
+}

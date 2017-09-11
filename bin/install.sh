@@ -1,10 +1,15 @@
-if [[ ! -a ~/bin ]]
-then
+#!/bin/sh
+
+install() {
+  if [[ ! -a ~/bin ]]
+  then
     mkdir ~/bin
-fi
+  fi
 
-ln -s -f $here/bin/gpgdisk ~/bin/gpgdisk
-ln -s -f $here/bin/workspace ~/bin/workspace
-ln -s -f $here/bin/run-skype ~/bin/run-skype
-ln -s -f $here/bin/ts ~/bin/ts
+  ln -s -f $ROOT/bin/gpgdisk ~/bin/gpgdisk
+  ln -s -f $ROOT/bin/workspace ~/bin/workspace
+  ln -s -f $ROOT/bin/run-skype ~/bin/run-skype
+  ln -s -f $ROOT/bin/ts ~/bin/ts
+}
 
+install

@@ -1,115 +1,74 @@
 " Prologue {{{
+"
+set nocompatible
 
-let s:is_unix                = has('unix')
-let s:is_mac                 = has('mac')
-let s:is_gui                 = has("gui_running")
+let s:is_unix = has('unix')
+let s:is_mac  = has('mac')
+let s:is_gui  = has("gui_running")
 
 " }}}
 " Plugins {{{
 
-set nocompatible              " be iMproved, required
-filetype off                  " required
+call plug#begin()
 
-set rtp+=~/.vim/bundle/Vundle.vim
-call vundle#begin()
+" Completion
+Plug 'Valloric/YouCompleteMe', { 'do': './install.py --clang-completer' }
+Plug 'rdnetto/YCM-Generator'
+Plug 'scrooloose/syntastic'
 
-Plugin 'VundleVim/Vundle.vim'
+" Syntax
+Plug 'justinmk/vim-syntax-extra'
+Plug 'suan/vim-instant-markdown'
+Plug 'Valloric/Vim-Jinja2-Syntax'
+Plug 'wannesm/wmgraphviz.vim'
+Plug 'solarnz/thrift.vim'
+Plug 'PProvost/vim-ps1'
+Plug 'Rykka/riv.vim'
 
-Plugin 'Valloric/YouCompleteMe'
-Plugin 'rdnetto/YCM-Generator'
+" Panes
+Plug 'tacahiroy/ctrlp-funky'
+Plug 'ctrlpvim/ctrlp.vim'
+Plug 'scrooloose/nerdtree'
+Plug 'majutsushi/tagbar'
 
-" Switching between companion files (e.g. .h and .cpp files)
-Plugin 'FSwitch'
+" Functionality
+Plug 'editorconfig/editorconfig-vim'
+Plug 'junegunn/vim-easy-align'
+Plug 'derekwyatt/vim-fswitch'
+Plug 'Chiel92/vim-autoformat'
+Plug 'kshenoy/vim-signature'
+Plug 'Raimondi/delimitMate'
+Plug 'tomtom/tcomment_vim'
+Plug 'tpope/vim-surround'
+Plug 'xolox/vim-session'
+Plug 'xolox/vim-misc'
+Plug 'fidian/hexmode'
 
-Plugin 'editorconfig/editorconfig-vim'
-Plugin 'kshenoy/vim-signature'
-Plugin 'junegunn/vim-easy-align'
-Plugin 'fidian/hexmode'
+" Snippents
+Plug 'SirVer/ultisnips'
+Plug 'honza/vim-snippets'
 
-Plugin 'scrooloose/syntastic'
+" Integration
+Plug 'rizzatti/dash.vim'
+Plug 'wakatime/vim-wakatime'
+Plug 'tpope/vim-fugitive'
+Plug 'tpope/vim-git'
+Plug 'rking/ag.vim'
 
-" Rust
-Plugin 'rust-lang/rust.vim'
+" Themes
+Plug 'NLKNguyen/papercolor-theme'
+Plug 'reedes/vim-colors-pencil'
+Plug 'rakr/vim-two-firewatch'
+Plug 'morhetz/gruvbox'
 
-" Swift
-Plugin 'keith/swift.vim'
+Plug 'vim-airline/vim-airline'
+Plug 'vim-airline/vim-airline-themes'
 
-" CSharp
-Plugin 'OrangeT/vim-csharp'
+call plug#end()
 
-" JavaScript
-Plugin 'othree/yajs.vim'
-Plugin 'othree/javascript-libraries-syntax.vim'
-Plugin 'elzr/vim-json'
-Plugin 'wavded/vim-stylus'
-Plugin 'leafgarland/typescript-vim'
-
-Plugin 'Chiel92/vim-autoformat'
-Plugin 'Valloric/Vim-Jinja2-Syntax'
-Plugin 'tfnico/vim-gradle'
-
-" Py
-Plugin 'python.vim'
-
-" C, Bison, Flex syntax
-Plugin 'justinmk/vim-syntax-extra'
-
-" Thrift syntax
-Plugin 'solarnz/thrift.vim'
-
-" PowerShell syntax
-Plugin 'PProvost/vim-ps1'
-
-" Graphwiz Support
-Plugin 'wannesm/wmgraphviz.vim'
-
-Plugin 'Raimondi/delimitMate'
-
-" Snippets
-Plugin 'SirVer/ultisnips'
-Plugin 'honza/vim-snippets'
-
-" Git
-Plugin 'tpope/vim-fugitive'
-Plugin 'tpope/vim-git'
-
-Plugin 'tpope/vim-surround'
-
-" Support windows
-Plugin 'ctrlpvim/ctrlp.vim'
-Plugin 'tacahiroy/ctrlp-funky'
-Plugin 'scrooloose/nerdtree'
-Plugin 'majutsushi/tagbar'
-
-Plugin 'suan/vim-instant-markdown'
-Plugin 'mzlogin/vim-markdown-toc'
-Plugin 'Rykka/riv.vim'
-Plugin 'tomtom/tcomment_vim'
-Plugin 'xolox/vim-misc'
-Plugin 'xolox/vim-session'
-
-" AG search integration
-Plugin 'rking/ag.vim'
-
-Plugin 'rizzatti/dash.vim'
-Plugin 'wakatime/vim-wakatime'
-
-" Colors
-Plugin 'morhetz/gruvbox'
-Plugin 'rakr/vim-two-firewatch'
-Plugin 'NLKNguyen/papercolor-theme'
-Plugin 'reedes/vim-colors-pencil'
-
-" Plugin 'octol/vim-cpp-enhanced-highlight'
-
-Plugin 'vim-airline/vim-airline'
-Plugin 'vim-airline/vim-airline-themes'
-
-call vundle#end()
 filetype plugin indent on
 
 set rtp+=~/Development/Projects/dotfiles/vim/after
-" set rtp+=~/Development/Projects/vim-camel
 set rtp+=~/Development/Projects/llvm-m68k/llvm/utils/vim
 
 set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
@@ -455,7 +414,7 @@ let g:airline_theme='distinguished'
 
 " }}}
 " Syntastic {{{
- 
+
 let g:syntastic_mode_map = {
   \ 'mode': 'active',
   \ 'passive_filetypes' : ['python']}
@@ -590,7 +549,7 @@ let g:formatdef_astyle_cs = '"astyle'
       \ .' -pcH".(&expandtab ? "s".&shiftwidth : "t")'
 
 " Py
-let g:formatdef_autopep8 = '"autopep8 - --max-line-length=80 --indent-size=2"' 
+let g:formatdef_autopep8 = '"autopep8 - --max-line-length=80 --indent-size=2"'
 
 " }}}
 " NERDTree {{{
