@@ -369,6 +369,9 @@ highlight VertSplit           ctermbg=0 ctermfg=bg guibg=#111111 guifg=bg
 highlight ColorColumn         guibg=#222222
 highlight CursorLine          guibg=#222222
 
+highlight lCursor gui=Bold guifg=NONE guibg=Cyan
+highlight iCursor gui=Bold guifg=NONE guibg=LightBlue
+
 " }}}
 " Airline {{{
 
@@ -889,13 +892,6 @@ augroup END
 
 " }}}
 " }}}
-" Other {{{
-" Cursor {{{
-
-highlight lCursor gui=Bold guifg=NONE guibg=Cyan
-highlight iCursor gui=Bold guifg=NONE guibg=LightBlue
-
-" }}}
 " Keymap {{{
 
 set keymap=russian-jcukenwin
@@ -903,5 +899,4 @@ set keymap=russian-jcukenwin
 set iminsert=0
 set imsearch=0
 
-" }}}
 " }}}
