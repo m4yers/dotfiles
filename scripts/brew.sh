@@ -1,8 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 brew_init() {
-  which -s brew
-  if [[ $? != 0 ]] ; then
+  if ! which -s brew; then
     ruby -e "$(curl -fsSL \
       https://raw.githubusercontent.com/Homebrew/install/master/install)"
   else
@@ -13,20 +12,14 @@ brew_init() {
 
 brew_fini() {
   brew cleanup
-  brew linkapps
-}
-
-is_installed() {
-  brew ls --versions > /dev/null
 }
 
 install_brew_requirements() {
   prefix="\#brew\:"
-  grep -e $prefix $1 |
-  while read -r line; do
+  grep -e $prefix $1 | while read -r line; do
     IFS=',' read -r -a list <<< "${line/$prefix}"
     for item in "${list[@]}"; do
-      if ! is_installed $item; then
+      if ! brew ls --versions $item > /dev/null; then
         brew install $item
       fi
     done
@@ -35,11 +28,10 @@ install_brew_requirements() {
 
 install_cask_requirements() {
   prefix="\#cask\:"
-  grep -e $prefix $1 |
-  while read -r line; do
+  grep -e $prefix $1 | while read -r line; do
     IFS=',' read -r -a list <<< "${line/$prefix}"
     for item in "${list[@]}"; do
-      if ! is_installed $item; then
+      if ! brew ls --versions $item > /dev/null; then
         brew cask install $item
       fi
     done

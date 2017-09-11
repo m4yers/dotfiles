@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 export BASHRC="$HOME/.bashrc"
 export BASHPROFILE="$HOME/.bash_profile"

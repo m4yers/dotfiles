@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 install() {
   echo "source $ROOT/scripts/shared.sh" >> $BASHRC

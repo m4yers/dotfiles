@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if command -v brew > /dev/null; then
   completion="$(brew --prefix)/etc/bash_completion"

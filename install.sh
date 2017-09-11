@@ -1,10 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 export ROOT="$( cd "$( dirname "$0" )" && pwd )"
 
 source $ROOT/scripts/shared.sh
 source $ROOT/scripts/bash.sh
 source $ROOT/scripts/brew.sh
+source $ROOT/scripts/pip.sh
 
 if ! is_mac; then
   echo "Mac only installer is available"
@@ -15,6 +16,7 @@ install() {
   for installer in $(ls $ROOT/*/install.sh); do
     install_brew_requirements $installer
     install_cask_requirements $installer
+    install_pip_requirements $installer
     source $installer
     install
   done
@@ -23,7 +25,11 @@ install() {
 main() {
   bash_init
   brew_init
+  pip_init
+
   install
+
+  pip_fini
   brew_fini
 }
 

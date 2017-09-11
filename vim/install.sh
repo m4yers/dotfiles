@@ -1,7 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-#brew: python, curl, ag
+#brew: curl, ag
 #brew: macvim --with-override-system-vim
+#pip:  pylint
 install() {
   ln -s -f $ROOT/vim/vimrc ~/.vimrc
   ln -s -f $ROOT/vim/cvimrc ~/.cvimrc

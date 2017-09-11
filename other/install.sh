@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #brew: binutils, gdb, coreutils, valgrind
 #brew: ctags, cppcheck, doxygen

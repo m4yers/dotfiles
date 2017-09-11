@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #brew: git, tmux, reattach-to-user-namespace
 install() {
