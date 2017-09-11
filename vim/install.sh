@@ -13,5 +13,3 @@ install() {
     vim +PlugInstall +qall
   fi
 }
-
-install

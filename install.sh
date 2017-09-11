@@ -3,6 +3,7 @@
 export ROOT="$( cd "$( dirname "$0" )" && pwd )"
 
 source $ROOT/scripts/shared.sh
+source $ROOT/scripts/bash.sh
 source $ROOT/scripts/brew.sh
 
 if ! is_mac; then
@@ -15,10 +16,12 @@ install() {
     install_brew_requirements $installer
     install_cask_requirements $installer
     source $installer
+    install
   done
 }
 
 main() {
+  bash_init
   brew_init
   install
   brew_fini

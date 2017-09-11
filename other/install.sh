@@ -14,5 +14,3 @@
 install() {
   true
 }
-
-install

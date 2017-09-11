@@ -8,5 +8,3 @@ install() {
   fi
   tmux source ~/.tmux.conf
 }
-
-install

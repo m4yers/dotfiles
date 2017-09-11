@@ -11,5 +11,3 @@ install() {
   ln -s -f $ROOT/bin/run-skype ~/bin/run-skype
   ln -s -f $ROOT/bin/ts ~/bin/ts
 }
-
-install
