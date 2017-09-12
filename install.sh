@@ -3,15 +3,18 @@
 export ROOT="$( cd "$( dirname "$0" )" && pwd )"
 
 source $ROOT/scripts/shared.sh
-source $ROOT/scripts/bash.sh
-source $ROOT/scripts/brew.sh
-source $ROOT/scripts/pip.sh
-source $ROOT/scripts/npm.sh
 
 if ! is_mac; then
   echo "Mac only installer is available"
   exit 1
 fi
+
+source $ROOT/scripts/macos.sh
+
+source $ROOT/scripts/bash.sh
+source $ROOT/scripts/brew.sh
+source $ROOT/scripts/pip.sh
+source $ROOT/scripts/npm.sh
 
 install() {
   for installer in $(ls $ROOT/*/install.sh); do

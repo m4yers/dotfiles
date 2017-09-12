@@ -13,7 +13,7 @@
 #brew: tree, htop, highlight
 #brew: unrar, curl, wget --with-iri
 #pip:  sphinx
-#cask: iterm2, tunnelblick
+#cask: tunnelblick
 #cask: google-chrome, evernote, vlc
 install() {
   echo "source $ROOT/other/bashrc.config.sh" >> $BASHRC
