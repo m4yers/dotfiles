@@ -1,0 +1,34 @@
+[core]
+  editor = vim
+  autocrlf = input
+  safecrlf = true
+
+[apply]
+
+  # Detect whitespace errors when applying a patch
+  whitespace = fix
+
+[core]
+
+  # Use custom `.gitignore` and `.gitattributes`
+  excludesfile = ~/.gitignore
+
+[color]
+
+  # Use colors in Git commands that are capable of colored output when
+  ui = auto
+
+[commit]
+
+  # https://help.github.com/articles/signing-commits-using-gpg/
+  gpgsign = true
+
+[diff]
+
+  # Detect copies as well as renames
+  renames = copies
+
+[diff "bin"]
+
+  # Use `hexdump` to diff binary files
+  textconv = hexdump -v -C

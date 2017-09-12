@@ -6,7 +6,6 @@
 #brew: ctags, cppcheck, doxygen
 #brew: flex, bison
 #brew: cmake, ninja
-#brew: git, git-lfs
 #brew: openssh, gnutls, gnupg, gpg-agent
 #brew: gts, graphviz --with-gts
 #brew: python, node
