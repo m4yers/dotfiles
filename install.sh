@@ -19,6 +19,9 @@ install() {
     install_cask_requirements $installer
     install_pip_requirements $installer
     install_npm_requirements $installer
+
+    # If this setup to be moved to other systems each installer must provide
+    # system specific install routine
     source $installer
     install
   done

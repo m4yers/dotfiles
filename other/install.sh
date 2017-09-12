@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 
-#brew: llvm, binutils, gdb, coreutils, valgrind
+#brew: coreutils, grep, gnu-sed --with-default-names
+#brew: bash, bash-completion2
+#brew: llvm, binutils, gdb, valgrind
 #brew: ctags, cppcheck, doxygen
 #brew: flex, bison
 #brew: cmake, ninja
 #brew: git, git-lfs
-#brew: gnu-sed, gnutls, gnupg, gpg-agent
+#brew: openssh, gnutls, gnupg, gpg-agent
 #brew: gts, graphviz --with-gts
 #brew: python, node
 #brew: tree, htop, highlight
@@ -14,5 +16,5 @@
 #cask: iterm2, tunnelblick
 #cask: google-chrome, evernote, vlc
 install() {
-  true
+  echo "source $ROOT/other/bashrc.config.sh" >> $BASHRC
 }
