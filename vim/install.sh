@@ -2,7 +2,8 @@
 
 #brew: curl, ag
 #brew: macvim --with-override-system-vim
-#pip:  pylint
+#pip:  pylint, bashate
+#npm:  jsonlint, eslint
 install() {
   ln -s -f $ROOT/vim/vimrc ~/.vimrc
   ln -s -f $ROOT/vim/cvimrc ~/.cvimrc

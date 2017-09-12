@@ -6,6 +6,7 @@ source $ROOT/scripts/shared.sh
 source $ROOT/scripts/bash.sh
 source $ROOT/scripts/brew.sh
 source $ROOT/scripts/pip.sh
+source $ROOT/scripts/npm.sh
 
 if ! is_mac; then
   echo "Mac only installer is available"
@@ -17,6 +18,7 @@ install() {
     install_brew_requirements $installer
     install_cask_requirements $installer
     install_pip_requirements $installer
+    install_npm_requirements $installer
     source $installer
     install
   done

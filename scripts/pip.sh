@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 
 pip_init() {
-  true
+  if ! brew ls --versions python > /dev/null; then
+    brew install python
+  fi
 }
 
 pip_fini() {
   true
-}
-
-is_installed() {
-  pip2 show $1 > /dev/null
 }
 
 install_pip_requirements() {
