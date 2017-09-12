@@ -4,6 +4,6 @@ export BASHRC="$HOME/.bashrc"
 export BASHPROFILE="$HOME/.bash_profile"
 
 bash_init() {
-  echo "#!/bin/bash" > $BASHRC
+  cat $ROOT/bash/bashrc > $BASHRC
   echo "source $BASHRC" > $BASHPROFILE
 }
