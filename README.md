@@ -1,6 +1,6 @@
 # Home, Sweet Home
 
-Installs my work osx work environment.
+Installs my osx work environment.
 
 ## Installers
 Each util that has explicit configuration occupies a separate folder, e.g.
