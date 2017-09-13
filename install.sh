@@ -42,11 +42,12 @@ setup_home() {
 }
 
 print_help() {
+  echo "Home, Sweet Home installer"
   echo "Usage:"
-  echo "    all         Run all features"
-  echo "    system      Run system setup"
-  echo "    home        Run home directory setup"
-  echo "    help        Print help"
+  echo "  all         Run all features"
+  echo "  system      Run system setup"
+  echo "  home        Run home directory setup"
+  echo "  help        Print help"
 }
 
 main() {

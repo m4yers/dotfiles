@@ -1,19 +1,31 @@
 #!/usr/bin/env bash
 
-
 is_mac() {
-  unamestr=`uname`
+  local unamestr=`uname`
   test $unamestr == 'Darwin'
 }
 
 is_linux() {
-  unamestr=`uname`
+  local unamestr=`uname`
   test $unamestr == 'Linux'
+}
+
+error() {
+  local message=${1:-"Something went wrong"}
+  local code=${2:-1}
+  echo $message
+  exit $code
+}
+
+assert_prev() {
+  local message=${1:-"Something went wrong"}
+  local code=${2:-1}
+  [[ $? != 0 ]] && error $message $code
 }
 
 yesno() {
   local display=$1; shift
-  local default=${1,,}; shift
+  local default=${1:-yes}; shift
   while true
   do
     echo "${display} Yes/No? (Default: $default)"
@@ -29,8 +41,7 @@ yesno() {
         return 1
         ;;
       *)
-        echo "You must choose between \"yes\" or \"no\""
-        exit 1
+        error "You must choose between \"yes\" or \"no\""
         ;;
     esac
   done
