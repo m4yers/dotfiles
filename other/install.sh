@@ -15,5 +15,7 @@
 #cask: tunnelblick
 #cask: google-chrome, evernote, vlc
 install() {
-  echo "source $ROOT/other/bashrc.config.sh" >> $BASHRC
+  echo >> $BASHRC
+  echo "# Other" >> $BASHRC
+  echo "export PATH=\"$(brew --prefix coreutils)/libexec/gnubin:\$PATH\"" >> $BASHRC
 }

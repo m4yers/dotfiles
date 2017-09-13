@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
 
-#  Do nothing if this is not a first level
+# Do nothing if this is not a first level
 [ -z "$PS1" ] && return
-
