@@ -18,10 +18,10 @@ source $ROOT/scripts/npm.sh
 
 install() {
   for installer in $(ls $ROOT/*/install.sh); do
-    # install_brew_requirements $installer
-    # install_cask_requirements $installer
-    # install_pip_requirements $installer
-    # install_npm_requirements $installer
+    install_brew_requirements $installer
+    install_cask_requirements $installer
+    install_pip_requirements $installer
+    install_npm_requirements $installer
 
     # If this setup to be moved to other systems each installer must provide
     # system specific install routine
@@ -32,13 +32,13 @@ install() {
 
 main() {
   bash_init
-  # brew_init
-  # pip_init
+  brew_init
+  pip_init
 
   install
 
-  # pip_fini
-  # brew_fini
+  pip_fini
+  brew_fini
 }
 
 main
