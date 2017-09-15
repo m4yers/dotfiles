@@ -12,7 +12,7 @@
 #brew: tree, htop, highlight
 #brew: unrar, curl, wget --with-iri
 #pip:  sphinx
-#cask: tunnelblick
+#cask: tunnelblick, libreoffice
 #cask: google-chrome, evernote, vlc
 install() {
   echo >> $BASHRC

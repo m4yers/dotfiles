@@ -1,4 +1,5 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
+
 # ranger supports enhanced previews.  If the option "use_preview_script"
 # is set to True and this file exists, this script will be called and its
 # output is displayed in ranger.  ANSI color codes are supported.
@@ -64,7 +65,14 @@ case "$extension" in
         try w3m    -dump "$path" && { dump | trim | fmt -s -w $width; exit 4; }
         try lynx   -dump "$path" && { dump | trim | fmt -s -w $width; exit 4; }
         try elinks -dump "$path" && { dump | trim | fmt -s -w $width; exit 4; }
+        ;;
+    doc|docx|rtf)
+        soffice --headless --convert-to txt:Text "$path" --outdir /tmp
+        filename=$(basename $path)
+        filename=${filename%.*}.txt
+        cat /tmp/$filename | trim | fmt -s -w $width; exit 4;
         ;; # fall back to highlight/cat if the text browsers fail
+
 esac
 
 case "$mimetype" in

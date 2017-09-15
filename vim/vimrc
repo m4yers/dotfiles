@@ -344,13 +344,7 @@ cnoremap <c-f>               <right>
 cnoremap <c-b>               <left>
 
 " }}}
-" Plugins {{{
-" JSON {{{
-"
-let g:vim_json_syntax_conceal = 0
-
-" }}}
-" Colorscheme Modification {{{
+" Colorscheme Mod {{{
 
 highlight Normal              guifg=#999999
 highlight LineNr              guifg=#333333
@@ -362,7 +356,7 @@ highlight cppBoolean          guifg=#90c000
 highlight cDelimiter          guifg=#444444
 highlight cOperator           guifg=#888888
 
-highligh  Folded              guifg=#444444 guibg=#252525
+highlight Folded              guifg=#444444 guibg=#252525
 highlight NERDTreeDirSlash    guifg=#444444
 
 highlight VertSplit           ctermbg=0 ctermfg=bg guibg=#111111 guifg=bg
@@ -371,6 +365,12 @@ highlight CursorLine          guibg=#222222
 
 highlight lCursor gui=Bold guifg=NONE guibg=Cyan
 highlight iCursor gui=Bold guifg=NONE guibg=LightBlue
+
+" }}}
+" Plugins {{{
+" JSON {{{
+"
+let g:vim_json_syntax_conceal = 0
 
 " }}}
 " Airline {{{
@@ -483,12 +483,6 @@ if s:is_gui
 else
   let g:UltiSnipsExpandTrigger              = "<Nul>"
 endif
-
-" }}}
-" TComment {{{
-
-" nnoremap <C-S-j> :TComment<cr>j
-" nnoremap <C-S-k> :TComment<cr>k
 
 " }}}
 " FSwitch {{{

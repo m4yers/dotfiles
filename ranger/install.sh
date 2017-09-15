@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#brew: ranger
+#brew: ranger, xpdf, exiftool, libcaca --with-imlib2
 install() {
   local DEST=~/.config/ranger
 
