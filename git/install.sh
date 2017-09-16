@@ -1,6 +1,6 @@
 #brew: git, git-lfs
 install() {
-  local DEST=~/.config/ranger
+  local DEST=~/.config/git
 
   if [[ ! -a $DEST ]]; then
     mkdir $DEST

@@ -1,11 +1,27 @@
 alias sudo='sudo '
 
-alias ls='ls -G'
+# Easier navigation: .., ..., ...., ....., ~ and -
+alias u="cd .."
+alias uu="cd ../.."
+alias uuu="cd ../../.."
+alias uuuu="cd ../../../.."
+alias b="cd -"
+
+# Shortcuts
+alias gb="cd ~/Dropbox"
+alias gw="cd ~/Downloads"
+alias gd="cd ~/Development"
+alias gp="cd ~/Development/Projects"
+
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
+alias ls='ls -G'
 alias ll='ls -lah'
+
+# Apps
+alias chrome='/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome'
 
 # Lock the screen (when going AFK)
 alias afk="/System/Library/CoreServices/Menu\ Extras/User.menu/Contents/Resources/CGSession -suspend"
