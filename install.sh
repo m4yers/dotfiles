@@ -17,19 +17,25 @@ setup_system() {
 
 setup_home() {
   source $ROOT/scripts/bash.sh
-  source $ROOT/scripts/brew.sh
-  source $ROOT/scripts/pip.sh
-  source $ROOT/scripts/npm.sh
-
   bash_init
-  brew_init
-  pip_init
+
+  if $OPTION_DEPS; then
+    source $ROOT/scripts/brew.sh
+    source $ROOT/scripts/pip.sh
+    source $ROOT/scripts/npm.sh
+
+    brew_init
+    pip_init
+    npm_init
+  fi
 
   for installer in $(ls $ROOT/*/install.sh); do
-    install_brew_requirements $installer
-    install_cask_requirements $installer
-    install_pip_requirements $installer
-    install_npm_requirements $installer
+    if $OPTION_DEPS; then
+      install_brew_requirements $installer
+      install_cask_requirements $installer
+      install_pip_requirements $installer
+      install_npm_requirements $installer
+    fi
 
     # If this setup to be moved to other systems each installer must provide
     # setup_system specific setup_home routine
@@ -37,24 +43,28 @@ setup_home() {
     install
   done
 
-  pip_fini
-  brew_fini
+  if $OPTION_DEPS; then
+    pip_fini
+    brew_fini
+    npm_fini
+  fi
 }
 
 print_help() {
   echo "Home, Sweet Home installer"
   echo "Usage:"
-  echo "  all         Run all features"
-  echo "  system      Run system setup"
-  echo "  home        Run home directory setup"
-  echo "  help        Print help"
+  echo "  all  [--no-deps] Run all features"
+  echo "  system           Run system setup"
+  echo "  home [--no-deps] Run home directory setup"
+  echo "  help             Print help"
 }
+
+OPTION_SYSTEM=false
+OPTION_INSTALL=false
+OPTION_DEPS=true
 
 main() {
   check_system
-
-  local option_system=false
-  local option_install=false
 
   if [[ $# -eq 0 ]]; then
     print_help
@@ -68,18 +78,21 @@ main() {
 
     case $option in
       all)
-        option_system=true
-        option_install=true
+        OPTION_SYSTEM=true
+        OPTION_INSTALL=true
         ;;
       system)
-        option_system=true
+        OPTION_SYSTEM=true
         ;;
       home)
-        option_install=true
+        OPTION_INSTALL=true
         ;;
       help)
         print_help
         exit 0
+        ;;
+      --no-deps)
+        OPTION_DEPS=false
         ;;
       *)
         print_help
@@ -92,11 +105,11 @@ main() {
     exit 0
   fi
 
-  if $option_system; then
+  if $OPTION_SYSTEM; then
     setup_system
   fi
 
-  if $option_install; then
+  if $OPTION_INSTALL; then
     setup_home
   fi
 }
