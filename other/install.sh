@@ -12,10 +12,12 @@
 #brew: tree, htop, highlight
 #brew: unrar, curl, wget --with-iri
 #pip:  sphinx
+#cask: adobe-acrobat-reader
 #cask: tunnelblick, libreoffice
 #cask: google-chrome, evernote, vlc
 install() {
   echo >> $BASHRC
   echo "# Other" >> $BASHRC
+  echo "source $ROOT/other/bashrc.aliases.sh" >> $BASHRC
   echo "export PATH=\"$(brew --prefix coreutils)/libexec/gnubin:\$PATH\"" >> $BASHRC
 }
