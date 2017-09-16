@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+#npm: pygmentize
 install() {
   echo >> $BASHRC
   echo "# Bash" >> $BASHRC

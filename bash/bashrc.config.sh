@@ -1,13 +1,22 @@
 #!/usr/bin/env bash
 
+# Set up $PATH
 BIN="$HOME/bin:/usr/local/bin:/usr/local/sbin:/opt/local/bin"
 LLVM="/usr/local/opt/llvm/bin"
 export PATH=$BIN_HOME:$LLVM:$BIN:$OPT:$PATH
 
+# The usual
 export EDITOR=vim
+export PAGER=less
 
+# Locale
 export LANG='en_US.UTF-8';
 export LC_ALL='en_US.UTF-8';
+
+# Add colors to less
+export LESSOPEN="| pygmentize -f terminal -O style=native -g %s"
+export LESS='-R'
+export MANPAGER="less -+X -is"
 
 # Increase Bash history size. Allow 32³ entries; the default is 500.
 export HISTSIZE='32768';
