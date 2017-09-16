@@ -34,7 +34,7 @@ keymap  C-e LINE_END
 keymap  m EXTERN
 keymap  M EXTERN_LINK
 
-keymap  SPC NEXT_PAGE
+keymap  SPC UP
 keymap  C-f NEXT_PAGE
 keymap  C-b PREV_PAGE
 
