@@ -366,6 +366,10 @@ highlight CursorLine          guibg=#222222
 highlight lCursor gui=Bold guifg=NONE guibg=Cyan
 highlight iCursor gui=Bold guifg=NONE guibg=LightBlue
 
+highlight Normal  ctermbg=NONE
+highlight NonText ctermbg=NONE
+highlight LineNr  ctermbg=NONE
+
 " }}}
 " Plugins {{{
 " JSON {{{
@@ -458,6 +462,8 @@ let g:ycm_autoclose_preview_window_after_completion  = 1
 let g:ycm_autoclose_preview_window_after_insertion   = 1
 let g:ycm_add_preview_to_completeopt                 = 1
 let g:ycm_disable_for_files_larger_than_kb           = 0
+
+let g:ycm_global_ycm_extra_conf = '~/.ycm.py'
 
 nnoremap <leader>yd :YouCompleter GetDoc<cr>
 nnoremap <leader>yt :YcmCompleter GetType<cr>
