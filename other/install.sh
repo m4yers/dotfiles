@@ -11,7 +11,9 @@
 #brew: python, node
 #brew: tree, htop, highlight
 #brew: unrar, curl, wget --with-iri
+#brew: imagemagick
 #pip:  sphinx
+#cask: icefloor
 #cask: adobe-acrobat-reader
 #cask: tunnelblick, libreoffice
 #cask: google-chrome, evernote, vlc
