@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 
 #cask: iterm2
+#pip: colorz
 install() {
-  open "$ROOT/iterm/paper.itermcolors"
+  local HERE=$ROOT/iterm
+  local DEST="$HOME/Library/Application Support/iTerm2/DynamicProfiles"
+
+  if [[ ! -a "$DEST" ]]; then
+    mkdir "$DEST"
+  fi
+
+  open "$HERE/paper.itermcolors"
+
+  ln -s -f "$HERE/profiles.json" "$DEST/profiles.json"
+
+  echo >> $BASHRC
+  echo "# iTerm" >> $BASHRC
+  echo "source $HERE/bashrc.aliases.sh" >> $BASHRC
 }
