@@ -1,0 +1,48 @@
+# Shebang
+snippet #!
+#!/usr/bin/osascript
+endsnippet
+
+snippet sc
+script ${1:NAME}
+	${VISUAL}${2:-- STATEMENT}
+end$0
+endsnippet
+
+snippet pr
+property ${1:NAME} : ${2:VALUE}
+endsnippet
+
+snippet on
+on ${1:NAME}
+	${VISUAL}${2:-- STATEMENT}
+end$0
+endsnippet
+
+snippet if
+if ${1:BOOLEAN} then
+	${VISUAL}${2:-- STATEMENT}
+end$0
+endsnippet
+
+snippet ei
+else if ${1:BOOLEAN} then
+	${2:-- STATEMENT}
+endsnippet
+
+snippet el
+else
+	${1:-- STATEMENT}
+endsnippet
+
+snippet te
+tell ${1:TARGET}
+	${VISUAL}${2:-- STATEMENT}
+end$0
+endsnippet
+
+snippet ta
+tell application "${1:APPLICATION}"
+	${VISUAL}${2:-- STATEMENT}
+end$0
+endsnippet

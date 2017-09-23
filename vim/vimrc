@@ -17,6 +17,7 @@ Plug 'rdnetto/YCM-Generator'
 Plug 'scrooloose/syntastic'
 
 " Syntax
+Plug 'vim-scripts/applescript.vim'
 Plug 'justinmk/vim-syntax-extra'
 Plug 'suan/vim-instant-markdown'
 Plug 'Valloric/Vim-Jinja2-Syntax'
@@ -359,7 +360,7 @@ highlight cOperator           guifg=#888888
 highlight Folded              guifg=#444444 guibg=#252525
 highlight NERDTreeDirSlash    guifg=#444444
 
-highlight VertSplit           ctermbg=0 ctermfg=bg guibg=#111111 guifg=bg
+highlight VertSplit           ctermbg=NONE ctermfg=bg guibg=#111111 guifg=bg
 highlight ColorColumn         guibg=#222222
 highlight CursorLine          guibg=#222222
 
@@ -804,6 +805,15 @@ augroup END
 augroup ft_as3
   autocmd!
   autocmd BufRead,BufNewFile *.as set filetype=as3
+augroup END
+
+" }}}
+" AppleScript {{{
+
+augroup ft_applescript
+  autocmd!
+  autocmd BufRead,BufNewFile *.applescript set filetype=applescript
+  autocmd FileType applescript iabbrev \\ ¬
 augroup END
 
 " }}}
