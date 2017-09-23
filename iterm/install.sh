@@ -10,8 +10,6 @@ install() {
     mkdir "$DEST"
   fi
 
-  open "$HERE/paper.itermcolors"
-
   ln -s -f "$HERE/profiles.json" "$DEST/profiles.json"
 
   echo >> $BASHRC

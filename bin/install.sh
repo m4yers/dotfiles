@@ -6,8 +6,10 @@ install() {
     mkdir ~/bin
   fi
 
-  ln -s -f $ROOT/bin/gpgdisk ~/bin/gpgdisk
-  ln -s -f $ROOT/bin/workspace ~/bin/workspace
-  ln -s -f $ROOT/bin/run-skype ~/bin/run-skype
-  ln -s -f $ROOT/bin/ts ~/bin/ts
+  local HERE=$ROOT/bin
+  ln -s -f $HERE/gpgdisk ~/bin/gpgdisk
+  ln -s -f $HERE/workspace ~/bin/workspace
+  ln -s -f $HERE/run-skype ~/bin/run-skype
+  ln -s -f $HERE/ts ~/bin/ts
+  ln -s -f $HERE/iterm_theme.py ~/bin/iterm_theme
 }

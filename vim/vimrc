@@ -57,6 +57,8 @@ Plug 'tpope/vim-git'
 Plug 'rking/ag.vim'
 
 " Themes
+Plug 'xolox/vim-colorscheme-switcher'
+Plug 'atelierbram/Base2Tone-vim'
 Plug 'NLKNguyen/papercolor-theme'
 Plug 'reedes/vim-colors-pencil'
 Plug 'rakr/vim-two-firewatch'
@@ -182,7 +184,7 @@ syntax                       on
 if s:is_gui
   colorscheme                PaperColor
 else
-  colorscheme                PaperColor
+  colorscheme                Base2Tone_PoolDark
   set t_Co                     =256
 endif
 
@@ -360,7 +362,7 @@ highlight cOperator           guifg=#888888
 highlight Folded              guifg=#444444 guibg=#252525
 highlight NERDTreeDirSlash    guifg=#444444
 
-highlight VertSplit           ctermbg=NONE ctermfg=bg guibg=#111111 guifg=bg
+highlight VertSplit           guibg=#111111
 highlight ColorColumn         guibg=#222222
 highlight CursorLine          guibg=#222222
 

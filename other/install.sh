@@ -21,5 +21,8 @@ install() {
   echo >> $BASHRC
   echo "# Other" >> $BASHRC
   echo "source $ROOT/other/bashrc.aliases.sh" >> $BASHRC
+  echo "source $ROOT/other/bashrc.config.sh" >> $BASHRC
+  echo "export PATH=\"$(brew --prefix llvm)/bin:\$PATH\"" >> $BASHRC
+  echo "export PATH=\"$(brew --prefix python)/libexec/bin:\$PATH\"" >> $BASHRC
   echo "export PATH=\"$(brew --prefix coreutils)/libexec/gnubin:\$PATH\"" >> $BASHRC
 }
