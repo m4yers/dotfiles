@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#brew: curl, ag
+#brew: curl, ag, swiftlint
 #cask: macvim --with-override-system-vim
 #pip:  pylint, bashate
 #npm:  jsonlint, eslint

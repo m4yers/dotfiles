@@ -24,6 +24,7 @@ Plug 'Valloric/Vim-Jinja2-Syntax'
 Plug 'wannesm/wmgraphviz.vim'
 Plug 'solarnz/thrift.vim'
 Plug 'PProvost/vim-ps1'
+Plug 'keith/swift.vim'
 Plug 'Rykka/riv.vim'
 
 " Panes
@@ -184,7 +185,7 @@ syntax                       on
 if s:is_gui
   colorscheme                PaperColor
 else
-  colorscheme                Base2Tone_PoolDark
+  colorscheme                gruvbox
   set t_Co                     =256
 endif
 
@@ -238,6 +239,10 @@ nmap J                       5j
 nmap K                       5k
 xmap J                       5j
 xmap K                       5k
+
+nnoremap <space>             <c-e>
+nnoremap <c-[>               zh
+nnoremap <c-]>               zl
 
 nnoremap n                   nzvzz
 nnoremap N                   Nzvzz
@@ -346,6 +351,8 @@ cnoremap <c-e>               <end>
 cnoremap <c-f>               <right>
 cnoremap <c-b>               <left>
 
+nnoremap <leader>m           :make<cr>
+
 " }}}
 " Colorscheme Mod {{{
 
@@ -358,11 +365,12 @@ highlight cType               guifg=#90c000
 highlight cppBoolean          guifg=#90c000
 highlight cDelimiter          guifg=#444444
 highlight cOperator           guifg=#888888
+highlight ErrorMsg            guifg=black ctermfg=black
 
 highlight Folded              guifg=#444444 guibg=#252525
 highlight NERDTreeDirSlash    guifg=#444444
 
-highlight VertSplit           guibg=#111111
+highlight VertSplit           ctermbg=0 guibg=#111111
 highlight ColorColumn         guibg=#222222
 highlight CursorLine          guibg=#222222
 
@@ -504,9 +512,10 @@ augroup pl_FSwitch
   autocmd!
   autocmd BufEnter *.cpp let b:fswitchdst  = 'hpp,h'
   autocmd BufEnter *.cpp let b:fswitchlocs =
+        \ 'reg:|lib|include/clang|,' .
+        \ 'reg:|lib|include/llvm|,' .
         \ 'reg:/src/include/,' .
         \ 'reg:/lib/include/,' .
-        \ 'reg:|lib|include/llvm|,' .
         \ 'reg:|src|include/**|'.
         \ ',../include'
 
@@ -521,9 +530,10 @@ augroup pl_FSwitch
 
   autocmd BufEnter *.h   let b:fswitchdst  = 'cpp,cc,c,m'
   autocmd BufEnter *.h   let b:fswitchlocs =
-        \ 'reg:/include/src/,' .
+        \ 'reg:|include/clang|lib|,' .
         \ 'reg:|include/llvm|lib|,' .
         \ 'reg:/include/lib/,' .
+        \ 'reg:/include/src/,' .
         \ 'reg:/include.*/src/,' .
         \ '../src'
 augroup END
@@ -611,8 +621,11 @@ augroup END
 " }}}
 " Tagbar {{{
 
+let g:tagbar_show_linenumbers = 2
+let g:tagbar_autoshowtag = 1
 let g:tagbar_autofocus = 1
-let g:tagbar_width = 30
+let g:tagbar_foldlevel = 0
+let g:tagbar_width = 50
 
 nnoremap <F3> :TagbarToggle<cr>
 
@@ -824,8 +837,8 @@ augroup END
 " TODO make todos settings nicier
 augroup ft_c
   autocmd!
-  autocmd FileType c setlocal foldmethod=syntax
-  autocmd FileType c syntax match __note  "NOTE.*$"  | highlight __note  guifg=#222222 guibg=#55606d ctermfg=bg ctermbg=29
+  autocmd FileType c setlocal foldmethod=indent
+  autocmd FileType c syntax match __note  "NOTE.*$"  | highlight __note  guifg=#222222 guibg=#55606d ctermfg=0 ctermbg=29
   autocmd FileType c syntax match __todo  "TODO.*$"  | highlight __todo  guifg=#222222 guibg=#00875f ctermfg=0 ctermbg=29
   autocmd FileType c syntax match __hmm   "HMM.*$"   | highlight __hmm   guifg=#222222 guibg=#d3869b ctermfg=0 ctermbg=175
   autocmd FileType c syntax match __hmm   "???.*$"   | highlight __hmm   guifg=#222222 guibg=#d3869b ctermfg=0 ctermbg=175
@@ -839,8 +852,8 @@ augroup END
 
 augroup ft_cpp
   autocmd!
-  autocmd FileType cpp setlocal foldmethod=syntax
-  autocmd FileType cpp syntax match __note  "NOTE.*$"  | highlight __note  guifg=#222222 guibg=#55606d ctermfg=bg ctermbg=29
+  autocmd FileType cpp setlocal foldmethod=indent
+  autocmd FileType cpp syntax match __note  "NOTE.*$"  | highlight __note  guifg=#222222 guibg=#55606d ctermfg=0 ctermbg=29
   autocmd FileType cpp syntax match __todo  "TODO.*$"  | highlight __todo  guifg=#222222 guibg=#00875f ctermfg=0 ctermbg=29
   autocmd FileType cpp syntax match __hmm   "HMM.*$"   | highlight __hmm   guifg=#222222 guibg=#d3869b ctermfg=0 ctermbg=175
   autocmd FileType cpp syntax match __hmm   "???.*$"   | highlight __hmm   guifg=#222222 guibg=#d3869b ctermfg=0 ctermbg=175
@@ -851,7 +864,6 @@ augroup ft_cpp
         \ setlocal tabstop=2         |
         \ setlocal shiftwidth=2      |
         \ setlocal softtabstop=2     |
-        \ setlocal foldmethod=indent |
         \ setlocal foldlevel=0       |
         \ setlocal foldnestmax=1
 augroup END
@@ -861,7 +873,7 @@ augroup END
 
 augroup ft_cs
   autocmd!
-  autocmd FileType cs setlocal foldmethod=syntax
+  autocmd FileType cs setlocal foldmethod=indent
   autocmd FileType cs syntax match __todo  "TODO.*$"  | highlight __todo  guifg=#222222 guibg=#00875f ctermfg=0 ctermbg=29
   autocmd FileType cs syntax match __hmm   "HMM.*$"   | highlight __hmm   guifg=#222222 guibg=#d3869b ctermfg=0 ctermbg=175
   autocmd FileType cs syntax match __fixme "FIXME.*$" | highlight __fixme guifg=#222222 guibg=#df5f00 ctermfg=0 ctermbg=166
@@ -872,7 +884,6 @@ augroup ft_cs
         \ setlocal tabstop=4         |
         \ setlocal shiftwidth=4      |
         \ setlocal softtabstop=4     |
-        \ setlocal foldmethod=indent |
         \ setlocal foldlevel=1       |
         \ setlocal foldnestmax=3
 augroup END
@@ -886,7 +897,7 @@ augroup ft_java
         \ setlocal tabstop=4         |
         \ setlocal shiftwidth=4      |
         \ setlocal softtabstop=4     |
-        \ setlocal foldmethod=syntax |
+        \ setlocal foldmethod=indent |
         \ setlocal foldlevel=1       |
         \ setlocal foldnestmax=2
 augroup END

@@ -2,7 +2,6 @@
   "Profiles": [{
     "Name": "Default.Profile",
     "Guid": "Default.Profile",
-    "Dynamic Profile Parent Name": "Default.Profile.Theme",
 
     "Set Local Environment Vars": true,
     "Command": "\/usr\/local\/bin\/bash -l",

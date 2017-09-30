@@ -2,7 +2,7 @@
 
 #brew: coreutils, grep, gnu-sed --with-default-names
 #brew: bash, bash-completion2
-#brew: llvm, binutils, gdb, valgrind
+#brew: swift, llvm, binutils, gdb, valgrind
 #brew: ctags, cppcheck, doxygen
 #brew: flex, bison
 #brew: cmake, ninja
@@ -17,6 +17,7 @@
 #cask: adobe-acrobat-reader
 #cask: tunnelblick, libreoffice
 #cask: google-chrome, evernote, vlc
+#cask: flux
 install() {
   echo >> $BASHRC
   echo "# Other" >> $BASHRC

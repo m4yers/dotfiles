@@ -11,5 +11,4 @@ install() {
   ln -s -f $HERE/workspace ~/bin/workspace
   ln -s -f $HERE/run-skype ~/bin/run-skype
   ln -s -f $HERE/ts ~/bin/ts
-  ln -s -f $HERE/iterm_theme.py ~/bin/iterm_theme
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #cask: iterm2
-#pip: colorz
+#pip: iterm-theme-generator
 install() {
   local HERE=$ROOT/iterm
   local DEST="$HOME/Library/Application Support/iTerm2/DynamicProfiles"
