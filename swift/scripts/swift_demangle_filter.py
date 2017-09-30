@@ -9,8 +9,8 @@ import re
 from subprocess import Popen, PIPE
 
 
-GLOBAL = re.compile('(@[_a-zA-Z0-9]+)')
-LOCAL = re.compile('(%[_a-zA-Z0-9]+)')
+GLOBAL = re.compile(r'@[_a-zA-Z0-9]+\b')
+LOCAL = re.compile(r'%[_a-zA-Z0-9]+\b')
 SECTIONS = ["_IVARS_", "_DATA_", "_METACLASS_DATA_"]
 
 
@@ -47,13 +47,17 @@ def filter_input(opts):
   for line in filein:
     symbols = set(GLOBAL.findall(line)) | set(LOCAL.findall(line))
     for symbol in symbols:
+
       if symbol not in cache:
-        cache[symbol] = demangle(symbol[1:])
-      demangled = cache.get(symbol)
+        demangled = demangle(symbol[1:])
+        demangled = demangled.replace('"', r"\\34")
+        cache[symbol] = (re.compile(symbol + r'\b'), demangled)
+
+      pattern, demangled = cache.get(symbol)
       if demangled != symbol[1:]:
-        demangled = demangled.replace('"', "\\34")
         replacement = '{}"{}"'.format(symbol[:1], demangled)
-        line = line.replace(symbol, replacement)
+        line = pattern.sub(replacement, line)
+
     fileout.write(line)
 
   if filein != sys.stdin:
