@@ -6,10 +6,10 @@ install() {
     mkdir $DEST
   fi
 
-  ln -s -f $ROOT/git/gitconfig $DEST/.gitconfig
-  ln -s -f $ROOT/git/gitignore $DEST/.gitignore
+  ln -s -f $THIS/gitconfig $DEST/.gitconfig
+  ln -s -f $THIS/gitignore $DEST/.gitignore
 
   echo >> $BASHRC
   echo "# Git" >> $BASHRC
-  echo "source $ROOT/git/bashrc.config.sh" >> $BASHRC
+  echo "source $THIS/bashrc.config.sh" >> $BASHRC
 }

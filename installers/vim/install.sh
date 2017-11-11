@@ -5,10 +5,10 @@
 #pip:  pylint, bashate
 #npm:  jsonlint, eslint
 install() {
-  ln -s -f $ROOT/vim/vimrc ~/.vimrc
-  ln -s -f $ROOT/vim/cvimrc ~/.cvimrc
-  ln -s -f $ROOT/vim/vimrc ~/.ideavimrc
-  ln -s -f $ROOT/vim/ycm.py ~/.ycm.py
+  ln -s -f $THIS/vimrc ~/.vimrc
+  ln -s -f $THIS/cvimrc ~/.cvimrc
+  ln -s -f $THIS/vimrc ~/.ideavimrc
+  ln -s -f $THIS/ycm.py ~/.ycm.py
 
   if [ ! -f ~/.vim/autoload/plug.vim ]; then
     curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
@@ -18,5 +18,5 @@ install() {
 
   echo >> $BASHRC
   echo "# Vim" >> $BASHRC
-  echo "source $ROOT/vim/bashrc.aliases.sh" >> $BASHRC
+  echo "source $THIS/bashrc.aliases.sh" >> $BASHRC
 }

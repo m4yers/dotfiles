@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 export ROOT="$( cd "$( dirname "$0" )" && pwd )"
+export PROJECTS=$(dirname $ROOT)
+export INSTALLERS="$ROOT/installers"
 
 source $ROOT/scripts/shared.sh
 
@@ -29,7 +31,14 @@ setup_home() {
     npm_init
   fi
 
-  for installer in $(ls $ROOT/*/install.sh); do
+  for path in $(ls -d $INSTALLERS/*); do
+    local installer=$path/install.sh
+    if ! [[ -f $installer ]]; then
+      continue
+    fi
+
+    echo "Installing $path"
+
     if $OPTION_DEPS; then
       install_brew_requirements $installer
       install_cask_requirements $installer
@@ -39,6 +48,7 @@ setup_home() {
 
     # If this setup to be moved to other systems each installer must provide
     # setup_system specific setup_home routine
+    export THIS=$path
     source $installer
     install
   done
@@ -59,9 +69,9 @@ print_help() {
   echo "  help             Print help"
 }
 
-OPTION_SYSTEM=false
-OPTION_INSTALL=false
-OPTION_DEPS=true
+export OPTION_SYSTEM=false
+export OPTION_INSTALL=false
+export OPTION_DEPS=true
 
 main() {
   check_system
@@ -101,9 +111,9 @@ main() {
     esac
   done
 
-  if ! yesno "Do you really want this?" "no"; then
-    exit 0
-  fi
+  # if ! yesno "Do you really want this?" "no"; then
+  #   exit 0
+  # fi
 
   if $OPTION_SYSTEM; then
     setup_system

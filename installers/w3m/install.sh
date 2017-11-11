@@ -6,10 +6,10 @@ install() {
     mkdir $DEST
   fi
 
-  ln -s -f $ROOT/w3m/config $DEST/config
-  ln -s -f $ROOT/w3m/keymap $DEST/keymap
+  ln -s -f $THIS/config $DEST/config
+  ln -s -f $THIS/keymap $DEST/keymap
 
   echo >> $BASHRC
   echo "# w3m" >> $BASHRC
-  echo "source $ROOT/w3m/bashrc.aliases.sh" >> $BASHRC
+  echo "source $THIS/bashrc.aliases.sh" >> $BASHRC
 }
