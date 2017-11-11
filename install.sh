@@ -37,7 +37,7 @@ setup_home() {
       continue
     fi
 
-    echo "Installing $path"
+    echo "Install $path"
 
     if $OPTION_DEPS; then
       install_brew_requirements $installer

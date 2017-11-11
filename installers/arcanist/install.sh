@@ -10,11 +10,18 @@ install_php() {
 install() {
   install_php
 
-  mkdir $PROJECTS/arcanist
-  pushd $PROJECTS/arcanist > /dev/null
-  git clone https://github.com/phacility/libphutil.git
-  git clone https://github.com/phacility/arcanist.git
-  popd
+  local ARCANIST=$PROJECTS/arcanist
+  if ! [[ -d $ARCANIST ]]; then
+    echo "Cloning arcanist repos into $ARCANIST ..."
+    mkdir $ARCANIST
+    pushd $ARCANIST > /dev/null
+    git clone https://github.com/phacility/libphutil.git
+    git clone https://github.com/phacility/arcanist.git
+    popd
+    echo "Done."
+  else
+    echo "Using existing arcanist repos at $ARCANIST"
+  fi
 
   echo >> $BASHRC
   echo "# Arcanist" >> $BASHRC
