@@ -10,7 +10,7 @@ FLAGS = [
     '-fexceptions',
     '-ferror-limit=10000',
     '-DNDEBUG',
-    '-std=c++1z',
+    '-std=c++17',
     '-xc++',
     '-I/usr/lib/',
     '-I/usr/include/'

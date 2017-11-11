@@ -14,5 +14,5 @@ install() {
 
   echo >> $BASHRC
   echo "# iTerm" >> $BASHRC
-  echo "source $HERE/bashrc.aliases.sh" >> $BASHRC
+  echo "export PATH=\"\$HOME/.iterm2:\$PATH\"" >> $BASHRC
 }

@@ -55,7 +55,7 @@ Plug 'rizzatti/dash.vim'
 Plug 'wakatime/vim-wakatime'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-git'
-Plug 'rking/ag.vim'
+Plug 'mileszs/ack.vim'
 
 " Themes
 Plug 'xolox/vim-colorscheme-switcher'
@@ -63,6 +63,7 @@ Plug 'atelierbram/Base2Tone-vim'
 Plug 'NLKNguyen/papercolor-theme'
 Plug 'reedes/vim-colors-pencil'
 Plug 'rakr/vim-two-firewatch'
+Plug 'dylanaraps/wal.vim'
 Plug 'morhetz/gruvbox'
 
 Plug 'vim-airline/vim-airline'
@@ -96,11 +97,14 @@ set history                  =1000
 set laststatus               =2
 set lazyredraw
 set noequalalways
-set noshowmode
+set showmode
 set splitbelow
 set splitright
 set ttimeoutlen              =50
 set wildmenu
+
+set nopaste
+set pastetoggle=<F5>
 
 " }}}
 " Sessions {{{
@@ -185,7 +189,7 @@ syntax                       on
 if s:is_gui
   colorscheme                PaperColor
 else
-  colorscheme                gruvbox
+  colorscheme                PaperColor
   set t_Co                     =256
 endif
 
@@ -193,7 +197,8 @@ set numberwidth              =2
 set relativenumber
 set nonumber
 
-set colorcolumn              =81
+" set colorcolumn              =81
+set colorcolumn              =0
 set background               =dark
 set ruler
 set showcmd
@@ -225,10 +230,10 @@ endif
 inoremap jk                  <esc>
 cnoremap jk                  <c-c>
 
-inoremap <c-f>u              <esc>gUiwea
-inoremap <c-f>l              <esc>guiwea
-nnoremap <c-f>u              gUiw
-nnoremap <c-f>l              guiw
+inoremap <leader>fu          <esc>gUiwea
+inoremap <leader>fl          <esc>guiwea
+nnoremap <leader>fu          gUiw
+nnoremap <leader>fl          guiw
 
 " nnoremap j                 gj
 " nnoremap k                 gk
@@ -316,9 +321,11 @@ nnoremap <tab>k              <c-o>zz
 if s:is_gui
   nnoremap <Enter>           o<esc>
   nnoremap <S-Enter>         O<esc>
+  inoremap <S-Enter>         <esc>O
 else
   nnoremap <Enter>           o<esc>
   nnoremap ✠                 O<esc>
+  inoremap ✠                 <esc>O
 endif
 
 nnoremap <c-n>               J
@@ -409,7 +416,7 @@ let g:airline_symbols.readonly = '⭤'
 
 function! AirlineInit()
   let g:airline_section_a = airline#section#create(['mode', ' ', 'iminsert'])
-  let g:airline_section_x = airline#section#create(['filetype'])
+  " let g:airline_section_x = airline#section#create(['filetype'])
 endfunction
 
 augroup pl_Airline
@@ -514,6 +521,8 @@ augroup pl_FSwitch
   autocmd BufEnter *.cpp let b:fswitchlocs =
         \ 'reg:|lib|include/clang|,' .
         \ 'reg:|lib|include/llvm|,' .
+        \ 'reg:|source|include/lldb|,' .
+        \ 'reg:/source/include/,' .
         \ 'reg:/src/include/,' .
         \ 'reg:/lib/include/,' .
         \ 'reg:|src|include/**|'.
@@ -532,7 +541,9 @@ augroup pl_FSwitch
   autocmd BufEnter *.h   let b:fswitchlocs =
         \ 'reg:|include/clang|lib|,' .
         \ 'reg:|include/llvm|lib|,' .
+        \ 'reg:|include/lldb|source|,' .
         \ 'reg:/include/lib/,' .
+        \ 'reg:/include/source/,' .
         \ 'reg:/include/src/,' .
         \ 'reg:/include.*/src/,' .
         \ '../src'
@@ -632,9 +643,6 @@ nnoremap <F3> :TagbarToggle<cr>
 " }}}
 " Dash {{{
 
-" TODO make llvm and clang relative to project that use them
-let g:dash_map = { 'cpp' : ['llvm', 'clang', 'cpp'] }
-
 nnoremap <silent> <leader>d :Dash<cr>
 
 " }}}
@@ -670,10 +678,14 @@ let g:session_default_to_last   = 'yes'
 let g:session_directory         = '~/tmp/vim/sessions'
 
 " }}}
-" Ag {{{
+" Ack {{{
 
-nnoremap <leader>a :Ag!<space>
-nnoremap <leader>A :Ag! <C-R><C-W><cr>
+nnoremap <leader>a :Ack!<space>
+nnoremap <leader>A :Ack! <C-R><C-W><cr>
+
+if executable('ag')
+  let g:ackprg = 'ag --vimgrep'
+endif
 
 " }}}
 " }}}
@@ -726,7 +738,6 @@ augroup au_llvm
   autocmd! BufRead,BufNewFile *.ll  set filetype=llvm
   autocmd! BufRead,BufNewFile *.mir set filetype=yaml
   autocmd! BufRead,BufNewFile *.td  set filetype=tablegen
-  autocmd! BufRead,BufNewFile *.rst set filetype=rest
   autocmd! BufRead,BufNewFile LLVMBuild.txt set filetype=cfg
 augroup END
 
@@ -819,7 +830,7 @@ augroup END
 
 augroup ft_as3
   autocmd!
-  autocmd BufRead,BufNewFile *.as set filetype=as3
+  autocmd BufRead,BufNewFile *.as setfiletype as3
 augroup END
 
 " }}}
