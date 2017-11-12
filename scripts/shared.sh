@@ -33,10 +33,15 @@ tolower() {
 
 yesno() {
   local display=$1; shift
-  local default=${1:-yes}; shift
+  local default=$(tolower ${1:-yes}); shift
   while true
   do
-    echo "${display} Yes/No? (Default: $default)"
+    if [[ $default == "yes" ]]; then
+      echo "${display} YES/no?"
+    else
+      echo "${display} yes/NO?"
+    fi
+
     read -r answer
     [[ -z "$answer" ]] && answer=$default
 
