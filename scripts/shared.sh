@@ -23,6 +23,14 @@ assert_prev() {
   [[ $? != 0 ]] && error $message $code
 }
 
+tolower() {
+  echo $(echo $1 | tr '[:lower:]' '[:upper:]')
+}
+
+tolower() {
+  echo $(echo $1 | tr '[:upper:]' '[:lower:]')
+}
+
 yesno() {
   local display=$1; shift
   local default=${1:-yes}; shift
@@ -32,7 +40,7 @@ yesno() {
     read -r answer
     [[ -z "$answer" ]] && answer=$default
 
-    answer=${answer,,}
+    answer=$(tolower $answer)
     case $answer in
       yes)
         return 0

@@ -111,9 +111,9 @@ main() {
     esac
   done
 
-  # if ! yesno "Do you really want this?" "no"; then
-  #   exit 0
-  # fi
+  if ! yesno "Do you really want this?" "no"; then
+    exit 0
+  fi
 
   if $OPTION_SYSTEM; then
     setup_system
