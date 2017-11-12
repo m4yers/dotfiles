@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Set up $PATH
-BIN="$HOME/bin:/usr/local/bin:/usr/local/sbin:/opt/local/bin"
+BIN="$HOME/bin:/usr/local/bin:/usr/local/sbin:/opt/local/bin:/usr/bin"
 export PATH=$BIN:$PATH
 
 # The usual

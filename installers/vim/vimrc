@@ -73,10 +73,11 @@ call plug#end()
 
 filetype plugin indent on
 
-set rtp+=~/Development/Projects/dotfiles/vim/after
+" TODO Make these dynamically appendable
+set rtp+=~/Development/Projects/dotfiles/installers/vim/after
 set rtp+=~/Development/Projects/llvm-m68k/llvm/utils/vim
 
-set spellfile=~/Development/Projects/dotfiles/vim/spell/en.latin1.add
+set spellfile=~/Development/Projects/dotfiles/installers/vim/spell/en.latin1.add
 
 " }}}
 " Settings {{{
@@ -652,6 +653,7 @@ nnoremap <leader>gs :Gstatus<cr>
 nnoremap <leader>gl :silent! Glog --reverse \| botright copen \| clast \| redraw!<cr>
 nnoremap <leader>ge :Gedit<cr>
 nnoremap <leader>gc :Gcommit<cr>
+nnoremap <leader>gq :Gcommit -a --amend<cr>
 nnoremap <leader>gb :Gblame<cr>
 nnoremap <leader>gd :Gvdiff<cr>
 nnoremap <leader>gp :Gpush<cr>
@@ -925,12 +927,4 @@ augroup ft_log
 augroup END
 
 " }}}
-" }}}
-" Keymap {{{
-
-set keymap=russian-jcukenwin
-
-set iminsert=0
-set imsearch=0
-
 " }}}

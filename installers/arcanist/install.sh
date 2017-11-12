@@ -25,5 +25,6 @@ install() {
 
   echo >> $BASHRC
   echo "# Arcanist" >> $BASHRC
-  echo "export PATH=\"$PROJECTS/arcanist/arcanist/bin:$PATH\"" >> $BASHRC
+  echo "source $THIS/bashrc.aliases.sh" >> $BASHRC
+  echo "export PATH=\"$PROJECTS/arcanist/arcanist/bin:\$PATH\"" >> $BASHRC
 }

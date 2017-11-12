@@ -11,5 +11,5 @@ install() {
 
   echo >> $BASHRC
   echo "# Git" >> $BASHRC
-  echo "source $THIS/bashrc.config.sh" >> $BASHRC
+  echo "source $THIS/bashrc.aliases.sh" >> $BASHRC
 }
