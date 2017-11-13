@@ -206,7 +206,7 @@ set showcmd
 set cursorline
 
 if s:is_gui
-  set guifont                =Menlo\ for\ Powerline:h12
+  set guifont                =Menlo:h14
   set guioptions             =gtm
   set visualbell t_vb        ="
 endif
@@ -563,10 +563,8 @@ let g:formatdef_astyle_c = '"astyle --mode=c --style=google'
       \ .' -pcH".(&expandtab ? "s".shiftwidth() : "t")'
 
 " C++
-let g:formatters_cpp = ['clangformat', 'astyle_cpp']
-let g:formatdef_clangformat = '"clang-format -style=LLVM"'
-let g:formatdef_astyle_cpp = '"astyle --mode=c --style=google'
-      \ . ' -pcH".(&expandtab ? "s".shiftwidth() : "t")'
+let g:formatters_cpp = ['clangformat']
+let g:formatdef_clangformat = '"clang-format -style=file"'
 
 " C#
 let g:formatters_cs = ['astyle_cs']
@@ -653,7 +651,7 @@ nnoremap <leader>gs :Gstatus<cr>
 nnoremap <leader>gl :silent! Glog --reverse \| botright copen \| clast \| redraw!<cr>
 nnoremap <leader>ge :Gedit<cr>
 nnoremap <leader>gc :Gcommit<cr>
-nnoremap <leader>gq :Gcommit -a --amend<cr>
+nnoremap <leader>gq :Gcommit --amend<cr>
 nnoremap <leader>gb :Gblame<cr>
 nnoremap <leader>gd :Gvdiff<cr>
 nnoremap <leader>gp :Gpush<cr>
