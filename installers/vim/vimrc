@@ -15,6 +15,7 @@ call plug#begin()
 Plug 'Valloric/YouCompleteMe', { 'do': './install.py --clang-completer' }
 Plug 'rdnetto/YCM-Generator'
 Plug 'scrooloose/syntastic'
+Plug 'vim-scripts/DoxygenToolkit.vim'
 
 " Syntax
 Plug 'vim-scripts/applescript.vim'
@@ -75,7 +76,7 @@ filetype plugin indent on
 
 " TODO Make these dynamically appendable
 set rtp+=~/Development/Projects/dotfiles/installers/vim/after
-set rtp+=~/Development/Projects/llvm-m68k/llvm/utils/vim
+set rtp+=~/Development/Projects/dotfiles/dependencies/llvm.vim
 
 set spellfile=~/Development/Projects/dotfiles/installers/vim/spell/en.latin1.add
 
@@ -391,6 +392,21 @@ highlight LineNr  ctermbg=NONE
 
 " }}}
 " Plugins {{{
+" Doxygen {{{
+
+autocmd Filetype c,cpp set comments^=:///
+nnoremap <leader>x :Dox<cr>
+
+let g:DoxygenToolkit_commentType="C++"
+let g:DoxygenToolkit_briefTag_pre=""
+let g:DoxygenToolkit_paramTag_pre="\\param "
+let g:DoxygenToolkit_returnTag="\\return "
+let g:DoxygenToolkit_authorName="Artyom Goncharov"
+let g:DoxygenToolkit_blockHeader=""
+let g:DoxygenToolkit_blockFooter=""
+let g:load_doxygen_syntax=0
+
+" }}}
 " JSON {{{
 "
 let g:vim_json_syntax_conceal = 0
@@ -486,6 +502,7 @@ let g:ycm_global_ycm_extra_conf = '~/.ycm.py'
 
 nnoremap <leader>yd :YouCompleter GetDoc<cr>
 nnoremap <leader>yt :YcmCompleter GetType<cr>
+nnoremap <leader>yf :YcmCompleter FixIt<cr>
 nnoremap <tab>j :YcmCompleter GoTo<cr>zz
 
 " }}}
