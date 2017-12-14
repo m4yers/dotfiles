@@ -3,7 +3,6 @@
 
 
 #brew: coreutils, grep, gnu-sed --with-default-names
-#brew: bash, bash-completion2
 #brew: swift, llvm, binutils, gdb, valgrind
 #brew: ctags, cppcheck, doxygen
 #brew: flex, bison
@@ -13,6 +12,7 @@
 #brew: python, node
 #brew: tree, htop, highlight
 #brew: unrar, curl, wget --with-iri
+#brew: svn
 #brew: imagemagick
 #pip:  frida
 #pip:  sphinx
