@@ -232,8 +232,8 @@ endif
 inoremap jk                  <esc>
 cnoremap jk                  <c-c>
 
-inoremap <leader>fu          <esc>gUiwea
-inoremap <leader>fl          <esc>guiwea
+inoremap <c-f>u              <esc>gUiwea
+inoremap <c-f>l              <esc>guiwea
 nnoremap <leader>fu          gUiw
 nnoremap <leader>fl          guiw
 
@@ -342,7 +342,6 @@ endif
 nnoremap <leader>w           :write<cr>
 nnoremap <leader>W           :wq<cr>
 
-" replace the word under cursor in current buffer
 nnoremap <leader>r           :%s/\<<c-r><c-w>\>/<c-r><c-w>/g<left><left>
 
 nnoremap <F4>                :setlocal spell! spelllang=en_us<cr>

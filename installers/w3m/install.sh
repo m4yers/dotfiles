@@ -9,7 +9,6 @@ install() {
   ln -s -f $THIS/config $DEST/config
   ln -s -f $THIS/keymap $DEST/keymap
 
-  echo >> $BASHRC
-  echo "# w3m" >> $BASHRC
-  echo "source $THIS/bashrc.aliases.sh" >> $BASHRC
+  bash_section "w3m"
+  bash_export_source "$THIS/bashrc.aliases.sh"
 }

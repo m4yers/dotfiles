@@ -11,7 +11,6 @@ install() {
 
   ln -s -f "$THIS/profiles.json" "$DEST/profiles.json"
 
-  echo >> $BASHRC
-  echo "# iTerm" >> $BASHRC
-  echo "export PATH=\"\$HOME/.iterm2:\$PATH\"" >> $BASHRC
+  bash_section "iTerm"
+  bash_export_path "$HOME/.iterm2"
 }

@@ -9,7 +9,6 @@ install() {
   ln -s -f $THIS/gitconfig $HOME/.config/git/config
   ln -s -f $THIS/gitignore $HOME/.gitignore
 
-  echo >> $BASHRC
-  echo "# Git" >> $BASHRC
-  echo "source $THIS/bashrc.aliases.sh" >> $BASHRC
+  bash_section "Git"
+  bash_export_source "$THIS/bashrc.aliases.sh"
 }

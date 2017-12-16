@@ -23,8 +23,7 @@ install() {
     echo "Using existing arcanist repos at $ARCANIST"
   fi
 
-  echo >> $BASHRC
-  echo "# Arcanist" >> $BASHRC
-  echo "source $THIS/bashrc.aliases.sh" >> $BASHRC
-  echo "export PATH=\"$PROJECTS/arcanist/arcanist/bin:\$PATH\"" >> $BASHRC
+  bash_section "Arcanist"
+  bash_export_path "$PROJECTS/arcanist/arcanist/bin"
+  bash_export_source "$THIS/bashrc.aliases.sh"
 }

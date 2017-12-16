@@ -3,11 +3,10 @@
 #brew: bash, bash-completion2
 #npm: pygmentize
 install() {
-  echo >> $BASHRC
-  echo "# Bash" >> $BASHRC
-  echo "source $THIS/bashrc.config.sh" >> $BASHRC
-  echo "source $THIS/bashrc.aliases.sh" >> $BASHRC
-  echo "source $THIS/bashrc.functions.sh" >> $BASHRC
-  echo "source $THIS/bashrc.theme.sh" >> $BASHRC
-  echo "source /usr/local/share/bash-completion/bash_completion" >> $BASHRC
+  bash_section "Bash"
+  bash_export_source "$THIS/bashrc.config.sh"
+  bash_export_source "$THIS/bashrc.aliases.sh"
+  bash_export_source "$THIS/bashrc.functions.sh"
+  bash_export_source "$THIS/bashrc.theme.sh"
+  bash_export_source "/usr/local/share/bash-completion/bash_completion"
 }

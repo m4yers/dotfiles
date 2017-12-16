@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-
-
 #brew: coreutils, grep, gnu-sed --with-default-names
 #brew: swift, llvm, binutils, gdb, valgrind
 #brew: ctags, cppcheck, doxygen
@@ -22,11 +20,10 @@
 #cask: google-chrome, evernote, vlc
 #cask: flux, menubar-stats
 install() {
-  echo >> $BASHRC
-  echo "# Other" >> $BASHRC
-  echo "source $THIS/bashrc.aliases.sh" >> $BASHRC
-  echo "source $THIS/bashrc.config.sh" >> $BASHRC
-  echo "export PATH=\"$(brew --prefix llvm)/bin:\$PATH\"" >> $BASHRC
-  echo "export PATH=\"$(brew --prefix python)/libexec/bin:\$PATH\"" >> $BASHRC
-  echo "export PATH=\"$(brew --prefix coreutils)/libexec/gnubin:\$PATH\"" >> $BASHRC
+  bash_section "Other"
+  bash_export_path "$(brew --prefix llvm)/bin"
+  bash_export_path "$(brew --prefix python)/libexec/bin"
+  bash_export_path "$(brew --prefix coreutils)/libexec/gnubin"
+  bash_export_source "$THIS/bashrc.aliases.sh"
+  bash_export_source "$THIS/bashrc.config.sh"
 }

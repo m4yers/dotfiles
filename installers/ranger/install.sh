@@ -13,8 +13,7 @@ install() {
   ln -s -f $THIS/rifle.conf  $DEST/rifle.conf
   ln -s -f $THIS/scope.sh    $DEST/scope.sh
 
-  echo >> $BASHRC
-  echo "# Ranger" >> $BASHRC
-  echo "source $THIS/bashrc.config.sh" >> $BASHRC
-  echo "source $THIS/bashrc.aliases.sh" >> $BASHRC
+  bash_section "Ranger"
+  bash_export_source "$THIS/bashrc.config.sh"
+  bash_export_source "$THIS/bashrc.aliases.sh"
 }

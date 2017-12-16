@@ -3,6 +3,7 @@
 export ROOT="$( cd "$( dirname "$0" )" && pwd )"
 export PROJECTS=$(dirname $ROOT)
 export INSTALLERS="$ROOT/installers"
+export DEPENDENCIES="$ROOT/dependencies"
 
 source $ROOT/scripts/shared.sh
 
@@ -20,6 +21,8 @@ setup_system() {
 setup_home() {
   source $ROOT/scripts/bash.sh
   bash_init
+  bash_export_global PROJECTS $PROJECTS
+  bash_export_global DOTFILES $ROOT
 
   if $OPTION_DEPS; then
     source $ROOT/scripts/brew.sh
