@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
 
-# TODO add topology deps and make it a dependency
-install_php() {
-  brew tap homebrew/php
-  brew install php72
-}
-
-#brew: git
+# depends-on: bash, git, php
 install() {
-  install_php
-
   local ARCANIST=$PROJECTS/arcanist
   if ! [[ -d $ARCANIST ]]; then
     echo "Cloning arcanist repos into $ARCANIST ..."

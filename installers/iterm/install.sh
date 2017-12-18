@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
-#cask: iterm2
-#pip: iterm-theme-generator
+# depends-on: bash, brew, npm
 install() {
+  brew cask install iterm2
+  pip install iterm-theme-generator
+
   local DEST="$HOME/Library/Application Support/iTerm2/DynamicProfiles"
 
   if [[ ! -a "$DEST" ]]; then

@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 
-#brew: svn, curl, ag, swiftlint
-#cask: macvim --with-override-system-vim
-#pip:  pylint, bashate
-#npm:  jsonlint, eslint
+# depends-on: bash, brew, npm, svn
 install() {
+  brew cask install macvim
+  brew install macvim --with-override-system-vim
+  brew link --overwrite macvim
+  brew install ag
+  brew install swiftlint
+  pip install pylint
+  pip install bashate
+  npm install -g jsonlint
+  npm install -g eslint
+
   ln -s -f $THIS/vimrc ~/.vimrc
   ln -s -f $THIS/cvimrc ~/.cvimrc
   ln -s -f $THIS/vimrc ~/.ideavimrc

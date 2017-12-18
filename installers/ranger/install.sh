@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 
-#brew: ranger, xpdf, exiftool, libcaca --with-imlib2
+# depends-on: bash, brew, xquartz
 install() {
+  brew install ranger
+  brew install xpdf
+  brew install exiftool
+  brew install libcaca --with-imlib2
+
   local DEST=~/.config/ranger
 
   if [[ ! -a $DEST ]]; then

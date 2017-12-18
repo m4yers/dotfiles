@@ -1,5 +1,7 @@
-#brew: w3m
+# depends-on: bash, brew
 install() {
+  brew install w3m
+
   local DEST=~/.w3m
 
   if [[ ! -a $DEST ]]; then

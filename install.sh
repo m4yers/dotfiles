@@ -2,6 +2,7 @@
 
 export ROOT="$( cd "$( dirname "$0" )" && pwd )"
 export PROJECTS=$(dirname $ROOT)
+export SCRIPTS="$ROOT/scripts"
 export INSTALLERS="$ROOT/installers"
 export DEPENDENCIES="$ROOT/dependencies"
 
@@ -24,57 +25,41 @@ setup_home() {
   bash_export_global PROJECTS $PROJECTS
   bash_export_global DOTFILES $ROOT
 
-  if $OPTION_DEPS; then
-    source $ROOT/scripts/brew.sh
-    source $ROOT/scripts/pip.sh
-    source $ROOT/scripts/npm.sh
-
-    brew_init
-    pip_init
-    npm_init
+  pip install -r $ROOT/requirements.txt
+  result=
+  if [[ -z $OPTION_ONLY ]]; then
+    result=$(python $SCRIPTS/topology.py $INSTALLERS)
+  else
+    result=$(python $SCRIPTS/topology.py $INSTALLERS --for $OPTION_ONLY)
+  fi
+  if [[ $? != 0 ]]; then
+    echo $result
+    exit 1
   fi
 
-  for path in $(ls -d $INSTALLERS/*); do
-    local installer=$path/install.sh
-    if ! [[ -f $installer ]]; then
-      continue
-    fi
-
-    echo "Install $path"
-
-    if $OPTION_DEPS; then
-      install_brew_requirements $installer
-      install_cask_requirements $installer
-      install_pip_requirements $installer
-      install_npm_requirements $installer
-    fi
-
-    # If this setup to be moved to other systems each installer must provide
-    # setup_system specific setup_home routine
+  # If this setup to be moved to other systems each installer must provide
+  # setup_system specific setup_home routine
+  for dependency in $result; do
+    echo "-- Install $dependency"
+    path=$INSTALLERS/$dependency
     export THIS=$path
-    source $installer
+    source "$path/install.sh"
     install
   done
-
-  if $OPTION_DEPS; then
-    pip_fini
-    brew_fini
-    npm_fini
-  fi
 }
 
 print_help() {
-  echo "Home, Sweet Home installer"
+  echo "Sweet Home Installer"
   echo "Usage:"
-  echo "  all  [--no-deps] Run all features"
-  echo "  system           Run system setup"
-  echo "  home [--no-deps] Run home directory setup"
-  echo "  help             Print help"
+  echo "  all                   Run all features"
+  echo "  system                Run system setup"
+  echo "  home   --only TARGET  Run home directory setup"
+  echo "  help                  Print help"
 }
 
 export OPTION_SYSTEM=false
 export OPTION_INSTALL=false
-export OPTION_DEPS=true
+export OPTION_ONLY=
 
 main() {
   check_system
@@ -100,12 +85,13 @@ main() {
       home)
         OPTION_INSTALL=true
         ;;
+      --only)
+        OPTION_ONLY=$1
+        shift
+        ;;
       help)
         print_help
         exit 0
-        ;;
-      --no-deps)
-        OPTION_DEPS=false
         ;;
       *)
         print_help

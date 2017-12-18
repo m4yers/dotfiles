@@ -1,5 +1,8 @@
-#brew: git, git-lfs
+# depends-on: bash, brew
 install() {
+  brew install git
+  brew install git-lfs
+
   local global_gitignore=$HOME/.gitconfig
   if [[ ! -f $global_gitignore ]]; then
     echo "${global_gitignore} does not exist. Creating..."
