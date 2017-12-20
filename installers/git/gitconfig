@@ -19,3 +19,8 @@
 
 [diff "bin"]
   textconv = xdd
+
+[alias]
+  co = checkout
+  st = status
+  br = branch
