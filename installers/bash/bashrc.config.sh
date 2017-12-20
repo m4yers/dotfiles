@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 # Set up $PATH
-BIN="$HOME/bin:/usr/local/bin:/usr/local/sbin:/opt/local/bin:/usr/bin"
-export PATH=$BIN:$PATH
+export PATH="$HOME/bin:/usr/local/bin:/usr/local/sbin:/opt/local/bin:/usr/bin:/usr/sbin:/bin:/sbin:"
 
 # The usual
 export EDITOR=vim

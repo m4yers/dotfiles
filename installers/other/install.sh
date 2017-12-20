@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# depends-on: brew, pip
+# depends-on: bash, brew, pip
 install() {
   # satisfies: coreutils, grep, gnu-sed
   brew install coreutils
