@@ -294,7 +294,7 @@ nnoremap <tab>0              :tabnext10<cr>
 nnoremap <tab>e              :vsplit<cr>
 nnoremap <tab>o              :split<cr>
 nnoremap <tab>d              :bdelete<cr>
-nnoremap <tab>c              :tabclose<cr>
+nnoremap <tab>c              :tabclose \| tabprevious<cr>
 
 nnoremap <c-h>               <c-w>h
 nnoremap <c-j>               <c-w>j
@@ -489,7 +489,7 @@ nmap ga <Plug>(EasyAlign)
 let g:ycm_error_symbol                               = '✖'
 let g:ycm_warning_symbol                             = '⚈'
 let g:ycm_complete_in_comments                       = 1
-let g:ycm_goto_buffer_command                        = 'new-or-existing-tab'
+let g:ycm_goto_buffer_command                        = 'vertical-split'
 let g:ycm_key_invoke_completion                      = ''
 let g:ycm_autoclose_preview_window_after_completion  = 1
 let g:ycm_autoclose_preview_window_after_insertion   = 1
@@ -502,6 +502,7 @@ nnoremap <leader>yd :YouCompleter GetDoc<cr>
 nnoremap <leader>yt :YcmCompleter GetType<cr>
 nnoremap <leader>yf :YcmCompleter FixIt<cr>
 nnoremap <tab>j :YcmCompleter GoTo<cr>zz
+nnoremap <tab>J :YcmCompleter GoTo<cr>zz<c-w>T
 
 " }}}
 " CtrlP {{{

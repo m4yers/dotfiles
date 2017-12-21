@@ -44,6 +44,8 @@ install() {
   brew install svn
   # satisfies: imagemagick
   brew install imagemagick
+  # satisfies: pandoc
+  brew install pandoc
 
   # satisfies: xquartz
   brew cask install xquartz
