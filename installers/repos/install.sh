@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
-# satisfies: brew, python, pip, npm
+# satisfies: brew, npm
 install() {
-
   # BREW
   if ! which -s brew; then
     ruby -e "$(curl -fsSL \
@@ -10,11 +9,6 @@ install() {
   else
     brew update
     brew upgrade
-  fi
-
-  # PIP
-  if ! brew ls --versions python > /dev/null; then
-    brew install python
   fi
 
   # NPM

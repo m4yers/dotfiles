@@ -1,5 +1,9 @@
 alias sudo='sudo '
 
+# Fix after binary cat
+alias fixme='echo -e "\033c"'
+alias space='echo;echo;echo;echo;echo;echo;echo'
+
 # Easier navigation
 alias u="cd .."
 alias uu="cd ../.."
