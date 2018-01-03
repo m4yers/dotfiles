@@ -20,6 +20,13 @@
 [diff "bin"]
   textconv = xdd
 
+[merge]
+  tool = vimdiff
+  conflictstyle = diff3
+
+[mergetool]
+  keepBackup = false
+
 [alias]
   co = checkout
   st = status
