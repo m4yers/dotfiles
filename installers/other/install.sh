@@ -6,8 +6,7 @@ install() {
   brew install coreutils
   brew install grep
   brew install gnu-sed --with-default-names
-  # satisfies: llvm, binutils, gdb, valgrind
-  brew install llvm
+  # satisfies: binutils, gdb, valgrind
   brew install binutils
   brew install gdb
   brew install valgrind
@@ -28,9 +27,6 @@ install() {
   brew install gnutls
   brew install gnupg
   brew install gpg-agent
-  # satisfies: gts, graphviz
-  brew install gts
-  brew install graphviz --with-gts
   # satisfies: node
   brew install node
   # satisfies: tree, htop, highlight
@@ -55,13 +51,17 @@ install() {
   # satisfies: frida
   pip install frida
 
+  # satisfies: java, gts, graphviz
+  brew cask install java
+  brew install gts
+  brew install graphviz --with-app --with-gts
+
   # satisfies: libxml2
   brew install libxml2
   brew link --force libxml2
   sudo ln -s /usr/local/include/libxml2/libxml /usr/local/include/libxml/
 
   bash_section "Other"
-  bash_export_path "$(brew --prefix llvm)/bin"
   bash_export_path "$(brew --prefix python)/libexec/bin"
   bash_export_path "$(brew --prefix coreutils)/libexec/gnubin"
   bash_export_source "$THIS/bashrc.aliases.sh"
