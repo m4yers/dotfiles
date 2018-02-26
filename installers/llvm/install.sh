@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # depends-on: bash, brew
+# satisfies: clang
 install() {
   brew install llvm
 

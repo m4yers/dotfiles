@@ -36,6 +36,8 @@ Plug 'majutsushi/tagbar'
 
 " Functionality
 Plug 'editorconfig/editorconfig-vim'
+Plug 'vim-scripts/ingo-library'
+Plug 'vim-scripts/SyntaxRange'
 Plug 'junegunn/vim-easy-align'
 Plug 'derekwyatt/vim-fswitch'
 Plug 'Chiel92/vim-autoformat'
@@ -457,7 +459,7 @@ let g:airline_theme='distinguished'
 
 let g:syntastic_mode_map = {
   \ 'mode': 'active',
-  \ 'passive_filetypes' : ['python']}
+  \ 'passive_filetypes' : ['python', 'cpp']}
 
 let g:syntastic_error_symbol                = '✖'
 let g:syntastic_warning_symbol              = '⚈'
@@ -468,6 +470,8 @@ let g:syntastic_ignore_files                = ['\m\c\.html$']
 let g:syntastic_javascript_checkers         = ['eslint']
 
 let g:syntastic_python_checkers             = ['pylint']
+
+let g:syntastic_clang_tidy_config_file      = '.clang-tidy'
 
 nnoremap <leader>ss :SyntasticCheck<cr>
 
@@ -533,8 +537,8 @@ nnoremap <leader>jr :FSSplitRight<cr>
 " TODO remove make subfolder non project specific
 augroup pl_FSwitch
   autocmd!
-  autocmd BufEnter *.cpp let b:fswitchdst  = 'hpp,h'
-  autocmd BufEnter *.cpp let b:fswitchlocs =
+  autocmd BufEnter *.cpp,*.cc,*.c,*.m let b:fswitchdst  = 'hpp,h'
+  autocmd BufEnter *.cpp,*.cc,*.c,*.m let b:fswitchlocs =
         \ 'reg:|lib|include/clang|,' .
         \ 'reg:|lib|include/llvm|,' .
         \ 'reg:|source|include/lldb|,' .
@@ -544,17 +548,8 @@ augroup pl_FSwitch
         \ 'reg:|src|include/**|'.
         \ ',../include'
 
-  autocmd BufEnter *.cc  let b:fswitchdst  = 'hh,h'
-  autocmd BufEnter *.cc  let b:fswitchlocs = b:fswitchlocs
-
-  autocmd BufEnter *.c   let b:fswitchdst  = 'h'
-  autocmd BufEnter *.c   let b:fswitchlocs = b:fswitchlocs
-
-  autocmd BufEnter *.m   let b:fswitchdst  = 'h'
-  autocmd BufEnter *.m   let b:fswitchlocs = b:fswitchlocs
-
-  autocmd BufEnter *.h   let b:fswitchdst  = 'cpp,cc,c,m'
-  autocmd BufEnter *.h   let b:fswitchlocs =
+  autocmd BufEnter *.hpp,*.hh,*.h   let b:fswitchdst  = 'cpp,cc,c,m'
+  autocmd BufEnter *.hpp,*.hh,*.h   let b:fswitchlocs =
         \ 'reg:|include/clang|lib|,' .
         \ 'reg:|include/llvm|lib|,' .
         \ 'reg:|include/lldb|source|,' .
@@ -572,12 +567,8 @@ let g:formatterpath = ['/usr/local/opt/llvm/bin']
 
 noremap <leader>ff :Autoformat<cr>
 
-" C
-let g:formatters_c = ['astyle_c']
-let g:formatdef_astyle_c = '"astyle --mode=c --style=google'
-      \ .' -pcH".(&expandtab ? "s".shiftwidth() : "t")'
-
-" C++
+" C/C++
+let g:formatters_c = ['clangformat']
 let g:formatters_cpp = ['clangformat']
 let g:formatdef_clangformat = '"clang-format -style=file"'
 
