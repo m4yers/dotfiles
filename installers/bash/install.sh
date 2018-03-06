@@ -4,6 +4,7 @@
 install() {
   brew install bash
   brew install bash-completion2
+  brew install bash-git-prompt
 
   npm install -g pygmentize
 
@@ -15,6 +16,10 @@ install() {
   bash_export_source "$THIS/bashrc.functions.sh"
   bash_export_source "$THIS/bashrc.theme.sh"
   bash_export_source "/usr/local/share/bash-completion/bash_completion"
+
+  bash_export_global GIT_PROMPT_ONLY_IN_REPO 1
+  bash_export_global __GIT_PROMPT_DIR="$(brew --preifx bash-git-prompt)/share"
+  bash_export_source "$(brew --prefix bash-git-prompt)/share/gitprompt.sh"
 
   # local configuration
   local lbashrc = $HOME/.bashrc.local
