@@ -61,9 +61,13 @@ install() {
   brew link --force libxml2
   sudo ln -s /usr/local/include/libxml2/libxml /usr/local/include/libxml/
 
+  # satisfies: ccache
+  brew install ccache
+
   bash_section "Other"
   bash_export_path "$(brew --prefix python)/libexec/bin"
   bash_export_path "$(brew --prefix coreutils)/libexec/gnubin"
+  bash_export_path "$(brwp --prefix ccache)/libexec"
   bash_export_source "$THIS/bashrc.aliases.sh"
   bash_export_source "$THIS/bashrc.config.sh"
 }

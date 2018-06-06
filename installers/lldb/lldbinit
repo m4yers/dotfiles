@@ -1,2 +1,2 @@
-
 settings set target.disable-aslr
+command script import /Users/agoncharov/Library/Python/2.7/lib/python/site-packages/voltron/entry.py

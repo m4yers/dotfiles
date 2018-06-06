@@ -648,7 +648,10 @@ nnoremap <F3> :TagbarToggle<cr>
 " }}}
 " Dash {{{
 
-nnoremap <silent> <leader>d :Dash<cr>
+nnoremap <silent> <leader>dd :Dash<cr>
+let g:dash_map = {
+    \ 'cpp' : ['cpp', 'llvm']
+    \ }
 
 " }}}
 " Git {{{
@@ -694,7 +697,7 @@ nnoremap <leader>a :Ack!<space>
 nnoremap <leader>A :Ack! <C-R><C-W><cr>
 
 if executable('ag')
-  let g:ackprg = 'ag --vimgrep'
+  let g:ackprg = 'ag -U --vimgrep'
 endif
 
 " }}}
