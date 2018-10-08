@@ -46,6 +46,7 @@ Plug 'Raimondi/delimitMate'
 Plug 'tomtom/tcomment_vim'
 Plug 'tpope/vim-surround'
 Plug 'xolox/vim-session'
+Plug 'reedes/vim-wordy'
 Plug 'xolox/vim-misc'
 Plug 'fidian/hexmode'
 
@@ -211,7 +212,7 @@ set showcmd
 set cursorline
 
 if s:is_gui
-  set guifont                =Menlo:h14
+  set guifont                =Menlo:h15
   set guioptions             =gtm
   set visualbell t_vb        ="
 endif
@@ -587,7 +588,7 @@ let g:formatdef_autopep8 = '"autopep8 - --max-line-length=80 --indent-size=2"'
 " NERDTree {{{
 
 "TODO make it depend on current window size?
-let NERDTreeWinSize = 50
+let NERDTreeWinSize = 35
 let NERDTreeMinimalUI = 1
 
 nnoremap <leader>nf :NERDTreeFind<cr>
@@ -663,7 +664,7 @@ nnoremap <leader>gc  :Gcommit<cr>
 nnoremap <leader>gq  :Gcommit --amend<cr>
 nnoremap <leader>gb  :Gblame<cr>
 nnoremap <leader>gd  :Gvdiff<cr>
-nnoremap <leader>gp  :Gpush<cr>
+nnoremap <leader>gp  :call setqflist(map(systemlist("git diff --name-only master"), '{"filename": v:val}'))<cr>
 
 nnoremap <leader>dgl :diffget LOCAL  \| diffupdate<cr>
 nnoremap <leader>dgb :diffget BASE   \| diffupdate<cr>
@@ -822,7 +823,7 @@ augroup ft_vim
 
   autocmd FileType vim setlocal keywordprg=:help
   autocmd FileType vim setlocal foldmethod=marker
-  autocmd FileType vim nmap <buffer> <leader>d :help <C-r><C-w><cr>
+  autocmd FileType vim nmap <buffer> <leader>dd :help <C-r><C-w><cr>
 
   autocmd FileType help nnoremap <silent><buffer> q :q<cr>
   autocmd FileType help nnoremap <tab>j <c-]>
@@ -888,7 +889,7 @@ augroup ft_cpp
         \ setlocal tabstop=2         |
         \ setlocal shiftwidth=2      |
         \ setlocal softtabstop=2     |
-        \ setlocal foldlevel=0       |
+        \ setlocal foldlevel=1       |
         \ setlocal foldnestmax=1
 augroup END
 

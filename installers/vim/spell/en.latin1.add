@@ -28,3 +28,7 @@ Goncharov
 Artyom
 initializer
 Log/!
+bitcode
+Xcode
+renameModuleForThinLTO
+Resolver

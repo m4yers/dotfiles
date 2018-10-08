@@ -32,7 +32,17 @@ print_colors() {
   echo
 }
 
-binary-stats() {
+# Collect statistics on used machine instructions
+binary-asm-stats() {
+  INPUT=$1
+  OUTPUT="$1-code-statistics.txt"
+
+  objdump -d $1 | sed -e 's/^ *[0-9a-f]*:[\t 0-9a-f]*[ \t]\([a-z][0-9a-z][0-9a-z][0-9a-z]*\)[ \t]\(.*\)$/\1/g' | grep '^[a-z0-9]*$' >> $OUTPUT
+  cat $OUTPUT | awk '/./ { arrs[$1] += 1 } END { for (val in arrs) { print arrs[val], val; sum += arrs[val] } print sum, "Total" }' | sort -n -r | head -n 50 | less
+}
+
+# Report
+binary-bitcode-stats() {
   local binary=$1
   local archs=$(lipo -info $binary)
   archs=${archs##*:}
@@ -47,7 +57,7 @@ binary-stats() {
 }
 
 ipa-unpack() {
-  local ipa=$1
+  local ipa=$(realpath $1)
   if [[ -z $ipa ]]; then echo "Which ipa?"; exit 1; fi
 
   local file=${ipa##*/}
@@ -60,4 +70,25 @@ ipa-unpack() {
   echo $name
   ebcutil --extract $name
   for f in *; do llvm-dis $f; done
+}
+
+pkg-unpack() {
+local pkg=$(realpath $1)
+  if [[ -z $pkg ]]; then echo "Which pkg?"; exit 1; fi
+
+  local file=${pkg##*/}
+  local name=${file%%.*}
+  local unpacked=$pkg.unpacked
+
+  rm -rf $unpacked &> /dev/null
+
+  pushd $unpacked > /dev/null
+  xar -xf ../$pkg
+  cd $pkg.pkg
+  cat Payload | gunzip -dc |cpio -i
+  popd
+}
+
+notify() {
+ say -v Moira "$@ is complete"
 }

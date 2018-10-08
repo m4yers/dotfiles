@@ -1,3 +1,5 @@
+#!/bin/bash
+
 llvm-dev-update-env() {
   source $LLVM_DEV_ENV
 }
