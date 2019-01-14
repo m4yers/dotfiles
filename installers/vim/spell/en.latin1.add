@@ -32,3 +32,4 @@ bitcode
 Xcode
 renameModuleForThinLTO
 Resolver
+auto

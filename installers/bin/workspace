@@ -4,7 +4,7 @@ create() {
     hdiutil create \
         -type SPARSE \
         -fs 'Case-sensitive Journaled HFS+' \
-        -size 10g -volname ${NAME} ${LOCATION}
+        -size 100g -volname ${NAME} ${LOCATION}
 }
 
 detach() {

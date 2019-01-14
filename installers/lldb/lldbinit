@@ -1,2 +1,3 @@
 settings set target.disable-aslr
+settings set target.load-cwd-lldbinit true
 command script import /Users/agoncharov/Library/Python/2.7/lib/python/site-packages/voltron/entry.py

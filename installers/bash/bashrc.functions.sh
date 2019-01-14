@@ -56,19 +56,30 @@ binary-bitcode-stats() {
   done
 }
 
+binary-bitcode-sect() {
+  local binary=$1
+  local archs=$(lipo -info $binary)
+  archs=${archs##*:}
+
+  for arch in $archs; do
+    echo "$arch:"
+    otool -lv -arch $arch $binary | pcregrep -M "sectname (__bundle|__bitcode)(.|\n)*?segname __LLVM(.|\n)*?attributes"
+  done
+}
+
 ipa-unpack() {
   local ipa=$(realpath $1)
-  if [[ -z $ipa ]]; then echo "Which ipa?"; exit 1; fi
+  if [[ -z "$ipa" ]]; then echo "Which ipa?"; exit 1; fi
 
-  local file=${ipa##*/}
-  local name=${file%%.*}
-  local unpacked=$ipa.unpacked
+  local file="${ipa##*/}"
+  local name="${file%%.*}"
+  local unpacked="$ipa.unpacked"
 
-  rm -rf $unpacked &> /dev/null
-  unzip -d $unpacked $ipa > /dev/null
-  pushd $unpacked/Payload/$name.app > /dev/null
-  echo $name
-  ebcutil --extract $name
+  rm -rf "$unpacked" &> /dev/null
+  unzip -d "$unpacked" "$ipa" > /dev/null
+  pushd "$unpacked/Payload/$name.app" > /dev/null
+  echo "$name"
+  ebcutil --extract "$name"
   for f in *; do llvm-dis $f; done
 }
 
