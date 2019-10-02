@@ -1,0 +1,213 @@
+# NOTE These snippts depend on vim-snippets plagin installed
+
+extends c
+
+# We want to overwrite everything in parent ft.
+priority 100
+
+#######################################################################
+#                              Language                               #
+#######################################################################
+
+snippet nul "nullptr"
+nullptr
+endsnippet
+
+snippet pub "public:" b
+public:
+
+endsnippet
+
+snippet pri "public:" b
+private:
+
+endsnippet
+
+snippet pro "public:" b
+protected:
+
+endsnippet
+
+snippet lam "lambda" is
+[$1]($2){ $3; }$0
+endsnippet
+
+snippet lama "lambda" is
+[$1](const auto& ${2:a}){ ${3:return a;} }$0
+endsnippet
+
+snippet lamab "lambda" is
+[$1](const auto& ${2:a}, const auto& ${3:b}){ ${4:return a < b;} }$0
+endsnippet
+
+###############
+#  namespace  #
+###############
+
+snippet ns "namespace .. (namespace)"
+namespace${1/.+/ /m}${1:`!p snip.rv = snip.basename or "name"`} {
+	${VISUAL}${0}
+} // namespace $1
+endsnippet
+
+snippet nsa "anonymous namespace"
+namespace {
+${VISUAL}${0}
+} // end anonymous namespace
+endsnippet
+
+snippet cl
+class ${1:`vim_snippets#Filename('$1', 'name')`} {
+$0
+};
+endsnippet
+
+snippet us "using" b
+using ${1:NAME} = ${2:TYPE}
+endsnippet
+
+###############
+#  templates  #
+###############
+
+snippet funt "function template" b
+template<typename ${1:T}>
+${2:void} ${3:function_name}(${4}) {
+$0
+}
+endsnippet
+
+snippet funtd "function template declaration" b
+template<typename ${1:T}>
+${2:void} ${3:function_name}(${4});$0
+endsnippet
+
+snippet clt "class template" b
+template<typename ${1:T}>
+class ${2:`vim_snippets#Filename('$3', 'name')`} {
+$0
+};
+endsnippet
+
+snippet clts "class template complete specialization" b
+template<>
+class ${1:`vim_snippets#Filename('$2', 'name')`}<$3> {
+$0
+};
+endsnippet
+
+snippet cltps "class template partial specialization" b
+template<typename ${1:T}>
+class ${2:`vim_snippets#Filename('$3', 'name')`}<$4> {
+$0
+};
+endsnippet
+
+snippet cltd "class template declaration" b
+template<typename ${1:T}>
+class ${2:`vim_snippets#Filename('$1', 'name')`};$0
+endsnippet
+
+snippet ust "using template declaration" b
+template<typename ${1:T}>
+using ${2:NAME} = ${3:TYPE}
+endsnippet
+
+#######################################################################
+#                                 STD                                 #
+#######################################################################
+
+################
+#  Containers  #
+################
+
+snippet ss "std::string" is
+std::string$0
+endsnippet
+
+snippet sm "std::map (map)" is
+std::map<${1:std::string}, ${2:std::string}>$0
+endsnippet
+
+snippet sv "std::vector" is
+std::vector<${1:std::string}>$0
+endsnippet
+
+snippet spa "std::pair" is
+std::pair<${1:std::string}, ${2:std::string}>$0
+endsnippet
+
+snippet smp "std::make_pair()" is
+std::make_pair($1, $2)$0
+endsnippet
+
+snippet ibe "data.begin(), data.end()" is
+${1:data}.begin(), $1.end()$0
+endsnippet
+
+
+################
+#  Forwarding  #
+################
+
+snippet smo "std::move" is
+std::move(${1:NAME})$0
+endsnippet
+
+snippet sfo "std::forward" is
+std::forward<${1:TYPE}>(${2:NAME})$0
+endsnippet
+
+
+################
+#  Concurency  #
+################
+
+snippet sat "std::atomic" is
+std::atomic<${1:bool}>$0
+endsnippet
+
+snippet smx "std::mutex" is
+std::mutex$0
+endsnippet
+
+snippet sul "std::unique_lock" is
+std::unique_lock<${1:std::mutex}> ${2:lock}(${3:MUTEX});$0
+endsnippet
+
+snippet sth "std::thread" is
+std::thread ${1:t}(${2:FUNC})$0
+endsnippet
+
+
+############
+#  Memory  #
+############
+
+snippet sup "std::unique_ptr<T>" is
+std::unique_ptr<${1:std::string}>$0
+endsnippet
+
+snippet smu "std::make_unique<T>" is
+std::make_unique<${1:std::string}>($2)$0
+endsnippet
+
+snippet ssp "std::shared_ptr<T>" is
+std::shared_ptr<${1:std::string}>$0
+endsnippet
+
+snippet sms "std::make_shared<T>" is
+std::make_shared<${1:std::string}>($2)$0
+endsnippet
+
+############
+#  Stream  #
+############
+
+snippet sco "std::cout"
+std::cout << $0
+endsnippet
+
+snippet sel "std::endl"
+<< std::endl$0
+endsnippet

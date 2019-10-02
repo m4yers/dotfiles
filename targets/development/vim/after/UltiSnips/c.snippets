@@ -1,0 +1,233 @@
+priority 100
+
+##
+## Comments
+snippet /* "comment block"
+/*
+ * ${0}
+ */
+endsnippet
+
+snippet /** "doc block"
+/**
+ * ${0}
+ */
+endsnippet
+
+snippet todo "//TODO ..."
+// TODO ${2:message}
+endsnippet
+
+snippet test "//TEST ..."
+// TEST ${2:message}
+endsnippet
+
+snippet hmm "//HMM ..."
+// HMM... ${2:message}
+endsnippet
+
+snippet fixme "//FIXME ..."
+// FIXME ${2:message}
+endsnippet
+
+snippet shit "//SHIT ..."
+// SHIT ${2:message}
+endsnippet
+
+snippet #deb "DEBUG macro"
+#if 1
+#define DEBUG(x) {x;}
+#else
+#define DEBUG(x) 0
+#endif
+endsnippet
+
+snippet deb "DEBUG() closure"
+DEBUG(${VISUAL}${1});$0
+endsnippet
+
+snippet def "#define ..."
+#define $0
+endsnippet
+
+snippet ifndef "#ifndef ... #define ... #endif"
+#ifndef ${1/([A-Za-z0-9_]+).*/$1/}
+#define ${1:SYMBOL} ${2:value}
+#endif$0
+endsnippet
+
+snippet #if "#if #endif" b
+#if ${1:0}
+${VISUAL}${2}
+#endif$0
+endsnippet
+
+snippet inc "#include local header (inc)"
+#include "${1:`!p snip.rv = snip.basename + '.h'`}"
+endsnippet
+
+snippet Inc "#include <> (Inc)"
+#include <${1:.h}>
+endsnippet
+
+snippet mark "#pragma mark (mark)"
+#if 0
+${1:#pragma mark -
+}#pragma mark $2
+#endif$0
+endsnippet
+
+snippet main "main() (main)"
+int main(int argc, char *argv[]) {
+	$0
+	return 0;
+}
+endsnippet
+
+snippet for "for loop (for)"
+for (${1:i} = 0; $2 < ${2:COUNT}; ${3:++$2}) {
+	${VISUAL}${4}
+}$0
+endsnippet
+
+snippet fori "for int loop (fori)"
+for (${1:int} ${2:i} = 0; $2 < ${3:COUNT}; ${4:++$2}) {
+	${VISUAL}${5}
+}$0
+endsnippet
+
+snippet foril "for int loop single line (fori)"
+for (${1:int} ${2:i} = 0; $2 < ${3:COUNT}; ${4:++$2}) ${VISUAL}${5}$0
+endsnippet
+
+snippet fore "for each loop (forl)"
+for (${1:auto} ${2:E} : ${3:CONTAINER}) {
+	${VISUAL}${4}
+}$0
+endsnippet
+
+snippet forel "for each loop single line (forel)"
+for (${1:auto} ${2:E} : ${3:CONTAINER}) ${VISUAL}${4};$0
+endsnippet
+
+snippet enum "Enumeration"
+enum ${1:name} { $0 };
+endsnippet
+
+snippet once "Include header once only guard"
+#ifndef ${1:`!p
+if not snip.c:
+	import random, string
+	name = re.sub(r'[^A-Za-z0-9]+','_', snip.fn).upper()
+	rand = ''.join(random.sample(string.ascii_letters+string.digits, 8))
+	snip.rv = ('%s_%s' % (name,rand)).upper()
+else:
+	snip.rv = snip.c`}
+#define $1
+
+${VISUAL}${0}
+
+#endif /* end of include guard: $1 */
+endsnippet
+
+snippet td "Typedef"
+typedef ${1:int} ${2:MyCustomType};
+endsnippet
+
+snippet wh "while loop"
+while(${1:/* condition */}) {
+	${VISUAL}${2}
+}$0
+endsnippet
+
+snippet do "do...while loop (do)"
+do {
+	${VISUAL}${2}
+} while(${1:/* condition */}); $0
+endsnippet
+
+snippet fprintf "fprintf ..."
+fprintf(${1:stderr}, "${2:%s}\n"${2/([^%]|%%)*(%.)?.*/(?2:, :\);)/}$3${2/([^%]|%%)*(%.)?.*/(?2:\);)/}
+endsnippet
+
+snippet if "if .. (if)"
+if (${1:/* condition */}) {
+	${VISUAL}${2}
+}$0
+endsnippet
+
+snippet el "else .. (else)"
+else {
+	${VISUAL}${2}
+}$0
+endsnippet
+
+snippet eli "else if .. (eli)"
+else if (${1:/* condition */}) {
+	${VISUAL}${2}
+}$0
+endsnippet
+
+snippet ife "if .. else (ife)"
+if (${1:/* condition */}) {
+	${2}
+} else {
+	${3:/* else */}
+}$0
+endsnippet
+
+# ternary
+snippet t
+	${1:/* condition */} ? ${2:a} : ${3:b}
+endsnippet
+
+# switch
+snippet sw
+switch (${1:/* variable */}) {
+	${2}
+}$0
+endsnippet
+
+# case
+snippet ca
+case ${1:/* case */}: {
+	${2}
+	${3:break;}
+}$0
+endsnippet
+
+# default
+snippet de
+default: {
+	${1}
+	${2:break;}
+}$0
+endsnippet
+
+snippet printf "printf .. (printf)"
+printf("${1:%s}\n"${1/([^%]|%%)*(%.)?.*/(?2:, :\);)/}$2${1/([^%]|%%)*(%.)?.*/(?2:\);)/}
+endsnippet
+
+snippet st "struct"
+struct ${1:`!p snip.rv = (snip.basename or "name") + "_t"`} {
+	${2:/* data */}
+};$0
+endsnippet
+
+snippet un "union"
+union ${1:`!p snip.rv = (snip.basename or "name") + "_t"`} {
+	${2:/* data */}
+};$0
+endsnippet
+
+snippet fun "function" b
+${1:void} ${2:function_name}(${3}) {
+	${VISUAL}${4}
+}$0
+endsnippet
+
+snippet fund "function declaration" b
+${1:void} ${2:function_name}(${3});
+endsnippet
+
+# vim:ft=snippets:

@@ -1,0 +1,1055 @@
+#!/bin/bash
+
+set -o pipefail
+
+#--------------------------------------------------------------------------
+#
+# Utilities
+#
+#--------------------------------------------------------------------------
+
+chr()
+{
+    [[ $1 -lt 256 ]] || return 1
+    printf \\$(($1/64*100+$1%64/8*10+$1%8))
+}
+
+ord()
+{
+    LC_CTYPE=C printf "%d" "'$1"
+}
+
+# Will return shit if chars are the same(bash cannot store null characters)
+xor()
+{
+    local input=
+    local salt=
+    local left=
+    local right=
+    local rslt=
+    local length=
+
+    if [[ $# -eq 1 ]]
+    then
+        IFS="" read -r -d "" input
+        salt="$1"
+    else
+        input="$1"
+        salt="$2"
+    fi
+
+    length=${#input}
+
+    for (( i = 0; i < $length; i++ ))
+    do
+        printf -v left "%d" "'${input:$i:1}"
+        printf -v right "%d" "'${salt:$i:1}"
+        rslt=$(( $left ^ $right ))
+        printf "\\$(($rslt/64*100+$rslt%64/8*10+$rslt%8))"
+    done
+}
+
+choose()
+{
+    local display="$1{default}"
+    local default=$(($2+1))
+    local variants=("${@:3}")
+    local answer
+    local regexp='^[1-9]+[0-9]*$'
+
+    for (( i = 0; i < ${#variants[@]}; i++ ))
+    do
+        display+="\n$((i+1))) ${variants[$i]}"
+        [[ $((default-1)) -eq $i ]] && display+=' *'
+    done
+
+    if [[ -n $default ]]
+    then
+        display=${display/\{default\}/(Default: ${variants[$((default-1))]})}
+    fi
+
+    while true
+    do
+        printf "\n$display\n"
+        read -r answer
+        [[ -z "$answer" ]] && answer=$default
+        [[ $answer =~ $regexp && "$answer" -le ${#variants[@]} ]] && break
+    done
+
+    return $((answer-1))
+}
+
+tobytes()
+{
+    local regexp='^[1-9]+[0-9]*(K|M|G|T|P|Ki|Mi|Gi|Ti|Pi)?$'
+    local K=1000
+    local M=$((K*K))
+    local G=$((K*M))
+    local T=$((K*G))
+    local P=$((K*T))
+    local Ki=1024
+    local Mi=$((Ki*Ki))
+    local Gi=$((Ki*Mi))
+    local Ti=$((Ki*Gi))
+    local Pi=$((Ki*Ti))
+    local value postfix
+
+    [[ $1 =~ $regexp ]] || exit 1
+
+    value=${1//[KMGTPi]/}
+    postfix=${1//[0123456789]/}
+
+    [[ -n $postfix ]] && value=$((${!postfix}*value))
+
+    echo $value
+}
+
+#--------------------------------------------------------------------------
+#
+# GPGDisk
+#
+#--------------------------------------------------------------------------
+
+NAME="GPGDisk"
+VERSION="0.8"
+
+# Curently is not compatible with gpg v2
+GPG="/usr/local/bin/gpg"
+
+IFS_DEFAULT=$'\x20'
+IFS=$IFS_DEFAULT
+
+ERROR_OPTION_UNKNOWN="Unknown option '%s'."
+ERROR_OPTION_NO_VALUE="Option '%s' needs a value."
+ERROR_ACTION_UNKNOWN="Unknown action '%s'."
+ERROR_ACTION_NONE="No action is specified."
+ERROR_KEYFILE_EXISTS="The key file '%s' does not exist."
+ERROR_KEYFILE_PIN_WRONG="Wrong pin for '%s'."
+ERROR_KEYFILE_CREATE="Cannot create keyfile '%s'."
+ERROR_KEYFILE_NONE="No key file is specified."
+ERROR_DEVICE_IS_CLOSED="Device is closed."
+ERROR_DEVICE_NOT_MAPPED="Device '%s' is not mapped."
+ERROR_FOLDER_NOT_MOUNTED="Folder '%s' is not being mounted by any crypt device"
+ERROR_MAP_NONE="No map name specified."
+ERROR_NO_SLOT_SPECIFIED="No slot is pecified."
+ERROR_NO_FILE="File '%s' does not exist."
+
+ERROR_ACTION_NO_OPTION="Action '%s' requires '%s' to be specified."
+ERROR_DEVICE_EMPTY="No device is specified."
+ERROR_DEVICE_NONE="Device '%s' does not exist."
+ERROR_MAPFILE_NONE="Map file '%s' does not exist."
+ERROR_UUID_NO_DEVICE="UUID '%s' has not been assigned to any block device."
+ERROR_FILE_NOT_LUKS="File '%s' is not LUKS encrypted."
+ERROR_DATA_IS_WRONG="The specified data is wrong."
+
+MESSAGE_GPGGENERATEKEY_GENERATING="Generating new key file '%s'...."
+MESSAGE_GPGCHANGEKEYPIN_OLD_PIN="Please enter old pin code."
+MESSAGE_GPGCHANGEKEYPIN_NEW_PIN="Please enter new pin code."
+MESSAGE_GPGSETUP_RANDOMIZING="Randomizing device..."
+MESSAGE_GPGSETUP_CIPHER="You have not specified cipher. Choose one of the listed below:"
+MESSAGE_GPGSETUP_CREATING="Key file '%s' does not exist. Creating..."
+MESSAGE_GPGSETUP_ENCRYPTING="Encrypting '%s'..."
+MESSAGE_GPGOPEN_OPENNING="Openning '%s'..."
+MESSAGE_GPGOPEN_MOUNTING="Mounting '%s' to '%s'..."
+MESSAGE_GPGSUSPEND_SYNCING="Syncing..."
+MESSAGE_GPGSUSPEND_CLEARING_CACHE="Clearing cache..."
+MESSAGE_GPGSUSPEND_SUSPENDING="Suspending '%s'."
+MESSAGE_GPGRESUME_RESUMING="Resuming '%s'."
+MESSAGE_GPGCLOSE_UNMOUNTING="Unmounting folder '%s'..."
+MESSAGE_GPGCLOSE_CLOSING="Closing crypt device '%s'..."
+MESSAGE_GPGADDKEY_CREATING="The key file '%s' does not exist. Creating..."
+MESSAGE_GPGADDKEY_KEYPIN="Enter pin code for key file '%s'."
+MESSAGE_GPGADDKEY_ADDING="Adding new key to '%s'n"
+MESSAGE_GPGREMOVEKEY_REMOVING="Removing key from '%s'."
+MESSAGE_GPGCHANGEKEY_CHANGING="Changing key..."
+MESSAGE_GPGFILESETUP_CREATE="File '%s' does not exist. Enter file size and it will be created(min: 5M, postfixes: K|M|G|T|P|Ki|Mi|Gi|Ti|Pi):"
+MESSAGE_GPGFILESETUP_CREATING="Creating '%s'..."
+
+MESSAGE_FILE_LOOP_DEVICE="Loop device for '%s' is '%s'."
+
+MESSAGE_DONE="Done."
+MESSAGE_FAILED="Failed."
+
+FILE_SIZELIMIT=$(tobytes 5M)
+FILE_BLOCKSIZE=2048
+
+CHOOSE_NOT_FORMATTED_MESSAGE="Device seems to be blank. Format it?"
+CHOOSE_NOT_FORMATTED_ITEMS=("ntfs" "ext2" "ext3" "ext4" "exit")
+CHOOSE_NOT_FORMATTED_DEFAULT=3
+
+CHOOSE_NO_CIPHER_MESSAGE="You have not specified cipher. Choose one from the list below."
+CHOOSE_NO_CIPHER_ITEMS=("aes-cbc-essiv:sha256" "aes-xts-plain64" "aes-xts-essiv:sha256" "blowfish-xts-essiv:sha256" "twofish-xts-essiv:sha256")
+CHOOSE_NO_CIPHER_DEFAULT=2
+
+REGEXP_YES="Y|y|[Yy][Ee][Ss]"
+REGEXP_OPTION="^-+.+$"
+
+# map: long, short, has argument cryptsetup long, description
+OPTIONS=(
+    --version             ""  false   ""                    "Show the program version."
+    --help                ""  false   ""                    "Show help text and default parameters."
+    --usage               ""  false   ""                    "Show short option help."
+    --verbose             -v  false   --verbose             "Print more information on command execution."
+    --debug               ""  false   --debug               "Run in debug mode with full diagnostic logs. Debug output lines are always prefixed by '#'."
+    --use-random          ""  false   --use-random          ""
+    --use-urandom         ""  false   --use-urandom         "For gpgSetup these options define which kernel random number generator will be used to create the master key (which is a long-term key).\nSee NOTES ON RANDOM NUMBER GENERATORS for more information. Use cryptsetup --help to show the compiled-in default random number generator.\nWARNING: In a low-entropy situation (e.g. in an embedded system), both selections are problematic.  Using /dev/urandom can lead to weak keys.  Using /dev/random can block a long time, potentially forever, if not enough entropy can be  harvested  by  the kernel."
+    --readonly            -r  false   --readonly            "Set up a read-only mapping."
+    --hash                -h  true    --hash                "Specifies the passphrase hash for gpgOpen .\nSpecifies the hash used in the LUKS key setup scheme and volume key digest for gpgSetup.\nThe specified hash name is passed to the compiled-in crypto backend.  Different backends may support different hashes. For gpgSetup, the hash algorithm must provide at least 160 bits of output, which excludes, e.g., MD5. Do not use a non-crypto hash like 'crc32' as this breaks security.\nValues compatible with old version of cryptsetup are 'ripemd160' for open --type plain and 'sha1' for gpgSetup."
+    --cipher              -c  true    --cipher              "Set the cipher specification string.\nThe current default in the distributed sources is 'aes-cbc-essiv:sha256' for plain dm-crypt and 'aes-xts-plain64' for LUKS.\nFor XTS mode you can optionally set a key size of 512 bits with the -s option. Key size for XTS mode is twice that for other modes for the same security level.\nXTS mode requires kernel 2.6.24 or later and plain64 requires kernel 2.6.33 or later. More information can be found in the FAQ."
+    --key-file            -k  true    ""                    "GPG encrypted key file."
+    --keyfile-offset      ""  true    --keyfile-offset      "Skip {meta} bytes at the beginning of the key file.  Works with all commands that accepts key files."
+    --keyfile-size        -l  true    --keyfile-size        "Read a maximum of {meta} bytes from the key file. Default is to read the whole file up to the compiled-in maximum that can be queried with --help. Supplying more data than the compiled-in maximum aborts the operation."
+    --new-key-file        -n  true    ""                    "New GPG encrypted key file."
+    --new-keyfile-offset  ""  true    --new-keyfile-offset  "Skip {meta} bytes at the start when adding a new passphrase from key file with luksAddKey."
+    --new-keyfile-size    ""  true    --new-keyfile-size    "Read a maximum of {meta} bytes when adding a new passphrase from key file with luksAddKey.  Default is to read the whole file up to the compiled-in maximum length that can be queried with --help.  Supplying more than the compiled in  maximum  aborts  the operation. When --new-keyfile-offset is also given, reading starts after the offset."
+    --key-slot            -S  true    --key-slot            "For LUKS operations that add key material, this options allows you to specify which key slot is selected for the new key.  This option can be used for luksFormat, and luksAddKey. In addition, for open, this option selects a specific key-slot to compare the passphrase against.  If the given passphrase would only match a different key-slot, the operation fails."
+    --key-size            -s  true    --key-size            "Sets key size in bits. The argument has to be a multiple of 8. The possible key-sizes are limited by the cipher and mode used.\nSee /proc/crypto for more information. Note that key-size in /proc/crypto is stated in bytes.\nThis option can be used for open --type plain or luksFormat.  All other LUKS actions will use the key-size specified in the LUKS header.  Use cryptsetup --help to show the compiled-in defaults."
+    --header-backup-file  ""  true    --header-backup-file  "A block device's luks header file"
+    --device              -d  true    ""                    "A block device."
+    --uuid                -u  true    ""                    "A block device's UUID."
+    --new-uuid            ""  true    --uuid                "A block device's new UUID"
+    --map                 -p  true    ""                    "Cryptsetup map name."
+    --mount               -m  true    ""                    "Mount folder."
+    --file                -f  true    ""                    "File to be used as block device."
+)
+OPTIONS_OFFSET=5
+OPTIONS_LENGTH=${#OPTIONS[@]}
+
+ACTIONS=()
+
+# Non Base64 symbols
+KEY_SYMBOLS=($'\x01' $'\x02' $'\x03' $'\x04' $'\x05' $'\x06' $'\x07' $'\x08' $'\x09' $'\x0a' $'\x0b' $'\x0c' $'\x0d' $'\x0e' $'\x0f' $'\x10' $'\x11' $'\x12' $'\x13' $'\x14' $'\x15' $'\x16' $'\x17' $'\x18' $'\x19' $'\x1a' $'\x1b' $'\x1c' $'\x1d' $'\x1e' $'\x1f' $'\x20' $'\x21' $'\x22' $'\x23' $'\x24' $'\x25' $'\x26' $'\x27' $'\x28' $'\x29' $'\x2a' $'\x2c' $'\x2d' $'\x2e' $'\x3a' $'\x3b' $'\x3c' $'\x3e' $'\x3f' $'\x40' $'\x5b' $'\x5c' $'\x5d' $'\x5e' $'\x5f' $'\x60' $'\x7b' $'\x7c' $'\x7d' $'\x7e' $'\x7f')
+KEY=
+for (( i = 0; i < 100; i++ ))
+do
+    KEY+=${KEY_SYMBOLS[$(( $RANDOM % ${#KEY_SYMBOLS[@]} ))]}
+done
+
+declare -A options=()
+
+version()
+{
+    printf "version $VERSION\n"
+    exit 0
+}
+
+usage()
+{
+    local long short has_argument rest
+    local argument
+    local shorts meta
+    local result=
+    local i
+
+    echo "$NAME $VERSION"
+    for (( i = 0; i < $OPTIONS_LENGTH; i+=$OPTIONS_OFFSET ))
+    do
+        IFS=$'\x2' read -r long short has_argument rest description rest <<< "${OPTIONS[*]:$i:$OPTIONS_OFFSET}"
+        if [[ -n $short ]]
+        then
+            shorts+=${short:1}
+            argument="$short|$long"
+        else
+            argument="$long"
+        fi
+        if $has_argument
+        then
+            meta=${long:2}
+            meta=${meta^^*}
+            meta=${meta//-/_}
+            argument+=" $meta"
+        fi
+        result+="[$argument] "
+    done
+
+    printf "%s" "gpgdisk"
+    printf "<action> [-$shorts] $result" | sed -nre "s/(.{,100}\] )/\1\n/gp" | sed -nre "s/^/\t/p"
+    exit
+}
+
+help()
+{
+    local array
+    local name description arguments
+    local argument
+    local optional=false
+    local long short has_argument rest
+    local meta
+    local i j
+
+    (usage)
+
+    echo
+    echo "OPTIONS"
+    for (( i = 0; i < $OPTIONS_LENGTH; i+=$OPTIONS_OFFSET ))
+    do
+        IFS=$'\x2' read -r long short has_argument rest description rest <<< "${OPTIONS[*]:$i:$OPTIONS_OFFSET}"
+        if [[ -n $short ]]
+        then
+            argument="$short|$long"
+        else
+            argument="$long"
+        fi
+        if $has_argument
+        then
+            meta=${long:2}
+            meta=${meta^^*}
+            meta=${meta//-/_}
+            argument+=" $meta"
+        fi
+        description=${description//\{meta\}/$meta}
+        printf "\t%s\n" "$argument"
+        printf "$description" | sed -nre "s/(.{,100}[ \.,;:])/\1\n/gp" | sed -nre "s/^/\t   /p"
+        echo
+    done
+
+    echo
+    echo "ACTIONS"
+    for (( i = 0; i < ${#ACTIONS[@]}; i++ ))
+    do
+        IFS="|" read -r name arguments description <<< "${ACTIONS[$i]}"
+        IFS=$IFS_DEFAULT array=($arguments)
+        arguments=
+        for argument in ${array[@]}
+        do
+            optional=false
+            if [[ ${argument:0:1} == '?' ]]
+            then
+                argument=${argument:1}
+                optional=true
+            fi
+            for (( j = 0; j < $OPTIONS_LENGTH; j+=$OPTIONS_OFFSET ))
+            do
+                IFS=$'\x02' read -r long short has_argument rest  <<< "${OPTIONS[*]:$j:$OPTIONS_OFFSET}"
+                if [[ $argument == ${long:2} ]]
+                then
+                    if [[ -n $short ]]
+                    then
+                        argument="$short|$long"
+                    else
+                        argument="$long"
+                    fi
+                    if $has_argument
+                    then
+                        meta=${long:2}
+                        meta=${meta^^*}
+                        meta=${meta//-/_}
+                        argument+=" $meta"
+                        description=${description//\{${long:2}\}/$meta}
+                    fi
+                    if $optional
+                    then
+                        argument="[$argument]"
+                    fi
+                    arguments+=" $argument"
+                    break
+                fi
+            done
+        done
+        printf "\t%s%s\n\t   %s\n\n" "$name" "$arguments" "$description"
+    done
+
+    exit 0
+}
+
+check_last()
+{
+    [[ $? != 0 ]] && message "$MESSAGE_FAILED" && exit 1
+}
+
+error()
+{
+    printf "$2\n" ${@:3}
+    exit $1
+}
+
+message()
+{
+    printf "$1\n" ${@:2}
+}
+
+makeOptions()
+{
+    for (( i = 0; i < $OPTIONS_LENGTH; i+=$OPTIONS_OFFSET ))
+    do
+        IFS=$'\x2' read -r long short has_argument cslong rest  <<< "${OPTIONS[*]:$i:$OPTIONS_OFFSET}"
+        if [[ -n ${options[${long:2}]} && -n $cslong ]]
+        then
+            printf " $cslong"
+            if $has_argument
+            then
+                printf " ${options[${long:2}]}"
+            fi
+        fi
+    done
+}
+
+loopFile()
+{
+    local device
+
+    [[ -e "$1" ]] || error 1 "$ERROR_NO_FILE" "$1"
+
+    modprobe loop
+    check_last
+
+    device=$(losetup | grep $1 | cut -f1 -d" ")
+
+    if [[ -z $device ]]
+    then
+        device=$(losetup -f)
+        check_last
+
+        losetup $device $1
+    fi
+
+    printf $device
+}
+
+createRawKey()
+{
+    head -c66 /dev/random | openssl base64 -A
+}
+
+encryptKey()
+{
+    $GPG --symmetric --cipher-algo aes --armor
+}
+
+decryptKey()
+{
+    $GPG --decrypt
+}
+
+ACTIONS+=("gpgGenerateKey|key-file|Generate gpg encrypted key")
+gpgGenerateKey()
+{
+    echo here
+    exit
+    local keyfile=${options[key-file]}
+
+    message "$MESSAGE_GPGGENERATEKEY_GENERATING" "$keyfile"
+    createRawKey | encryptKey > $keyfile
+    check_last
+
+    message "$MESSAGE_DONE"
+}
+
+ACTIONS+=("gpgChangeKeyPin|key-file|Change pin code of a gpg key")
+gpgChangeKeyPin()
+{
+    local keyfile=${options[key-file]}
+    local rawkey
+    local enckey
+
+    [[ -e $keyfile ]] || error 1 "$ERROR_KEYFILE_EXISTS" "$keyfile"
+
+    message "$MESSAGE_GPGCHANGEKEYPIN_OLD_PIN"
+    rawkey="$(decryptKey < "$keyfile" | xor "$KEY")"
+    check_last
+
+    message "$MESSAGE_GPGCHANGEKEYPIN_NEW_PIN"
+    enckey="$(xor "$rawkey" "$KEY" | encryptKey)"
+    check_last
+
+    echo "$enckey" > "$keyfile"
+
+    message "$MESSAGE_DONE"
+}
+
+ACTIONS+=("gpgFormat|key-file device|Encrypt a LUKS device with the {key-file}")
+gpgFormat()
+{
+    local keyfile=${options[key-file]}
+    local device=${options[device]}
+    local rawkey
+
+    [[ -e $device ]] || error 1 "$ERROR_DEVICE_NONE" "$device"
+
+    message "$MESSAGE_GPGSETUP_RANDOMIZING"
+    dd if=/dev/urandom of=$device bs=$FILE_BLOCKSIZE count=$(( $(blockdev --getsize64 $device) / $FILE_BLOCKSIZE ))
+    check_last
+
+    if [[ -z ${options[cipher]} ]]
+    then
+        choose "$CHOOSE_NO_CIPHER_MESSAGE" "$CHOOSE_NO_CIPHER_DEFAULT" "${CHOOSE_NO_CIPHER_ITEMS[@]}"
+        options[cipher]=${CHOOSE_NO_CIPHER_ITEMS[$?]}
+    fi
+
+    if [[ -e $keyfile ]]
+    then
+        message "$MESSAGE_GPGSETUP_ENCRYPTING" "$device"
+        decryptKey < $keyfile | cryptsetup $(makeOptions) luksFormat $device
+        check_last
+    else
+        message "$MESSAGE_GPGSETUP_CREATING" "$keyfile"
+        rawkey=$(createRawKey | xor "$KEY")
+        xor "$rawkey" "$KEY" | encryptKey > $keyfile
+        check_last
+
+        message "$MESSAGE_GPGSETUP_ENCRYPTING" "$device"
+        xor "$rawkey" "$KEY" | cryptsetup $(makeOptions) luksFormat $device
+        check_last
+    fi
+
+    message "$MESSAGE_DONE"
+}
+
+ACTIONS+=("gpgOpen|key-file device ?mount ?map|Open open a LUKS device")
+gpgOpen()
+{
+    local keyfile=${options[key-file]}
+    local device=${options[device]}
+    local mapshort=${options[map]}
+    local maplong
+    local mnt=${options[mount]}
+    local variant
+
+    [[ -e $keyfile ]] || error 1 "$ERROR_KEYFILE_EXISTS" "$keyfile"
+    [[ -e $device ]]  || error 1 "$ERROR_DEVICE_EXISTS" "$device"
+
+    if [[ -z $mapshort ]]
+    then
+        mapshort="gpgdisk-${device##*/}"
+    fi
+
+    message "$MESSAGE_GPGOPEN_OPENNING" "$device"
+    decryptKey < "$keyfile" | cryptsetup $(makeOptions) luksOpen "$device" "$mapshort"
+    check_last
+
+    # if mount point is specified the encrypted device is probably not a lvm device or so.
+    if [[ -n "$mnt" ]]
+    then
+        maplong="/dev/mapper/$mapshort"
+        # if blkid returns nothing the device is blank and it needs to be formatted first.
+        if [[ -z $(blkid "$maplong") ]]
+        then
+            choose "$CHOOSE_NOT_FORMATTED_MESSAGE" "$CHOOSE_NOT_FORMATTED_DEFAULT" "${CHOOSE_NOT_FORMATTED_ITEMS[@]}"
+            variant=${CHOOSE_NOT_FORMATTED_ITEMS[$?]}
+            if [[ $variant == exit ]]
+            then
+                cryptsetup $(makeOptions) luksClose $maplong
+                exit
+            else
+                mkfs --type $variant "$maplong"
+            fi
+        fi
+        mkdir -p "$mnt"
+        message "$MESSAGE_GPGOPEN_MOUNTING" "$maplong" "$mnt"
+        mount "$maplong" "$mnt"
+    fi
+
+    message "$MESSAGE_DONE"
+}
+
+ACTIONS+=("gpgSuspend|map ?device ?uuid ?mount|Sync, clear cache and suspend an active device and wipes the encryption key from the kernel memory")
+gpgSuspend()
+{
+    local map=${options[map]}
+
+    ${options[opened]} || error 1 "$ERROR_DEVICE_IS_CLOSED"
+
+    message "$MESSAGE_GPGSUSPEND_SYNCING"
+    sync
+    check_last
+
+    message "$MESSAGE_GPGSUSPEND_CLEARING_CACHE"
+    echo 3 > /proc/sys/vm/drop_caches
+    check_last
+
+    message "$MESSAGE_GPGSUSPEND_SUSPENDING" "$map"
+    cryptsetup $(makeOptions) luksSuspend "$map"
+    check_last
+
+    message "$MESSAGE_DONE"
+}
+
+ACTIONS+=("gpgResume|map key-file|Resumes a suspended device and reinstates the encryption key")
+gpgResume()
+{
+    local keyfile=${options[key-file]}
+    local map=${options[map]}
+
+    ${options[opened]} || error 1 "$ERROR_DEVICE_IS_CLOSED"
+
+    message "$MESSAGE_GPGRESUME_RESUMING" "$map"
+    decryptKey < "$keyfile" | cryptsetup $(makeOptions) luksResume "$map"
+    check_last
+
+    message "$MESSAGE_DONE"
+}
+
+ACTIONS+=("gpgClose|map ?device ?uuid ?mount|Close a LUKS device")
+gpgClose()
+{
+    local map=${options[map]}
+    local temp
+
+    ${options[opened]} || error 1 "$ERROR_DEVICE_IS_CLOSED"
+
+    #TODO: Add unmounting of all subdirectories
+    temp=($(mount | grep "$map" | cut -d " " -f3))
+    for (( i = 0; i < ${#temp[@]}; i++ ))
+    do
+        message "$MESSAGE_GPGCLOSE_UNMOUNTING" "${temp[$i]}"
+        umount -l "${temp[$i]}"
+        check_last
+    done
+
+    message "$MESSAGE_GPGCLOSE_CLOSING" "$map"
+    cryptsetup $(makeOptions) luksClose "$map"
+    check_last
+
+    message "$MESSAGE_DONE"
+}
+
+ACTIONS+=("gpgDump|device ?uuid ?map ?mount|Dump LUKS partition information")
+gpgDump()
+{
+    local device=${options[device]}
+    [[ -e "$device" ]] || error 1 "$ERROR_DEVICE_EXISTS" "$device"
+    cryptsetup $(makeOptions) luksDump $device
+}
+
+ACTIONS+=("gpgAddKey|key-file new-key-file device ?uuid ?map ?mount|Add {new-key-file} to LUKS device")
+gpgAddKey()
+{
+    local keyfile=${options[key-file]}
+    local newkeyfile=${options[new-key-file]}
+    local device=${options[device]}
+    local rawkey
+
+    [[ -e $keyfile ]] || error 1 "$ERROR_KEYFILE_EXISTS" "$keyfile"
+    [[ -e "$device" ]] || error 1 "$ERROR_DEVICE_EXISTS" "$device"
+
+    if [[ -e $newkeyfile ]]
+    then
+        message "$MESSAGE_GPGADDKEY_KEYPIN" "$newkeyfile"
+        rawkey=$(decryptKey < "$newkeyfile" | xor "$KEY")
+        check_last
+    else
+        message "$MESSAGE_GPGADDKEY_CREATING" "$newkeyfile"
+        rawkey=$(createRawKey | xor "$KEY")
+
+        message "$MESSAGE_GPGADDKEY_KEYPIN" "$newkeyfile"
+        xor "$rawkey" "$KEY" | encryptKey > "$newkeyfile"
+        check_last
+    fi
+
+    message "$MESSAGE_GPGADDKEY_ADDING" "$device"
+    message "$MESSAGE_GPGADDKEY_KEYPIN" "$keyfile"
+    decryptKey < "$keyfile" | cryptsetup $(makeOptions) luksAddKey "$device" <(xor "$rawkey" "$KEY")
+    check_last
+
+    message "$MESSAGE_DONE"
+}
+
+ACTIONS+=("gpgRemoveKey|key-file device ?uuid ?map ?mount|Remove {key-file} from LUKS device")
+gpgRemoveKey()
+{
+    local keyfile=${options[key-file]}
+    local device=${options[device]}
+
+    [[ -e $keyfile ]] || error 1 "$ERROR_KEYFILE_EXISTS" "$keyfile"
+    [[ -e "$device" ]] || error 1 "$ERROR_DEVICE_EXISTS" "$device"
+
+    message "$MESSAGE_GPGREMOVEKEY_REMOVING" "$device"
+    decryptKey < $keyfile | cryptsetup $(makeOptions) luksRemoveKey $device
+    check_last
+}
+
+ACTIONS+=("gpgChangeKey|key-file new-key-file device ?uuid ?map ?mount|Replace an existing {key-file} with {new-key-file}")
+gpgChangeKey()
+{
+    local keyfile=${options[key-file]}
+    local newkeyfile=${options[new-key-file]}
+    local device=${options[device]}
+    local rawkey
+
+    [[ -e $keyfile ]] || error 1 "$ERROR_KEYFILE_EXISTS" "$keyfile"
+    [[ -e "$device" ]] || error 1 "$ERROR_DEVICE_EXISTS" "$device"
+
+    if [[ -e $newkeyfile ]]
+    then
+        message "$MESSAGE_GPGADDKEY_KEYPIN" "$newkeyfile"
+        rawkey=$(decryptKey < "$newkeyfile" | xor "$KEY")
+        check_last
+    else
+        message "$MESSAGE_GPGADDKEY_CREATING" "$newkeyfile"
+        rawkey=$(createRawKey | xor "$KEY")
+
+        message "$MESSAGE_GPGADDKEY_KEYPIN" "$newkeyfile"
+        xor "$rawkey" "$KEY" | encryptKey > "$newkeyfile"
+        check_last
+    fi
+
+    message "$MESSAGE_GPGCHANGEKEY_CHANGING" "$device"
+    message "$MESSAGE_GPGADDKEY_KEYPIN" "$keyfile"
+    decryptKey < "$keyfile" | cryptsetup $(makeOptions) luksChangeKey "$device" <(xor "$rawkey" "$KEY")
+    check_last
+
+    message "$MESSAGE_DONE"
+}
+
+ACTIONS+=("gpgUUID|device ?uuid ?map ?mount ?new-uuid|Print the UUID of a LUKS device")
+gpgUUID()
+{
+    local device=${options[device]}
+    [[ -e "$device" ]] || error 1 "$ERROR_DEVICE_EXISTS" "$device"
+    cryptsetup $(makeOptions) luksUUID $device
+    check_last
+}
+
+ACTIONS+=("gpgIsLuks|device ?uuid ?map ?mount|Returns true, if {device} is a LUKS device, false otherwise")
+gpgIsLuks()
+{
+    local device=${options[device]}
+    local results=("true" "false")
+    [[ -e "$device" ]] || error 1 "$ERROR_DEVICE_EXISTS" "$device"
+    cryptsetup $(makeOptions) isLuks $device
+    echo ${results[$?]}
+}
+
+ACTIONS+=("gpgHeaderBackup|device header-backup-file|Stores a binary backup of the LUKS header and keyslot area")
+gpgHeaderBackup()
+{
+    local device=${options[device]}
+    [[ -e "$device" ]] || error 1 "$ERROR_DEVICE_EXISTS" "$device"
+    cryptsetup $(makeOptions) luksHeaderBackup $device
+    check_last
+    message "$MESSAGE_DONE"
+}
+
+ACTIONS+=("gpgHeaderRestore|device header-backup-file|Restores a binary backup of the LUKS header and keyslot area from the specified file")
+gpgHeaderRestore()
+{
+    local device=${options[device]}
+    [[ -e "$device" ]] || error 1 "$ERROR_DEVICE_EXISTS" "$device"
+    cryptsetup $(makeOptions) luksHeaderRestore $device
+    check_last
+    message "$MESSAGE_DONE"
+}
+
+ACTIONS+=("gpgKillSlot|key-file key-slot device ?uuid ?map ?mount|Wipes key with number {key-slot} from LUKS device")
+gpgKillSlot()
+{
+    local keyfile=${options[key-file]}
+    local slot=${options[key-slot]}
+    local device=${options[device]}
+
+    [[ -e $keyfile ]] || error 1 "$ERROR_KEYFILE_EXISTS" "$keyfile"
+    [[ -e "$device" ]] || error 1 "$ERROR_DEVICE_EXISTS" "$device"
+
+    decryptKey < $keyfile | cryptsetup $(makeOptions) luksKillSlot $device $slot
+    check_last
+
+    message "$MESSAGE_DONE"
+}
+
+#--------------------------------
+# Files
+#--------------------------------
+ACTIONS+=("gpgFileFormat|key-file file|Setup {file} as loop device then setup as LUKS device")
+gpgFileFormat()
+{
+    local file=${options[file]}
+    local size
+
+    if [[ ! -e "$file" ]]
+    then
+        while true
+        do
+            message "$MESSAGE_GPGFILESETUP_CREATE" "$file"
+            read -r size
+            size=$(tobytes $size)
+            [[ -n $size && $size -ge $FILE_SIZELIMIT ]] && break
+        done
+        message "$MESSAGE_GPGFILESETUP_CREATING" "$file"
+        dd if=/dev/urandom of="$file" bs=$FILE_BLOCKSIZE count=$(($size/$FILE_BLOCKSIZE))
+        check_last
+    fi
+    local device=$(loopFile $file)
+
+    message "$MESSAGE_FILE_LOOP_DEVICE" "$file" "$device"
+    options[device]=$device
+    gpgFormat
+}
+
+ACTIONS+=("gpgFileOpen|key-file file ?device ?uuid ?map ?mount|Setup {file} as loop device then open as LUKS device")
+gpgFileOpen()
+{
+    local file=${options[file]}
+    local device=$(loopFile $file)
+
+    message "$MESSAGE_FILE_LOOP_DEVICE" "$file" "$device"
+    options[device]=$device
+    gpgOpen
+}
+
+ACTIONS+=("gpgFileSuspend|file|Sync, clear chache and suspend an active device and wipes the encryption key from the kernel memory")
+gpgFileSuspend()
+{
+    gpgSuspend
+}
+
+ACTIONS+=("gpgFileResume|file key-file|Resumes a suspended device and reinstates the encryption key")
+gpgFileResume()
+{
+    gpgResume
+}
+
+ACTIONS+=("gpgFileClose|file|Close LUKS device then detach loop file")
+gpgFileClose()
+{
+    gpgClose
+
+    modprobe loop
+    check_last
+
+    losetup --detach ${options[device]}
+}
+
+ACTIONS+=("gpgFileDump|file|Dump LUKS partition information from file")
+gpgFileDump()
+{
+    local file=${options[file]}
+    local device=$(loopFile $file)
+
+    options[device]=$device
+    gpgDump
+
+    ${options[opened]} || losetup --detach $device
+}
+
+ACTIONS+=("gpgFileAddKey|key-file new-key-file file|Add {new-key-file} to LUKS encrypted file")
+gpgFileAddKey()
+{
+    local file=${options[file]}
+    local device=$(loopFile $file)
+
+    options[device]=$device
+    gpgAddKey
+
+    ${options[opened]} || losetup --detach $device
+}
+
+ACTIONS+=("gpgFileRemoveKey|key-file file|Remove {key-file} form LUKS encrypted file")
+gpgFileRemoveKey()
+{
+    local file=${options[file]}
+    local device=$(loopFile $file)
+
+    options[device]=$device
+    gpgRemoveKey
+
+    ${options[opened]} || losetup --detach $device
+}
+
+ACTIONS+=("gpgFileChangeKey|key-file new-key-file file|Replace an existing {key-file} with {new-key-file}")
+gpgFileChangeKey()
+{
+    local file=${options[file]}
+    local device=$(loopFile $file)
+
+    options[device]=$device
+    gpgChangeKey
+
+    ${options[opened]} || losetup --detach $device
+}
+
+ACTIONS+=("gpgFileUUID|file ?new-uuid|Print the UUID of a LUKS file. Sey new UUID if {new-uuid} is specified.")
+gpgFileUUID()
+{
+    local file=${options[file]}
+    local device=$(loopFile $file)
+
+    options[device]=$device
+    gpgUUID
+
+    ${options[opened]} || losetup --detach $device
+}
+
+ACTIONS+=("gpgFileIsLuks|file|Returns true if {file} is a LUKS file, false otherwise")
+gpgFileIsLuks()
+{
+    local file=${options[file]}
+    local device=$(loopFile $file)
+
+    options[device]=$device
+    gpgIsLuks
+
+    ${options[opened]} || losetup --detach $device
+}
+
+ACTIONS+=("gpgFileHeaderBackup|file header-backup-file|Stores a binary backup of the LUKS header and keyslot area")
+gpgFileHeaderBackup()
+{
+    local file=${options[file]}
+    local device=$(loopFile $file)
+
+    options[device]=$device
+    gpgHeaderBackup
+
+    ${options[opened]} || losetup --detach $device
+}
+
+ACTIONS+=("gpgFileHeaderRestore|file header-backup-file|Restore a binary backup of the LUKS header and keyslot area from the specified file")
+gpgFileHeaderRestore()
+{
+    local file=${options[file]}
+    local device=$(loopFile $file)
+
+    options[device]=$device
+    gpgHeaderRestore
+
+    ${options[opened]} || losetup --detach $device
+}
+
+ACTIONS+=("gpgFileKillSlot|key-file key-slot file|Wipes key with number {key-slot} from LUKS encrypted file")
+gpgFileKillSlot()
+{
+    local file=${options[file]}
+    local device=$(loopFile $file)
+
+    options[device]=$device
+    gpgKillSlot
+
+    ${options[opened]} || losetup --detach $device
+}
+
+main()
+{
+    local array
+    local long short has_argument rest
+    local found
+    local i
+
+    while [[ $# -ne 0 ]]
+    do
+        option="$1"
+        shift
+
+        found=false
+        for (( i = 0; i < $OPTIONS_LENGTH; i+=$OPTIONS_OFFSET ))
+        do
+            IFS=$'\x2' read -r long short has_argument rest  <<< "${OPTIONS[*]:$i:$OPTIONS_OFFSET}"
+            if [[ $option == $long || $option == $short ]]
+            then
+                options[${long:2}]=true
+                if $has_argument
+                then
+                    [[ -z $1 || $1 =~ $REGEXP_OPTION ]] && error 1 "$ERROR_OPTION_NO_VALUE" "$option"
+                    options[${long:2}]=$1
+                    shift
+                fi
+                found=true
+                break
+            fi
+        done
+
+        if [[ -z ${options[action]} ]]
+        then
+            for (( i = 0; i < ${#ACTIONS[@]}; i++ ))
+            do
+                if [[ ${ACTIONS[$i]%%|*} == $option ]]
+                then
+                    options[action]=$option
+                    found=true
+                    break
+                fi
+            done
+        fi
+
+        $found || error 1 "$ERROR_OPTION_UNKNOWN" "$option"
+    done
+
+    [[ -n ${options[version]} ]]   && version
+    [[ -n ${options[usage]} ]]     && usage
+    [[ -n ${options[help]} ]]      && help
+    [[ -z ${options[action]} ]]    && error 1 "$ERROR_ACTION_NONE"
+
+    # Normalization and resolving
+    local device=$(cd /dev/; readlink -f "${options[device]}")
+    local uuid=${options[uuid]}
+    local map=$(cd /dev/mapper/; readlink -f "${options[map]}")
+    local mnt=$(readlink -f "${options[mount]}")
+    local file=$(readlink -f "${options[file]}")
+    local opened=false
+    local data temp
+
+    if [[ -n $device || -n $uuid || -n $map || -n $mnt || -n $file ]]
+    then
+        IFS=$'\x0A'
+        if [[ -n $device ]]
+        then
+            [[ -e $device ]] || error 1 "$ERROR_DEVICE_NONE" "$device"
+            data=($(lsblk --output NAME,UUID,MOUNTPOINT --raw --paths $device | sed -nre "2~1p"))
+        elif [[ -n $uuid ]]
+        then
+            temp=$(blkid -l -o device -t UUID="$uuid")
+            [[ -z $temp ]] && error 1 "$ERROR_UUID_NO_DEVICE" "$uuid"
+            data=($(lsblk --output NAME,UUID,MOUNTPOINT --raw --paths $temp | sed -nre "2~1p"))
+        elif [[ -n $map ]]
+        then
+            [[ -e $map ]] || error 1 "$ERROR_MAPFILE_NONE" "$map"
+            data=($(lsblk --output NAME,UUID,MOUNTPOINT --raw --paths --inverse $map | sed -nre "2~1p" | tac))
+        elif [[ -n $mnt ]]
+        then
+            temp=$(mount | grep -m1 $mnt | cut -f1 -d " ")
+            if [[ -n $temp ]]
+            then
+                data=($(lsblk --output NAME,UUID,MOUNTPOINT --raw --paths --inverse $temp | sed -nre "2~1p" | tac))
+            fi
+        elif [[ -n $file ]]
+        then
+            temp=$(losetup | grep $file | cut -f1 -d " ")
+            if [[ -n $temp ]]
+            then
+                data=($(lsblk --output NAME,UUID,MOUNTPOINT --raw --paths $temp | sed -nre "2~1p"))
+            fi
+        fi
+
+        IFS=$IFS_DEFAULT
+        if [[ ${#data[@]} -eq 2 ]]
+        then
+            opened=true
+            read -r device uuid temp <<< ${data[0]}
+            read -r map temp mnt temp <<< ${data[1]}
+            file=$(losetup --output BACK-FILE,NAME | grep $device | cut -f1 -d " ")
+        fi
+
+        options[opened]=$opened
+        options[device]=$device
+        options[uuid]=$uuid
+        options[map]=$map
+        options[mount]=$mnt
+        options[file]=$file
+
+        #echo ${data[0]}
+        #echo ${data[1]}
+        #for name in ${!options[@]}
+        #do
+        #    echo $name:${options[$name]}
+        #done
+    fi
+
+    # Pre-checking arguments
+    local arguments argument action rest i
+    for (( i = 0; i < ${#ACTIONS[@]}; i++ ))
+    do
+        IFS="|" read -r action arguments rest <<< "${ACTIONS[$i]}"
+        if [[ $action == ${options[action]} ]]
+        then
+            for argument in $arguments
+            do
+                [[ ${argument:0:1} == '?' ]] && continue
+                [[ -z ${options[$argument]} ]] && error 1 "$ERROR_ACTION_NO_OPTION" "$action" "--$argument"
+            done
+        fi
+    done
+
+    pkill -SIGHUP gpg-agent
+    ${options[action]}
+}
+
+main "$@"

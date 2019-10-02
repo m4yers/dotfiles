@@ -1,0 +1,136 @@
+let configpath               = "~/.cvimrc"
+
+let mapleader                = ","
+let barposition              = "bottom"
+let vimport                  = 8001
+let defaultengine            = "google"
+let vimcommand               = "macvim"
+
+unmapAll
+
+map j                        scrollDown
+map k                        scrollUp
+map h                        scrollLeft
+map l                        scrollRight
+
+map gg                       scrollToTop
+map G                        scrollToBottom
+map d                        scrollPageDown
+map u                        scrollPageUp
+map 0                        scrollToLeft
+map $                        scrollToRight
+map #                        resetScrollFocus
+
+map gi                       goToInput
+map gI                       goToLastInput
+
+map zz                       centerMatchH
+map zt                       centerMatchT
+map zb                       centerMatchB
+
+map f                        createHint
+map F                        createTabbedHint
+map W                        createHintWindow
+map A                        openLastHint
+map q                        createHoverHint
+map Q                        createUnhoverHint
+map mf                       createMultiHint
+map mr                       multiReverseImage
+map my                       multiYankUrl
+map gy                       yankUrl
+map gr                       reverseImage
+map ;                        focus
+
+map M<*>                     addQuickMark
+map go<*>                    openQuickMark
+map gn<*>                    openQuickMarkTabbed
+
+map a                        google
+map .                        repeatCommand
+map :                        openCommandBar
+map /                        openSearchBar
+map ?                        openSearchBarReverse
+map I                        :history
+map <N>g%                    percentScroll
+map zr                       :chrome://restart<CR>
+map i                        insertMode
+map r                        reloadTab
+map gR                       reloadTabUncached
+map ;<*>                     setMark
+map ''                       lastScrollPosition
+map '<*>                     goToMark
+map cm                       muteTab
+map none                     reloadAllTabs
+map cr                       reloadAllButCurrent
+map zi                       zoomPageIn
+map zo                       zoomPageOut
+map z0                       zoomOrig
+map z<Enter>                 toggleImageZoom
+map gd                       :chrome://downloads<CR>
+map ge                       :chrome://extensions<CR>
+map yy                       yankDocumentUrl
+map yY                       yankRootUrl
+map ya                       yankWindowUrls
+map yh                       yankHighlight
+map b                        :bookmarks
+map p                        openPaste
+map P                        openPasteTab
+map gj                       hideDownloadsShelf
+map gf                       nextFrame
+map gF                       rootFrame
+map gq                       cancelWebRequest
+map gQ                       cancelAllWebRequests
+map gu                       goUpUrl
+map gU                       goToRootUrl
+map gs                       :viewsource!
+map <C-b>                    createBookmark
+map g-                       decrementURLPath
+map g+                       incrementURLPath
+
+map <Tab>l                   nextTab
+map <Tab>h                   previousTab
+map <Tab>0                   lastTab
+map <C-S-h>                  openLastLinkInTab
+map <C-S-l>                  openNextLinkInTab
+map <Tab>c                   closeTab
+map <Tab>x                   lastClosedTab
+map <Tab>t                   :tabnew<Space>
+map T                        @%
+map O                        @%
+map <N>%                     goToTab
+map H                        goBack
+map L                        goForward
+map B                        :buffer
+map <                        moveTabLeft
+map >                        moveTabRight
+map ]]                       nextMatchPattern
+map [[                       previousMatchPattern
+map gp                       pinTab
+map <C-6>                    lastUsedTab
+
+map n                        nextSearchResult
+map N                        previousSearchResult
+map v                        toggleVisualMode
+map V                        toggleVisualLineMode
+
+" map <Esc>   exit visual mode to caret mode/exit caret mode to normal mode
+" map v   toggle between visual/caret mode
+" map h, j, k, l  move the caret position/extend the visual selection
+" map y   copys the current selection
+" map n   select the next search result
+" map N   select the previous search result
+" map p   open highlighted text in current tab
+" map P   open highlighted text in new tab
+
+map <C-i>                    beginningOfLine
+map <C-e>                    endOfLine
+map <C-u>                    deleteToBeginning
+map <C-o>                    deleteToEnd
+map <C-y>                    deleteWord
+map <C-p>                    deleteForwardWord
+map <C-h>                    backwardWord
+map <C-l>                    forwardWord
+map <C-f>                    forwardChar
+map <C-b>                    backwardChar
+map <C-j>                    forwardLine
+map <C-k>                    backwardLine

@@ -1,0 +1,9 @@
+e asm.describe  = true
+e asm.syntax    = att
+e cfg.bigendian = false
+e dbg.bep       = loader
+e scr.color     = true
+e scr.truecolor = true
+e scr.utf8      = true
+
+eco consonance

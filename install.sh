@@ -16,7 +16,8 @@ check_system() {
 }
 
 setup_system() {
-  source $ROOT/scripts/macos.sh
+  echo "Skipping system"
+  # source $ROOT/scripts/macos.sh
 }
 
 setup_home() {
@@ -32,6 +33,9 @@ setup_home() {
   else
     result=$(python $SCRIPTS/topology.py $INSTALLERS --for $OPTION_ONLY)
   fi
+  echo "DEPENDENCIES:"
+  echo $result
+  exit 0
   if [[ $? != 0 ]]; then
     echo $result
     exit 1
