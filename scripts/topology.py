@@ -106,7 +106,7 @@ def find_topological_order(directory, target=None):
 
     dependees = list(graph.successors(node))
     providers = list(graph.predecessors(node))
-    assert len(providers) == 1, 'Must be exactly one provider'
+    assert len(providers) == 1, 'Must be exactly one provider, node: {}, dependees: {}, providers: {}'.format(node, dependees, providers)
 
     # Remove transitive node with all its edges
     graph.remove_node(node)

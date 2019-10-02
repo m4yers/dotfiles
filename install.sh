@@ -3,7 +3,7 @@
 export ROOT="$( cd "$( dirname "$0" )" && pwd )"
 export PROJECTS=$(dirname $ROOT)
 export SCRIPTS="$ROOT/scripts"
-export INSTALLERS="$ROOT/installers"
+export TARGETS="$ROOT/targets"
 export DEPENDENCIES="$ROOT/dependencies"
 
 source $ROOT/scripts/shared.sh
@@ -15,50 +15,95 @@ check_system() {
   fi
 }
 
+bootstrap_bash() {
+  echo "BOOTSTRAP USER BASH"
+  echo
+
+  source $ROOT/scripts/bash.sh
+
+  cat $TARGETS/bash/bashrc > $BASHRC
+  echo "source $BASHRC" > $BASHPROFILE
+
+  bash_export_global PROJECTS $PROJECTS
+  bash_export_global DOTFILES $ROOT
+
+  echo "DONE"
+  echo
+}
+
+bootstrap_python() {
+  echo "BOOTSTRAP SYSTEM PYTHON"
+  echo
+
+  local dep_dir="$DEPENDENCIES/pip"
+
+  mkdir -p $dep_dir
+
+  curl https://bootstrap_python.pypa.io/get-pip.py -o $dep_dir/get-pip.py
+  ls $dep_dir
+  sudo /usr/bin/python $dep_dir/get-pip.py
+
+  local dep_dir="$DEPENDENCIES/requirements"
+  /usr/local/bin/pip install --target $dep_dir -r $ROOT/requirements.txt
+
+  echo "DONE"
+  echo
+}
+
+bootstrap () {
+  rm -rf $DEPENDENCIES
+  mkdir -p $DEPENDENCIES
+  bootstrap_bash
+  bootstrap_python
+}
+
 setup_system() {
   echo "Skipping system"
   # source $ROOT/scripts/macos.sh
 }
 
 setup_home() {
-  source $ROOT/scripts/bash.sh
-  bash_init
-  bash_export_global PROJECTS $PROJECTS
-  bash_export_global DOTFILES $ROOT
+  echo "SETUP HOME"
+  echo
 
-  pip install -r $ROOT/requirements.txt
-  result=
+  bootstrap
+
+  targets=
   if [[ -z $OPTION_ONLY ]]; then
-    result=$(python $SCRIPTS/topology.py $INSTALLERS)
+    targets=$(python $SCRIPTS/topology.py $TARGETS)
   else
-    result=$(python $SCRIPTS/topology.py $INSTALLERS --for $OPTION_ONLY)
+    targets=$(python $SCRIPTS/topology.py $TARGETS --for $OPTION_ONLY)
   fi
-  echo "DEPENDENCIES:"
-  echo $result
-  exit 0
+
   if [[ $? != 0 ]]; then
-    echo $result
+    echo $targets
     exit 1
   fi
 
   # If this setup to be moved to other systems each installer must provide
   # setup_system specific setup_home routine
-  for dependency in $result; do
-    echo "-- Install $dependency"
-    path=$INSTALLERS/$dependency
+
+  echo "TARGETS: $targets"
+  for target in $targets; do
+    echo "INSTALLING $target..."
+    echo
+
+    path=$TARGETS/$target
     export THIS=$path
     source "$path/install.sh"
     install
+
+    echo "DONE $target"
   done
 }
 
 print_help() {
   echo "Sweet Home Installer"
   echo "Usage:"
-  echo "  all                   Run all features"
-  echo "  system                Run system setup"
-  echo "  home   --only TARGET  Run home directory setup"
-  echo "  help                  Print help"
+  echo "... all                   Run all features"
+  echo "... system                Run system setup"
+  echo "... home   --only TARGET  Run home directory setup"
+  echo "... help                  Print help"
 }
 
 export OPTION_SYSTEM=false

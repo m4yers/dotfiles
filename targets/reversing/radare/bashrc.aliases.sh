@@ -1,1 +1,0 @@
-alias rr='radare2'
