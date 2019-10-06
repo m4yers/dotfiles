@@ -5,6 +5,6 @@
 install() {
   brew install llvm@8
 
-  bash_section "LLVM"
+  bash_init_config
   bash_export_path "$(brew --prefix llvm@8)/bin"
 }

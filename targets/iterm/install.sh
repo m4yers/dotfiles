@@ -13,6 +13,6 @@ install() {
 
   ln -s -f "$THIS/profiles.json" "$DEST/profiles.json"
 
-  bash_section "iTerm"
+  bash_init_config
   bash_export_path "$HOME/.iterm2"
 }

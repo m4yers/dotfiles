@@ -5,3 +5,4 @@
 
 # Do nothing if this shell isn't on the first level
 [ -z "$PS1" ] && return
+

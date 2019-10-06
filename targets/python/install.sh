@@ -9,7 +9,7 @@ install() {
   pip install --user pipenv
   pip install --user tox
 
-  bash_section "Python"
+  bash_init_config
   bash_export_path "$(python -m site --user-base)/bin"
 
   # Freaking brew python

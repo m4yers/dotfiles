@@ -4,6 +4,6 @@
 install() {
   brew cask install fastlane
 
-  bash_section "Fastlane"
+  bash_init_config
   bash_export_path "$HOME/.fastlane/bin"
 }

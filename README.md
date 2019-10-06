@@ -36,7 +36,7 @@ install() {
     vim +PlugInstall +qall
   fi
 
-  bash_section "Vim"
+  bash_init_section
   bash_export_source "$THIS/bashrc.aliases.sh"
 }
 ```

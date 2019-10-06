@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 
+# Exit on any error
+set -e
+
 export ROOT="$( cd "$( dirname "$0" )" && pwd )"
 export PROJECTS=$(dirname $ROOT)
 export SCRIPTS="$ROOT/scripts"
 export TARGETS="$ROOT/targets"
 export DEPENDENCIES="$ROOT/dependencies"
+
+export TARGET_CONFIGS="$HOME/.config/dotfiles"
+export TARGET_NAME=""
+export TARGET_CONFIG=""
+
+export BASHRC="$HOME/.bashrc"
+export BASHPROFILE="$HOME/.bash_profile"
 
 source $ROOT/scripts/shared.sh
 
@@ -15,15 +25,39 @@ check_system() {
   fi
 }
 
+bash_init() {
+  cat $TARGETS/bash/bashrc > $BASHRC
+  echo "source $BASHRC" > $BASHPROFILE
+  rm -rf $TARGET_CONFIGS
+  mkdir -p $TARGET_CONFIGS
+}
+
+bash_init_config() {
+  TARGET_CONFIG="$TARGET_CONFIGS/$TARGET_NAME"
+  echo "#!/usr/bin/env bash" >> $TARGET_CONFIG
+  echo >> $TARGET_CONFIG
+}
+
+bash_export_path() {
+  echo "export PATH=\"$1:\$PATH\"" >> $TARGET_CONFIG
+}
+
+bash_export_source() {
+  echo "source $1" >> $TARGET_CONFIG
+}
+
+bash_export_global() {
+  echo "export $1="$2 >> $TARGET_CONFIG
+}
+
 bootstrap_bash() {
   echo "BOOTSTRAP USER BASH"
   echo
 
-  source $ROOT/scripts/bash.sh
+  bash_init
 
-  cat $TARGETS/bash/bashrc > $BASHRC
-  echo "source $BASHRC" > $BASHPROFILE
-
+  TARGET_NAME="bash"
+  bash_init_config
   bash_export_global PROJECTS $PROJECTS
   bash_export_global DOTFILES $ROOT
 
@@ -39,7 +73,7 @@ bootstrap_python() {
 
   mkdir -p $dep_dir
 
-  curl https://bootstrap_python.pypa.io/get-pip.py -o $dep_dir/get-pip.py
+  curl https://bootstrap.pypa.io/get-pip.py -o $dep_dir/get-pip.py
   ls $dep_dir
   sudo /usr/bin/python $dep_dir/get-pip.py
 
@@ -68,9 +102,11 @@ setup_home() {
 
   bootstrap
 
+  topology=$(python $SCRIPTS/topology.py $TARGETS)
+
   targets=
   if [[ -z $OPTION_ONLY ]]; then
-    targets=$(python $SCRIPTS/topology.py $TARGETS)
+    targets=$topology
   else
     targets=$(python $SCRIPTS/topology.py $TARGETS --for $OPTION_ONLY)
   fi
@@ -91,9 +127,18 @@ setup_home() {
     path=$TARGETS/$target
     export THIS=$path
     source "$path/install.sh"
+    TARGET_NAME=$target
     install
 
     echo "DONE $target"
+  done
+
+  # Add sourcing for every available target
+  echo "# Source all target configurations" >> $BASHRC
+  for target in $topology; do
+    if [[ -f "$TARGET_CONFIGS/$target" ]]; then
+      echo "source $TARGET_CONFIGS/$target" >> $BASHRC
+    fi
   done
 }
 

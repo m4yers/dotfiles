@@ -5,7 +5,6 @@ install() {
   # Vim
   brew cask install macvim
   brew install macvim
-  brew link --overwrite macvim
 
   # Search
   brew install ag
@@ -28,6 +27,6 @@ install() {
   ln -s -f $THIS/cvimrc ~/.cvimrc
   ln -s -f $THIS/ycm.py ~/.ycm.py
 
-  bash_section "Vim"
+  bash_init_config
   bash_export_source "$THIS/bashrc.aliases.sh"
 }

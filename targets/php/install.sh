@@ -2,6 +2,5 @@
 
 # depends-on: brew
 install() {
-  brew tap homebrew/php
-  brew install php72
+  brew install php@7.2
 }

@@ -6,6 +6,6 @@ install() {
 
   ln -s -f "$THIS/radare2rc" "$HOME/.radare2rc"
 
-  bash_section "Radare"
+  bash_init_config
   bash_export_source "$THIS/bashrc.aliases.sh"
 }

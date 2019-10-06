@@ -24,6 +24,6 @@ install() {
 
   ln -s -f "$THIS/lldbinit" "$HOME/.lldbinit"
 
-  bash_section "LLDB"
+  bash_init_config
   bash_export_source "$THIS/bashrc.aliases.sh"
 }

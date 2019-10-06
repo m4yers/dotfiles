@@ -9,9 +9,10 @@ install() {
     touch $global_gitignore
   fi
 
+  mkdir -p $HOME/.config/git
   ln -s -f $THIS/gitconfig $HOME/.config/git/config
   ln -s -f $THIS/gitignore $HOME/.gitignore
 
-  bash_section "Git"
+  bash_init_config
   bash_export_source "$THIS/bashrc.aliases.sh"
 }

@@ -15,7 +15,7 @@ install() {
     echo "Using existing arcanist repos at $ARCANIST"
   fi
 
-  bash_section "Arcanist"
+  bash_init_config
   bash_export_path "$DEPENDENCIES/arcanist/arcanist/bin"
   bash_export_source "$THIS/bashrc.aliases.sh"
 }

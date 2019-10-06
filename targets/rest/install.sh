@@ -2,17 +2,14 @@
 
 # depends-on: bash, brew, pip
 install() {
-  # satisfies: coreutils, grep
-  brew install coreutils
+  bash_init_config
+
+  # satisfies: grep
   brew install grep
 
   # satisfies: gnu-sed
   brew install gnu-sed
   bash_export_path "$(brew --prefix gnu-sed)/libexec/gnubin"
-
-  # satisfies: binutils, valgrind
-  brew install binutils
-  brew install valgrind
 
   # satisfies: ctags, cppcheck, doxygen
   brew install ctags
@@ -69,7 +66,6 @@ install() {
   # satisfies: ccache
   brew install ccache
 
-  bash_section "Rest"
   bash_export_path "$(brew --prefix coreutils)/libexec/gnubin"
   bash_export_path "$(brwp --prefix ccache)/libexec"
   bash_export_source "$THIS/bashrc.aliases.sh"

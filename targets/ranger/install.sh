@@ -14,7 +14,7 @@ install() {
   ln -s -f $THIS/rifle.conf  $DEST/rifle.conf
   ln -s -f $THIS/scope.sh    $DEST/scope.sh
 
-  bash_section "Ranger"
+  bash_init_config
   bash_export_source "$THIS/bashrc.config.sh"
   bash_export_source "$THIS/bashrc.aliases.sh"
 }
