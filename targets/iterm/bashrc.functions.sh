@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 update_theme() {
   iterm_theme_generator                             \
     ~/Wallpapers/Glaciers/wild-goose-island-pic.jpg \

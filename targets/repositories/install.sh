@@ -4,12 +4,14 @@
 install() {
   # BREW
   if ! which -s brew; then
-    ruby -e "$(curl -fsSL \
-      https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    /bin/bash -c "$(curl -fsSL \
+      https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   else
     brew update
     brew upgrade
   fi
+
+  eval "$(/opt/homebrew/bin/brew shellenv)"
 
   # NPM
   if ! brew ls --versions npm > /dev/null; then

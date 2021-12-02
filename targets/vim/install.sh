@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 
-# depends-on: bash, brew, npm, svn
+# depends-on: brew, npm, bash
 install() {
   # Vim
-  brew cask install macvim
   brew install macvim
 
   # Search
   brew install ag
 
   # Linters
-  brew install swiftlint
-  pip install pylint
-  pip install bashate
+  # brew install swiftlint
+  pip3 install pylint
+  pip3 install bashate
   npm install -g jsonlint
   npm install -g eslint
 
@@ -21,7 +20,8 @@ install() {
   # PKG_CONFIG_PATH=$(brew --prefix imagemagick@6)/lib/pkgconfig gem install vimdeck
 
   # LLVM code coloring
-  svn co http://llvm.org/svn/llvm-project/llvm/trunk/utils/vim $DEPENDENCIES/llvm.vim
+  # TODO read the file from github
+  # svn co http://llvm.org/svn/llvm-project/llvm/trunk/utils/vim $DEPENDENCIES/llvm.vim
 
   ln -s -f $THIS/vimrc ~/.vimrc
   ln -s -f $THIS/cvimrc ~/.cvimrc

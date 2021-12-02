@@ -1,4 +1,4 @@
-# depends-on: bash, brew
+# depends-on: brew, bash
 install() {
   brew install git
   brew install git-lfs

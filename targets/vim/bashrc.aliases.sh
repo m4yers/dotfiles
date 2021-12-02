@@ -1,1 +1,1 @@
-alias vim='/Applications/MacVim.app/Contents/MacOS/Vim'
+alias vim='/opt/homebrew/Cellar/macvim/9.0.0065/bin/vim'

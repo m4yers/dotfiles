@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
 
-# depends-on: bash, brew, pip
+# depends-on: brew, bash
 install() {
   bash_init_config
 
   # satisfies: grep
+  # GPL3(!)
   brew install grep
 
   # satisfies: gnu-sed
+  # GPL3(!)
   brew install gnu-sed
   bash_export_path "$(brew --prefix gnu-sed)/libexec/gnubin"
 
   # satisfies: ctags, cppcheck, doxygen
+  # GPL2
   brew install ctags
   brew install cppcheck
   brew install doxygen
@@ -49,10 +52,10 @@ install() {
   brew install pandoc
 
   # satisfies: sphinx
-  pip install sphinx
+  pip3 install sphinx
 
   # satisfies: frida
-  pip install frida
+  pip3 install frida
 
   # satisfies: graphviz, xdot
   brew install graphviz
@@ -60,8 +63,6 @@ install() {
 
   # satisfies: libxml2
   # brew install libxml2
-  # brew link --force libxml2
-  # sudo ln -s /usr/local/include/libxml2/libxml /usr/local/include/libxml/
 
   # satisfies: ccache
   brew install ccache

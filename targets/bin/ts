@@ -1,4 +1,4 @@
-#! /bin/bash -l
+#! /opt/homebrew/bin/bash -l
 
 SESSION="!";
 
@@ -9,4 +9,4 @@ then
 fi
 tmux -2 attach-session -t $SESSION;
 
-exec /bin/bash -l
+exec /opt/homebrew/bin/bash -l

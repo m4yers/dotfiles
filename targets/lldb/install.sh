@@ -20,7 +20,7 @@ install_voltron() {
 }
 
 install() {
-  install_voltron
+  # install_voltron
 
   ln -s -f "$THIS/lldbinit" "$HOME/.lldbinit"
 

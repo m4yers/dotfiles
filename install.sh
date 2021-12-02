@@ -38,6 +38,10 @@ bash_init_config() {
   echo >> $TARGET_CONFIG
 }
 
+bash_export() {
+  echo "$1"
+}
+
 bash_export_path() {
   echo "export PATH=\"$1:\$PATH\"" >> $TARGET_CONFIG
 }
@@ -69,16 +73,8 @@ bootstrap_python() {
   echo "BOOTSTRAP SYSTEM PYTHON"
   echo
 
-  local dep_dir="$DEPENDENCIES/pip"
-
-  mkdir -p $dep_dir
-
-  curl https://bootstrap.pypa.io/get-pip.py -o $dep_dir/get-pip.py
-  ls $dep_dir
-  sudo /usr/bin/python $dep_dir/get-pip.py
-
   local dep_dir="$DEPENDENCIES/requirements"
-  /usr/local/bin/pip install --target $dep_dir -r $ROOT/requirements.txt
+  pip3 install --target $dep_dir -r $ROOT/requirements.txt
 
   echo "DONE"
   echo
@@ -102,13 +98,13 @@ setup_home() {
 
   bootstrap
 
-  topology=$(python $SCRIPTS/topology.py $TARGETS)
+  topology=$(python3 $SCRIPTS/topology.py $TARGETS)
 
   targets=
   if [[ -z $OPTION_ONLY ]]; then
     targets=$topology
   else
-    targets=$(python $SCRIPTS/topology.py $TARGETS --for $OPTION_ONLY)
+    targets=$(python3 $SCRIPTS/topology.py $TARGETS --for $OPTION_ONLY)
   fi
 
   if [[ $? != 0 ]]; then

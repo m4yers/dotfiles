@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# depends-on: essentials, cpp, llvm, lldb, arcanist, fastlane
+# depends-on: essentials, editorconfig, cpp, llvm, lldb
 install() {
   :
 }

@@ -47,8 +47,8 @@ def read_dependencies(filename):
 
       names = match.groupdict().get('names', '')
       names = names.split(',')
-      names = map(str.rstrip, names)
-      names = map(str.lstrip, names)
+      names = list(map(str.rstrip, names))
+      names = list(map(str.lstrip, names))
       if dep_or_sat:
         depends.extend(names)
       else:
@@ -80,19 +80,19 @@ def find_topological_order(directory, target=None):
 
       # Set edge from dependee to its provider
       add_edge = functools.partial(lambda a,b: graph.add_edge(b,a), name)
-      map(add_edge, dependencies)
+      list(map(add_edge, dependencies))
 
       for sat in satisfies:
         # If there is something that tries to satisfy already satisfied
         # dependency we consider this an error
         if graph.has_node(sat) and len(list(graph.predecessors(sat))):
-          print("{} tries to satisfy already existing installer {}".format(name, sat))
+          print(("{} tries to satisfy already existing installer {}".format(name, sat)))
           return False, None
         graph.add_node(sat, transitive=True)
 
       # Set edge from transitive provider to its real provider
       add_edge = functools.partial(lambda a,b: graph.add_edge(a,b), name)
-      map(add_edge, satisfies)
+      list(map(add_edge, satisfies))
 
   # print graph.edges()
   # sys.exit(0)
@@ -100,6 +100,7 @@ def find_topological_order(directory, target=None):
   # Not all dependencies are provided by installers of the same name. By
   # collapsing the graph on these 'satisfying' dependencies we point a dependee
   # to a right installer.
+  nodes_to_remove = list()
   for node, transitive in graph.nodes(data='transitive'):
     if not transitive:
       continue
@@ -109,20 +110,23 @@ def find_topological_order(directory, target=None):
     assert len(providers) == 1, 'Must be exactly one provider, node: {}, dependees: {}, providers: {}'.format(node, dependees, providers)
 
     # Remove transitive node with all its edges
-    graph.remove_node(node)
+    nodes_to_remove.append(node)
 
     # Reconnect the graph
     add_edge = functools.partial(graph.add_edge, providers[0])
-    map(add_edge, dependees)
+    list(map(add_edge, dependees))
+
+  for node in nodes_to_remove:
+    graph.remove_node(node)
 
   if not nx.is_directed_acyclic_graph(graph):
-    print("Found dependency cycle: {}".format(nx.find_cycle(graph)))
+    print(("Found dependency cycle: {}".format(nx.find_cycle(graph))))
     return False, None
 
   if target:
     closure = set([target])
     while True:
-      new = closure | set(sum(map(list, map(graph.predecessors, closure)), []))
+      new = closure | set(sum(list(map(list, list(map(graph.predecessors, closure)))), []))
       if closure == new:
         break
       closure = new
@@ -144,7 +148,7 @@ def main():
   if not success:
     sys.exit(1)
 
-  print(' '.join(order))
+  print((' '.join(order)))
   sys.exit(0)
 
 if __name__ == "__main__":

@@ -35,6 +35,7 @@ Plug 'scrooloose/nerdtree'
 Plug 'majutsushi/tagbar'
 
 " Functionality
+Plug 'preservim/vim-markdown'
 Plug 'editorconfig/editorconfig-vim'
 Plug 'vim-scripts/ingo-library'
 Plug 'vim-scripts/SyntaxRange'
@@ -61,13 +62,8 @@ Plug 'tpope/vim-git'
 Plug 'mileszs/ack.vim'
 
 " Themes
-Plug 'xolox/vim-colorscheme-switcher'
-Plug 'atelierbram/Base2Tone-vim'
 Plug 'NLKNguyen/papercolor-theme'
-Plug 'reedes/vim-colors-pencil'
-Plug 'rakr/vim-two-firewatch'
-Plug 'dylanaraps/wal.vim'
-Plug 'morhetz/gruvbox'
+Plug 'sonph/onehalf', {'branch': '5bec08d', 'rtp': 'vim/'}
 
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
@@ -86,7 +82,7 @@ set spellfile=~/Development/Projects/dotfiles/installers/vim/spell/en.latin1.add
 " Settings {{{
 " Basic {{{
 
-set shell=/usr/local/bin/bash
+set shell=/opt/homebrew/bin/bash
 
 if s:is_gui
   set clipboard              =unnamed
@@ -191,11 +187,17 @@ set wrap
 " }}}
 " View {{{
 
+if exists('+termguicolors')
+  let &t_8f = "\<Esc>[38;2;%lu;%lu;%lum"
+  let &t_8b = "\<Esc>[48;2;%lu;%lu;%lum"
+  set termguicolors
+endif
+
 syntax                       on
 if s:is_gui
-  colorscheme                PaperColor
+  colorscheme                onehalfdark
 else
-  colorscheme                PaperColor
+  colorscheme                onehalfdark
   set t_Co                     =256
 endif
 
@@ -203,7 +205,7 @@ set numberwidth              =2
 set relativenumber
 set nonumber
 
-" set colorcolumn              =81
+" set colorcolumn            =81
 set colorcolumn              =0
 set background               =dark
 set ruler
@@ -365,30 +367,30 @@ nnoremap <leader>m           :make<cr>
 " }}}
 " Colorscheme Mod {{{
 
-highlight Normal              guifg=#999999
-highlight LineNr              guifg=#333333
-highlight Comment             guifg=#444444
-highlight Delimiter           guifg=#444444
-
-highlight cType               guifg=#90c000
-highlight cppBoolean          guifg=#90c000
-highlight cDelimiter          guifg=#444444
-highlight cOperator           guifg=#888888
-highlight ErrorMsg            guifg=black ctermfg=black
-
-highlight Folded              guifg=#444444 guibg=#252525
-highlight NERDTreeDirSlash    guifg=#444444
-
-highlight VertSplit           ctermbg=0 guibg=#111111
-highlight ColorColumn         guibg=#222222
-highlight CursorLine          guibg=#222222
-
-highlight lCursor gui=Bold guifg=NONE guibg=Cyan
-highlight iCursor gui=Bold guifg=NONE guibg=LightBlue
-
-highlight Normal  ctermbg=NONE
-highlight NonText ctermbg=NONE
-highlight LineNr  ctermbg=NONE
+" highlight Normal              guifg=#999999
+highlight LineNr              guifg=#454545
+" highlight Comment             guifg=#444444
+" highlight Delimiter           guifg=#444444
+"
+" highlight cType               guifg=#90c000
+" highlight cppBoolean          guifg=#90c000
+" highlight cDelimiter          guifg=#444444
+" highlight cOperator           guifg=#888888
+" highlight ErrorMsg            guifg=black ctermfg=black
+"
+" highlight Folded              guifg=#444444 guibg=#252525
+" highlight NERDTreeDirSlash    guifg=#444444
+"
+highlight VertSplit             guifg=#333333 guibg=#282c34
+" highlight ColorColumn         guibg=#222222
+" highlight CursorLine          guibg=#222222
+"
+" highlight lCursor gui=Bold guifg=NONE guibg=Cyan
+" highlight iCursor gui=Bold guifg=NONE guibg=LightBlue
+"
+" highlight Normal  ctermbg=NONE
+" highlight NonText ctermbg=NONE
+" highlight LineNr  ctermbg=NONE
 
 " }}}
 " Plugins {{{
@@ -422,7 +424,8 @@ let g:airline_left_sep = ''
 let g:airline_right_sep = ''
 let g:airline_left_alt_sep = ''
 let g:airline_right_alt_sep = ''
-let g:airline_symbols.linenr = '☰'
+let g:airline_symbols.linenr = ' '
+let g:airline_symbols.colnr = ':'
 let g:airline_symbols.maxlinenr = ''
 let g:airline_symbols.branch = '⎇'
 let g:airline_symbols.paste = 'ρ'
@@ -656,11 +659,11 @@ let g:dash_map = {
 " }}}
 " Git {{{
 
-nnoremap <leader>gs  :Gstatus<cr>
+nnoremap <leader>gs  :Git<cr>
 nnoremap <leader>gl  :silent! Glog --reverse \| botright copen \| clast \| redraw!<cr>
 nnoremap <leader>ge  :Gedit<cr>
-nnoremap <leader>gc  :Gcommit<cr>
-nnoremap <leader>gq  :Gcommit --amend<cr>
+nnoremap <leader>gc  :Git commit<cr>
+nnoremap <leader>gq  :Git commit --amend<cr>
 nnoremap <leader>gb  :Gblame<cr>
 nnoremap <leader>gd  :Gvdiff<cr>
 nnoremap <leader>gp  :call setqflist(map(systemlist("git diff --name-only master"), '{"filename": v:val}'))<cr>
@@ -673,6 +676,11 @@ nnoremap <leader>dgr :diffget REMOTE \| diffupdate<cr>
 " Editor Config {{{
 
 let g:EditorConfig_exclude_patterns = ['fugitive://.*']
+
+" }}}
+" Markdown {{{
+
+set conceallevel=2
 
 " }}}
 " Instant Markdown {{{

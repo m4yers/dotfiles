@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-# depends-on: bash, brew
+# depends-on: brew, bash
 # satisfies: clang
 install() {
-  brew install llvm@8
+  # Apache-2.0 + LLVM exceptions
+  brew install llvm
 
   bash_init_config
-  bash_export_path "$(brew --prefix llvm@8)/bin"
+  bash_export_path "$(brew --prefix llvm)/bin"
 }

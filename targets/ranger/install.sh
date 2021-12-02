@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-# depends-on: bash, python, brew
+# depends-on: brew, bash, python
 install() {
+  # GPL3(!)
   brew install ranger
 
   local DEST=~/.config/ranger

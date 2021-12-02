@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# depends-on: bash, brew, python
+# depends-on: brew, bash, python
 install() {
-  brew cask install iterm2
-  pip install iterm-theme-generator
+  brew install iterm2
+  # pip3 install iterm-theme-generator
 
   local DEST="$HOME/Library/Application Support/iTerm2/DynamicProfiles"
 

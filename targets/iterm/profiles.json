@@ -4,7 +4,7 @@
     "Guid": "Default.Profile",
 
     "Set Local Environment Vars": true,
-    "Command": "\/usr\/local\/bin\/bash -l",
+    "Command": "\/opt\/homebrew\/bin\/bash -l",
     "Terminal Type": "xterm-256color",
 
     "Disable Window Resizing": true,

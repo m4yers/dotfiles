@@ -13,7 +13,7 @@ Here is an example vim installer script:
 ```
 # depends-on: bash, brew, npm, svn
 install() {
-  brew cask install macvim
+  brew install macvim
   brew install macvim --with-override-system-vim
   brew link --overwrite macvim
   brew install ag

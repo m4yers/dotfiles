@@ -2,6 +2,7 @@
 
 # depends-on: brew
 install() {
+  # LGPL3(!)
   brew install radare2
 
   ln -s -f "$THIS/radare2rc" "$HOME/.radare2rc"
