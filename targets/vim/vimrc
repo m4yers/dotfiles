@@ -12,21 +12,10 @@ let s:is_gui  = has("gui_running")
 call plug#begin()
 
 " Completion
-Plug 'Valloric/YouCompleteMe', { 'do': './install.py --clang-completer' }
-Plug 'rdnetto/YCM-Generator'
 Plug 'scrooloose/syntastic'
-Plug 'vim-scripts/DoxygenToolkit.vim'
 
 " Syntax
-Plug 'vim-scripts/applescript.vim'
 Plug 'justinmk/vim-syntax-extra'
-Plug 'suan/vim-instant-markdown'
-Plug 'Valloric/Vim-Jinja2-Syntax'
-Plug 'wannesm/wmgraphviz.vim'
-Plug 'solarnz/thrift.vim'
-Plug 'PProvost/vim-ps1'
-Plug 'keith/swift.vim'
-Plug 'Rykka/riv.vim'
 
 " Panes
 Plug 'tacahiroy/ctrlp-funky'
@@ -35,28 +24,16 @@ Plug 'scrooloose/nerdtree'
 Plug 'majutsushi/tagbar'
 
 " Functionality
-Plug 'preservim/vim-markdown'
-Plug 'editorconfig/editorconfig-vim'
-Plug 'vim-scripts/ingo-library'
-Plug 'vim-scripts/SyntaxRange'
-Plug 'junegunn/vim-easy-align'
 Plug 'derekwyatt/vim-fswitch'
 Plug 'Chiel92/vim-autoformat'
-Plug 'kshenoy/vim-signature'
 Plug 'Raimondi/delimitMate'
 Plug 'tomtom/tcomment_vim'
-Plug 'tpope/vim-surround'
-Plug 'xolox/vim-session'
-Plug 'reedes/vim-wordy'
-Plug 'xolox/vim-misc'
-Plug 'fidian/hexmode'
 
 " Snippents
 Plug 'SirVer/ultisnips'
 Plug 'honza/vim-snippets'
 
 " Integration
-Plug 'rizzatti/dash.vim'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-git'
 Plug 'mileszs/ack.vim'
@@ -74,7 +51,7 @@ filetype plugin indent on
 
 " TODO Make these dynamically appendable
 set rtp+=~/Development/Projects/dotfiles/installers/vim/after
-set rtp+=~/Development/Projects/dotfiles/dependencies/llvm.vim
+" set rtp+=~/Development/Projects/dotfiles/dependencies/llvm.vim
 
 set spellfile=~/Development/Projects/dotfiles/installers/vim/spell/en.latin1.add
 
@@ -82,7 +59,7 @@ set spellfile=~/Development/Projects/dotfiles/installers/vim/spell/en.latin1.add
 " Settings {{{
 " Basic {{{
 
-set shell=/opt/homebrew/bin/bash
+set shell=/bin/bash
 
 if s:is_gui
   set clipboard              =unnamed
@@ -92,7 +69,7 @@ set ambiwidth                =single
 set autoread
 set autowrite
 set backspace                =indent,eol,start
-set completeopt              =longest,menuone
+set completeopt              =menu,popup,longest,menuone
 set encoding                 =utf-8
 set formatoptions            =croqlj
 set history                  =1000
@@ -294,15 +271,28 @@ nnoremap <tab>8              :tabnext8<cr>
 nnoremap <tab>9              :tabnext9<cr>
 nnoremap <tab>0              :tabnext10<cr>
 
-nnoremap <tab>e              :vsplit<cr>
-nnoremap <tab>o              :split<cr>
 nnoremap <tab>d              :bdelete<cr>
 nnoremap <tab>c              :tabclose<cr>
 
-nnoremap <c-h>               <c-w>h
-nnoremap <c-j>               <c-w>j
-nnoremap <c-k>               <c-w>k
-nnoremap <c-l>               <c-w>l
+nnoremap <tab>j <c-]>zo
+nnoremap <tab>J :vsplit<cr><c-]>zo
+nnoremap <tab>s :tselect<cr>zo
+nnoremap <tab>S :vsplit<cr>:tselect<cr>zo
+inoremap <esc>n <c-x><c-]>
+
+nnoremap zr                  :vsplit<cr>
+nnoremap zv                  :split<cr>
+nnoremap zh                  <c-w>h
+nnoremap zj                  <c-w>j
+nnoremap zk                  <c-w>k
+nnoremap zl                  <c-w>l
+nnoremap zH                  <c-w>H
+nnoremap zJ                  <c-w>J
+nnoremap zK                  <c-w>K
+nnoremap zL                  <c-w>L
+nnoremap z=                  <c-w>=
+nnoremap zn                  <c-f>zz
+nnoremap zp                  <c-b>zz
 
 if s:is_mac && s:is_gui
   nnoremap ∆                 <c-w>-
@@ -362,13 +352,19 @@ cnoremap <c-e>               <end>
 cnoremap <c-f>               <right>
 cnoremap <c-b>               <left>
 
+nnoremap <leader>cf          :let @*=expand('%:p')<CR>
+
 nnoremap <leader>m           :make<cr>
+
+" Interface with TMUX clipboard
+vnoremap <leader>ty y<cr>:call system("tmux load-buffer -", @0)<cr>
+nnoremap <leader>tp :let @0 = system("tmux save-buffer -")<cr>"0p<cr>"
 
 " }}}
 " Colorscheme Mod {{{
 
 " highlight Normal              guifg=#999999
-highlight LineNr              guifg=#454545
+highlight LineNr                guifg=#454545
 " highlight Comment             guifg=#444444
 " highlight Delimiter           guifg=#444444
 "
@@ -392,28 +388,13 @@ highlight VertSplit             guifg=#333333 guibg=#282c34
 " highlight NonText ctermbg=NONE
 " highlight LineNr  ctermbg=NONE
 
+highlight DiffAdd    guifg=#00d782 guibg=#005f52
+highlight DiffDelete guifg=#ab417a guibg=#631d3f
+highlight DiffChange guifg=#d0d0d0 guibg=#663a4f
+highlight DiffText   guifg=#5fffff guibg=#008787
+
 " }}}
 " Plugins {{{
-" Doxygen {{{
-
-autocmd Filetype c,cpp set comments^=:///
-nnoremap <leader>x :Dox<cr>
-
-let g:DoxygenToolkit_commentType="C++"
-let g:DoxygenToolkit_briefTag_pre=""
-let g:DoxygenToolkit_paramTag_pre="\\param "
-let g:DoxygenToolkit_returnTag="\\return "
-let g:DoxygenToolkit_authorName="Artyom Goncharov"
-let g:DoxygenToolkit_blockHeader=""
-let g:DoxygenToolkit_blockFooter=""
-let g:load_doxygen_syntax=0
-
-" }}}
-" JSON {{{
-"
-let g:vim_json_syntax_conceal = 0
-
-" }}}
 " Airline {{{
 
 if !exists('g:airline_symbols')
@@ -472,43 +453,11 @@ let g:syntastic_ignore_files                = ['\m\c\.html$']
 
 let g:syntastic_javascript_checkers         = ['eslint']
 
-let g:syntastic_python_checkers             = ['pylint']
+let g:syntastic_python_checkers             = ['flake8']
 
 let g:syntastic_clang_tidy_config_file      = '.clang-tidy'
 
 nnoremap <leader>ss :SyntasticCheck<cr>
-
-" }}}
-" Hexmode {{{
-
-nnoremap <leader>he :Hexmode<cr>
-
-" "}}}
-" Easy Align {{{
-
-xmap ga <Plug>(EasyAlign)
-nmap ga <Plug>(EasyAlign)
-
-" }}}
-" YouCompleteMe {{{
-
-let g:ycm_error_symbol                               = '✖'
-let g:ycm_warning_symbol                             = '⚈'
-let g:ycm_complete_in_comments                       = 1
-let g:ycm_goto_buffer_command                        = 'vertical-split'
-let g:ycm_key_invoke_completion                      = ''
-let g:ycm_autoclose_preview_window_after_completion  = 1
-let g:ycm_autoclose_preview_window_after_insertion   = 1
-let g:ycm_add_preview_to_completeopt                 = 1
-let g:ycm_disable_for_files_larger_than_kb           = 0
-
-let g:ycm_global_ycm_extra_conf = '~/.ycm.py'
-
-nnoremap <leader>yd :YouCompleter GetDoc<cr>
-nnoremap <leader>yt :YcmCompleter GetType<cr>
-nnoremap <leader>yf :YcmCompleter FixIt<cr>
-nnoremap <tab>j :YcmCompleter GoTo<cr>zz
-nnoremap <tab>J :YcmCompleter GoTo<cr>zz<c-w>T
 
 " }}}
 " CtrlP {{{
@@ -520,7 +469,7 @@ nnoremap <c-o> :CtrlPFunky<cr>
 " }}}
 " UltiSnips {{{
 
-let g:snips_author                          = "Artyom Goncharov"
+let g:snips_author                          = "Artem Ho-Honcharov"
 let g:UltiSnipsSnippetDirectories           = ["UltiSnips"]
 let g:UltiSnipsJumpBackwardTrigger          = "<c-m>"
 let g:UltiSnipsJumpForwardTrigger           = "<c-l>"
@@ -649,14 +598,6 @@ let g:tagbar_width = 50
 nnoremap <F3> :TagbarToggle<cr>
 
 " }}}
-" Dash {{{
-
-nnoremap <silent> <leader>dd :Dash<cr>
-let g:dash_map = {
-    \ 'cpp' : ['cpp', 'llvm']
-    \ }
-
-" }}}
 " Git {{{
 
 nnoremap <leader>gs  :Git<cr>
@@ -664,7 +605,7 @@ nnoremap <leader>gl  :silent! Glog --reverse \| botright copen \| clast \| redra
 nnoremap <leader>ge  :Gedit<cr>
 nnoremap <leader>gc  :Git commit<cr>
 nnoremap <leader>gq  :Git commit --amend<cr>
-nnoremap <leader>gb  :Gblame<cr>
+nnoremap <leader>gb  :Git blame<cr>
 nnoremap <leader>gd  :Gvdiff<cr>
 nnoremap <leader>gp  :call setqflist(map(systemlist("git diff --name-only master"), '{"filename": v:val}'))<cr>
 
@@ -673,39 +614,13 @@ nnoremap <leader>dgb :diffget BASE   \| diffupdate<cr>
 nnoremap <leader>dgr :diffget REMOTE \| diffupdate<cr>
 
 " }}}
-" Editor Config {{{
-
-let g:EditorConfig_exclude_patterns = ['fugitive://.*']
-
-" }}}
-" Markdown {{{
-
-set conceallevel=2
-
-" }}}
-" Instant Markdown {{{
-
-let g:instant_markdown_autostart = 0
-
-" }}}
-" Sessions {{{
-
-let g:session_default_overwrite = 0
-let g:session_autosave_periodic = 10
-let g:session_persist_colors    = 0
-let g:session_autoload          = 'no'
-let g:session_autosave          = 'yes'
-let g:session_default_to_last   = 'yes'
-let g:session_directory         = '~/tmp/vim/sessions'
-
-" }}}
 " Ack {{{
 
 nnoremap <leader>a :Ack!<space>
 nnoremap <leader>A :Ack! <C-R><C-W><cr>
 
 if executable('ag')
-  let g:ackprg = 'ag -U --vimgrep'
+  let g:ackprg = 'ag -U --vimgrep --ignore ctags'
 endif
 
 " }}}
@@ -768,9 +683,9 @@ augroup END
 augroup ft_python
   autocmd!
   autocmd FileType python
-        \ setlocal tabstop=2         |
-        \ setlocal shiftwidth=2      |
-        \ setlocal softtabstop=2     |
+        \ setlocal tabstop=4         |
+        \ setlocal shiftwidth=4      |
+        \ setlocal softtabstop=4     |
         \ setlocal foldmethod=indent |
         \ setlocal foldlevel=0       |
         \ setlocal foldnestmax=2
@@ -943,6 +858,16 @@ augroup ft_log
   autocmd FileType messages
         \ set nowrap |
         \ setlocal foldmethod=marker
+augroup END
+
+" }}}
+" Crule {{{
+
+augroup ft_crule
+  autocmd!
+  autocmd BufNewFile,BufReadPost *.crule :set filetype=dylan
+  autocmd BufNewFile,BufReadPost *.rule :set filetype=dylan
+  autocmd BufNewFile,BufReadPost *.ast :set filetype=dylan
 augroup END
 
 " }}}
