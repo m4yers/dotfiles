@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-export ROOT="$( cd "$( dirname "$BASH_SOURCE" )" && pwd )"
+export ROOT="$( cd "$( dirname "$0" )" && pwd )"
 
-export SCRIPTS="$ROOT/scripts"
-export TARGETS="$ROOT/targets"
+echo $(dirname $ROOT)
+export TARGETS=$(dirname $ROOT)
 export DEPENDENCIES="$ROOT/dependencies"
 
 export TARGET_CONFIGS="$HOME/.config/dotfiles"
@@ -155,7 +155,7 @@ bash_export_source() {
 
 bash_export_source_maybe() {
   local target_config=$(get_target_config)
-  echo "if [-f $1]; then" >> $target_config
+  echo "if [ -f \"$1\" ]; then" >> $target_config
   echo "  source $1" >> $target_config
   echo "fi" >> $target_config
 }
