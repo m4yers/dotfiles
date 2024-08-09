@@ -3,55 +3,21 @@
 # Exit on any error
 set -e
 
-export ROOT="$( cd "$( dirname "$0" )" && pwd )"
-export PROJECTS=$(dirname $ROOT)
-export SCRIPTS="$ROOT/scripts"
-export TARGETS="$ROOT/targets"
-export DEPENDENCIES="$ROOT/dependencies"
-
-export TARGET_CONFIGS="$HOME/.config/dotfiles"
-export TARGET_NAME=""
-export TARGET_CONFIG=""
-
-export BASHRC="$HOME/.bashrc"
-export BASHPROFILE="$HOME/.bash_profile"
-
-source $ROOT/scripts/shared.sh
+source ./scripts/shared.sh
 
 check_system() {
-  if ! is_mac; then
+  if ! is_mac && ! is_linux; then
     echo "Mac only installer is available"
     exit 1
   fi
 }
 
 bash_init() {
+  # TODO backup the existing bashrc
   cat $TARGETS/bash/bashrc > $BASHRC
   echo "source $BASHRC" > $BASHPROFILE
   rm -rf $TARGET_CONFIGS
   mkdir -p $TARGET_CONFIGS
-}
-
-bash_init_config() {
-  TARGET_CONFIG="$TARGET_CONFIGS/$TARGET_NAME"
-  echo "#!/usr/bin/env bash" >> $TARGET_CONFIG
-  echo >> $TARGET_CONFIG
-}
-
-bash_export() {
-  echo "$1"
-}
-
-bash_export_path() {
-  echo "export PATH=\"$1:\$PATH\"" >> $TARGET_CONFIG
-}
-
-bash_export_source() {
-  echo "source $1" >> $TARGET_CONFIG
-}
-
-bash_export_global() {
-  echo "export $1="$2 >> $TARGET_CONFIG
 }
 
 bootstrap_bash() {
@@ -127,14 +93,6 @@ setup_home() {
     install
 
     echo "DONE $target"
-  done
-
-  # Add sourcing for every available target
-  echo "# Source all target configurations" >> $BASHRC
-  for target in $topology; do
-    if [[ -f "$TARGET_CONFIGS/$target" ]]; then
-      echo "source $TARGET_CONFIGS/$target" >> $BASHRC
-    fi
   done
 }
 

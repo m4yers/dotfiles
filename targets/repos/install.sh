@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 
-# satisfies: brew, npm
-install() {
+source ../scripts/shared.sh
+
+install_linux() {
+  true
+}
+
+install_mac() {
   # BREW
   if ! which -s brew; then
     /bin/bash -c "$(curl -fsSL \
@@ -16,5 +21,15 @@ install() {
   # NPM
   if ! brew ls --versions npm > /dev/null; then
     brew install npm
+  fi
+}
+
+install() {
+  if is_mac; then
+    install_mac
+  fi
+
+  if is_linux; then
+    install_linux
   fi
 }
