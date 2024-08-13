@@ -1,32 +1,49 @@
 #!/usr/bin/env bash
 
-# depends-on: brew, npm, bash
-install() {
-  # Vim
-  brew install macvim
+ROOT="$( cd "$( dirname "$0" )/../.." && pwd )"
+source $ROOT/scripts/shared.sh
 
-  # Search
+install_mac() {
+  brew install macvim
   brew install ag
+}
+
+install_linux() {
+  sudo yum install vim
+  # sudo yum install ag
+}
+
+# TODO ditch UltiSnips in favour of just loading files
+# depends-on: repos, bash
+install() {
+  local this=$(get_source)
+  if is_mac; then
+    install_mac
+  fi
+
+  if is_linux; then
+    install_linux
+  fi
 
   # Linters
-  # brew install swiftlint
+  log "Python linters"
   pip3 install pylint
   pip3 install bashate
-  npm install -g jsonlint
-  npm install -g eslint
 
-  # Vimdeck dependencies
-  # brew install imagemagick@6
-  # PKG_CONFIG_PATH=$(brew --prefix imagemagick@6)/lib/pkgconfig gem install vimdeck
+  if [ which npm]; then
+    log "JS linters"
+    npm install -g jsonlint
+    npm install -g eslint
+  fi
 
-  # LLVM code coloring
-  # TODO read the file from github
-  # svn co http://llvm.org/svn/llvm-project/llvm/trunk/utils/vim $DEPENDENCIES/llvm.vim
-
-  ln -s -f $THIS/vimrc ~/.vimrc
-  ln -s -f $THIS/cvimrc ~/.cvimrc
-  ln -s -f $THIS/ycm.py ~/.ycm.py
+  log "Linking .vimrc"
+  ln -s -f $this/vimrc ~/.vimrc
 
   bash_init_config
-  bash_export_source "$THIS/bashrc.aliases.sh"
+  bash_section "Vim configuration"
+  bash_export_source "$this/bashrc.aliases.sh"
 }
+
+if ! is_sourced; then
+  install
+fi

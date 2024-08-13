@@ -1,1 +1,6 @@
-alias vim='/opt/homebrew/Cellar/macvim/9.0.0065/bin/vim'
+alias dot-vim="cd $HOME/dotfiles/targets/vim"
+alias dot-vim-rc="vim $HOME/dotfiles/targets/vim/vimrc"
+alias dot-vim-install="vim $HOME/dotfiles/targets/vim/install.sh"
+alias dot-vim-aliases="vim $HOME/dotfiles/targets/vim/bashrc.aliases.sh"
+alias dot-vim-config="vim $HOME/dotfiles/targets/vim/bashrc.config.sh"
+alias dot-vim-functions="vim $HOME/dotfiles/targets/vim/bashrc.functions.sh"

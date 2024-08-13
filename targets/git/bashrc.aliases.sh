@@ -1,14 +1,20 @@
-alias g='git '
+alias dot-git="cd $HOME/dotfiles/targets/git"
+alias dot-git-install="vim $HOME/dotfiles/targets/git/install.sh"
+alias dot-git-alises="vim $HOME/dotfiles/targets/git/bashrc.aliases.sh"
 
-alias gll='git log --graph --all --pretty --abbrev-commit --decorate'
-alias gl1='git log --graph --all --pretty --decorate --stat --since="1 day ago"'
-alias gl2='git log --graph --all --pretty --decorate --stat --since="2 days ago"'
-alias gl3='git log --graph --all --pretty --decorate --stat --since="3 days ago"'
-alias gl='git log --graph --all --oneline --decorate'
+alias g="git "
 
-alias gs='git status '
-alias ga='git add '
-alias gc='git commit '
+alias gll="git log --graph --all --pretty --abbrev-commit --decorate"
+alias gl1="git log --graph --all --pretty --decorate --stat --since='1 day ago'"
+alias gl2="git log --graph --all --pretty --decorate --stat --since='2 days ago'"
+alias gl3="git log --graph --all --pretty --decorate --stat --since='3 days ago'"
+alias gl="git log --graph --all --oneline --decorate"
 
-alias wip='git commit -a -m "Work In Progress..."'
-alias squish='git status && git commit -a --amend -C HEAD'
+alias gs="git status "
+alias ga="git add "
+alias gc="git commit "
+
+alias gnb="git checkout -b "
+
+alias wip="git commit -a -m 'Work In Progress...'"
+alias squish="git status && git commit -a --amend -C HEAD"

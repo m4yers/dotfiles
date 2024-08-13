@@ -1,14 +1,44 @@
 #!/usr/bin/env bash
 
-# depends-on: brew, git
-install() {
+ROOT="$( cd "$( dirname "$0" )/../.." && pwd )"
+source $ROOT/scripts/shared.sh
+
+install_mac() {
   brew install tmux
+}
 
-  ln -s -f $THIS/tmux.conf ~/.tmux.conf
+install_linux() {
+  # TODO build from sources
+  true
+}
 
-  if [[ ! -d ~/.tmux/plugins/tpm ]]; then
-    git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+# depends-on: repos, git
+install() {
+  local this=$(get_source)
+
+  if is_mac; then
+    install_mac
   fi
 
-  # tmux source ~/.tmux.conf
+  if is_linux; then
+    install_linux
+  fi
+
+  log "Linking config"
+  ln -s -f $this/tmux.conf $HOME/.tmux.conf
+
+  if [[ ! -d $HOME/.tmux/plugins/tpm ]]; then
+    log "Installing TPM"
+    git clone https://github.com/tmux-plugins/tpm $HOME/.tmux/plugins/tpm
+  else
+    log "TPM is already installed"
+  fi
+
+  bash_init_config
+  bash_section "Tmux configuration"
+  bash_export_source "$this/bashrc.aliases.sh"
 }
+
+if ! is_sourced; then
+  install
+fi

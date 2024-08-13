@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+SESSION="!";
+
+if ! tmux has-session -t $SESSION; then
+  tmux new-session -ds $SESSION;
+  tmux select-window -t $SESSION:0;
+fi
+tmux -2 attach-session -t $SESSION;
+
+exec bash -l

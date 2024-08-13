@@ -6,54 +6,251 @@ let s:is_unix = has('unix')
 let s:is_mac  = has('mac')
 let s:is_gui  = has("gui_running")
 
+let mapleader                = ","
+let maplocalleader           = "\\"
+
 " }}}
 " Plugins {{{
 
 call plug#begin()
 
-" Completion
-Plug 'scrooloose/syntastic'
-
-" Syntax
 Plug 'justinmk/vim-syntax-extra'
-
-" Panes
-Plug 'tacahiroy/ctrlp-funky'
-Plug 'ctrlpvim/ctrlp.vim'
-Plug 'scrooloose/nerdtree'
-Plug 'majutsushi/tagbar'
-
-" Functionality
-Plug 'derekwyatt/vim-fswitch'
-Plug 'Chiel92/vim-autoformat'
 Plug 'Raimondi/delimitMate'
 Plug 'tomtom/tcomment_vim'
-
-" Snippents
-Plug 'SirVer/ultisnips'
-Plug 'honza/vim-snippets'
-
-" Integration
-Plug 'tpope/vim-fugitive'
-Plug 'tpope/vim-git'
-Plug 'mileszs/ack.vim'
-
-" Themes
 Plug 'NLKNguyen/papercolor-theme'
 Plug 'sonph/onehalf', {'branch': '5bec08d', 'rtp': 'vim/'}
 
+" Syntastic {{{
+Plug 'scrooloose/syntastic'
+
+let g:syntastic_mode_map = {
+  \ 'mode': 'active',
+  \ 'passive_filetypes' : ['python', 'cpp']}
+
+let g:syntastic_error_symbol                = '✖'
+let g:syntastic_warning_symbol              = '⚈'
+let g:syntastic_always_populate_loc_list    = 1
+let g:syntastic_auto_loc_list               = 1
+let g:syntastic_ignore_files                = ['\m\c\.html$']
+
+let g:syntastic_javascript_checkers         = ['eslint']
+
+let g:syntastic_python_checkers             = ['flake8']
+
+let g:syntastic_clang_tidy_config_file      = '.clang-tidy'
+
+nnoremap <leader>ss :SyntasticCheck<cr>
+
+" }}}
+" CtrlP {{{
+Plug 'tacahiroy/ctrlp-funky'
+Plug 'ctrlpvim/ctrlp.vim'
+
+let g:ctrlp_custom_ignore                   = '\v[\/](build|data|raff_output|super-simulated-root)$'
+let g:ctrlp_funky_after_jump                = 'zozz'
+let g:ctrlp_funky_matchtype                 = 'path'
+let g:ctrlp_funky_syntax_highlight          = 1
+nnoremap <c-o> :CtrlPFunky<cr>
+
+" }}}
+" NERDTree {{{
+Plug 'scrooloose/nerdtree'
+
+"TODO make it depend on current window size?
+let NERDTreeWinSize = 35
+let NERDTreeMinimalUI = 1
+
+nnoremap <leader>nf :NERDTreeFind<cr>
+nnoremap <F2> :NERDTreeToggle<cr>
+
+" make sure relative line numbers are used
+autocmd FileType nerdtree setlocal relativenumber
+
+" NERDTress File highlighting
+function! NERDHLExt(group, pattern, fg, bg, guifg, guibg)
+  exec 'autocmd filetype nerdtree highlight ' . a:group
+        \.' ctermbg=' . a:bg    .' ctermfg='. a:fg
+        \.'   guibg=' . a:guibg .'   guifg='. a:guifg
+  exec 'autocmd filetype nerdtree syn match '
+        \. a:group .' /\v\c^\s+.*\.('. a:pattern . ')$/'
+endfunction
+
+function! NERDHLFile(group, pattern, fg, bg, guifg, guibg)
+  exec 'autocmd filetype nerdtree highlight ' . a:group
+        \.' ctermbg='. a:bg    .' ctermfg='. a:fg
+        \.'   guibg='. a:guibg .'   guifg='. a:guifg
+  exec 'autocmd filetype nerdtree syn match '
+        \. a:group .' /\v\c^\s+('. a:pattern . ')$/'
+endfunction
+
+augroup pl_NERDTree
+  autocmd!
+  autocmd bufenter * if (winnr("$") == 1
+        \ && exists("b:NERDTreeType")
+        \ && b:NERDTreeType == "primary") | q | endif
+
+  call NERDHLExt('Text',  'txt',       'Gray',      'none', '#665c54', 'bg')
+  call NERDHLExt('Text',  'tmp',       'DarkGray',  'none', '#504945', 'bg')
+  call NERDHLExt('Shell', 'sh',        'Red',       'none', '#fb4934', 'bg')
+  call NERDHLExt('CPPh',  'h|hpp|hxx', 'LightCyan', 'none', '#83a598', 'bg')
+  call NERDHLExt('CPPs',  'c|cpp|cxx', 'DarkCyan',  'none', '#458588', 'bg')
+  call NERDHLExt('Py',    'py',        'DarkGreen', 'none', '#689d6a', 'bg')
+  call NERDHLExt('Pyc',   'pyc',       'DarkGrey',  'none', '#3a3a3a', 'bg')
+
+  call NERDHLFile('Dot',   '\..*',            'DarkGrey', 'none', '#3a3a3a', 'bg')
+  call NERDHLFile('Make',  'Makefile',        'LightRed', 'none', '#fe8019', 'bg')
+  call NERDHLFile('CMake', 'CMakeLists\.txt', 'LightRed', 'none', '#fe8019', 'bg')
+  call NERDHLFile('Build', '.*Build.txt',     'LightRed', 'none', '#fe8019', 'bg')
+  call NERDHLFile('Exec',  '.*\*\ze(\s+.*)?', 'Red',      'none', '#fb4934', 'bg')
+augroup END
+
+" }}}
+" Tagbar {{{
+Plug 'majutsushi/tagbar'
+
+let g:tagbar_show_linenumbers = 2
+let g:tagbar_autoshowtag = 1
+let g:tagbar_autofocus = 1
+let g:tagbar_foldlevel = 0
+let g:tagbar_width = 50
+
+nnoremap <F3> :TagbarToggle<cr>
+
+" }}}
+" FSwitch {{{
+Plug 'derekwyatt/vim-fswitch'
+
+nnoremap <leader>jj :FSHere<cr>
+nnoremap <leader>jr :FSSplitRight<cr>
+
+" TODO remove make subfolder non project specific
+augroup pl_FSwitch
+  autocmd!
+  autocmd BufEnter *.cpp,*.cc,*.c,*.m let b:fswitchdst  = 'hpp,h'
+  autocmd BufEnter *.cpp,*.cc,*.c,*.m let b:fswitchlocs =
+        \ 'reg:|lib|include/clang|,' .
+        \ 'reg:|lib|include/llvm|,' .
+        \ 'reg:|source|include/lldb|,' .
+        \ 'reg:/source/include/,' .
+        \ 'reg:/src/include/,' .
+        \ 'reg:/lib/include/,' .
+        \ 'reg:|src|include/**|'.
+        \ ',../include'
+
+  autocmd BufEnter *.hpp,*.hh,*.h   let b:fswitchdst  = 'cpp,cc,c,m'
+  autocmd BufEnter *.hpp,*.hh,*.h   let b:fswitchlocs =
+        \ 'reg:|include/clang|lib|,' .
+        \ 'reg:|include/llvm|lib|,' .
+        \ 'reg:|include/lldb|source|,' .
+        \ 'reg:/include/lib/,' .
+        \ 'reg:/include/source/,' .
+        \ 'reg:/include/src/,' .
+        \ 'reg:/include.*/src/,' .
+        \ '../src'
+augroup END
+
+" }}}
+" UltiSnips {{{
+Plug 'SirVer/ultisnips'
+Plug 'honza/vim-snippets'
+
+let g:snips_author                          = "Artem Ho-Honcharov"
+let g:UltiSnipsSnippetDirectories           = ["UltiSnips"]
+let g:UltiSnipsJumpBackwardTrigger          = "<c-m>"
+let g:UltiSnipsJumpForwardTrigger           = "<c-l>"
+
+if s:is_gui
+  let g:UltiSnipsExpandTrigger              = "<C-Space>"
+else
+  let g:UltiSnipsExpandTrigger              = "<Nul>"
+endif
+
+" }}}
+" Git {{{
+Plug 'tpope/vim-fugitive'
+Plug 'tpope/vim-git'
+
+nnoremap <leader>gs  :Git<cr>
+nnoremap <leader>gl  :silent! Glog --reverse \| botright copen \| clast \| redraw!<cr>
+nnoremap <leader>ge  :Gedit<cr>
+nnoremap <leader>gc  :Git commit<cr>
+nnoremap <leader>gq  :Git commit --amend<cr>
+nnoremap <leader>gb  :Git blame<cr>
+nnoremap <leader>gd  :Gvdiff<cr>
+nnoremap <leader>gp  :call setqflist(map(systemlist("git diff --name-only master"), '{"filename": v:val}'))<cr>
+
+nnoremap <leader>dgl :diffget LOCAL  \| diffupdate<cr>
+nnoremap <leader>dgb :diffget BASE   \| diffupdate<cr>
+nnoremap <leader>dgr :diffget REMOTE \| diffupdate<cr>
+
+nnoremap <leader>ff :write \| call system('git-clang-format HEAD~1 -f -- '. expand('%')) \| edit<cr>
+
+" }}}
+" Ack {{{
+Plug 'mileszs/ack.vim'
+
+nnoremap <leader>a :Ack!<space>
+nnoremap <leader>A :Ack! <C-R><C-W><cr>
+
+if executable('ag')
+  let g:ackprg = 'ag -U --vimgrep --ignore ctags'
+endif
+
+" }}}
+" Airline {{{
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
+
+if !exists('g:airline_symbols')
+  let g:airline_symbols = {}
+endif
+
+let g:airline_left_sep = ''
+let g:airline_right_sep = ''
+let g:airline_left_alt_sep = ''
+let g:airline_right_alt_sep = ''
+let g:airline_symbols.linenr = ' '
+let g:airline_symbols.colnr = ':'
+let g:airline_symbols.maxlinenr = ''
+let g:airline_symbols.branch = '⎇'
+let g:airline_symbols.paste = 'ρ'
+let g:airline_symbols.spell = 'Ꞩ'
+let g:airline_symbols.notexists = '∄'
+let g:airline_symbols.whitespace = 'Ξ'
+let g:airline_symbols.readonly = '⭤'
+
+function! AirlineInit()
+  let g:airline_section_a = airline#section#create(['mode', ' ', 'iminsert'])
+  " let g:airline_section_x = airline#section#create(['filetype'])
+endfunction
+
+augroup pl_Airline
+  autocmd!
+  autocmd User AirlineAfterInit call AirlineInit()
+augroup END
+
+let g:airline_detect_iminsert                    = 1
+let g:airline_detect_paste                       = 0
+let g:airline_powerline_fonts                    = 1
+
+let g:airline#extensions#tabline#enabled         = 1
+let g:airline#extensions#tabline#show_splits     = 0
+let g:airline#extensions#tabline#tab_nr_type     = 1
+let g:airline#extensions#tabline#fnamemod        = ':t'
+
+let g:airline#extensions#whitespace#show_message = 1
+
+let g:airline_theme='distinguished'
+
+" }}}
 
 call plug#end()
 
 filetype plugin indent on
 
-" TODO Make these dynamically appendable
+" TODO ditch UltiSnips in favour of just loading files
 set rtp+=~/Development/Projects/dotfiles/installers/vim/after
 " set rtp+=~/Development/Projects/dotfiles/dependencies/llvm.vim
-
-set spellfile=~/Development/Projects/dotfiles/installers/vim/spell/en.latin1.add
 
 " }}}
 " Settings {{{
@@ -104,7 +301,7 @@ set scrolloff                =0
 set sidescroll               =1
 set sidescrolloff            =5
 
-set noignorecase
+set ignorecase
 set smartcase
 set incsearch
 set hlsearch
@@ -205,9 +402,6 @@ set wildmode                 =longest,list,full
 " }}}
 " Mappings {{{
 
-let mapleader                = ","
-let maplocalleader           = "\\"
-
 if s:is_gui
   nnoremap <esc>             <esc> \| :nohlsearch<cr>
 endif
@@ -230,12 +424,20 @@ nmap K                       5k
 xmap J                       5j
 xmap K                       5k
 
+" Scroll down by 1 line
 nnoremap <space>             <c-e>
+
+" Scroll left/right
 nnoremap <c-[>               zh
 nnoremap <c-]>               zl
 
+" Redo
+nnoremap U                   <c-r>
+
+" Forward/backward repeat of "/" or "?"
 nnoremap n                   nzvzz
 nnoremap N                   Nzvzz
+
 nnoremap gI                  '.zvzz
 nnoremap gp                  <c-o>zvzz
 nnoremap gn                  <c-i>zvzz
@@ -280,19 +482,28 @@ nnoremap <tab>s :tselect<cr>zo
 nnoremap <tab>S :vsplit<cr>:tselect<cr>zo
 inoremap <esc>n <c-x><c-]>
 
-nnoremap zr                  :vsplit<cr>
-nnoremap zv                  :split<cr>
-nnoremap zh                  <c-w>h
-nnoremap zj                  <c-w>j
-nnoremap zk                  <c-w>k
-nnoremap zl                  <c-w>l
-nnoremap zH                  <c-w>H
-nnoremap zJ                  <c-w>J
-nnoremap zK                  <c-w>K
-nnoremap zL                  <c-w>L
-nnoremap z=                  <c-w>=
-nnoremap zn                  <c-f>zz
-nnoremap zp                  <c-b>zz
+" Split windows
+nnoremap ge                  :vsplit<cr>
+nnoremap go                  :split<cr>
+
+" Scroll window up/down
+" nnoremap gn                  <c-f>zz
+" nnoremap gp                  <c-b>zz
+
+" Switch windows
+nnoremap gh                  <c-w>h
+nnoremap gj                  <c-w>j
+nnoremap gk                  <c-w>k
+nnoremap gl                  <c-w>l
+
+" Move windows
+nnoremap gH                  <c-w>H
+nnoremap gJ                  <c-w>J
+nnoremap gK                  <c-w>K
+nnoremap gL                  <c-w>L
+
+" Make windows the same size
+nnoremap g=                  <c-w>=
 
 if s:is_mac && s:is_gui
   nnoremap ∆                 <c-w>-
@@ -394,237 +605,6 @@ highlight DiffChange guifg=#d0d0d0 guibg=#663a4f
 highlight DiffText   guifg=#5fffff guibg=#008787
 
 " }}}
-" Plugins {{{
-" Airline {{{
-
-if !exists('g:airline_symbols')
-  let g:airline_symbols = {}
-endif
-
-let g:airline_left_sep = ''
-let g:airline_right_sep = ''
-let g:airline_left_alt_sep = ''
-let g:airline_right_alt_sep = ''
-let g:airline_symbols.linenr = ' '
-let g:airline_symbols.colnr = ':'
-let g:airline_symbols.maxlinenr = ''
-let g:airline_symbols.branch = '⎇'
-let g:airline_symbols.paste = 'ρ'
-let g:airline_symbols.spell = 'Ꞩ'
-let g:airline_symbols.notexists = '∄'
-let g:airline_symbols.whitespace = 'Ξ'
-let g:airline_symbols.readonly = '⭤'
-
-function! AirlineInit()
-  let g:airline_section_a = airline#section#create(['mode', ' ', 'iminsert'])
-  " let g:airline_section_x = airline#section#create(['filetype'])
-endfunction
-
-augroup pl_Airline
-  autocmd!
-  autocmd User AirlineAfterInit call AirlineInit()
-augroup END
-
-let g:airline_detect_iminsert                    = 1
-let g:airline_detect_paste                       = 0
-let g:airline_powerline_fonts                    = 1
-
-let g:airline#extensions#tabline#enabled         = 1
-let g:airline#extensions#tabline#show_splits     = 0
-let g:airline#extensions#tabline#tab_nr_type     = 1
-let g:airline#extensions#tabline#fnamemod        = ':t'
-
-let g:airline#extensions#whitespace#show_message = 1
-
-let g:airline_theme='distinguished'
-
-" }}}
-" Syntastic {{{
-
-let g:syntastic_mode_map = {
-  \ 'mode': 'active',
-  \ 'passive_filetypes' : ['python', 'cpp']}
-
-let g:syntastic_error_symbol                = '✖'
-let g:syntastic_warning_symbol              = '⚈'
-let g:syntastic_always_populate_loc_list    = 1
-let g:syntastic_auto_loc_list               = 1
-let g:syntastic_ignore_files                = ['\m\c\.html$']
-
-let g:syntastic_javascript_checkers         = ['eslint']
-
-let g:syntastic_python_checkers             = ['flake8']
-
-let g:syntastic_clang_tidy_config_file      = '.clang-tidy'
-
-nnoremap <leader>ss :SyntasticCheck<cr>
-
-" }}}
-" CtrlP {{{
-
-let g:ctrlp_funky_matchtype                 = 'path'
-let g:ctrlp_funky_syntax_highlight          = 1
-nnoremap <c-o> :CtrlPFunky<cr>
-
-" }}}
-" UltiSnips {{{
-
-let g:snips_author                          = "Artem Ho-Honcharov"
-let g:UltiSnipsSnippetDirectories           = ["UltiSnips"]
-let g:UltiSnipsJumpBackwardTrigger          = "<c-m>"
-let g:UltiSnipsJumpForwardTrigger           = "<c-l>"
-
-if s:is_gui
-  let g:UltiSnipsExpandTrigger              = "<C-Space>"
-else
-  let g:UltiSnipsExpandTrigger              = "<Nul>"
-endif
-
-" }}}
-" FSwitch {{{
-
-nnoremap <leader>jj :FSHere<cr>
-nnoremap <leader>jr :FSSplitRight<cr>
-
-" TODO remove make subfolder non project specific
-augroup pl_FSwitch
-  autocmd!
-  autocmd BufEnter *.cpp,*.cc,*.c,*.m let b:fswitchdst  = 'hpp,h'
-  autocmd BufEnter *.cpp,*.cc,*.c,*.m let b:fswitchlocs =
-        \ 'reg:|lib|include/clang|,' .
-        \ 'reg:|lib|include/llvm|,' .
-        \ 'reg:|source|include/lldb|,' .
-        \ 'reg:/source/include/,' .
-        \ 'reg:/src/include/,' .
-        \ 'reg:/lib/include/,' .
-        \ 'reg:|src|include/**|'.
-        \ ',../include'
-
-  autocmd BufEnter *.hpp,*.hh,*.h   let b:fswitchdst  = 'cpp,cc,c,m'
-  autocmd BufEnter *.hpp,*.hh,*.h   let b:fswitchlocs =
-        \ 'reg:|include/clang|lib|,' .
-        \ 'reg:|include/llvm|lib|,' .
-        \ 'reg:|include/lldb|source|,' .
-        \ 'reg:/include/lib/,' .
-        \ 'reg:/include/source/,' .
-        \ 'reg:/include/src/,' .
-        \ 'reg:/include.*/src/,' .
-        \ '../src'
-augroup END
-
-" }}}
-" Autoformat {{{
-
-let g:formatterpath = ['/usr/local/opt/llvm/bin']
-
-noremap <leader>ff :Autoformat<cr>
-
-" C/C++
-let g:formatters_c = ['clangformat']
-let g:formatters_cpp = ['clangformat']
-let g:formatdef_clangformat = '"clang-format -style=file"'
-
-" C#
-let g:formatters_cs = ['astyle_cs']
-let g:formatdef_astyle_cs = '"astyle'
-      \ .' --mode=cs'
-      \ .' --style=google'
-      \ .' --indent-namespaces'
-      \ .' -pcH".(&expandtab ? "s".&shiftwidth : "t")'
-
-" Py
-let g:formatdef_autopep8 = '"autopep8 - --max-line-length=80 --indent-size=2"'
-
-" }}}
-" NERDTree {{{
-
-"TODO make it depend on current window size?
-let NERDTreeWinSize = 35
-let NERDTreeMinimalUI = 1
-
-nnoremap <leader>nf :NERDTreeFind<cr>
-nnoremap <F2> :NERDTreeToggle<cr>
-
-" make sure relative line numbers are used
-autocmd FileType nerdtree setlocal relativenumber
-
-" NERDTress File highlighting
-function! NERDHLExt(group, pattern, fg, bg, guifg, guibg)
-  exec 'autocmd filetype nerdtree highlight ' . a:group
-        \.' ctermbg=' . a:bg    .' ctermfg='. a:fg
-        \.'   guibg=' . a:guibg .'   guifg='. a:guifg
-  exec 'autocmd filetype nerdtree syn match '
-        \. a:group .' /\v\c^\s+.*\.('. a:pattern . ')$/'
-endfunction
-
-function! NERDHLFile(group, pattern, fg, bg, guifg, guibg)
-  exec 'autocmd filetype nerdtree highlight ' . a:group
-        \.' ctermbg='. a:bg    .' ctermfg='. a:fg
-        \.'   guibg='. a:guibg .'   guifg='. a:guifg
-  exec 'autocmd filetype nerdtree syn match '
-        \. a:group .' /\v\c^\s+('. a:pattern . ')$/'
-endfunction
-
-augroup pl_NERDTree
-  autocmd!
-  autocmd bufenter * if (winnr("$") == 1
-        \ && exists("b:NERDTreeType")
-        \ && b:NERDTreeType == "primary") | q | endif
-
-  call NERDHLExt('Text',  'txt',       'Gray',      'none', '#665c54', 'bg')
-  call NERDHLExt('Text',  'tmp',       'DarkGray',  'none', '#504945', 'bg')
-  call NERDHLExt('Shell', 'sh',        'Red',       'none', '#fb4934', 'bg')
-  call NERDHLExt('CPPh',  'h|hpp|hxx', 'LightCyan', 'none', '#83a598', 'bg')
-  call NERDHLExt('CPPs',  'c|cpp|cxx', 'DarkCyan',  'none', '#458588', 'bg')
-  call NERDHLExt('Py',    'py',        'DarkGreen', 'none', '#689d6a', 'bg')
-  call NERDHLExt('Pyc',   'pyc',       'DarkGrey',  'none', '#3a3a3a', 'bg')
-
-  call NERDHLFile('Dot',   '\..*',            'DarkGrey', 'none', '#3a3a3a', 'bg')
-  call NERDHLFile('Make',  'Makefile',        'LightRed', 'none', '#fe8019', 'bg')
-  call NERDHLFile('CMake', 'CMakeLists\.txt', 'LightRed', 'none', '#fe8019', 'bg')
-  call NERDHLFile('Build', '.*Build.txt',     'LightRed', 'none', '#fe8019', 'bg')
-  call NERDHLFile('Exec',  '.*\*\ze(\s+.*)?', 'Red',      'none', '#fb4934', 'bg')
-augroup END
-
-" }}}
-" Tagbar {{{
-
-let g:tagbar_show_linenumbers = 2
-let g:tagbar_autoshowtag = 1
-let g:tagbar_autofocus = 1
-let g:tagbar_foldlevel = 0
-let g:tagbar_width = 50
-
-nnoremap <F3> :TagbarToggle<cr>
-
-" }}}
-" Git {{{
-
-nnoremap <leader>gs  :Git<cr>
-nnoremap <leader>gl  :silent! Glog --reverse \| botright copen \| clast \| redraw!<cr>
-nnoremap <leader>ge  :Gedit<cr>
-nnoremap <leader>gc  :Git commit<cr>
-nnoremap <leader>gq  :Git commit --amend<cr>
-nnoremap <leader>gb  :Git blame<cr>
-nnoremap <leader>gd  :Gvdiff<cr>
-nnoremap <leader>gp  :call setqflist(map(systemlist("git diff --name-only master"), '{"filename": v:val}'))<cr>
-
-nnoremap <leader>dgl :diffget LOCAL  \| diffupdate<cr>
-nnoremap <leader>dgb :diffget BASE   \| diffupdate<cr>
-nnoremap <leader>dgr :diffget REMOTE \| diffupdate<cr>
-
-" }}}
-" Ack {{{
-
-nnoremap <leader>a :Ack!<space>
-nnoremap <leader>A :Ack! <C-R><C-W><cr>
-
-if executable('ag')
-  let g:ackprg = 'ag -U --vimgrep --ignore ctags'
-endif
-
-" }}}
-" }}}
 " Auto {{{
 " Global {{{
 
@@ -690,6 +670,9 @@ augroup ft_python
         \ setlocal foldlevel=0       |
         \ setlocal foldnestmax=2
 augroup END
+
+inoremap <c-n> <c-x><c-n>
+inoremap <c-p> <c-x><c-p>
 
 " }}}
 " JavaScript {{{
@@ -794,6 +777,9 @@ augroup ft_c
   autocmd FileType c syntax cluster cCommentGroup contains=__note,__todo,__test,__hmm,__fixme,__shit
 augroup END
 
+inoremap <c-n> <c-x><c-n>
+inoremap <c-p> <c-x><c-p>
+
 " }}}
 " C++ {{{
 
@@ -814,6 +800,9 @@ augroup ft_cpp
         \ setlocal foldlevel=1       |
         \ setlocal foldnestmax=1
 augroup END
+
+inoremap <c-n> <c-x><c-n>
+inoremap <c-p> <c-x><c-p>
 
 " }}}
 " C# {{{

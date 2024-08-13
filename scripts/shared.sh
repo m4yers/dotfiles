@@ -1,15 +1,12 @@
 #!/usr/bin/env bash
 
-export ROOT="$( cd "$( dirname "$0" )" && pwd )"
+ROOT="$( cd "$( dirname "$0" )/../.." && pwd )"
 
-echo $(dirname $ROOT)
-export TARGETS=$(dirname $ROOT)
-export DEPENDENCIES="$ROOT/dependencies"
+TARGETS=$ROOT/targets
+TARGET_CONFIGS="$HOME/.config/dotfiles"
 
-export TARGET_CONFIGS="$HOME/.config/dotfiles"
-
-export BASHRC="$HOME/.bashrc"
-export BASHPROFILE="$HOME/.bash_profile"
+BASHRC="$HOME/.bashrc"
+BASHPROFILE="$HOME/.bash_profile"
 
 is_mac() {
   local unamestr=`uname`
@@ -57,7 +54,7 @@ error() {
   local code=${2:-1}
   local color=31
   message "$message" 31
-  exit $code
+  return $code
 }
 
 log() {
@@ -129,7 +126,7 @@ bash_init_config() {
 
   local target_config=$(get_target_config)
   if [ ! -f "$target_config" ]; then
-    log "Sourcing '$TARGET_CONFIGS' form $BASHRC"
+    log "Sourcing '$TARGET_CONFIGS' from $BASHRC"
     echo "source $target_config" >> $BASHRC
   fi
 

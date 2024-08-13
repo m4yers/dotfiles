@@ -33,3 +33,7 @@ install() {
     install_linux
   fi
 }
+
+if ! is_sourced; then
+  install
+fi

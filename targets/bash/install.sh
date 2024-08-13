@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export ROOT="$( cd "$( dirname "$BASH_SOURCE" )" && pwd )/../.."
+ROOT="$( cd "$( dirname "$0" )/../.." && pwd )"
 source $ROOT/scripts/shared.sh
 
 install_mac() {
@@ -28,6 +28,9 @@ install() {
 
   # Global configuration
   bash_init_config
+
+  bash_section "Shared configuration"
+  bash_export_source "$ROOT/scripts/shared.sh"
 
   bash_section "Dotfiles configuration"
   bash_export_source "$this/bashrc.config.sh"
