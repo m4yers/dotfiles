@@ -3,111 +3,63 @@
 # Exit on any error
 set -e
 
-source ./scripts/shared.sh
+ROOT=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+source $ROOT/scripts/shared.sh
 
 check_system() {
   if ! is_mac && ! is_linux; then
-    echo "Mac only installer is available"
+    error "Only Mac and Linux installers are available"
     exit 1
   fi
 }
 
 bash_init() {
   # TODO backup the existing bashrc
-  cat $TARGETS/bash/bashrc > $BASHRC
+  # FIXME: too hacky
+  local targets=$ROOT/targets
+  cat $targets/bash/bashrc > $BASHRC
   echo "source $BASHRC" > $BASHPROFILE
   rm -rf $TARGET_CONFIGS
   mkdir -p $TARGET_CONFIGS
 }
 
-bootstrap_bash() {
-  echo "BOOTSTRAP USER BASH"
-  echo
-
-  bash_init
-
-  TARGET_NAME="bash"
-  bash_init_config
-  bash_export_global PROJECTS $PROJECTS
-  bash_export_global DOTFILES $ROOT
-
-  echo "DONE"
-  echo
-}
-
-bootstrap_python() {
-  echo "BOOTSTRAP SYSTEM PYTHON"
-  echo
-
-  local dep_dir="$DEPENDENCIES/requirements"
-  pip3 install --target $dep_dir -r $ROOT/requirements.txt
-
-  echo "DONE"
-  echo
-}
-
 bootstrap () {
-  rm -rf $DEPENDENCIES
-  mkdir -p $DEPENDENCIES
-  bootstrap_bash
-  bootstrap_python
+  bash_init
 }
 
 setup_system() {
-  echo "Skipping system"
+  log "Skipping system"
   # source $ROOT/scripts/macos.sh
 }
 
 setup_home() {
-  echo "SETUP HOME"
-  echo
+  log "SETUP HOME"
 
   bootstrap
 
-  topology=$(python3 $SCRIPTS/topology.py $TARGETS)
+  # TODO: Create different setup collection for OS and needs
+  declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger")
 
-  targets=
-  if [[ -z $OPTION_ONLY ]]; then
-    targets=$topology
-  else
-    targets=$(python3 $SCRIPTS/topology.py $TARGETS --for $OPTION_ONLY)
-  fi
-
-  if [[ $? != 0 ]]; then
-    echo $targets
-    exit 1
-  fi
-
-  # If this setup to be moved to other systems each installer must provide
-  # setup_system specific setup_home routine
-
-  echo "TARGETS: $targets"
-  for target in $targets; do
-    echo "INSTALLING $target..."
-    echo
-
-    path=$TARGETS/$target
-    export THIS=$path
-    source "$path/install.sh"
-    TARGET_NAME=$target
-    install
-
-    echo "DONE $target"
+  log "TARGETS: ${targets[*]}"
+  for target in ${targets[*]}; do
+    log "INSTALLING $target..."
+    $ROOT/targets/$target/install.sh
+    log "DONE $target"
   done
 }
 
 print_help() {
   echo "Sweet Home Installer"
   echo "Usage:"
-  echo "... all                   Run all features"
-  echo "... system                Run system setup"
-  echo "... home   --only TARGET  Run home directory setup"
-  echo "... help                  Print help"
+  echo "... all    Run all features"
+  echo "... system Run system setup"
+  echo "... home   Run home directory setup"
+  echo "... help   Print help"
 }
 
 export OPTION_SYSTEM=false
 export OPTION_INSTALL=false
-export OPTION_ONLY=
 
 main() {
   check_system
@@ -132,10 +84,6 @@ main() {
         ;;
       home)
         OPTION_INSTALL=true
-        ;;
-      --only)
-        OPTION_ONLY=$1
-        shift
         ;;
       help)
         print_help

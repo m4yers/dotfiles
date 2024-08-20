@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-ROOT="$( cd "$( dirname "$0" )/../.." && pwd )"
+ROOT=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )/../.." &> /dev/null && pwd )
 source $ROOT/scripts/shared.sh
 
 install() {

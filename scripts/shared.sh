@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
-ROOT="$( cd "$( dirname "$0" )/../.." && pwd )"
+ROOT=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )
 
-TARGETS=$ROOT/targets
 TARGET_CONFIGS="$HOME/.config/dotfiles"
 
 BASHRC="$HOME/.bashrc"
@@ -18,6 +17,11 @@ is_linux() {
   test $unamestr == 'Linux'
 }
 
+get_target_folder() {
+  local target_dir=$( cd "$( dirname "$0" )" && pwd )
+  echo $(dirname "$target_dir")
+}
+
 get_target_name() {
   local target_dir=$( cd "$( dirname "$0" )" && pwd )
   echo $(basename "$target_dir")
@@ -29,8 +33,9 @@ get_target_config() {
 }
 
 get_source() {
+  local targets=$(get_target_folder)
   local name=$(get_target_name)
-  echo $TARGETS/$name
+  echo $targets/$name
 }
 
 is_sourced() {
