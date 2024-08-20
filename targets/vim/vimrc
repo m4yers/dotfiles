@@ -43,10 +43,14 @@ nnoremap <leader>ss :SyntasticCheck<cr>
 
 " }}}
 " CtrlP {{{
-Plug 'tacahiroy/ctrlp-funky'
 Plug 'ctrlpvim/ctrlp.vim'
 
-let g:ctrlp_custom_ignore                   = '\v[\/](build|data|raff_output|super-simulated-root)$'
+let g:ctrlp_max_files                       = 0
+" TODO: Move this to the hidden config
+let g:ctrlp_custom_ignore                   = '\v[\/](build|rel|brazil|doc|LOCAL|data|raff_output|super-simulated-root|padb_mock_s3)$'
+
+Plug 'tacahiroy/ctrlp-funky'
+
 let g:ctrlp_funky_after_jump                = 'zozz'
 let g:ctrlp_funky_matchtype                 = 'path'
 let g:ctrlp_funky_syntax_highlight          = 1
