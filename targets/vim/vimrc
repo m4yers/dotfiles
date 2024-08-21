@@ -24,7 +24,7 @@ Plug 'sonph/onehalf', {'branch': '5bec08d', 'rtp': 'vim/'}
 Plug 'scrooloose/syntastic'
 
 let g:syntastic_mode_map = {
-  \ 'mode': 'active',
+  \ 'mode': 'passive',
   \ 'passive_filetypes' : ['python', 'cpp']}
 
 let g:syntastic_error_symbol                = '✖'
