@@ -28,6 +28,7 @@ install() {
   # Linters
   log "Python linters"
   pip3 install pylint
+  pip3 install flake8
   pip3 install bashate
 
   if [ which npm]; then
