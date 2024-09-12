@@ -197,7 +197,7 @@ nnoremap <leader>a :Ack!<space>
 nnoremap <leader>A :Ack! <C-R><C-W><cr>
 
 if executable('ag')
-  let g:ackprg = 'ag -U --vimgrep --ignore ctags'
+  let g:ackprg = 'ag -U --vimgrep --ignore tags'
 endif
 
 " }}}
