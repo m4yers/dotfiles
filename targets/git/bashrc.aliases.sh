@@ -13,8 +13,11 @@ alias gl="git log --graph --all --oneline --decorate"
 alias gs="git status "
 alias ga="git add "
 alias gc="git commit "
-
-alias gnb="git checkout -b "
+alias gm="git mergetool "
+alias gcpc="git cherry-pick --continue"
+alias gcpa="git cherry-pick --abort"
+alias gco="git checkout "
+alias gcob="git checkout -b "
 
 alias wip="git commit -a -m 'Work In Progress...'"
 alias squish="git status && git commit -a --amend -C HEAD"
