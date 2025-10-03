@@ -1,33 +1,33 @@
 [core]
-  autocrlf = input
-  safecrlf = true
+	autocrlf = input
+	safecrlf = true
 
 [apply]
-  whitespace = fix
+	whitespace = fix
 
 [core]
   excludesfile = ~/.gitignore
 
 [color]
-  ui = auto
+	ui = auto
 
 [commit]
   # gpgsign = true
 
 [diff]
-  tool = vimdiff
+	tool = vimdiff
 
 [diff "bin"]
   textconv = xdd
 
 [merge]
-  tool = vimdiff
-  conflictstyle = diff3
+	tool = vimdiff
+	conflictstyle = diff3
 
 [mergetool]
-  keepBackup = false
+	keepBackup = false
 
 [alias]
-  co = checkout
-  st = status
-  br = branch
+	co = checkout
+	st = status
+	br = branch

@@ -5,7 +5,7 @@ source $ROOT/scripts/shared.sh
 
 # depends-on: repos, bash
 install() {
-  pip3 install ranger-fm
+  sudo apt install ranger
 
   local this=$(get_source)
   local dest=~/.config/ranger

@@ -52,10 +52,10 @@ install() {
   brew install pandoc
 
   # satisfies: sphinx
-  pip3 install sphinx
+  pip3 install sphinx --break-system-packages
 
   # satisfies: frida
-  pip3 install frida
+  pip3 install frida --break-system-packages
 
   # satisfies: graphviz, xdot
   brew install graphviz

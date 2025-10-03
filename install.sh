@@ -39,7 +39,7 @@ setup_home() {
   bootstrap
 
   # TODO: Create different setup collection for OS and needs
-  declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger")
+  declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger" "scripts")
 
   log "TARGETS: ${targets[*]}"
   for target in ${targets[*]}; do

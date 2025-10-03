@@ -7,7 +7,11 @@ install_mac() {
   brew install tmux
 }
 
-install_linux() {
+install_ubuntu() {
+  sudo apt install tmux
+}
+
+install_centos() {
   # TODO build from sources
   true
 }
@@ -20,8 +24,12 @@ install() {
     install_mac
   fi
 
-  if is_linux; then
-    install_linux
+  if is_ubuntu; then
+    install_centos
+  fi
+
+  if is_centos; then
+    install_centos
   fi
 
   log "Linking config"

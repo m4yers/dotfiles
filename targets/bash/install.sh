@@ -13,7 +13,16 @@ install_mac() {
   bash_export_source "$(brew --prefix bash-completion2)/etc/profile.d/bash_completion.sh"
 }
 
-install_linux() {
+install_ubuntu() {
+  sudo apt install bash
+
+  log "Bash completion"
+  sudo apt install bash-completion
+  bash_section "Bash completion"
+  bash_export_source "/usr/share/bash-completion/bash_completion"
+}
+
+install_centos() {
   sudo yum install bash
 
   log "Bash completion"
@@ -42,8 +51,12 @@ install() {
     install_mac
   fi
 
-  if is_linux; then
-    install_linux
+  if is_ubuntu; then
+    install_ubuntu
+  fi
+
+  if is_centos; then
+    install_centos
   fi
 
   # Git prompt

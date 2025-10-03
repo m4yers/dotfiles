@@ -1,0 +1,67 @@
+#!/bin/bash
+
+declare -a RESULTS  # Array to hold results
+
+# Function to run a test
+run_fio() {
+    local name=$1
+    local rw=$2
+    local bs=$3
+    local size=$4
+    local numjobs=$5
+    local iodepth=$6
+    local rwmix=$7
+
+    echo "Running $name..."
+
+    # Capture fio output
+    local output
+    output=$(fio --name="$name" \
+        --rw="$rw" \
+        --bs="$bs" \
+        --size="$size" \
+        --numjobs="$numjobs" \
+        --iodepth="$iodepth" \
+        --direct=1 \
+        --runtime=60 \
+        --time_based \
+        --group_reporting \
+        --directory=./fio-all-test)
+
+    # Parse MB/s and IOPS
+    local summary
+    summary=$(echo "$output" | awk '/READ:|WRITE:/{printf "%s %s %s\n",$1,$2,$3}')
+    
+    # Store in array as "testname: summary"
+    RESULTS+=("$name: $summary")
+}
+
+rm -rf ./fio-all-test &> /dev/null
+mkdir ./fio-all-test
+
+# 1. Sequential write/read
+run_fio "seq_write" write 1M 10G 1 16
+run_fio "seq_read"  read  1M 10G 1 16
+
+# 2. Random small I/O (DB-like)
+run_fio "rand_read"  randread 4k 1G 4 32
+run_fio "rand_write" randwrite 4k 1G 4 32
+
+# 3. Mixed workload
+run_fio "mixed_rw" randrw 8k 20G 4 32 70
+
+# 4. Streaming mixed workload
+run_fio "streaming" rw 128k 50G 2 8 20
+
+# 5. Latency-focused random read
+run_fio "latency_test" randread 4k 5G 4 64
+
+# Cleanup
+rm -rf ./fio-all-test &> /dev/null
+
+# Print final summary
+echo
+echo "===== FIO Benchmark Summary ====="
+for result in "${RESULTS[@]}"; do
+    echo "$result"
+done

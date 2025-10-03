@@ -17,6 +17,24 @@ is_linux() {
   test $unamestr == 'Linux'
 }
 
+is_ubuntu() {
+  if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    test "$ID" == "ubuntu"
+  else
+    return 1
+  fi
+}
+
+is_centos() {
+  if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    test "$ID" == "amzn" -o "$ID" == "amazon" -o "$ID" == "centos"
+  else
+    return 1
+  fi
+}
+
 get_target_folder() {
   local target_dir=$( cd "$( dirname "$0" )" && pwd )
   echo $(dirname "$target_dir")

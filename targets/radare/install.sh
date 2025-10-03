@@ -7,7 +7,12 @@ install_mac() {
   brew install radare2
 }
 
-install_linux() {
+install_ubuntu() {
+  # Not needed yet
+  true
+}
+
+install_centos() {
   # Not needed yet
   true
 }
@@ -20,8 +25,12 @@ install() {
     install_mac
   fi
 
-  if is_linux; then
-    install_linux
+  if is_ubuntu; then
+    install_ubuntu
+  fi
+
+  if is_centos; then
+    install_centos
   fi
 
   log "Linking .radare2rc"

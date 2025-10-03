@@ -8,7 +8,12 @@ install_mac() {
   brew install ag
 }
 
-install_linux() {
+install_ubuntu() {
+  sudo apt install vim
+  sudo apt install silversearcher-ag
+}
+
+install_centos() {
   sudo yum install vim
   # sudo yum install ag
 }
@@ -21,15 +26,19 @@ install() {
     install_mac
   fi
 
-  if is_linux; then
-    install_linux
+  if is_ubuntu; then
+    install_ubuntu
+  fi
+
+  if is_centos; then
+    install_centos
   fi
 
   # Linters
   log "Python linters"
-  pip3 install pylint
-  pip3 install flake8
-  pip3 install bashate
+  pip3 install pylint --break-system-packages
+  pip3 install flake8 --break-system-packages
+  pip3 install bashate --break-system-packages
 
   if [ which npm]; then
     log "JS linters"

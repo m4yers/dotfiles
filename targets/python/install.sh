@@ -7,7 +7,12 @@ install_mac() {
   brew install python3
 }
 
-install_linux() {
+install_ubuntu() {
+  sudo apt install python3
+  sudo apt install python3-pip
+}
+
+install_centos() {
   sudo yum install python3
 }
 
@@ -19,12 +24,16 @@ install() {
     install_mac
   fi
 
-  if is_linux; then
-    install_linux
+  if is_ubuntu; then
+    install_ubuntu
   fi
 
-  pip3 install --user pipenv
-  pip3 install --user tox
+  if is_centos; then
+    install_centos
+  fi
+
+  pip3 install pipenv --break-system-packages
+  pip3 install tox --break-system-packages
 
   bash_init_config
   bash_section "Python configuration"

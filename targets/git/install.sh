@@ -8,10 +8,16 @@ install_mac() {
   brew install git-lfs
 }
 
-install_linux() {
+install_centos() {
   sudo yum install git
   sudo yum install git-lfs
   sudo yum install git-clang-format
+}
+
+install_centos() {
+  sudo apt install git
+  sudo apt install git-lfs
+  sudo apt install git-clang-format
 }
 
 # depends-on: repos, bash
@@ -22,8 +28,12 @@ install() {
     install_mac
   fi
 
-  if is_linux; then
-    install_linux
+  if is_ubuntu; then
+    install_ubuntu
+  fi
+
+  if is_centos; then
+    install_centos
   fi
 
   if [ -f $HOME/.gitconfig ]; then
