@@ -1,0 +1,13 @@
+#!/bin/bash
+
+ROOT=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )/../.." &> /dev/null && pwd )
+source $ROOT/../scripts/shared.sh
+
+if is_mac; then
+  services=$(networksetup -listallnetworkservices | grep -E 'Wi-Fi|Ethernet|USB')
+  while read -r service; do
+      echo "Setting DNS for $service"
+      # Sets DNS to a local network service and a couple of public ones
+      networksetup -setdnsservers "$service" 192.168.178.101 1.1.1.1 8.8.8.8
+  done <<< "$services"
+fi

@@ -38,8 +38,13 @@ setup_home() {
 
   bootstrap
 
-  # TODO: Create different setup collection for OS and needs
-  declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger" "scripts")
+  if is_linux; then
+    declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger" "scripts")
+  fi
+
+  if is_mac; then
+    declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger" "iterm" "scripts")
+  fi
 
   log "TARGETS: ${targets[*]}"
   for target in ${targets[*]}; do
