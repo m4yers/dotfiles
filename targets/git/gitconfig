@@ -31,3 +31,6 @@
 	co = checkout
 	st = status
 	br = branch
+[user]
+	email = m4yers@github
+	name = artyom

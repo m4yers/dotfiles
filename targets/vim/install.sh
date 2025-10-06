@@ -34,7 +34,10 @@ install() {
     install_centos
   fi
 
-  # Linters
+  log "Downloading Plug"
+  curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
+    https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+
   log "Python linters"
   pip3 install pylint --break-system-packages
   pip3 install flake8 --break-system-packages
