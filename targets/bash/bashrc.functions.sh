@@ -103,3 +103,21 @@ local pkg=$(realpath $1)
 notify() {
  say -v Moira "$@ is complete"
 }
+
+pvd() {
+  local src="$1"
+  local dest="$2"
+
+  # Only the last component of the source path
+  local basename=$(basename "$src")
+
+  echo "Copying $src → $dest"
+
+  # Ensure destination exists
+  mkdir -p "$dest"
+
+  # Archive only the last component and extract into destination
+  tar -C "$(dirname "$src")" -cf - "$basename" | pv | tar xf - -C "$dest"
+
+  echo "Done."
+}
