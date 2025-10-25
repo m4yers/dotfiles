@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Batch-update metadata using ffmpeg
+# Title = text after last '-' in filename
+# Year = digits inside parentheses before first '-'
+# Collection = parent directory name
+
+shopt -s nullglob
+
+for file in *.mp4 *.mkv; do
+  # Skip if no matching files
+  [ -e "$file" ] || continue
+
+  basename="${file%.*}"
+  # Skip Season folder
+  parent_dir="$(basename "$(pwd)/..")"
+
+  # Extract year (digits inside parentheses before first dash)
+  if [[ $basename =~ \(([0-9]{4})\)[[:space:]]*- ]]; then
+    year="${BASH_REMATCH[1]}"
+  else
+    year=""
+  fi
+
+  # Extract title (after last dash, trimming spaces)
+  title="$(echo "$basename" | awk -F'-' '{print $NF}' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+
+  echo "Processing: $file"
+  echo " → Title: $title"
+  echo " → Year: $year"
+  echo " → Collection: $parent_dir"
+
+  # Create output filename
+  output="tagged_${file}"
+
+  # Apply metadata (without re-encoding)
+  ffmpeg -i "$file" \
+    -metadata title="$title" \
+    -metadata year="$year" \
+    -metadata collection="$parent_dir" \
+    -codec copy "$output" -y
+done

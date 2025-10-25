@@ -1,0 +1,28 @@
+#!/bin/bash
+# Batch convert all AIFF files in a given folder to a chosen format
+# Usage: ./batch_convert_audio.sh <input_folder> <target_format> [output_folder]
+
+set -e  # Exit on error
+
+INPUT_DIR="$1"
+OUTPUT_DIR="${2}"
+TARGET_FORMAT="${3:-flac}"
+
+if [[ -z "$INPUT_DIR" || -z "$OUTPUT_DIR" ]]; then
+    echo "Usage: $0 <input_folder> <output_dir> [target_format]"
+    exit 1
+fi
+
+# --- Process files ---
+shopt -s nullglob  # Prevents literal *.aiff if no match
+for file in "$INPUT_DIR"/*; do
+    [ -e "$file" ] || continue  # Skip if no files
+    base=$(basename "$file")
+    base_noext="${base%.*}"
+    output="$OUTPUT_DIR/$base_noext.$TARGET_FORMAT"
+
+    echo "Converting: $file → $output"
+    ffmpeg -hide_banner -loglevel error -i "$file" "$output"
+done
+
+echo "✅ Conversion complete. Files saved in: $OUTPUT_DIR"

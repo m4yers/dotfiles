@@ -1,0 +1,44 @@
+#!/bin/bash
+# Create a .cbz from a folder of JPG files.
+# Output is named "<COMIC_NAME> - <AUTHOR>.cbz" and stored in the given output path.
+# Usage: ./make_cbz_named.sh <input_folder> <output_path>
+
+set -e  # exit on error
+
+INPUT_DIR="$1"
+OUTPUT_PATH="$2"
+
+if [[ -z "$INPUT_DIR" || -z "$OUTPUT_PATH" ]]; then
+  echo "Usage: $0 <input_folder> <output_path>"
+  echo "Example:"
+  echo "  ./make_cbz_named.sh ./input '/Volumes/comics/Danijel Zezelj/Cyberpunk 2077 Your Voice'"
+  exit 1
+fi
+
+# Validate input
+if [[ ! -d "$INPUT_DIR" ]]; then
+  echo "❌ Error: '$INPUT_DIR' is not a directory"
+  exit 1
+fi
+
+# Ensure output path exists
+mkdir -p "$OUTPUT_PATH"
+
+# Derive author (parent folder name) and comic name (leaf folder name)
+AUTHOR=$(basename "$(dirname "$OUTPUT_PATH")")
+COMIC_NAME=$(basename "$OUTPUT_PATH")
+
+# Build output file path
+OUTPUT_FILE="$OUTPUT_PATH/${COMIC_NAME} - ${AUTHOR}.cbz"
+
+# Go into the input directory and zip images
+cd "$INPUT_DIR"
+
+echo "📦 Creating CBZ for '$COMIC_NAME' by '$AUTHOR'..."
+zip -r -q "$OUTPUT_FILE.zip" . -i "*.jpg" "*.jpeg"
+
+# Rename .zip → .cbz
+mv "$OUTPUT_FILE.zip" "$OUTPUT_FILE"
+
+echo "✅ Done!"
+echo "📁 Output file: $OUTPUT_FILE"

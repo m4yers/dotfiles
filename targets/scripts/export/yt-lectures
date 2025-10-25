@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+# Exit on error
+set -e
+
+# Check for yt-dlp
+if ! command -v yt-dlp &> /dev/null; then
+    echo "Error: yt-dlp is not installed. Install it first:"
+    echo "  pip install -U yt-dlp"
+    exit 1
+fi
+
+# Check input
+if [ -z "$1" ]; then
+    echo "Usage: $0 <playlist_url>"
+    exit 1
+fi
+
+PLAYLIST_URL="$1"
+
+# Fetch playlist metadata (title and year)
+PLAYLIST_TITLE=$(yt-dlp --flat-playlist --print "%(playlist_title)s" "$PLAYLIST_URL" | head -n 1)
+UPLOAD_YEAR=$(yt-dlp --flat-playlist --print "%(upload_date>%Y)s" "$PLAYLIST_URL" | head -n 1)
+
+# Fallbacks in case metadata is missing
+[ -z "$PLAYLIST_TITLE" ] && PLAYLIST_TITLE="YouTube Playlist"
+[ -z "$UPLOAD_YEAR" ] && UPLOAD_YEAR=$(date +%Y)
+
+# Clean folder name (remove special characters)
+SAFE_TITLE=$(echo "$PLAYLIST_TITLE" | sed 's#[^a-zA-Z0-9._-]# #g' | xargs)
+
+# Define folder structure
+ROOT_FOLDER="${SAFE_TITLE} (${UPLOAD_YEAR})"
+SEASON_FOLDER="${ROOT_FOLDER}/Season 01"
+
+# Create directories
+mkdir -p "$SEASON_FOLDER"
+
+# Download videos
+yt-dlp \
+  --cookies-from-browser brave \
+  -f "bestvideo+bestaudio/best" \
+  --merge-output-format mkv \
+  --output "${SEASON_FOLDER}/${SAFE_TITLE} (${UPLOAD_YEAR}) - s01e%(playlist_index)02d - %(title)s.%(ext)s" \
+  "$PLAYLIST_URL"
+
+echo "✅ Download complete!"
+echo "Saved to: $SEASON_FOLDER"
