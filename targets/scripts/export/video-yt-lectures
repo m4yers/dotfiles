@@ -40,8 +40,8 @@ mkdir -p "$SEASON_FOLDER"
 yt-dlp \
   --cookies-from-browser brave \
   -f "bestvideo+bestaudio/best" \
-  --merge-output-format mkv \
-  --output "${SEASON_FOLDER}/${SAFE_TITLE} (${UPLOAD_YEAR}) - s01e%(playlist_index)02d - %(title)s.%(ext)s" \
+  --merge-output-format mp4 \
+  --output "${SEASON_FOLDER}/${SAFE_TITLE} (${UPLOAD_YEAR}) - Lecture %(playlist_index)02d - %(title)s.%(ext)s" \
   "$PLAYLIST_URL"
 
 echo "✅ Download complete!"

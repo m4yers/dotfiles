@@ -8,6 +8,6 @@ if is_mac; then
   while read -r service; do
       echo "Setting DNS for $service"
       # Sets DNS to a local network service and a couple of public ones
-      networksetup -setdnsservers "$service" 192.168.178.101 1.1.1.1 8.8.8.8
+      networksetup -setdnsservers "$service" 192.168.178.101
   done <<< "$services"
 fi

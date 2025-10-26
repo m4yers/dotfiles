@@ -1,0 +1,66 @@
+#!/bin/bash
+# Recursively convert all MKV files to MP4
+# - Preserves metadata (if mkvpropedit is available)
+# - Copies video
+# - Converts audio to AAC (MP4-compatible)
+# - Converts subtitles to mov_text
+# - Adds +faststart for smoother streaming
+
+shopt -s nullglob
+
+# Check for mkvpropedit (used to read metadata)
+if ! command -v mkvpropedit >/dev/null 2>&1; then
+  echo "⚠️  Warning: mkvpropedit not found. Metadata will NOT be preserved."
+  has_mkvpropedit=false
+else
+  has_mkvpropedit=true
+fi
+
+for file in *.mkv; do
+  [ -e "$file" ] || continue
+
+  output="${file%.mkv}.mp4"
+
+  echo "Converting: $file"
+  echo " → $output"
+
+  title=""
+  year=""
+  collection=""
+
+  if [ "$has_mkvpropedit" = true ]; then
+    # Extract metadata using mkvextract (from mkvtoolnix)
+    title=$(mkvpropedit "$file" --edit info --show-metadata 2>/dev/null | grep -i 'title:' | sed 's/^[[:space:]]*title:[[:space:]]*//I')
+    year=$(mkvextract tags "$file" 2>/dev/null | grep -oPm1 '(?<=<Name>YEAR</Name>\s*<String>)[^<]*')
+    collection=$(mkvextract tags "$file" 2>/dev/null | grep -oPm1 '(?<=<Name>COLLECTION</Name>\s*<String>)[^<]*')
+
+    echo " → Metadata:"
+    echo "    Title: ${title:-<none>}"
+    echo "    Year: ${year:-<none>}"
+    echo "    Collection: ${collection:-<none>}"
+  else
+    echo " → Skipping metadata extraction (mkvpropedit not found)"
+  fi
+
+  # Convert to MP4, applying metadata if available
+  ffmpeg -i "$file" \
+    -map_metadata 0 \
+    -metadata title="$title" \
+    -metadata year="$year" \
+    -metadata collection="$collection" \
+    -c:v copy \
+    -c:a copy \
+    -c:s mov_text \
+    -movflags +faststart -avoid_negative_ts make_zero \
+    -y "$output"
+
+  if [ $? -eq 0 ]; then
+    echo " ✅ Successfully converted: $output"
+    # Uncomment below to delete original MKV after success
+    # rm "$file"
+  else
+    echo " ⚠️ Conversion failed for: $file"
+  fi
+done
+
+echo "🎬 All conversions completed!"
