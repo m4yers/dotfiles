@@ -1,0 +1,49 @@
+#!/bin/bash
+
+set -e  # Exit on error
+
+# --- INPUTS ---
+CUEFILE=$(ls *.cue 2>/dev/null | head -n 1)
+FLACFILE=$(ls *.flac 2>/dev/null | head -n 1)
+OUTDIR="./"
+
+# --- CHECK ARGUMENTS ---
+if [[ -z "$CUEFILE" || -z "$FLACFILE" ]]; then
+  echo "Usage: $0 album.cue album.flac"
+  exit 1
+fi
+
+if [[ ! -f "$CUEFILE" ]]; then
+  echo "Error: CUE file not found: $CUEFILE"
+  exit 1
+fi
+
+if [[ ! -f "$FLACFILE" ]]; then
+  echo "Error: FLAC file not found: $FLACFILE"
+  exit 1
+fi
+
+# --- CONVERT CUE TO UTF-8 + UNIX LINE ENDINGS ---
+CUEFILE_UTF8="${CUEFILE}_utf8.cue"
+iconv -f WINDOWS-1252 -t UTF-8 "$CUEFILE" | dos2unix > "$CUEFILE_UTF8"
+
+echo "Splitting album:"
+echo "  CUE  = $CUEFILE_UTF8"
+echo "  FLAC = $FLACFILE"
+echo "  OUT  = $OUTDIR"
+echo
+
+# --- SPLIT DIRECTLY TO FLAC ---
+# %n - track number, %t - track title from CUE
+shntool split -f "$CUEFILE_UTF8" -o flac -t "%n - %t" -d "$OUTDIR" "$FLACFILE"
+
+# --- APPLY TAGS ---
+if command -v cuetag.sh >/dev/null 2>&1; then
+  echo "Applying tags with cuetag.sh..."
+  cuetag.sh "$CUEFILE_UTF8" "$OUTDIR"/*.flac
+else
+  echo "Warning: cuetag.sh not found — skipping tag application."
+fi
+
+echo
+echo "✅ Done! Split FLAC tracks saved in: $OUTDIR"
