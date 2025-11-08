@@ -18,7 +18,7 @@ Plug 'justinmk/vim-syntax-extra'
 Plug 'Raimondi/delimitMate'
 Plug 'tomtom/tcomment_vim'
 Plug 'NLKNguyen/papercolor-theme'
-Plug 'catppuccin/nvim', { 'as': 'catppuccin' }
+Plug 'catppuccin/vim', { 'as': 'catppuccin' }
 Plug 'sonph/onehalf', {'branch': '5bec08d', 'rtp': 'vim/'}
 
 " Syntastic {{{
@@ -374,9 +374,9 @@ endif
 
 syntax                       on
 if s:is_gui
-  colorscheme                PaperColor
+  colorscheme                catppuccin_mocha
 else
-  colorscheme                PaperColor
+  colorscheme                catppuccin_mocha
   set t_Co                     =256
 endif
 
