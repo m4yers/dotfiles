@@ -104,7 +104,7 @@ notify() {
  say -v Moira "$@ is complete"
 }
 
-pvd() {
+copy-directory() {
   local src="$1"
   local dest="$2"
 
@@ -120,4 +120,12 @@ pvd() {
   tar -C "$(dirname "$src")" -cf - "$basename" | pv | tar xf - -C "$dest"
 
   echo "Done."
+}
+
+net-show-ports() {
+  sudo netstat -lntup
+}
+
+net-show-arp() {
+  arp -a | awk 'NR==1 {print; next} {print | "sort"}'
 }
