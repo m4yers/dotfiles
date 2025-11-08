@@ -374,9 +374,9 @@ endif
 
 syntax                       on
 if s:is_gui
-  colorscheme                catppuccin-mocha
+  colorscheme                PaperColor
 else
-  colorscheme                catppuccin-mocha
+  colorscheme                PaperColor
   set t_Co                     =256
 endif
 
