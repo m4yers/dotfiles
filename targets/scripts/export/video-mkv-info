@@ -1,0 +1,10 @@
+#!/bin/bash
+
+mkvmerge -J "$1" | jq -r '{
+video: [.tracks[] | select(.type=="video") | {id, codec, resolution: "\(.properties.pixel_dimensions), Duration: \(.properties.tag_duration)"}],
+  audio: [.tracks[] | select(.type=="audio") | {id, codec, language: .properties.language, title: .properties.track_name}]
+} |
+# Print Video tracks
+(.video[]? | "Video Codec: \(.codec), Resolution: \(.resolution)"),
+# Print Audio tracks
+(.audio[]? | "Audio (\(.language)) \(.title), Codec: \(.codec)")'
