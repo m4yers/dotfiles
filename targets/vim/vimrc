@@ -382,9 +382,9 @@ endif
 
 syntax                       on
 if s:is_gui
-  colorscheme                catppuccin_mocha
+  colorscheme                catppuccin_macchiato
 else
-  colorscheme                catppuccin_mocha
+  colorscheme                catppuccin_macchiato
   set t_Co                     =256
 endif
 
