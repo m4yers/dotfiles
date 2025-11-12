@@ -20,7 +20,15 @@ Plug 'tomtom/tcomment_vim'
 Plug 'NLKNguyen/papercolor-theme'
 Plug 'catppuccin/vim', { 'as': 'catppuccin' }
 Plug 'sonph/onehalf', {'branch': '5bec08d', 'rtp': 'vim/'}
+Plug 'chrisbra/Colorizer'
 
+" Vim-diff-enhanced {{{
+Plug 'chrisbra/vim-diff-enhanced'
+
+if has("patch-8.1.0360")
+    set diffopt+=internal,algorithm:patience
+endif
+" }}}
 " Syntastic {{{
 Plug 'scrooloose/syntastic'
 
@@ -606,10 +614,10 @@ highlight VertSplit             guifg=#333333 guibg=#282c34
 " highlight NonText ctermbg=NONE
 " highlight LineNr  ctermbg=NONE
 
-highlight DiffAdd    guifg=#00d782 guibg=#005f52
-highlight DiffDelete guifg=#ab417a guibg=#631d3f
-highlight DiffChange guifg=#d0d0d0 guibg=#663a4f
-highlight DiffText   guifg=#5fffff guibg=#008787
+highlight DiffAdd    guifg=#00d782 guibg=#004f52
+highlight DiffDelete guifg=#663a4f guibg=#663a4f
+highlight DiffChange guifg=#d0d0d0 guibg=#3a424f
+highlight DiffText   guifg=#5fffff guibg=#006787
 
 " }}}
 " Auto {{{

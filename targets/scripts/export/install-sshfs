@@ -1,0 +1,25 @@
+#!/bin/bash
+set -e
+
+echo "Installing sshfs from source..."
+
+# Install dependencies
+sudo yum install -y gcc make autoconf automake libtool pkgconfig glib2-devel fuse-devel
+
+# Download and compile sshfs
+cd /tmp
+wget -q https://github.com/libfuse/sshfs/releases/download/sshfs-2.10/sshfs-2.10.tar.gz
+tar -xzf sshfs-2.10.tar.gz
+cd sshfs-2.10
+
+# Configure, build and install
+./configure --prefix=/usr/local
+make
+sudo make install
+
+# Cleanup
+cd /
+rm -rf /tmp/sshfs-2.10*
+
+echo "sshfs installed successfully to /usr/local/bin/sshfs"
+echo "Usage: /usr/local/bin/sshfs user@host:/path /mountpoint"
