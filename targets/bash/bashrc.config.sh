@@ -23,3 +23,6 @@ export HISTFILESIZE="${HISTSIZE}";
 
 # Omit duplicates and commands that begin with a space from history.
 export HISTCONTROL='ignoreboth';
+
+# Silence Apple's bash deprecation in favour of zsh
+export BASH_SILENCE_DEPRECATION_WARNING=1
