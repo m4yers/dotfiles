@@ -190,7 +190,7 @@ nnoremap <leader>gc  :Git commit<cr>
 nnoremap <leader>gq  :Git commit --amend<cr>
 nnoremap <leader>gb  :Git blame<cr>
 nnoremap <leader>gd  :Gvdiff<cr>
-nnoremap <leader>gp  :call setqflist(map(systemlist("git diff --name-only master"), '{"filename": v:val}'))<cr>
+nnoremap <leader>gp  :Git push<cr>
 
 nnoremap <leader>dgl :diffget LOCAL  \| diffupdate<cr>
 nnoremap <leader>dgb :diffget BASE   \| diffupdate<cr>
