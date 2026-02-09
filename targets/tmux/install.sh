@@ -25,7 +25,7 @@ install() {
   fi
 
   if is_ubuntu; then
-    install_centos
+    install_ubuntu
   fi
 
   if is_centos; then
