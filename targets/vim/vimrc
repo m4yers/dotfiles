@@ -190,6 +190,7 @@ nnoremap <leader>gc  :Git commit<cr>
 nnoremap <leader>gq  :Git commit --amend<cr>
 nnoremap <leader>gb  :Git blame<cr>
 nnoremap <leader>gd  :Gvdiff<cr>
+nnoremap <leader>gh  :Gvdiff HEAD~1<cr>
 nnoremap <leader>gp  :Git push<cr>
 
 nnoremap <leader>dgl :diffget LOCAL  \| diffupdate<cr>
@@ -493,6 +494,8 @@ nnoremap <tab>j <c-]>zo
 nnoremap <tab>J :vsplit<cr><c-]>zo
 nnoremap <tab>s :tselect<cr>zo
 nnoremap <tab>S :vsplit<cr>:tselect<cr>zo
+nnoremap <tab>f gf
+nnoremap <tab>F :vertical wincmd f<cr>
 inoremap <esc>n <c-x><c-]>
 
 " Split windows
