@@ -492,8 +492,9 @@ nnoremap <tab>0              :tabnext10<cr>
 nnoremap <tab>d              :bdelete<cr>
 nnoremap <tab>c              :tabclose<cr>
 
-nnoremap <tab>j <c-]>zo
-nnoremap <tab>J :vsplit<cr><c-]>zo
+nnoremap <tab>jj <c-]>zozz
+nnoremap <tab>J :tab split<cr><c-]>zozz
+nnoremap <tab>js :vsplit<cr><c-]>zozz
 nnoremap <tab>s :tselect<cr>zo
 nnoremap <tab>S :vsplit<cr>:tselect<cr>zo
 nnoremap <tab>f gF<cr>zz
@@ -750,7 +751,7 @@ augroup ft_vim
   autocmd FileType vim nmap <buffer> <leader>dd :help <C-r><C-w><cr>
 
   autocmd FileType help nnoremap <silent><buffer> q :q<cr>
-  autocmd FileType help nnoremap <tab>j <c-]>
+  autocmd FileType help nnoremap <tab>jj <c-]>
 
   autocmd BufWinEnter *.txt if &filetype == 'help' | wincmd L | endif
 augroup END
