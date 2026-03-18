@@ -660,7 +660,18 @@ augroup END
 augroup ft_markdown
   autocmd!
   autocmd FileType markdown nnoremap <buffer> <localleader>v :InstantMarkdownPreview<cr>
+  autocmd FileType markdown setlocal foldmethod=expr
+        \ foldexpr=MdHeadingFold(v:lnum) foldlevel=0
 augroup END
+
+function! MdHeadingFold(lnum)
+  if getline(a:lnum) =~# '^## '
+    return '>1'
+  elseif getline(a:lnum) =~# '^### '
+    return '>2'
+  endif
+  return '='
+endfunction
 
 " }}}
 " LLVM {{{
