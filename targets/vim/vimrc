@@ -667,8 +667,6 @@ augroup END
 function! MdHeadingFold(lnum)
   if getline(a:lnum) =~# '^## '
     return '>1'
-  elseif getline(a:lnum) =~# '^### '
-    return '>2'
   endif
   return '='
 endfunction
