@@ -21,6 +21,8 @@ Plug 'NLKNguyen/papercolor-theme'
 Plug 'catppuccin/vim', { 'as': 'catppuccin' }
 Plug 'sonph/onehalf', {'branch': '5bec08d', 'rtp': 'vim/'}
 Plug 'chrisbra/Colorizer'
+Plug 'godlygeek/tabular'
+Plug 'preservim/vim-markdown'
 
 " Vim-diff-enhanced {{{
 Plug 'chrisbra/vim-diff-enhanced'
@@ -494,8 +496,8 @@ nnoremap <tab>j <c-]>zo
 nnoremap <tab>J :vsplit<cr><c-]>zo
 nnoremap <tab>s :tselect<cr>zo
 nnoremap <tab>S :vsplit<cr>:tselect<cr>zo
-nnoremap <tab>f gf
-nnoremap <tab>F :vertical wincmd f<cr>
+nnoremap <tab>f gF<cr>zz
+nnoremap <tab>F :vertical wincmd F<cr>zz
 inoremap <esc>n <c-x><c-]>
 
 " Split windows
@@ -660,16 +662,6 @@ augroup END
 augroup ft_markdown
   autocmd!
   autocmd FileType markdown nnoremap <buffer> <localleader>v :InstantMarkdownPreview<cr>
-  autocmd FileType markdown setlocal foldmethod=expr
-        \ foldexpr=MdHeadingFold(v:lnum) foldlevel=0
-augroup END
-
-function! MdHeadingFold(lnum)
-  if getline(a:lnum) =~# '^## '
-    return '>1'
-  endif
-  return '='
-endfunction
 
 " }}}
 " LLVM {{{
@@ -887,4 +879,9 @@ augroup ft_crule
 augroup END
 
 " }}}
+" }}}
+
+" Git diff file under cursor {{{
+nnoremap <Tab>d :vsplit <cfile><CR>:Gvdiffsplit HEAD~1<CR>gg:wincmd =<CR>
+nnoremap <Tab>D :tabnew <cfile><CR>:Gvdiffsplit HEAD~1<CR>gg
 " }}}
