@@ -35,7 +35,7 @@ prompt="Write a concise git commit message for the following diff. Output ONLY t
 
 $(cat "$diff_file")"
 
-msg=$(kiro-cli chat --no-interactive --trust-tools= "$prompt")
+msg=$(kiro-cli chat --no-interactive --wrap=never --trust-tools= "$prompt" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^> //')
 
 echo ""
 echo "--- Proposed commit message ---"
