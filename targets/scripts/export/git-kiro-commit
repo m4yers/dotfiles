@@ -1,0 +1,39 @@
+#!/bin/bash
+# git-kiro-commit — Stage all changes, generate a commit message with Kiro,
+# and push after confirmation.
+#
+# Usage: git-kiro-commit
+#
+# Flow:
+#   1. Stages all tracked and untracked files (git add -A)
+#   2. Bails out if there's nothing to commit
+#   3. Pipes the cached diff to kiro-cli to generate a commit message
+#   4. Prints the message and asks for confirmation
+#   5. Commits and pushes on approval
+#
+# Requirements: git, kiro-cli
+# Vim binding: nnoremap <leader>gk :!git-kiro-commit<cr>
+
+set -euo pipefail
+
+if ! command -v kiro-cli &>/dev/null; then
+  echo "Error: kiro-cli not found in PATH."
+  exit 1
+fi
+
+git add -A
+diff=$(git diff --cached --stat)
+if [ -z "$diff" ]; then
+  echo "Nothing to commit."
+  exit 1
+fi
+
+diff_content=$(git diff --cached)
+msg=$(echo "$diff_content" | kiro-cli chat --no-interactive "Write a concise git commit message for this diff. Output ONLY the message — a subject line (max 72 chars), then optionally a blank line and a short body. No markdown, no fences.")
+
+echo "$msg"
+read -p "Commit with this message? [Y/n] " confirm
+if [[ "${confirm:-Y}" =~ ^[Yy]$ ]]; then
+  git commit -m "$msg"
+  git push
+fi
