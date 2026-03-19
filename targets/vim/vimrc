@@ -666,6 +666,10 @@ augroup ft_markdown
   autocmd!
   autocmd FileType markdown nnoremap <buffer> <localleader>v :InstantMarkdownPreview<cr>
 
+set conceallevel=2
+let g:vim_markdown_frontmatter = 1
+let g:vim_markdown_strikethrough = 1
+
 " }}}
 " LLVM {{{
 
