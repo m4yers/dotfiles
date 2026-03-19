@@ -194,6 +194,7 @@ nnoremap <leader>gb  :Git blame<cr>
 nnoremap <leader>gd  :Gvdiff<cr>
 nnoremap <leader>gh  :Gvdiff HEAD~1<cr>
 nnoremap <leader>gp  :Git push<cr>
+nnoremap <leader>gu  :Git pull<cr>
 nnoremap <leader>gk  :!git-kiro-commit<cr>
 
 nnoremap <leader>dgl :diffget LOCAL  \| diffupdate<cr>
