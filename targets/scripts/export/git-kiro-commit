@@ -7,7 +7,7 @@
 # Flow:
 #   1. Stages all tracked and untracked files (git add -A)
 #   2. Bails out if there's nothing to commit
-#   3. Pipes the cached diff to kiro-cli to generate a commit message
+#   3. Sends the cached diff to kiro-cli to generate a commit message
 #   4. Prints the message and asks for confirmation
 #   5. Commits and pushes on approval
 #
@@ -22,16 +22,25 @@ if ! command -v kiro-cli &>/dev/null; then
 fi
 
 git add -A
-diff=$(git diff --cached --stat)
-if [ -z "$diff" ]; then
+if git diff --cached --quiet; then
   echo "Nothing to commit."
   exit 1
 fi
 
-diff_content=$(git diff --cached)
-msg=$(echo "$diff_content" | kiro-cli chat --no-interactive "Write a concise git commit message for this diff. Output ONLY the message — a subject line (max 72 chars), then optionally a blank line and a short body. No markdown, no fences.")
+diff_file=$(mktemp)
+trap 'rm -f "$diff_file"' EXIT
+git diff --cached > "$diff_file"
 
+prompt="Write a concise git commit message for the following diff. Output ONLY the commit message — a subject line (max 72 chars), then optionally a blank line and a short body. No markdown, no fences, no explanation.
+
+$(cat "$diff_file")"
+
+msg=$(kiro-cli chat --no-interactive --trust-tools= "$prompt")
+
+echo ""
+echo "--- Proposed commit message ---"
 echo "$msg"
+echo "-------------------------------"
 read -p "Commit with this message? [Y/n] " confirm
 if [[ "${confirm:-Y}" =~ ^[Yy]$ ]]; then
   git commit -m "$msg"
