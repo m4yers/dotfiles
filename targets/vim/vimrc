@@ -196,10 +196,10 @@ nnoremap <leader>gd  :Gvdiff<cr>
 nnoremap <leader>gh  :Gvdiff HEAD~1<cr>
 nnoremap <leader>gp  :Git push<cr>
 nnoremap <leader>gu  :Git pull<cr>
-nnoremap <leader>gk  :!git-kiro-commit<cr>
-nnoremap <leader>gK  :!git-kiro-commit --push<cr>
-nnoremap <leader>Gk  :!git-kiro-commit-dotfiles<cr>
-nnoremap <leader>GK  :!git-kiro-commit-dotfiles --push<cr>
+nnoremap <leader>gk  :!clear && git-kiro-commit<cr>
+nnoremap <leader>gK  :!clear && git-kiro-commit --push<cr>
+nnoremap <leader>Gk  :!clear && git-kiro-commit-dotfiles<cr>
+nnoremap <leader>GK  :!clear && git-kiro-commit-dotfiles --push<cr>
 nnoremap <leader>Gu  :!clear && git-pull-dotfiles<cr>
 
 nnoremap <leader>dgl :diffget LOCAL  \| diffupdate<cr>
