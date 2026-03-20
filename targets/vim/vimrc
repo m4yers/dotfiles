@@ -792,3 +792,6 @@ augroup END
 
 " }}}
 " }}}
+
+" Review current commit file-by-file
+nnoremap <leader>gcd :Git difftool -y HEAD~1<cr>
