@@ -52,6 +52,9 @@ install() {
   log "Linking .vimrc"
   ln -s -f $this/vimrc ~/.vimrc
 
+  log "Linking after directory"
+  ln -s -f $this/after ~/.vim/after
+
   bash_init_config
   bash_section "Vim configuration"
   bash_export_source "$this/bashrc.aliases.sh"
