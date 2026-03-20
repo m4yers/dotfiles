@@ -44,5 +44,5 @@ echo "-------------------------------"
 read -p "Commit with this message? [Y/n] " confirm
 if [[ "${confirm:-Y}" =~ ^[Yy]$ ]]; then
   git commit -m "$msg"
-  git push
+  [[ "${1:-}" == "--push" ]] && git push
 fi

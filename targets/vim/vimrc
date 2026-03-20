@@ -196,6 +196,9 @@ nnoremap <leader>gh  :Gvdiff HEAD~1<cr>
 nnoremap <leader>gp  :Git push<cr>
 nnoremap <leader>gu  :Git pull<cr>
 nnoremap <leader>gk  :!git-kiro-commit<cr>
+nnoremap <leader>gK  :!git-kiro-commit --push<cr>
+nnoremap <leader>Gk  :!git-kiro-commit-dotfiles<cr>
+nnoremap <leader>GK  :!git-kiro-commit-dotfiles --push<cr>
 
 nnoremap <leader>dgl :diffget LOCAL  \| diffupdate<cr>
 nnoremap <leader>dgb :diffget BASE   \| diffupdate<cr>

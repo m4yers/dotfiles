@@ -1,0 +1,11 @@
+#!/bin/bash
+# git-kiro-commit-dotfiles — Run git-kiro-commit in both dotfiles repos.
+# Usage: git-kiro-commit-dotfiles [--push]
+
+set -euo pipefail
+
+for repo in ~/dotfiles*/; do
+  echo "=== $(basename "$repo") ==="
+  (cd "$repo" && git-kiro-commit "$@") || true
+  echo ""
+done
