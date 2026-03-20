@@ -149,6 +149,7 @@ nnoremap <leader>gq  :Git commit --amend<cr>
 " lowercase g = current repo, uppercase G = all ~/dotfiles*/ repos
 nnoremap <leader>gb  :Git blame<cr>
 nnoremap <leader>gd  :Gvdiff<cr>
+nnoremap <leader>gD  :Git difftool -y HEAD~1<cr>
 nnoremap <leader>gh  :Gvdiff HEAD~1<cr>
 nnoremap <leader>gp  :Git push<cr>
 nnoremap <leader>gu  :Git pull<cr>
@@ -792,6 +793,3 @@ augroup END
 
 " }}}
 " }}}
-
-" Review current commit file-by-file
-nnoremap <leader>gcd :Git difftool -y HEAD~1<cr>
