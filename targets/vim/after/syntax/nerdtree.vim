@@ -1,7 +1,7 @@
 " Custom NERDTree file highlighting (hex colors)
 " Uses matchadd() to overlay colors on top of syntax highlighting
 
-hi NTShell guifg=#d86a5f
+hi NTShell guifg=#716762
 hi NTMd    guifg=#3074cf
 hi NTCPPh  guifg=#83a598
 hi NTCPPs  guifg=#458588
@@ -11,6 +11,7 @@ hi NTTxt   guifg=#665c54
 hi NTTmp   guifg=#504945
 hi NTMake  guifg=#fe8019
 hi NTCMake guifg=#fe8019
+hi NTJson  guifg=#c2b280
 hi NERDTreeExecFile guifg=NONE
 
 " Clear old matches to allow re-sourcing
@@ -27,4 +28,5 @@ call matchadd('NTPyc',   '\c\zs[^ ].*\.pyc' . s:tail)
 call matchadd('NTTxt',   '\c\zs[^ ].*\.txt' . s:tail)
 call matchadd('NTTmp',   '\c\zs[^ ].*\.tmp' . s:tail)
 call matchadd('NTMake',  '\zsMakefile' . s:tail)
+call matchadd('NTJson',  '\c\zs[^ ].*\.json' . s:tail)
 call matchadd('NTCMake', '\zsCMakeLists\.txt' . s:tail)
