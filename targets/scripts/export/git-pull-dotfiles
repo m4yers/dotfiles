@@ -1,0 +1,9 @@
+#!/bin/bash
+# git-pull-dotfiles — Pull updates in all dotfiles repos.
+set -euo pipefail
+
+for repo in ~/dotfiles*/; do
+  echo "=== $(basename "$repo") ==="
+  (cd "$repo" && git pull) || true
+  echo ""
+done

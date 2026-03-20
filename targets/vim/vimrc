@@ -190,6 +190,7 @@ nnoremap <leader>gl  :silent! Glog --reverse \| botright copen \| clast \| redra
 nnoremap <leader>ge  :Gedit<cr>
 nnoremap <leader>gc  :Git commit<cr>
 nnoremap <leader>gq  :Git commit --amend<cr>
+" lowercase g = current repo, uppercase G = all ~/dotfiles*/ repos
 nnoremap <leader>gb  :Git blame<cr>
 nnoremap <leader>gd  :Gvdiff<cr>
 nnoremap <leader>gh  :Gvdiff HEAD~1<cr>
@@ -199,6 +200,7 @@ nnoremap <leader>gk  :!git-kiro-commit<cr>
 nnoremap <leader>gK  :!git-kiro-commit --push<cr>
 nnoremap <leader>Gk  :!git-kiro-commit-dotfiles<cr>
 nnoremap <leader>GK  :!git-kiro-commit-dotfiles --push<cr>
+nnoremap <leader>Gu  :!clear && git-pull-dotfiles<cr>
 
 nnoremap <leader>dgl :diffget LOCAL  \| diffupdate<cr>
 nnoremap <leader>dgb :diffget BASE   \| diffupdate<cr>
@@ -894,4 +896,4 @@ augroup END
 " Git diff file under cursor {{{
 nnoremap <Tab>d :vsplit <cfile><CR>:Gvdiffsplit HEAD~1<CR>gg:wincmd =<CR>
 nnoremap <Tab>D :tabnew <cfile><CR>:Gvdiffsplit HEAD~1<CR>gg
-" }}}
+ " }}}
