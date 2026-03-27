@@ -344,9 +344,9 @@ endif
 
 syntax                       on
 if s:is_gui
-  colorscheme                PaperColor
+  colorscheme                terminal
 else
-  colorscheme                PaperColor
+  colorscheme                terminal
   set t_Co                     =256
 endif
 
