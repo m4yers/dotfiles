@@ -220,7 +220,7 @@ let g:airline#extensions#tabline#fnamemod        = ':t'
 
 let g:airline#extensions#whitespace#show_message = 1
 
-let g:airline_theme='distinguished'
+let g:airline_theme='terminal'
 
 " }}}
 
@@ -289,7 +289,7 @@ set showmatch
 
 set list
 set listchars                =tab:▸\ ,extends:❯,precedes:❮
-set fillchars                =diff:⣿,vert:│
+set fillchars                =diff:\ ,vert:│
 set showbreak                =↪
 
 " }}}
@@ -554,14 +554,6 @@ nnoremap <leader>tp :let @0 = system("tmux save-buffer -")<cr>"0p<cr>"
 " Colorscheme Mod {{{
 
 set nocursorline
-
-highlight LineNr                guifg=#454545
-highlight VertSplit             guifg=#1c1c1c guibg=#333333
-
-highlight DiffAdd    guifg=#00d782 guibg=#004f52
-highlight DiffDelete guifg=#663a4f guibg=#663a4f
-highlight DiffChange guifg=#d0d0d0 guibg=#3a424f
-highlight DiffText   guifg=#5fffff guibg=#006787
 
 " }}}
 " Auto {{{

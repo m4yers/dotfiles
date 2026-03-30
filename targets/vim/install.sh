@@ -52,6 +52,14 @@ install() {
   log "Linking .vimrc"
   ln -s -f $this/vimrc ~/.vimrc
 
+  log "Linking color scheme"
+  mkdir -p ~/.vim/colors
+  ln -s -f $this/colors/terminal.vim ~/.vim/colors/terminal.vim
+
+  log "Linking airline theme"
+  mkdir -p ~/.vim/autoload/airline/themes
+  ln -s -f $this/autoload/airline/themes/terminal.vim ~/.vim/autoload/airline/themes/terminal.vim
+
   log "Linking after directory"
   ln -s -f $this/after ~/.vim/after
 
