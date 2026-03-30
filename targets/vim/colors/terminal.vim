@@ -49,10 +49,10 @@ hi WarningMsg term=NONE guifg=#8cb1d4 guibg=NONE ctermfg=146 ctermbg=NONE gui=NO
 hi Error term=NONE guifg=#e8a4a0 guibg=#423231 ctermfg=217 ctermbg=NONE gui=NONE cterm=NONE
 hi ErrorMsg term=NONE guifg=#e8a4a0 guibg=#423231 ctermfg=217 ctermbg=NONE gui=NONE cterm=NONE
 hi Todo term=NONE guifg=#8698d8 guibg=NONE ctermfg=146 ctermbg=NONE gui=bold cterm=bold
-hi DiffAdd term=NONE guifg=NONE guibg=#0f1819 ctermfg=NONE ctermbg=NONE gui=NONE cterm=NONE
-hi DiffChange term=NONE guifg=NONE guibg=#212323 ctermfg=NONE ctermbg=NONE gui=NONE cterm=NONE
-hi DiffDelete term=NONE guifg=NONE guibg=#190f0f ctermfg=NONE ctermbg=NONE gui=NONE cterm=NONE
-hi DiffText term=NONE guifg=NONE guibg=#2f3233 ctermfg=NONE ctermbg=NONE gui=bold cterm=bold
+hi DiffAdd term=NONE guifg=NONE guibg=#172426 ctermfg=NONE ctermbg=NONE gui=NONE cterm=NONE
+hi DiffChange term=NONE guifg=NONE guibg=#2a2d2d ctermfg=NONE ctermbg=NONE gui=NONE cterm=NONE
+hi DiffDelete term=NONE guifg=NONE guibg=#261716 ctermfg=NONE ctermbg=NONE gui=NONE cterm=NONE
+hi DiffText term=NONE guifg=NONE guibg=#383c3d ctermfg=NONE ctermbg=NONE gui=bold cterm=bold
 hi SpellBad term=NONE guifg=NONE guibg=NONE ctermfg=NONE ctermbg=NONE gui=undercurl cterm=undercurl guisp=#c27874
 hi SpellCap term=NONE guifg=NONE guibg=NONE ctermfg=NONE ctermbg=NONE gui=undercurl cterm=undercurl guisp=#9e6289
 hi SpellLocal term=NONE guifg=NONE guibg=NONE ctermfg=NONE ctermbg=NONE gui=undercurl cterm=undercurl guisp=#d88f82
