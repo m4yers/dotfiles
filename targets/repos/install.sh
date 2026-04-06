@@ -26,9 +26,9 @@ install_mac() {
 }
 
 install() {
-  if is_mac; then
-    install_mac
-  fi
+  # if is_mac; then
+  #   install_mac
+  # fi
 
   if is_linux; then
     install_linux

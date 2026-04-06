@@ -34,7 +34,7 @@ setup_system() {
 }
 
 setup_home() {
-  log "SETUP HOME"
+  log "SETUP HOME (profile: $PROFILE)"
 
   bootstrap
 
@@ -44,6 +44,10 @@ setup_home() {
 
   if is_mac; then
     declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger" "iterm" "scripts")
+  fi
+
+  if [[ "$PROFILE" == "home" ]]; then
+    targets+=("kiro")
   fi
 
   log "TARGETS: ${targets[*]}"
@@ -57,14 +61,17 @@ setup_home() {
 print_help() {
   echo "Sweet Home Installer"
   echo "Usage:"
-  echo "... all    Run all features"
-  echo "... system Run system setup"
-  echo "... home   Run home directory setup"
-  echo "... help   Print help"
+  echo "... all [--profile home|work]    Run all features"
+  echo "... system                       Run system setup"
+  echo "... home [--profile home|work]   Run home directory setup"
+  echo "... help                         Print help"
+  echo ""
+  echo "Profiles: home (default), work"
 }
 
 export OPTION_SYSTEM=false
 export OPTION_INSTALL=false
+export PROFILE=home
 
 main() {
   check_system
@@ -89,6 +96,10 @@ main() {
         ;;
       home)
         OPTION_INSTALL=true
+        ;;
+      --profile)
+        PROFILE="$1"
+        shift
         ;;
       help)
         print_help

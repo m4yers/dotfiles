@@ -1,0 +1,37 @@
+{
+  "name": "trusted",
+  "description": "Subagent with pre-trusted tools for code analysis and general development",
+  "model": "claude-opus-4.6",
+  "resources": [
+    "file://~/.kiro/steering/*.md",
+    "skill://~/.kiro/skills/**/SKILL.md"
+  ],
+  "tools": [
+    "fs_read",
+    "ls",
+    "fs_write",
+    "execute_bash",
+    "grep",
+    "glob",
+    "code",
+    "use_aws",
+    "introspect",
+    "use_subagent",
+    "web_fetch",
+    "web_search"
+  ],
+  "allowedTools": [
+    "fs_read",
+    "ls",
+    "fs_write",
+    "execute_bash",
+    "grep",
+    "glob",
+    "code",
+    "use_aws",
+    "introspect",
+    "use_subagent",
+    "web_fetch",
+    "web_search"
+  ]
+}
