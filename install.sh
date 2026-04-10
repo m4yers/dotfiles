@@ -39,11 +39,11 @@ setup_home() {
   bootstrap
 
   if is_linux; then
-    declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger" "scripts")
+    declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger" "scripts" "markdown")
   fi
 
   if is_mac; then
-    declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger" "iterm" "scripts")
+    declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger" "iterm" "scripts" "markdown")
   fi
 
   if [[ "$PROFILE" == "home" ]]; then
