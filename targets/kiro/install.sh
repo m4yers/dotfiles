@@ -14,6 +14,12 @@ link_config_dir() {
 install() {
   local this=$(get_source)
 
+  log "Installing kiro-cli"
+  brew install kiro-cli
+
+  log "Installing uv (Python package manager)"
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+
   log "Creating ~/.kiro"
   mkdir -p ~/.kiro
 

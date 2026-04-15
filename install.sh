@@ -47,7 +47,7 @@ setup_home() {
   fi
 
   if [[ "$PROFILE" == "home" ]]; then
-    targets+=("kiro")
+    targets+=("music" "video" "kiro")
   fi
 
   log "TARGETS: ${targets[*]}"

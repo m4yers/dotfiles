@@ -1,7 +1,7 @@
 # Session Learnings Tracker
 
 Throughout every conversation, track learnings by writing them to disk. These
-are findings worth encoding into skills, steering, or vault.
+are findings worth encoding into skills, steering, or prompts.
 
 ## Critical Rule
 
@@ -39,7 +39,7 @@ Learnings are stored as individual JSON files in:
 
 Write retro items using the writer script:
 ```bash
-python3 ~/.kiro/skills/util/retro/scripts/write-retro-item.py \
+python3 ~/.kiro/skills/workflows/retro/scripts/write-retro-item.py \
   --dir ~/.kiro/retro/pending/ \
   --area <area> --action <action> --severity <severity> \
   --title "<title>" --detail "<detail>" \
@@ -51,7 +51,7 @@ timestamped JSON file with this schema:
 
 ```json
 {
-  "area": "skill|steering|vault|prompt",
+  "area": "skill|steering|prompt",
   "action": "new|update",
   "severity": "high|medium|low",
   "target": "short name or null",
@@ -73,7 +73,7 @@ timestamped JSON file with this schema:
 ## What does NOT count
 
 - Routine task completion
-- Things already in skills/steering/vault
+- Things already in skills/steering
 - Transient details (ticket IDs, cluster names)
 
 ## Behavior
@@ -89,7 +89,7 @@ Where N is the total file count in the retro directory. Do NOT show the line
 if the count is 0.
 
 3. STOP. Do NOT implement the change (steering updates, script
-   modifications, skill changes, vault writes) in the same response.
+   modifications, skill changes) in the same response.
    The retro file captures the intent; acting on it only happens
    when the user explicitly asks for a retro.
 
@@ -98,7 +98,7 @@ The user can say "retro" at any time to review and act on learnings.
 ## Formatting
 
 When retro items modify skill files (SKILL.md or references/), you MUST follow
-the conventions in `~/.kiro/skills/util/skill-builder/references/conventions.md`
+the conventions in `~/.kiro/skills/workflows/skill-builder/references/conventions.md`
 (80-char prose, aligned tables, single-line frontmatter).
 
 
