@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export TERM="xterm-color"
+[[ -z "$TMUX" ]] && export TERM="xterm-256color"
 export CLICOLOR=1
 
 # Less Colors for Man Pages

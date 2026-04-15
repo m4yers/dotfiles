@@ -61,7 +61,8 @@ install() {
   ln -s -f $this/autoload/airline/themes/terminal.vim ~/.vim/autoload/airline/themes/terminal.vim
 
   log "Linking after directory"
-  ln -s -f $this/after ~/.vim/after
+  mkdir -p ~/.vim/after/syntax
+  ln -s -f $this/after/syntax/nerdtree.vim ~/.vim/after/syntax/nerdtree.vim
 
   bash_init_config
   bash_section "Vim configuration"
