@@ -1,0 +1,5 @@
+[project]
+name = "template-renderer"
+version = "0.1.0"
+requires-python = ">=3.7"
+dependencies = ["jinja2>=3,<4"]
