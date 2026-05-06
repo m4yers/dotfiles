@@ -39,7 +39,7 @@ Learnings are stored as individual JSON files in:
 
 Write retro items using the writer script:
 ```bash
-python3 ~/.kiro/skills/workflows/retro/scripts/write-retro-item.py \
+python3 ~/.kiro/skills/home/retro/scripts/write-retro-item.py \
   --dir ~/.kiro/retro/pending/ \
   --area <area> --action <action> --severity <severity> \
   --title "<title>" --detail "<detail>" \
@@ -98,7 +98,7 @@ The user can say "retro" at any time to review and act on learnings.
 ## Formatting
 
 When retro items modify skill files (SKILL.md or references/), you MUST follow
-the conventions in `~/.kiro/skills/workflows/skill-builder/references/conventions.md`
+the conventions in `~/.kiro/skills/home/skill-builder/references/conventions.md`
 (80-char prose, aligned tables, single-line frontmatter).
 
 

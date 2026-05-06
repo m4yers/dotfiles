@@ -46,8 +46,12 @@ setup_home() {
     declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger" "iterm" "scripts" "markdown")
   fi
 
+  # kiro installs the generic skills/steering/agents used on any machine.
+  # Downstream dotfiles-* repos can overlay additional target-specific entries.
+  targets+=("kiro")
+
   if [[ "$PROFILE" == "home" ]]; then
-    targets+=("music" "video" "kiro")
+    targets+=("music" "video")
   fi
 
   log "TARGETS: ${targets[*]}"

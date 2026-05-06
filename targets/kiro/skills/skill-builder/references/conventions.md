@@ -89,7 +89,7 @@ description: What it does. Use when [trigger phrases].
 |-------------|-----------------------------------------|
 | `interface` | Provides an API consumed by other       |
 |             | skills. No user-facing steps. Examples: |
-|             | tiling, editor, brazil-build, owls      |
+|             | tiling, editor, template                |
 | `tool`      | Fixed sequence of indivisible steps.    |
 |             | No iteration or user interaction mid-   |
 |             | execution. Examples: cr-tree, cr-push   |
@@ -250,7 +250,7 @@ Example:
 
 Every skill MUST log its activation per the
 `skill-analytics` skill
-(`~/.kiro/skills/util/skill-analytics/SKILL.md`).
+(`~/.kiro/skills/home/skill-analytics/SKILL.md`).
 
 ## Script Invocation Paths
 
@@ -268,7 +268,7 @@ prompts, config files, generated markdown, report fragments —
 MUST be rendered via the `template` skill:
 
 ```bash
-$SKILLS/util/template/scripts/render.sh \
+$SKILLS/home/template/scripts/render.sh \
     --template <path> --var k=v [--var ...]
 ```
 

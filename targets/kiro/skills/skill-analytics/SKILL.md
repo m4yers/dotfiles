@@ -43,8 +43,8 @@ directory or extension.
 | `user:<login>`      | `user:artyomgo`      | User requested the skill |
 | `skill:<name>`      | `skill:cr-review`    | Another skill chained in |
 | `prompt:<name>`     | `prompt:daily`       | A prompt triggered it    |
-| `agent:<name>`      | `agent:vault-worker` | A subagent invoked it    |
-| `steering:<name>`   | `steering:padb-workspace` | A steering rule triggered it |
+| `agent:<name>`      | `agent:trusted`      | A subagent invoked it    |
+| `steering:<name>`   | `steering:no-rush`   | A steering rule triggered it |
 
 ## Logging
 
@@ -52,7 +52,7 @@ Every skill MUST include this at the start of its first
 workflow step:
 
 ```bash
-~/.kiro/skills/util/skill-analytics/scripts/add-invocation.sh \
+~/.kiro/skills/home/skill-analytics/scripts/add-invocation.sh \
   SKILL_NAME TRIGGER_TYPE:TRIGGER_NAME
 ```
 
@@ -84,7 +84,7 @@ jq -r '.ts[:10]+" "+.skill' \
 
 # Skills not used in last 30 days
 comm -23 \
-  <(ls ~/.kiro/skills/*/*/SKILL.md \
+  <(ls ~/.kiro/skills/**/SKILL.md \
     | xargs grep -l '^name:' \
     | xargs grep 'name:' \
     | sed 's/.*name: //' | sort) \

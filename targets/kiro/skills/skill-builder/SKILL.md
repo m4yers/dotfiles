@@ -19,8 +19,28 @@ Create or update skills for the `~/.kiro/skills/` setup.
 - **operation** (required): "create" or "update"
 - **name** (optional for create, required for update):
   kebab-case name
-- **category** (optional): `dev`, `diagnostics`, or `util`
-  — inferred from purpose if not given
+- **location** (required for create): target path under
+  `~/.kiro/skills/`, e.g. `home` or `aws/util`. Always
+  collected by asking the user — never inferred.
+
+## Namespace Decision
+
+Skill-builder MUST always ask the user where to create a
+new skill before writing any files. The skill-builder
+never infers the target namespace from the skill's purpose.
+
+1. Enumerate installed namespaces:
+   ```bash
+   ~/.kiro/skills/home/skill-builder/scripts/list-namespaces.sh
+   ```
+2. Show the user the list and ask: "Where should the skill
+   live? (e.g. `home` for a home-flat skill,
+   `aws/util` for a categorised aws skill)".
+3. The user's answer becomes `{location}`. Validate that
+   `~/.kiro/skills/{location}/` exists before proceeding —
+   if not, re-prompt.
+4. Validate that `~/.kiro/skills/{location}/{name}/` does
+   not already exist — refuse to overwrite.
 
 ## Workflow
 
@@ -31,16 +51,17 @@ is "update", proceed to Step 8.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-builder(<name>): Gather Requirements"
    ```
 2. Log activation:
    ```bash
-   ~/.kiro/skills/util/skill-analytics/scripts/add-invocation.sh \
+   ~/.kiro/skills/home/skill-analytics/scripts/add-invocation.sh \
      skill-builder TRIGGER_TYPE:TRIGGER_NAME
    ```
-3. Ask the user about the skill's purpose, when it
-   triggers, and which category it belongs to.
+3. Ask the user about the skill's purpose and when it
+   triggers. Also run the Namespace Decision flow above
+   to collect `{location}` before any file writes.
 
 **Constraints:**
 - You MUST validate the name is kebab-case:
@@ -48,9 +69,8 @@ is "update", proceed to Step 8.
   echo "<name>" | grep -qE '^[a-z][a-z0-9-]*$' \
     || echo "ERROR: name must be kebab-case"
   ```
-- You MUST determine the category
-  (`dev`/`diagnostics`/`util`) — suggest one based on
-  purpose
+- You MUST complete the Namespace Decision flow to get
+  `{location}` — never infer the target namespace
 - You MUST determine the type
   (`interface`/`tool`/`workflow`/`reference`) — suggest
   one based on purpose per `references/conventions.md`
@@ -59,8 +79,8 @@ is "update", proceed to Step 8.
 - You MUST check existing skill descriptions for
   overlapping triggers because overlaps cause misrouting:
   ```bash
-  python3 ~/.kiro/skills/util/skill-builder/scripts/check-overlaps.py \
-    <skill-name> [category]
+  python3 ~/.kiro/skills/home/skill-builder/scripts/check-overlaps.py \
+    <skill-name>
   ```
 - You MUST check existing skills for overlapping
   functionality (same operations, same tools, same
@@ -82,10 +102,10 @@ On completion: proceed to Step 2.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-builder(<name>): Create SKILL.md"
    ```
-2. Create `~/.kiro/skills/{category}/{name}/SKILL.md`.
+2. Create `~/.kiro/skills/{location}/{name}/SKILL.md`.
 3. Read the applicable reference files for the skill type
    — these reads are independent, make them in parallel:
    - Always: `references/conventions.md` and
@@ -161,8 +181,8 @@ On completion: proceed to Step 2.
   files because it exposes PII — use generic placeholders
 4. Verify the created SKILL.md:
    ```bash
-   python3 ~/.kiro/skills/util/skill-reviewer/scripts/skill-lint.py \
-     ~/.kiro/skills/{category}/{name}
+   python3 ~/.kiro/skills/home/skill-reviewer/scripts/skill-lint.py \
+     ~/.kiro/skills/{location}/{name}
    ```
 
 On completion: proceed to Step 3.
@@ -171,11 +191,11 @@ On completion: proceed to Step 3.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-builder(<name>): Create Reference Files"
    ```
 2. Place reference files in
-   `~/.kiro/skills/{category}/{name}/references/`.
+   `~/.kiro/skills/{location}/{name}/references/`.
 
 **Constraints:**
 - You SHOULD move SQL queries, templates, and detailed
@@ -192,7 +212,7 @@ On completion: proceed to Step 4.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-builder(<name>): Create Scripts"
    ```
 2. Place scripts in a `scripts/` subfolder within the skill
@@ -200,7 +220,7 @@ On completion: proceed to Step 4.
 
 **Constraints:**
 - You MUST place scripts in
-  `~/.kiro/skills/{category}/{name}/scripts/` because this
+  `~/.kiro/skills/{location}/{name}/scripts/` because this
   keeps them separate from documentation
 - If the script has no external dependencies (stdlib only),
   you MUST run it directly via `python3` because uv adds
@@ -230,7 +250,7 @@ On completion: proceed to Step 5.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-builder(<name>): Review"
    ```
 2. STOP and wait for user to review the skill.
@@ -247,12 +267,12 @@ On completion: proceed to Step 6.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-builder(<name>): Check Subagent and Prompt Alignment"
    ```
 2. List agent tool sets and prompt domains:
    ```bash
-   python3 ~/.kiro/skills/util/skill-builder/scripts/check-alignment.py
+   python3 ~/.kiro/skills/home/skill-builder/scripts/check-alignment.py
    ```
 3. Scan the output for subagents that share tools with the
    new skill. If a subagent shares tools, update its prompt
@@ -278,7 +298,7 @@ On completion: proceed to Step 7.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-builder(<name>): Run Skill Reviewer"
    ```
 2. Run the `skill-reviewer` skill against the new skill.
@@ -296,7 +316,7 @@ On completion: proceed to Step 7.
 On completion: set tiling activity to done and report
 status:
 ```bash
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
   activity set "skill-builder(<name>): Done"
 ```
 
@@ -304,12 +324,12 @@ status:
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-builder(<name>): Load Existing Skill"
    ```
 2. Log activation:
    ```bash
-   ~/.kiro/skills/util/skill-analytics/scripts/add-invocation.sh \
+   ~/.kiro/skills/home/skill-analytics/scripts/add-invocation.sh \
      skill-builder TRIGGER_TYPE:TRIGGER_NAME
    ```
 3. Read the full SKILL.md and all files in `references/`
@@ -328,7 +348,7 @@ On completion: proceed to Step 9.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-builder(<name>): Apply Changes"
    ```
 2. Apply the requested changes.
@@ -343,7 +363,7 @@ On completion: proceed to Step 9.
 On completion: set tiling activity to done and report
 status:
 ```bash
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
   activity set "skill-builder(<name>): Done"
 ```
 

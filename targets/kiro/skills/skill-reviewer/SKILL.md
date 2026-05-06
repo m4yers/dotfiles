@@ -20,7 +20,7 @@ directly.
 ### Convention sources
 
 Convention reference files live under
-`~/.kiro/skills/util/skill-builder/references/`.
+`~/.kiro/skills/home/skill-builder/references/`.
 
 ### Always applied (all skill types)
 
@@ -54,30 +54,30 @@ Convention reference files live under
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-reviewer(<name>): Locate Skill"
    ```
 2. Log activation:
    ```bash
-   ~/.kiro/skills/util/skill-analytics/scripts/add-invocation.sh \
+   ~/.kiro/skills/home/skill-analytics/scripts/add-invocation.sh \
      skill-reviewer <trigger_type>:<trigger_name>
    ```
 3. Find the skill directory:
    ```bash
-   skill_dir=$(python3 ~/.kiro/skills/util/skill-reviewer/scripts/find-skill.py \
+   skill_dir=$(python3 ~/.kiro/skills/home/skill-reviewer/scripts/find-skill.py \
      <name> [<category>])
    ```
 4. Determine the applicable reference files based on the
    skill's `type` field from the frontmatter:
    ```bash
-   type=$(python3 ~/.kiro/skills/util/skill-reviewer/scripts/extract-type.py \
+   type=$(python3 ~/.kiro/skills/home/skill-reviewer/scripts/extract-type.py \
      <skill-dir>)
    ```
    Build the list: 3 always-applied + 1 type-specific +
    manual-checks.
 5. Set up the layout:
    ```bash
-   eval "$(~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   eval "$(~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      layout build)"
    ```
 
@@ -87,12 +87,12 @@ On completion: proceed to Step 2.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-reviewer(<name>): Run Automated Checks"
    ```
 2. Run the automated lint script:
    ```bash
-   python3 ~/.kiro/skills/util/skill-reviewer/scripts/skill-lint.py \
+   python3 ~/.kiro/skills/home/skill-reviewer/scripts/skill-lint.py \
      <skill-dir>
    ```
 3. Note any false positives from the lint output to pass
@@ -104,7 +104,7 @@ On completion: proceed to Step 3.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-reviewer(<name>): Run Sub-Agent Checks"
    ```
 2. Read `references/subagent-queries.md` for the query
@@ -113,7 +113,7 @@ On completion: proceed to Step 3.
    from `references/subagent-queries.md` — one per
    applicable reference file (3 always-applied + 1
    type-specific + `references/manual-checks.md`). Use
-   `agent_name: trusted-worker` (grants file-read access
+   `agent_name: trusted` (grants file-read access
    to skill directories) for every sub-agent.
    The template is the same for all; only the reference
    path differs.
@@ -128,7 +128,7 @@ On completion: proceed to Step 4.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-reviewer(<name>): Assemble Report"
    ```
 2. Merge lint output with sub-agent findings. Silently
@@ -136,20 +136,20 @@ On completion: proceed to Step 4.
    that are actionable and fixable.
 3. Create the report file:
    ```bash
-   python3 ~/.kiro/skills/util/skill-reviewer/scripts/report-writer.py \
+   python3 ~/.kiro/skills/home/skill-reviewer/scripts/report-writer.py \
      create /tmp/skill-review-<name>.md <name> <category> <type>
    ```
 4. Append each finding using the `error`, `warning`,
    or `info` command:
    ```bash
-   python3 ~/.kiro/skills/util/skill-reviewer/scripts/report-writer.py \
+   python3 ~/.kiro/skills/home/skill-reviewer/scripts/report-writer.py \
      <severity> /tmp/skill-review-<name>.md \
      "<title>" "<file>:<line>" "<description>" "<fix>"
    ```
    Every finding MUST include a suggested fix.
 5. Format the report:
    ```bash
-   python3 ~/.kiro/skills/util/skill-reviewer/scripts/report-writer.py \
+   python3 ~/.kiro/skills/home/skill-reviewer/scripts/report-writer.py \
      format /tmp/skill-review-<name>.md
    ```
 
@@ -159,12 +159,12 @@ On completion: proceed to Step 5.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-reviewer(<name>): Show Report"
    ```
 2. Show the report in the editor:
    ```bash
-   ~/.kiro/skills/util/editor/scripts/run-editor.sh \
+   ~/.kiro/skills/home/editor/scripts/run-editor.sh \
      show file /tmp/skill-review-<name>.md
    ```
 3. STOP and wait for the user to review the report and
@@ -176,22 +176,22 @@ On user selection: proceed to Step 6.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-reviewer(<name>): Apply Fixes"
    ```
 2. For each finding the user accepts, apply the fix.
 3. After applying, mark the finding with ✅ in the report
    and reload in the editor:
    ```bash
-   python3 ~/.kiro/skills/util/skill-reviewer/scripts/report-writer.py \
+   python3 ~/.kiro/skills/home/skill-reviewer/scripts/report-writer.py \
      strikeout /tmp/skill-review-<name>.md <finding_number>
-   ~/.kiro/skills/util/editor/scripts/run-editor.sh \
+   ~/.kiro/skills/home/editor/scripts/run-editor.sh \
      show file /tmp/skill-review-<name>.md
    ```
 4. For each finding the user explicitly rejects, mark it
    declined with their reason:
    ```bash
-   python3 ~/.kiro/skills/util/skill-reviewer/scripts/report-writer.py \
+   python3 ~/.kiro/skills/home/skill-reviewer/scripts/report-writer.py \
      decline /tmp/skill-review-<name>.md <finding_number> \
      --reason "<user's reason>"
    ```
@@ -206,12 +206,12 @@ On completion: proceed to Step 7.
 
 1. Set tiling activity:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-reviewer(<name>): Verify Fixes"
    ```
 2. Re-run the automated lint script:
    ```bash
-   python3 ~/.kiro/skills/util/skill-reviewer/scripts/skill-lint.py \
+   python3 ~/.kiro/skills/home/skill-reviewer/scripts/skill-lint.py \
      <skill-dir>
    ```
 3. If new errors appear and this is the 3rd fix-verify
@@ -226,7 +226,7 @@ On completion: proceed to Step 8.
 
 1. Set tiling activity to Done:
    ```bash
-   ~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+   ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
      activity set "skill-reviewer(<name>): Done"
    ```
 

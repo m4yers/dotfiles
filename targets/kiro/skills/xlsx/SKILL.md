@@ -14,8 +14,8 @@ customer-provided query results, refresh histories).
 ```bash
 uv run \
   --python 3.12 \
-  --project ~/.kiro/skills/tools/xlsx/scripts \
-  python ~/.kiro/skills/tools/xlsx/scripts/read-xlsx.py \
+  --project ~/.kiro/skills/home/xlsx/scripts \
+  python ~/.kiro/skills/home/xlsx/scripts/read-xlsx.py \
   /path/to/file.xlsx
 ```
 

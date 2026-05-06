@@ -98,10 +98,9 @@ sub-step that runs the oracle. Document:
 
 | Outcome to verify          | Oracle                        |
 |----------------------------|-------------------------------|
-| Code compiles              | `brazil-build`                |
-| Tests pass                 | `brazil-test-exec`            |
+| Code compiles              | `<build-tool>`                |
+| Tests pass                 | `<test-tool>`                 |
 | Markdown well-formed       | `skill-lint.py`               |
-| Vault article not stale    | `vault-stale.py`              |
 | No trigger overlaps        | `check-overlaps.py`           |
 | Script has --help          | `<script> --help >/dev/null`  |
 | JSON valid                 | `python3 -m json.tool`        |
@@ -126,8 +125,8 @@ and reuse it throughout:
 
 ```bash
 SKILLS=~/.kiro/skills
-$SKILLS/util/tiling/scripts/run-ttm.sh activity set "..."
-$SKILLS/util/skill-analytics/scripts/add-invocation.sh <skill> <trigger>
+$SKILLS/home/tiling/scripts/run-ttm.sh activity set "..."
+$SKILLS/home/skill-analytics/scripts/add-invocation.sh <skill> <trigger>
 ```
 
 Rules:
@@ -158,8 +157,8 @@ affects the script itself and dies when it exits.
 Example producer (`detect-workspace.sh`):
 
 ```bash
-if PADB_ROOT="$(brazil-path package-src-root)"; then
-  echo "PADB_ROOT='$PADB_ROOT'"
+if WORKSPACE_ROOT="$(workspace-tool path)"; then
+  echo "WORKSPACE_ROOT='$WORKSPACE_ROOT'"
 else
   echo "echo 'ERROR: no workspace' >&2; exit 1"
   exit 1
@@ -169,7 +168,7 @@ fi
 Example caller (in SKILL.md):
 
 ```bash
-eval "$($SKILLS/dev/brazil-workspace/scripts/detect-workspace.sh)"
+eval "$($SKILLS/<ns>/<skill>/scripts/detect-workspace.sh)"
 ```
 
 Rules:

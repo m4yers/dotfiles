@@ -25,7 +25,7 @@ invocation template.
 ## Invocation
 
 \`\`\`bash
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
   <group> <command> [options]
 \`\`\`
 ```
@@ -66,7 +66,7 @@ notes. One subsection per command.
 Full description of what the command does.
 
 \`\`\`bash
-~/.kiro/skills/util/example/scripts/run.sh group cmd \
+~/.kiro/skills/example/scripts/run.sh group cmd \
   -t $TARGET
 \`\`\`
 

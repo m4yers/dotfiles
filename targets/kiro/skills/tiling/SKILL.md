@@ -17,7 +17,7 @@ The standard layout defines two named panes:
 ## Invocation
 
 ```bash
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh \
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
   <group> <command> [options]
 ```
 
@@ -55,7 +55,7 @@ The standard layout defines two named panes:
 Create the standard 2-pane layout.
 
 ```bash
-eval "$(~/.kiro/skills/util/tiling/scripts/run-ttm.sh layout build)"
+eval "$(~/.kiro/skills/home/tiling/scripts/run-ttm.sh layout build)"
 # → KIRO=%42  EDITOR=%44
 ```
 
@@ -71,7 +71,7 @@ eval "$(~/.kiro/skills/util/tiling/scripts/run-ttm.sh layout build)"
 Verify the standard 2-pane layout exists.
 
 ```bash
-eval "$(~/.kiro/skills/util/tiling/scripts/run-ttm.sh layout check)"
+eval "$(~/.kiro/skills/home/tiling/scripts/run-ttm.sh layout check)"
 # → KIRO=%42  EDITOR=%44
 ```
 
@@ -84,7 +84,7 @@ Kill all panes except the caller, returning to a single
 pane.
 
 ```bash
-eval "$(~/.kiro/skills/util/tiling/scripts/run-ttm.sh layout reset)"
+eval "$(~/.kiro/skills/home/tiling/scripts/run-ttm.sh layout reset)"
 # → KIRO=%42
 ```
 
@@ -93,8 +93,8 @@ eval "$(~/.kiro/skills/util/tiling/scripts/run-ttm.sh layout reset)"
 Create a new pane by splitting an existing one.
 
 ```bash
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh pane split -d right -s 63%
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh pane split -t %42 -d below -s 10%
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane split -d right -s 63%
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane split -t %42 -d below -s 10%
 ```
 
 - `-t PANE` — pane to split (default: current)
@@ -108,8 +108,8 @@ Prints the new pane's ID to stdout.
 Send keystrokes to a pane. Appends Enter by default.
 
 ```bash
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh pane write -t $EDITOR 'ls -la'
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh pane write -t $EDITOR -n 'partial input'
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane write -t $EDITOR 'ls -la'
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane write -t $EDITOR -n 'partial input'
 ```
 
 - `-t PANE` — target pane (required)
@@ -121,8 +121,8 @@ Send keystrokes to a pane. Appends Enter by default.
 Read the visible content of a pane.
 
 ```bash
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh pane read -t $EDITOR
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh pane read -t $EDITOR -n 30
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane read -t $EDITOR
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane read -t $EDITOR -n 30
 ```
 
 - `-t PANE` — target pane (required)
@@ -133,7 +133,7 @@ Read the visible content of a pane.
 List panes in the current window.
 
 ```bash
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh pane list
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane list
 # %42: aim
 # %44: vim
 ```
@@ -143,7 +143,7 @@ List panes in the current window.
 Destroy a pane.
 
 ```bash
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh pane kill -t %44
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane kill -t %44
 ```
 
 - `-t PANE` — pane to kill (required)
@@ -153,7 +153,7 @@ Destroy a pane.
 Resize a pane by pushing its edge in a direction.
 
 ```bash
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh pane resize -t $EDITOR -d left -s 10
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane resize -t $EDITOR -d left -s 10
 ```
 
 - `-t PANE` — pane to resize (required)
@@ -166,7 +166,7 @@ Set the activity label in the status bar. Skills call
 this when starting work so the user sees what's active.
 
 ```bash
-~/.kiro/skills/util/tiling/scripts/run-ttm.sh activity set "cr-review CR-12345"
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh activity set "cr-review CR-12345"
 ```
 
 - `LABEL` — activity description (positional)
@@ -189,7 +189,7 @@ this when starting work so the user sees what's active.
 - You MUST log activation at the start of the first
   workflow step:
   ```bash
-  ~/.kiro/skills/util/skill-analytics/scripts/add-invocation.sh \
+  ~/.kiro/skills/home/skill-analytics/scripts/add-invocation.sh \
     tiling TRIGGER_TYPE:TRIGGER_NAME  # e.g. user:alice, skill:cr-review
   ```
 

@@ -40,14 +40,14 @@ scaffolding templates.
 ## Activation
 
 ```bash
-~/.kiro/skills/util/skill-analytics/scripts/add-invocation.sh \
+~/.kiro/skills/home/skill-analytics/scripts/add-invocation.sh \
   dotfiles TRIGGER_TYPE:TRIGGER_NAME
 ```
 
 ## Invocation
 
 ```bash
-python3 ~/.kiro/skills/util/dotfiles/scripts/dotfiles-<cmd>.py \
+python3 ~/.kiro/skills/home/dotfiles/scripts/dotfiles-<cmd>.py \
   [args]
 ```
 
@@ -72,7 +72,7 @@ All commands are scripts. `review` delegates to
 ### list
 
 ```bash
-python3 ~/.kiro/skills/util/dotfiles/scripts/dotfiles-list.py
+python3 ~/.kiro/skills/home/dotfiles/scripts/dotfiles-list.py
 ```
 
 Shows all targets across all repos with profile
@@ -81,7 +81,7 @@ membership parsed from each repo's `install.sh`.
 ### create
 
 ```bash
-python3 ~/.kiro/skills/util/dotfiles/scripts/dotfiles-create.py \
+python3 ~/.kiro/skills/home/dotfiles/scripts/dotfiles-create.py \
   <name> <repo>
 ```
 
@@ -97,7 +97,7 @@ on the target's purpose.
 ### show
 
 ```bash
-python3 ~/.kiro/skills/util/dotfiles/scripts/dotfiles-show.py \
+python3 ~/.kiro/skills/home/dotfiles/scripts/dotfiles-show.py \
   <target> [repo]
 ```
 
@@ -107,7 +107,7 @@ links, bash config sources/exports, and other actions.
 ### status
 
 ```bash
-python3 ~/.kiro/skills/util/dotfiles/scripts/dotfiles-status.py
+python3 ~/.kiro/skills/home/dotfiles/scripts/dotfiles-status.py
 ```
 
 Shows git status and unpushed commits across all repos.
@@ -115,7 +115,7 @@ Shows git status and unpushed commits across all repos.
 ### search
 
 ```bash
-python3 ~/.kiro/skills/util/dotfiles/scripts/dotfiles-search.py \
+python3 ~/.kiro/skills/home/dotfiles/scripts/dotfiles-search.py \
   <query>
 ```
 
@@ -125,7 +125,7 @@ Case-insensitive substring match.
 ### install
 
 ```bash
-python3 ~/.kiro/skills/util/dotfiles/scripts/dotfiles-install.py \
+python3 ~/.kiro/skills/home/dotfiles/scripts/dotfiles-install.py \
   <target|repo|all> [--profile home|work]
 ```
 
@@ -141,7 +141,7 @@ repo-level `install.sh`.
 ### commit
 
 ```bash
-python3 ~/.kiro/skills/util/dotfiles/scripts/dotfiles-commit.py \
+python3 ~/.kiro/skills/home/dotfiles/scripts/dotfiles-commit.py \
   [repo] [--push]
 ```
 
@@ -158,7 +158,7 @@ sequentially.
 ### review
 
 ```bash
-python3 ~/.kiro/skills/util/dotfiles/scripts/dotfiles-review.py \
+python3 ~/.kiro/skills/home/dotfiles/scripts/dotfiles-review.py \
   <target|all>
 ```
 

@@ -16,10 +16,10 @@ Callers are expected to set `SKILLS=~/.kiro/skills` before invoking.
 Callers log activation once per invocation, then call `render.sh`:
 
 ```bash
-$SKILLS/util/skill-analytics/scripts/add-invocation.sh \
+$SKILLS/home/skill-analytics/scripts/add-invocation.sh \
     template TRIGGER_TYPE:TRIGGER_NAME  # e.g. skill:cr-comments
 
-$SKILLS/util/template/scripts/render.sh \
+$SKILLS/home/template/scripts/render.sh \
     --template <path> [--var k=v ...] [--json-vars <path>]
 ```
 
@@ -42,7 +42,7 @@ Render a jinja2 template with variables supplied via `--var` flags, a
 referenced in the template must be provided.
 
 ```bash
-$SKILLS/util/template/scripts/render.sh \
+$SKILLS/home/template/scripts/render.sh \
     --template path/to/foo.j2 \
     --var name=alice \
     --var out=/tmp/out.json
@@ -51,7 +51,7 @@ $SKILLS/util/template/scripts/render.sh \
 With a JSON vars file:
 
 ```bash
-$SKILLS/util/template/scripts/render.sh \
+$SKILLS/home/template/scripts/render.sh \
     --template path/to/foo.j2 \
     --json-vars /tmp/vars.json
 ```

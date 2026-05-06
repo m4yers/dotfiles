@@ -10,7 +10,7 @@ manual and are listed in the summary as SKIPPED.
 
 Usage:
     python3 skill-lint.py <skill-dir>
-    python3 skill-lint.py ~/.kiro/skills/dev/cr-review
+    python3 skill-lint.py ~/.kiro/skills/<ns>/<skill>
 
 Exit codes:
     0  — all checks passed (may still have warnings)

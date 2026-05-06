@@ -37,7 +37,7 @@ sub-steps.
 
 1. Set tiling activity:
    \`\`\`bash
-   $SKILLS/util/tiling/scripts/run-ttm.sh \
+   $SKILLS/home/tiling/scripts/run-ttm.sh \
      activity set "skill-name(<target>): Setup & Checkout"
    \`\`\`
 2. Detect workspace root.
@@ -47,7 +47,7 @@ sub-steps.
 
 1. Set tiling activity:
    \`\`\`bash
-   $SKILLS/util/tiling/scripts/run-ttm.sh \
+   $SKILLS/home/tiling/scripts/run-ttm.sh \
      activity set "skill-name(<target>): Analysis"
    \`\`\`
 2. Spawn workers for each comment thread.
@@ -103,7 +103,7 @@ section.
   `reporter.sh strikeout` and reload"). Prose invocations hide
   arguments, force the agent to synthesize the command each run,
   and drift from the real CLI. Exception: sibling skills
-  referenced by name (e.g. "build with brazil-build") where the
+  referenced by name (e.g. "build with <build-skill>") where the
   full command is documented in the other skill's SKILL.md.
 
 ## Activity Tracking
@@ -113,21 +113,21 @@ label MUST include the skill's target in parentheses so the user
 can identify what is being worked on:
 
 ```bash
-$SKILLS/util/tiling/scripts/run-ttm.sh \
+$SKILLS/home/tiling/scripts/run-ttm.sh \
   activity set "<skill-name>(<target>): <Step Name>"
 ```
 
 The target is the skill's primary parameter — e.g., the skill
 name being reviewed, the CR number, the cluster ID. Examples:
-- `skill-reviewer(cr-review): Load Skill`
-- `cr-review(DP-23424): Post to Gerrit`
-- `rca(redshift-abc123): Gather Data`
+- `skill-reviewer(<skill>): Load Skill`
+- `cr-review(<CR>): Post comments`
+- `rca(<cluster-id>): Gather Data`
 
 The final step MUST set activity to done when the workflow
 completes:
 
 ```bash
-$SKILLS/util/tiling/scripts/run-ttm.sh \
+$SKILLS/home/tiling/scripts/run-ttm.sh \
   activity set "<skill-name>(<target>): Done"
 ```
 

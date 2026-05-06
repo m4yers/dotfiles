@@ -184,3 +184,93 @@ bash_export_global() {
   local target_config=$(get_target_config)
   echo "export $1=$2" >> $target_config
 }
+
+# ============================================================================
+# Kiro installation helpers
+# ============================================================================
+# The kiro target and any downstream dotfiles-* extensions share ~/.kiro/ but
+# each owns different entries. These helpers support composition: each target
+# manages only its own symlinks, leaving entries owned by other targets
+# untouched.
+#
+# Layout:
+#   ~/.kiro/skills/<ns>/      -> namespace folder symlink (one per repo)
+#   ~/.kiro/steering/<ns>/    -> namespace folder symlink (one per repo)
+#   ~/.kiro/agents/<name>     -> per-file symlinks (flat, required by kiro)
+#   ~/.kiro/settings/<name>   -> per-file symlinks (flat, required by kiro)
+#   ~/.kiro/prompts/<name>    -> per-file symlinks (flat, required by kiro)
+#
+# Skills and steering use folder-namespace symlinks so content added to a
+# source repo appears immediately without re-linking. Agents, settings,
+# and prompts are flat per-file because Kiro expects specific filenames
+# at the top level of those dirs (nesting is not supported for those).
+#
+# All helpers are idempotent. The per-file helper only touches symlinks
+# that point into the given source prefix, so re-running one installer
+# never disturbs entries owned by another target.
+
+# Ensure a path is a real directory. If it is a symlink (e.g. from the
+# legacy whole-directory install), remove the symlink before creating.
+kiro_ensure_real_dir() {
+  local dir=$1
+  if [ -L "$dir" ]; then
+    log "Replacing legacy symlink with real dir: $dir"
+    rm -f "$dir"
+  fi
+  mkdir -p "$dir"
+}
+
+# Remove symlinks in $dest that point into $src_prefix. Leaves real files
+# and symlinks owned by other targets untouched.
+kiro_prune_owned_symlinks() {
+  local dest=$1 src_prefix=$2
+  [ -d "$dest" ] || return 0
+  shopt -s nullglob
+  local entry target
+  for entry in "$dest"/*; do
+    if [ -L "$entry" ]; then
+      target=$(readlink "$entry")
+      if [[ "$target" == "$src_prefix"* ]]; then
+        rm -f "$entry"
+      fi
+    fi
+  done
+  shopt -u nullglob
+}
+
+# Namespace link: $dest/$namespace -> $src (whole directory).
+# Used for skills and steering so both repos can publish entries without
+# colliding, and new content appears without re-linking.
+kiro_link_namespace() {
+  local dest=$1 namespace=$2 src=$3
+  kiro_ensure_real_dir "$dest"
+  local link="$dest/$namespace"
+  if [ -e "$link" ] && [ ! -L "$link" ]; then
+    error "$link exists and is not a symlink — refusing to overwrite"
+    return 1
+  fi
+  ln -sfn "$src" "$link"
+}
+
+# Link every file at the top level of $src into $dest as flat symlinks.
+# Skips hidden files (.DS_Store etc). Prunes stale symlinks owned by this
+# source before relinking so deletions in the source are reflected.
+kiro_link_files_flat() {
+  local dest=$1 src=$2
+  kiro_ensure_real_dir "$dest"
+  kiro_prune_owned_symlinks "$dest" "$src"
+  local f name target
+  shopt -s nullglob
+  for f in "$src"/*; do
+    [ -f "$f" ] || continue
+    name=$(basename "$f")
+    [[ "$name" == .* ]] && continue
+    target="$dest/$name"
+    if [ -e "$target" ] && [ ! -L "$target" ]; then
+      log "SKIP $dest/$name (real file exists)"
+      continue
+    fi
+    ln -sfn "$f" "$target"
+  done
+  shopt -u nullglob
+}

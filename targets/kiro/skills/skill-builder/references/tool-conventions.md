@@ -22,12 +22,12 @@ is one indivisible action. Steps run in order without interruption.
 
 1. Detect workspace root:
    \`\`\`bash
-   eval "$(~/.kiro/skills/dev/brazil-workspace/scripts/detect-workspace.sh)"
+   eval "$(~/.kiro/skills/<ns>/<skill>/scripts/detect-workspace.sh)"
    \`\`\`
-2. Query Gerrit for CR metadata using
-   `~/.kiro/skills/dev/gerrit/scripts/gerrit.py change info --cr <CR>`.
+2. Query upstream service for metadata using
+   `~/.kiro/skills/<ns>/<skill>/scripts/<tool>.py info --id <ID>`.
 3. Build dependency tree by walking parent commits.
-4. Write output to `/tmp/cr-tree.md`.
+4. Write output to `/tmp/tree.md`.
 5. Open in editor pane.
 ```
 

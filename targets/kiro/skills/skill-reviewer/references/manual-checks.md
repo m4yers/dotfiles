@@ -99,10 +99,10 @@ to compare triggers, functionality, and naming.
 |                            | synthesize the command each run, and  |
 |                            | drift from the real CLI. Flag any     |
 |                            | sentence referencing a script by      |
-|                            | name (`gerrit.py ...`, `foo.sh ...`)  |
+|                            | name (`tool.py ...`, `foo.sh ...`)    |
 |                            | outside a code block. Exception:      |
 |                            | sibling skills named by skill name    |
-|                            | (e.g. `build with brazil-build`)      |
+|                            | (e.g. `build with <build-skill>`)     |
 |                            | where the command lives in that       |
 |                            | skill's SKILL.md.                     |
 | Template rendering         | Any text produced from a              |
@@ -110,7 +110,7 @@ to compare triggers, functionality, and naming.
 |                            | prompts, config files, generated      |
 |                            | markdown, report fragments) MUST be   |
 |                            | rendered via                          |
-|                            | `$SKILLS/util/template/scripts/       |
+|                            | `$SKILLS/home/template/scripts/       |
 |                            | render.sh`. Flag skills that vendor   |
 |                            | `jinja2`, import `jinja2` directly    |
 |                            | from a per-skill script, use          |

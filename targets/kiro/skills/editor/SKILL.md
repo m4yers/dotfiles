@@ -9,20 +9,20 @@ description: Editor operations in the tiling EDITOR pane. Use when any skill nee
 Opaque editor for the tiling EDITOR pane. Callers use
 commands without knowing the underlying implementation.
 
-Script: `~/.kiro/skills/util/editor/scripts/editor.py`
+Script: `~/.kiro/skills/home/editor/scripts/editor.py`
 
 Run via:
 ```bash
 uv run --python 3.12 \
-  --project ~/.kiro/skills/util/editor/scripts \
-  python ~/.kiro/skills/util/editor/scripts/editor.py \
+  --project ~/.kiro/skills/home/editor/scripts \
+  python ~/.kiro/skills/home/editor/scripts/editor.py \
   <command> [args]
 ```
 
 
 ## Dependencies
 
-- `~/.kiro/skills/util/tiling/SKILL.md` — pane management
+- `~/.kiro/skills/home/tiling/SKILL.md` — pane management
 
 ## API
 
@@ -42,7 +42,7 @@ Clear all tabs, splits, and buffers. Returns the editor
 to a clean single-buffer state.
 
 ```bash
-~/.kiro/skills/util/editor/scripts/run-editor.sh reset
+~/.kiro/skills/home/editor/scripts/run-editor.sh reset
 ```
 
 ### show diff
@@ -51,8 +51,8 @@ Open a file with a side-by-side diff against a ref
 (branch, tag, or revision like `HEAD`, `HEAD~1`, `rc`).
 
 ```bash
-~/.kiro/skills/util/editor/scripts/run-editor.sh show diff src/main.cpp rc
-~/.kiro/skills/util/editor/scripts/run-editor.sh show diff src/query.cpp HEAD~1
+~/.kiro/skills/home/editor/scripts/run-editor.sh show diff src/main.cpp rc
+~/.kiro/skills/home/editor/scripts/run-editor.sh show diff src/query.cpp HEAD~1
 ```
 
 Each call reuses the tab if the file is already open,
@@ -64,7 +64,7 @@ Open a file in a tab. Reuses existing tab if the file
 is already open.
 
 ```bash
-~/.kiro/skills/util/editor/scripts/run-editor.sh show file src/main.cpp
+~/.kiro/skills/home/editor/scripts/run-editor.sh show file src/main.cpp
 ```
 
 ### show only
@@ -73,7 +73,7 @@ Reset the editor and show a single file. Equivalent to
 `reset` followed by `show file`.
 
 ```bash
-~/.kiro/skills/util/editor/scripts/run-editor.sh show only src/main.cpp
+~/.kiro/skills/home/editor/scripts/run-editor.sh show only src/main.cpp
 ```
 
 ### list tabs
@@ -81,7 +81,7 @@ Reset the editor and show a single file. Equivalent to
 List all open tabs with their splits and file names.
 
 ```bash
-~/.kiro/skills/util/editor/scripts/run-editor.sh list tabs
+~/.kiro/skills/home/editor/scripts/run-editor.sh list tabs
 ```
 
 Returns JSON array of tabs:
@@ -108,7 +108,7 @@ Returns JSON array of tabs:
 - You MUST log activation at the start of the first
   workflow step:
   ```bash
-  ~/.kiro/skills/util/skill-analytics/scripts/add-invocation.sh \
+  ~/.kiro/skills/home/skill-analytics/scripts/add-invocation.sh \
     editor TRIGGER_TYPE:TRIGGER_NAME  # e.g. user:alice, skill:cr-review
   ```
 

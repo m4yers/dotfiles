@@ -8,7 +8,7 @@ Review the skill at {skill_dir} against the rules in
 {reference_path}. Read the reference file and all skill
 files (SKILL.md, references/, scripts/). If the reference
 requires checking other skills (e.g. trigger uniqueness),
-scan ~/.kiro/skills/*/*/SKILL.md frontmatter as needed.
+scan ~/.kiro/skills/**/SKILL.md frontmatter as needed.
 
 Ultrathink about each rule before deciding whether it is
 violated.
