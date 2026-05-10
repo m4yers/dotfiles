@@ -1,2 +1,7 @@
 # Dependencies
 dependencies/
+
+# Python virtualenvs under skills/
+.venv/
+__pycache__/
+*.pyc

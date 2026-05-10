@@ -22,7 +22,7 @@ def main():
     name = sys.argv[1]
     base = Path.home() / ".kiro" / "skills"
 
-    matches = sorted(base.glob(f"**/{name}/SKILL.md"))
+    matches = sorted(base.glob(f"**/{name}/SKILL.md", recurse_symlinks=True))
     if not matches:
         print(f"skill '{name}' not found", file=sys.stderr)
         sys.exit(1)

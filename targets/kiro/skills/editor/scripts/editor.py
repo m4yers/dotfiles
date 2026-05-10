@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 
 # Import tiling manager internals
-sys.path.insert(0, str(Path.home() / ".kiro/skills/tiling/scripts"))
+sys.path.insert(0, str(Path.home() / ".kiro/skills/home/tiling/scripts"))
 import importlib
 tm = importlib.import_module("tmux-tiling-manager")
 

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "items.json (keywords/people/models)",
+  "type": "object",
+  "required": ["items"],
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "action", "rationale"],
+        "properties": {
+          "id":              { "type": "string", "pattern": "^(kw|p|m)-[0-9]+$" },
+          "name":            { "type": "string", "minLength": 1 },
+          "match_existing":  { "type": ["string", "null"] },
+          "action":          { "enum": ["create", "extend"] },
+          "rationale":       { "type": "string", "minLength": 1 },
+          "proposed_frontmatter":       { "type": "object" },
+          "proposed_frontmatter_delta": { "type": "object" },
+          "proposed_section":           { "type": "string" },
+          "proposed_mode":              { "enum": ["append", "replace"] },
+          "proposed_body":              { "type": "string" }
+        },
+        "allOf": [
+          {
+            "if":   { "properties": { "action": { "const": "create" } } },
+            "then": { "required": ["proposed_frontmatter", "proposed_body"] }
+          },
+          {
+            "if":   { "properties": { "action": { "const": "extend" } } },
+            "then": { "required": ["proposed_section", "proposed_mode", "proposed_body"] }
+          }
+        ]
+      }
+    }
+  }
+}

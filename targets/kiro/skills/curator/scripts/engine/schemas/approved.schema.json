@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "approved.json",
+  "type": "object",
+  "required": ["decisions"],
+  "properties": {
+    "workdir": { "type": "string" },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "action"],
+        "properties": {
+          "id":     { "type": "string" },
+          "action": { "enum": ["approve", "edit", "deny", "rename", "redirect"] },
+          "override_body":         { "type": "string" },
+          "override_frontmatter":  { "type": "object" },
+          "override_section":      { "type": "string" },
+          "override_mode":         { "enum": ["append", "replace"] },
+          "override_path":         { "type": "string" },
+          "new_name":              { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "curator-summary",
+  "description": "Summarises a source into a 1-2 paragraph synthesis plus key claims. Part of the curator skill extractor fan-out.",
+  "model": "claude-sonnet-4.5",
+  "prompt": "You are a summariser sub-agent for the curator skill. Read the transient markdown at the path supplied in the user turn, produce a concise 1-2 paragraph synthesis in neutral encyclopedic voice, and extract up to 7 key claims. Write the output as JSON to the specified workdir file per the schema in references/agents.md § summary.json. Constraints: (a) no speculation beyond what the source supports; (b) preserve technical terminology exactly; (c) each key claim must be a complete standalone sentence; (d) do not add citations — the orchestrator wires those later. Return status DONE with the output path when finished.",
+  "tools": [
+    "fs_read",
+    "fs_write"
+  ],
+  "allowedTools": [
+    "fs_read",
+    "fs_write"
+  ],
+  "toolsSettings": {
+    "fs_write": {
+      "allowedPaths": [
+        "/tmp/curator/**"
+      ],
+      "deniedPaths": [],
+      "fallbackAction": "deny"
+    }
+  }
+}
