@@ -1,0 +1,50 @@
+{#- Anatomy for 21 SYNTHESIS/ pages. Read at runtime by the composer
+   sub-agent (via its rendered prompt). Example values (PEFT) are
+   illustrative — the composer copies the structure, not the
+   content. Synthesis pages span ≥ 3 atomic pages; fewer atomics
+   belong inline in the atomic page itself. -#}
+---
+type: synthesis
+topic: parameter-efficient-fine-tuning
+covers:
+  - 12 KEYWORDS/LoRA.md
+  - 12 KEYWORDS/Adapter Modules.md
+  - 12 KEYWORDS/Prefix Tuning.md
+  - 13 PEOPLE/Edward Hu.md
+sources:
+  - 10 SOURCES/Papers/2106.09685 - Hu et al - LoRA.pdf
+  - 10 SOURCES/Papers/1902.00751 - Houlsby - Adapters.pdf
+last_updated: 2026-05-07
+---
+
+# Parameter-Efficient Fine-Tuning
+
+Opening paragraph: the problem class and why it matters.
+Frame the field, not the specific methods.
+
+## Timeline
+
+- 2019 — [[Adapter Modules]] (Houlsby) — insert bottleneck
+  layers. First widely-cited PEFT method.
+- 2021 — [[LoRA]] (Hu et al.) — rank decomposition, no
+  inference overhead.
+- 2021 — [[Prefix Tuning]] — tune prompts, not weights.
+
+## Comparison
+
+| Method    | Trainable params | Inference cost | Source            |
+|-----------|------------------|----------------|-------------------|
+| Adapters  | ~3 %             | Extra forward  | Houlsby 2019      |
+| LoRA      | 0.01 %           | None (merged)  | Hu et al. 2021    |
+| Prefix    | ~0.1 %           | Longer context | Li & Liang 2021   |
+
+## Open questions
+
+Short bullet list of debates or unresolved directions
+across the covered sources. Speculation allowed if
+clearly marked.
+
+## References
+
+- [[10 SOURCES/Papers/2106.09685 - Hu et al - LoRA|Hu et al. 2021]]
+- [[10 SOURCES/Papers/1902.00751 - Houlsby - Adapters|Houlsby et al. 2019]]

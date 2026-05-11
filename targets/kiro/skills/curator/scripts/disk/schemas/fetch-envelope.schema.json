@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "fetch envelope",
+  "description": "Stdout JSON from source.sh fetch. Either the success shape (handler return + origin + workdir) or the failure shape (handler error + origin + workdir).",
+  "type": "object",
+  "required": ["ok", "origin", "workdir"],
+  "properties": {
+    "ok":      { "type": "boolean" },
+    "origin":  { "type": "string", "minLength": 1 },
+    "workdir": { "type": "string", "minLength": 1 }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "ok":           { "const": true },
+        "path":         { "type": "string", "minLength": 1 },
+        "type":         { "enum": ["pdf", "epub", "article", "video", "unknown"] },
+        "content_type": { "enum": ["paper", "book", "article", "lecture", "talk", "podcast", "video", "movie", "audio", "unknown"] },
+        "basename":     { "type": "string", "minLength": 1 },
+        "origin":       {},
+        "workdir":      {}
+      },
+      "required": ["ok", "path", "type", "content_type", "basename"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "ok":     { "const": false },
+        "error":  { "$ref": "#/$defs/error" },
+        "origin": {},
+        "workdir": {}
+      },
+      "required": ["ok", "error"],
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "error": {
+      "type": "object",
+      "required": ["code", "handler", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "NETWORK_TIMEOUT",
+            "NETWORK_HTTP_ERROR",
+            "NETWORK_CONNECT_ERROR",
+            "SOURCE_UNAVAILABLE",
+            "PARSE_ERROR",
+            "UNSUPPORTED_FORMAT",
+            "FILE_NOT_FOUND",
+            "VAULT_ERROR",
+            "EXTERNAL_TOOL_ERROR",
+            "INTERNAL_ERROR"
+          ]
+        },
+        "handler": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 },
+        "details": { "type": "object" }
+      }
+    }
+  }
+}

@@ -11,6 +11,7 @@ depth is supported. If more than one SKILL.md is found with the same
 parent directory name, all candidates are printed to stderr and the
 script exits 2 — the caller must disambiguate.
 """
+import os
 import sys
 from pathlib import Path
 
@@ -22,7 +23,17 @@ def main():
     name = sys.argv[1]
     base = Path.home() / ".kiro" / "skills"
 
-    matches = sorted(base.glob(f"**/{name}/SKILL.md", recurse_symlinks=True))
+    # Walk with followlinks=True so namespace symlinks
+    # (e.g. ~/.kiro/skills/home -> dotfiles/.../skills) are
+    # traversed. Path.glob(recurse_symlinks=True) would do the
+    # same but requires Python 3.13+.
+    matches = []
+    for dirpath, dirnames, _ in os.walk(base, followlinks=True):
+        if os.path.basename(dirpath) == name:
+            skill_md = Path(dirpath) / "SKILL.md"
+            if skill_md.is_file():
+                matches.append(skill_md)
+    matches = sorted(matches)
     if not matches:
         print(f"skill '{name}' not found", file=sys.stderr)
         sys.exit(1)

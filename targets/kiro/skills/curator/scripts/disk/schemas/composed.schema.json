@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "composed.json",
+  "type": "object",
+  "required": ["source", "summary", "proposals", "related_sources"],
+  "additionalProperties": false,
+  "properties": {
+    "source": {
+      "type": "object",
+      "required": ["path", "basename", "type"],
+      "properties": {
+        "path":     { "type": "string" },
+        "basename": { "type": "string" },
+        "type":     { "enum": ["pdf", "epub", "article", "video", "unknown"] }
+      }
+    },
+    "summary": { "type": "string", "minLength": 1 },
+    "proposals": {
+      "type": "object",
+      "required": ["keywords", "people", "models", "synthesis"],
+      "properties": {
+        "keywords":  { "type": "array", "items": { "$ref": "#/$defs/itemWithIssues" } },
+        "people":    { "type": "array", "items": { "$ref": "#/$defs/itemWithIssues" } },
+        "models":    { "type": "array", "items": { "$ref": "#/$defs/itemWithIssues" } },
+        "synthesis": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "path", "action", "rationale", "proposed_frontmatter", "proposed_body"],
+            "properties": {
+              "id":     { "type": "string", "pattern": "^syn-[0-9]+$" },
+              "path":   { "type": "string" },
+              "action": { "enum": ["create", "extend"] },
+              "rationale": { "type": "string" },
+              "proposed_frontmatter": { "type": "object" },
+              "proposed_body": { "type": "string" },
+              "issues": { "type": "array", "items": { "$ref": "#/$defs/issue" } }
+            }
+          }
+        }
+      }
+    },
+    "related_sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "issues": { "type": "array", "items": { "$ref": "#/$defs/issue" } }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "itemWithIssues": {
+      "description": "An extractor items[] entry with an optional issues array copied forward by the composer from the paired judge verdict.",
+      "type": "object",
+      "properties": {
+        "issues": { "type": "array", "items": { "$ref": "#/$defs/issue" } }
+      }
+    },
+    "issue": {
+      "type": "object",
+      "required": ["severity", "category", "message"],
+      "properties": {
+        "severity":        { "enum": ["error", "warning"] },
+        "category":        { "enum": ["unsupported_claim", "citation_missing",
+                                     "citation_mismatch", "tone", "anatomy",
+                                     "naming", "match_existing"] },
+        "location":        { "type": "string" },
+        "message":         { "type": "string", "minLength": 1 },
+        "source_evidence": { "type": "string" }
+      }
+    }
+  }
+}

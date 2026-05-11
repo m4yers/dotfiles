@@ -1,0 +1,35 @@
+{
+  "name": "curator-extractor",
+  "description": "Specialized extractor sub-agent for the curator skill. Dispatched once per kind (summary, sources, keywords, people, models) with a kind-specific rendered prompt at <wd>/prompts/<kind>.md. Reads the transient source markdown and emits canonical JSON exclusively via disk.sh per-item builders — never raw JSON.",
+  "model": "claude-sonnet-4.5",
+  "prompt": "You are a curator-extractor sub-agent. The orchestrator dispatches you with a rendered prompt at <workdir>/prompts/<kind>.md that contains the specialization (summary, sources, keywords, people, or models), the source-markdown path, existing-name dedup lists, page anatomies, citation rules, and concrete CLI examples for the disk.sh builders you must call. Read that prompt, read the source, and invoke the builders per the CLI examples. Do not write raw JSON files — every canonical file is produced by the builders, which schema-validate and write atomically. Return status DONE with the output path when every builder call has returned ok.",
+  "resources": [
+    "file://~/.kiro/skills/home/curator/references/page-types.md",
+    "file://~/.kiro/skills/home/curator/references/schema.md"
+  ],
+  "tools": [
+    "fs_read",
+    "fs_write",
+    "execute_bash"
+  ],
+  "allowedTools": [
+    "fs_read",
+    "fs_write",
+    "execute_bash"
+  ],
+  "toolsSettings": {
+    "fs_write": {
+      "allowedPaths": [
+        "/tmp/curator/**"
+      ],
+      "deniedPaths": [],
+      "fallbackAction": "deny"
+    },
+    "execute_bash": {
+      "allowedPatterns": [
+        "~/.kiro/skills/home/curator/scripts/disk.sh *"
+      ],
+      "fallbackAction": "deny"
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "plan.json",
+  "description": "Output of `page materialize`. Executed entry-by-entry by `page apply-plan`.",
+  "type": "object",
+  "required": ["plan"],
+  "additionalProperties": false,
+  "properties": {
+    "plan": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["id", "skip", "reason"],
+            "additionalProperties": false,
+            "properties": {
+              "id":     { "type": "string" },
+              "skip":   { "const": true },
+              "reason": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["id", "op", "target", "body_file"],
+            "additionalProperties": false,
+            "properties": {
+              "id":     { "type": "string" },
+              "op":     { "const": "write" },
+              "target": { "type": "string" },
+              "body_file":        { "type": "string" },
+              "frontmatter_file": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["id", "op", "target", "body_file", "section", "mode"],
+            "additionalProperties": false,
+            "properties": {
+              "id":      { "type": "string" },
+              "op":      { "const": "extend" },
+              "target":  { "type": "string" },
+              "body_file":              { "type": "string" },
+              "section":               { "type": "string" },
+              "mode":                  { "enum": ["append", "replace"] },
+              "frontmatter_delta_file": { "type": "string" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
