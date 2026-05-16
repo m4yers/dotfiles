@@ -186,6 +186,26 @@ Rules:
   has structured output for inspection AND env vars to
   propagate, split into two modes or two scripts.
 
+## Language Choice
+
+Prefer Python. Use bash only for short shims (environment
+setup, exec, no complex logic). Any script with argument
+parsing, loops over command output, or more than ~10
+non-blank/non-comment code lines should be Python.
+
+skill-lint enforces the threshold: bash scripts with >10
+code lines emit a warning recommending conversion. The
+threshold exists because bash's argument handling,
+quoting, and error propagation become fragile above that
+size, and Python's stdlib covers the same ground with
+fewer footguns.
+
+Common bash-valid patterns:
+- Shim that runs a uv/python command and execs the result
+- Env detection (`detect-workspace.sh`) that prints shell
+  assignments for `eval`
+- Single-line wrapper with `exec`
+
 ## Python Scripts
 
 Two rules based on whether the script has external deps:

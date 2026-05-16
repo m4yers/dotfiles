@@ -215,9 +215,26 @@ defines terminal states. Use these four statuses:
 | Status               | Meaning                              |
 |----------------------|--------------------------------------|
 | `DONE`               | All steps completed, evidence shown  |
-| `DONE_WITH_CONCERNS` | Completed but with caveats listed    |
+| `DONE_WITH_CONCERNS` | Workflow finished but internal       |
+|                      | process issues were hit (retros      |
+|                      | filed) — NOT outcome caveats         |
 | `BLOCKED`            | Cannot proceed, state what blocks    |
 | `NEEDS_CONTEXT`      | Missing info, state what is needed   |
+
+`DONE_WITH_CONCERNS` is strictly for **workflow-level**
+problems that the skill's own logic surfaces: a sub-agent
+returned empty, a verification step was skipped because a
+tool was unavailable, a partial failure was tolerated, or
+similar process degradations that warranted a retro but
+did not stop the workflow.
+
+`DONE_WITH_CONCERNS` is NOT for **outcome-level caveats**
+the user consciously accepted — e.g., "audit passed with
+reviewer overrides", "the user chose to keep a flagged
+finding", "three comments were marked won't-fix". Those
+caveats belong in the normal report under `DONE`, because
+the workflow itself ran cleanly and the user made an
+informed decision.
 
 The section MUST define what DONE means for this specific
 skill. Generic "task completed" is not sufficient — state

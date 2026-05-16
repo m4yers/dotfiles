@@ -59,6 +59,26 @@ None.
 FINDING_RE = re.compile(r"^(\d+)\. \*\*", re.MULTILINE)
 
 
+# Matches a \uXXXX escape that bash passes through verbatim when
+# the caller embedded it in a single-quoted string (bash does not
+# interpret \u inside any quote style). Callers that pass real
+# UTF-8 bytes are unaffected because this regex only matches the
+# literal backslash sequence.
+_U_ESCAPE_RE = re.compile(r"\\u([0-9a-fA-F]{4})")
+
+
+def _decode_unicode_escapes(s):
+    """Decode ``\\uXXXX`` escapes in a positional text argument.
+
+    Safe no-op when the argument already contains raw UTF-8 —
+    only the literal backslash+u+4-hex-digit pattern is replaced.
+    Other escape forms (``\\n``, ``\\t``) are left alone because
+    report text rarely needs them and interpreting them here
+    would conflict with markdown that uses backslash-escaping.
+    """
+    return _U_ESCAPE_RE.sub(lambda m: chr(int(m.group(1), 16)), s)
+
+
 def _renumber(text):
     """Renumber all findings sequentially across sections."""
     n = 0
@@ -85,6 +105,9 @@ def _get_section_range(text, section):
 
 def cmd_create(args):
     path, name, category, typ = args
+    name = _decode_unicode_escapes(name)
+    category = _decode_unicode_escapes(category)
+    typ = _decode_unicode_escapes(typ)
     with open(path, "w") as f:
         f.write(HEADER.format(name=name, category=category, type=typ))
     print(json.dumps({"status": "created", "path": path}))
@@ -92,6 +115,10 @@ def cmd_create(args):
 
 def cmd_finding(severity, args):
     path, title, location, description, fix = args
+    title = _decode_unicode_escapes(title)
+    location = _decode_unicode_escapes(location)
+    description = _decode_unicode_escapes(description)
+    fix = _decode_unicode_escapes(fix)
     section = SECTION_FOR_CMD[severity]
 
     with open(path) as f:

@@ -1,0 +1,29 @@
+type: object
+required: [keywords]
+properties:
+  keywords:
+    type: array
+    items:
+      oneOf:
+        # ── Variant 1: source-grounded ─────────────────
+        # The source defines or explicitly explains the term;
+        # source_quote is required.
+        - type: object
+          additionalProperties: false
+          required: [name, definition, definition_source, source_quote]
+          properties:
+            name:              {type: string}
+            definition:        {type: string}
+            definition_source: {const: source}
+            source_quote:      {type: string}
+
+        # ── Variant 2: agent training knowledge ────────
+        # Source mentions the term but does not define it; agent
+        # uses its own knowledge. No source_quote.
+        - type: object
+          additionalProperties: false
+          required: [name, definition, definition_source]
+          properties:
+            name:              {type: string}
+            definition:        {type: string}
+            definition_source: {const: agent}

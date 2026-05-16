@@ -1,3 +1,5 @@
 {
-  "chat.enableKnowledge": true
+  "mcp.loadedBefore": true,
+  "chat.enableKnowledge": true,
+  "chat.keybindings.cancelStream": "ctrl+x"
 }

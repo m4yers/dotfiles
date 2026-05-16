@@ -1,0 +1,190 @@
+# Quintet — content classification map for curator.
+#
+# Every source ingested by curator is classified by the quintet
+# (media, form, register, discipline, audience). This file declares:
+#
+#   1. Each slot's semantic description.
+#   2. Each value's semantic description.
+#   3. A rule table mapping quintet patterns to extractor kinds.
+#
+# To add a new extractor kind:
+#   - Drop ``templates/<kind>-extractor.j2`` and ``templates/<kind>-judge.j2``.
+#   - Add (or extend) a rule below referencing ``<kind>``.
+#
+# To add a new value to a slot:
+#   - Add it under the appropriate slot's ``values:`` map with a
+#     description; the classifier prompt picks it up automatically.
+#
+# Rules are additive: every rule whose pattern matches a source's
+# quintet contributes its extractor list to the union. The base
+# `(*, *, *, *, *)` rule sets the floor for every source.
+#
+# Wildcards in rule matches are written as `*` and match any value.
+
+slots:
+  media:
+    description: >-
+      The physical or distribution medium delivering the source. What
+      kind of object it is, before any consideration of the content.
+    values:
+      book:    Long-form authored work bound as discrete chapters.
+      paper:   Peer-reviewed or preprint research paper.
+      article: Single-piece web article, blog post, or news story.
+      podcast: Audio recording from an episodic series.
+      video:   Visual recording, typically with audio narration.
+      talk:    Recorded conference talk or presentation.
+      lecture: Recorded class lecture, typically a single instructor.
+      audio:   Standalone audio not part of a podcast (interviews,
+               recordings, audiobooks).
+
+  form:
+    description: >-
+      The narrative or argumentative shape of the source — how it is
+      structured, regardless of medium.
+    values:
+      textbook:    Pedagogical book with chapters, exercises, examples.
+      novel:       Long-form fiction with characters and plot.
+      pop_science: Accessible non-fiction for a general audience.
+      monograph:   Scholarly book, single-author argument on one topic.
+      paperback:   General trade book, neither textbook nor monograph.
+      anthology:   Collection of pieces by multiple authors.
+      research:    Original research paper presenting a contribution.
+      review:      Survey/review paper synthesizing prior work.
+      preprint:    Pre-publication paper (arXiv, biorxiv, etc.).
+      interview:   Conversation between a host and a guest.
+      monologue:   Single speaker addressing the audience.
+      roundtable:  Multi-participant discussion among peers.
+      lecture:     Educational talk by a single instructor.
+      talk:        General presentation (conference/keynote/community).
+      keynote:     Marquee talk at a conference or event.
+      tutorial:    Step-by-step instructional walkthrough.
+      documentary: Long-form factual film or video.
+      news:        Reported news story.
+      opinion:     Op-ed, editorial, or argument piece.
+      blog:        Personal or company blog post.
+
+  register:
+    description: >-
+      The truth status of the source's content — is it factual,
+      imaginative, or reference material?
+    values:
+      fiction:     Imagined narrative; characters and events not real.
+      non_fiction: Factual claims about the real world.
+      reference:   Lookup material (encyclopedias, manuals, glossaries).
+      creative:    Personal essays, memoir, poetry — fact mixed with art.
+
+  discipline:
+    description: >-
+      The field, genre, or domain the source belongs to. Pick the
+      narrowest applicable value.
+    values:
+      math:               Pure mathematics, proofs, theorems.
+      cs:                 Computer science, software, algorithms, AI.
+      physics:            Physics, astronomy, cosmology.
+      biology:            Biology, genetics, ecology, neuroscience.
+      chemistry:          Chemistry and chemical engineering.
+      engineering:        Engineering disciplines other than CS.
+      history:            History, biography, historiography.
+      philosophy:         Philosophy, ethics, logic.
+      economics:          Economics and finance theory.
+      business:           Business, management, marketing, strategy.
+      politics:           Politics, government, policy.
+      psychology:         Psychology, cognitive science, behavior.
+      sociology:          Sociology, anthropology, cultural studies.
+      medicine:           Medicine, clinical practice, public health.
+      law:                Law, jurisprudence, legal practice.
+      self_help:          Self-help, personal development.
+      sci_fi:             Science fiction.
+      fantasy:            Fantasy fiction.
+      mystery:            Mystery, detective, crime fiction.
+      romance:            Romance fiction.
+      thriller:           Thriller and suspense fiction.
+      horror:             Horror fiction.
+      literary:           Literary fiction (general/non-genre).
+      historical_fiction: Fiction set in a specific historical period.
+      literature:         Literary criticism, theory.
+      art:                Visual art, art history, aesthetics.
+      music:              Music, music theory, music history.
+      film:               Film, cinema, film criticism.
+
+  audience:
+    description: >-
+      The intended reader/listener, signalled by language register
+      and prerequisite assumptions.
+    values:
+      academic:     Researchers and graduate-level scholars.
+      professional: Practitioners with field-specific training.
+      general:      Educated lay reader.
+      enthusiast:   Hobbyists with deep interest but informal training.
+      children:     Children and pre-teens.
+
+
+# Rule table — each rule has:
+#   match: [media, form, register, discipline, audience]   # `*` = wildcard
+#   extractors: [<kind>, ...]
+#
+# Order matters only for first-seen ordering of extractors in the
+# resulting union (duplicates are deduped).
+
+rules:
+  # Base — every source.
+  - match: ["*", "*", "*", "*", "*"]
+    extractors: [summary, keywords]
+
+  # Per-media additions.
+  - match: [book,    "*", "*", "*", "*"]
+    extractors: [authors]
+  - match: [paper,   "*", "*", "*", "*"]
+    extractors: [authors, abstract, citations]
+  - match: [podcast, "*", "*", "*", "*"]
+    extractors: [transcript]
+  - match: [video,   "*", "*", "*", "*"]
+    extractors: [transcript]
+  - match: [lecture, "*", "*", "*", "*"]
+    extractors: [transcript, key_points]
+  - match: [talk,    "*", "*", "*", "*"]
+    extractors: [transcript]
+  - match: [article, "*", "*", "*", "*"]
+    extractors: [people]
+
+  # Per-register additions.
+  - match: ["*", "*", non_fiction, "*", "*"]
+    extractors: [topics, models]
+  - match: ["*", "*", fiction,     "*", "*"]
+    extractors: [themes, characters]
+
+  # Per-form additions (books).
+  - match: [book, textbook,    "*", "*", "*"]
+    extractors: [chapters, exercises]
+  - match: [book, novel,       "*", "*", "*"]
+    extractors: [story, setting]
+  - match: [book, monograph,   "*", "*", "*"]
+    extractors: [contributions]
+  - match: [book, pop_science, "*", "*", "*"]
+    extractors: [models, themes]
+
+  # Per-form additions (papers).
+  - match: [paper, research, "*", "*", "*"]
+    extractors: [contributions, methods, results]
+  - match: [paper, review,   "*", "*", "*"]
+    extractors: [contributions]
+
+  # Per-form additions (podcasts / video / talk / article).
+  - match: [podcast, interview,  "*", "*", "*"]
+    extractors: [guests, quotes]
+  - match: [podcast, roundtable, "*", "*", "*"]
+    extractors: [guests, quotes]
+  - match: [video,   lecture,    "*", "*", "*"]
+    extractors: [key_points]
+  - match: [talk,    keynote,    "*", "*", "*"]
+    extractors: [speaker, key_points]
+  - match: [video,   talk,       "*", "*", "*"]
+    extractors: [speaker, key_points]
+  - match: [article, news,       "*", "*", "*"]
+    extractors: [quotes]
+  - match: [article, tutorial,   "*", cs,  "*"]
+    extractors: [code_examples]
+
+  # Per-audience additions.
+  - match: ["*", "*", "*", "*", academic]
+    extractors: [citations]

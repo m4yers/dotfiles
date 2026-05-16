@@ -59,6 +59,7 @@ Checks performed (from the Step 2 table):
     ✓ Bash script length        — bash scripts >10 code lines → convert to Python
     ✓ Script invocation params  — code block invocations pass all required args
     ✓ $SKILLS usage             — script invocations use $SKILLS, not ~/.kiro/skills
+    ✓ Skill path resolution     — $SKILLS/... and ~/.kiro/skills/... references in code blocks resolve on disk
 
 Checks skipped (require semantic judgment):
     ✗ Trigger phrase uniqueness
@@ -77,6 +78,7 @@ Checks skipped (require semantic judgment):
 
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import List, Tuple
@@ -980,6 +982,137 @@ def check_skills_var_usage(
     return findings
 
 
+# Matches skill path references: $SKILLS/..., ~/.kiro/skills/...,
+# or $HOME/.kiro/skills/... — optionally followed by a path tail.
+# The tail allows alphanumerics, /, -, _, and .
+_SKILL_PATH_RE = re.compile(
+    r'(?:\$SKILLS|\$HOME/\.kiro/skills|~/\.kiro/skills)'
+    r'(?:/[\w./-]+)?'
+)
+
+_SKILLS_ROOT = Path.home() / ".kiro" / "skills"
+
+
+def _expand_skill_path(ref: str) -> Path:
+    """Expand a skill path reference to an absolute Path."""
+    for prefix in ("$SKILLS", "$HOME/.kiro/skills", "~/.kiro/skills"):
+        if ref.startswith(prefix):
+            suffix = ref[len(prefix):].lstrip("/")
+            return _SKILLS_ROOT / suffix if suffix else _SKILLS_ROOT
+    return Path(ref)
+
+
+def _is_placeholder(path: str) -> bool:
+    """True if the path contains placeholder markers rather than a
+    concrete filesystem location."""
+    for token in ("<", ">", "{", "}", "*", "...", "example"):
+        if token in path:
+            return True
+    return False
+
+
+def check_skill_path_resolution(
+    lines: List[str], filename: str,
+) -> List[Finding]:
+    """Flag $SKILLS/..., ~/.kiro/skills/..., and
+    $HOME/.kiro/skills/... references inside code blocks that do
+    not resolve to a real file or directory on disk.
+
+    Catches stale cross-skill references like
+    ``$SKILLS/util/template/...`` when the actual layout is
+    ``$SKILLS/home/template/...``. Placeholder forms
+    (``<name>``, ``{foo}``, ``*``, ``...``, ``example``) are
+    skipped because they are intentional templates.
+    """
+    findings = []
+    in_code = False
+
+    for i, line in enumerate(lines):
+        if line.strip().startswith("```"):
+            in_code = not in_code
+            continue
+        if not in_code:
+            continue
+
+        for m in _SKILL_PATH_RE.finditer(line):
+            ref = m.group(0)
+            # If the match is immediately followed by a placeholder
+            # marker (<foo>, {bar}, *), the full path is a template
+            # that the regex truncated — skip.
+            end = m.end()
+            if end < len(line) and line[end] in "<{*":
+                continue
+            # Strip trailing punctuation that syntactically ends
+            # a sentence/list item but isn't part of the path.
+            ref = ref.rstrip(".,;:)\"'`")
+            if _is_placeholder(ref):
+                continue
+            # Root-only references always resolve.
+            if ref.rstrip("/") in (
+                "$SKILLS", "~/.kiro/skills",
+                "$HOME/.kiro/skills",
+            ):
+                continue
+            resolved = _expand_skill_path(ref)
+            if not resolved.exists():
+                findings.append(
+                    (ERROR, filename, i + 1,
+                     f"skill path '{ref}' does not resolve "
+                     f"(expected at {resolved})")
+                )
+    return findings
+
+
+def check_unescaped_angle_brackets(
+    lines: List[str], filename: str,
+) -> List[Finding]:
+    """Flag prose lines containing unescaped ``<`` or ``>`` that
+    mdformat would escape as ``\\<`` / ``\\>``.
+
+    Strict CommonMark parsers can read ``< `` as the start of an
+    HTML tag, corrupting rendering. Shells out to ``mdformat
+    --wrap keep`` and inspects the diff. Only reports lines where
+    mdformat specifically introduced a backslash-escape in front
+    of ``<`` or ``>`` — other formatting diffs (wrapping, list
+    numbering) are ignored because skill-lint has its own checks
+    for those.
+
+    Silently skips if ``mdformat`` is not installed.
+    """
+    findings = []
+    try:
+        r = subprocess.run(
+            ["mdformat", "--wrap", "keep", "-"],
+            input="\n".join(lines) + "\n",
+            capture_output=True, text=True, timeout=10,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return findings
+    if r.returncode != 0:
+        return findings
+    formatted = r.stdout.splitlines()
+    if formatted == lines:
+        return findings
+    import difflib
+    matcher = difflib.SequenceMatcher(None, lines, formatted)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            continue
+        for oi, ni in zip(range(i1, i2), range(j1, j2)):
+            orig = lines[oi] if oi < len(lines) else ""
+            new = formatted[ni] if ni < len(formatted) else ""
+            orig_esc = orig.count("\\<") + orig.count("\\>")
+            new_esc = new.count("\\<") + new.count("\\>")
+            if new_esc > orig_esc:
+                findings.append(
+                    (WARN, filename, oi + 1,
+                     "unescaped '<' or '>' in prose — "
+                     "wrap in backticks or escape as "
+                     "'\\<' / '\\>' (mdformat would rewrite)")
+                )
+    return findings
+
+
 def check_script_invocations(
     lines: List[str], skill_dir: Path,
 ) -> List[Finding]:
@@ -1202,6 +1335,8 @@ def lint_skill(skill_dir: Path) -> List[Finding]:
     findings.extend(check_analytics_logging(lines))
     findings.extend(check_script_invocations(lines, skill_dir))
     findings.extend(check_skills_var_usage(lines, "SKILL.md"))
+    findings.extend(check_skill_path_resolution(lines, "SKILL.md"))
+    findings.extend(check_unescaped_angle_brackets(lines, "SKILL.md"))
 
     # --- Type-specific structure ---
     headings = get_headings(lines)
@@ -1258,6 +1393,15 @@ def lint_skill(skill_dir: Path) -> List[Finding]:
                 )
                 findings.extend(
                     check_skills_var_usage(ref_lines, ref_name)
+                )
+                findings.extend(
+                    check_skill_path_resolution(ref_lines, ref_name)
+                )
+                findings.extend(
+                    check_unescaped_angle_brackets(ref_lines, ref_name)
+                )
+                findings.extend(
+                    check_unescaped_angle_brackets(ref_lines, ref_name)
                 )
 
         # Reachability: every references/*.md file MUST

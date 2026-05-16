@@ -20,6 +20,7 @@ Plug 'tomtom/tcomment_vim'
 Plug 'NLKNguyen/papercolor-theme'
 Plug 'catppuccin/vim', { 'as': 'catppuccin' }
 Plug 'chrisbra/Colorizer'
+Plug 'glench/vim-jinja2-syntax'
 
 " Vim-markdown {{{
 Plug 'godlygeek/tabular'

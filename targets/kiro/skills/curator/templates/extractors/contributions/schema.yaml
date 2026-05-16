@@ -1,0 +1,23 @@
+type: object
+required:
+- contributions
+properties:
+  contributions:
+    type: array
+    items:
+      type: object
+      required:
+      - claim
+      - evidence
+      - source_quote
+      properties:
+        claim:
+          type: string
+        evidence:
+          type:
+          - string
+          - 'null'
+        source_quote:
+          type:
+          - string
+          - 'null'

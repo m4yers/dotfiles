@@ -117,10 +117,22 @@ On completion: proceed to Step 3.
    to skill directories) for every sub-agent.
    The template is the same for all; only the reference
    path differs.
-4. Collect sub-agent results. Deduplicate violations that
-   appear in multiple results. Match on file:line and
-   message similarity. Do not revisit deduplication
-   decisions.
+4. Collect sub-agent results. Each sub-agent returns
+   exactly one of: a violations list, `NO_FINDINGS`, or
+   `ERROR: <reason>`. For each sub-agent whose output
+   begins with `ERROR:` (or is empty/malformed):
+   a. Retry once with the same query.
+   b. If the retry also returns `ERROR:` (or empty),
+      fall back to an inline check: read the reference
+      file yourself and walk the skill against each rule.
+      Mark any findings produced via fallback with
+      `(fallback)` in the description so downstream
+      reviewers know the sub-agent dispatch failed.
+   Sub-agents that returned a violations list or
+   `NO_FINDINGS` are terminal — do NOT retry them.
+5. Deduplicate violations that appear in multiple
+   results. Match on file:line and message similarity.
+   Do not revisit deduplication decisions.
 
 On completion: proceed to Step 4.
 

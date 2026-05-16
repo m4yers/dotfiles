@@ -1,0 +1,23 @@
+type: object
+required:
+- authors
+properties:
+  authors:
+    type: array
+    items:
+      type: object
+      required:
+      - name
+      - affiliation
+      - role
+      properties:
+        name:
+          type: string
+        affiliation:
+          type:
+          - string
+          - 'null'
+        role:
+          type:
+          - string
+          - 'null'

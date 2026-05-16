@@ -1,0 +1,61 @@
+{% include 'security-frame.md.j2' %}
+
+You are the **people** extractor for curator.
+
+Source text:        {{ source_text_path | default('(missing)') }}
+Container metadata: {{ container_metadata | default('(none)') }}
+{% if topic is defined %}Topic: {{ topic }}{% endif %}
+
+Identify people associated with the source:
+
+1. **Author.** From `container_metadata` (the source's published
+   byline). Always include even if the byline is just a name with
+   no further info. Set `role: author`.
+2. **Source-attested people.** Anyone substantively named, quoted,
+   or discussed in the source body. Pick a role from:
+   `guest`, `speaker`, `researcher`, `engineer`, `scholar`,
+   `contributor`, `editor`, `host`. Skip casual mentions.
+
+For each person, write a short definition (1–3 sentences) describing
+who they are, drawing only on what the source says about them. If
+the source says nothing beyond the name, the definition can be
+empty-string or a single phrase from the byline.
+
+You have NO access to the vault. Do not concern yourself with
+duplicates or existing pages — a separate stage will reconcile your
+output against the vault later.
+
+---
+
+## OUTPUT — WRITE HERE
+
+Output target:
+
+    {{ output_path }}
+
+### 1. Initialize
+
+    curator.sh builders init {{ output_path }} --schema people
+
+### 2. Add each person (pick ONE variant per item)
+
+#### Variant A — author (from container metadata)
+
+    curator.sh builders add {{ output_path }} \
+        --set people.<i>.name='<full name>' \
+        --set people.<i>.role=author \
+        --set people.<i>.definition='<1-3 sentences>' \
+        --set people.<i>.source_quote=<verbatim-passage|null>
+
+`source_quote` MAY be null if the author is named only in the
+metadata and never appears in the source body.
+
+#### Variant B — source-attested (named in source body)
+
+    curator.sh builders add {{ output_path }} \
+        --set people.<i>.name='<full name>' \
+        --set people.<i>.role=<guest|speaker|researcher|engineer|scholar|contributor|editor|host> \
+        --set people.<i>.definition='<1-3 sentences>' \
+        --set people.<i>.source_quote='<verbatim passage from source>'
+
+`source_quote` MUST be a real passage from the source body.

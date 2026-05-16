@@ -1,0 +1,62 @@
+{% include 'security-frame.md.j2' %}
+
+You are the **classifier** for curator.
+
+Source text:        {{ source_text_path | default('(missing)') }}
+Container metadata: {{ container_metadata | default('(none)') }}
+
+Read the source. Produce two pieces of metadata:
+
+1. **Quintet** — five orthogonal slots driving Stage 2 extractor
+   selection. Pick exactly one value per slot from the vocabularies
+   below.
+2. **Topic** — a 3-12 word descriptor of the source's primary subject
+   matter, used as a steering hint for downstream extractors.
+
+## Slot vocabularies
+
+{% for slot_name, slot in slots.items() %}
+### {{ slot_name }} — {{ slot.description }}
+
+{% for value, desc in slot["values"].items() %}
+- **{{ value }}** — {{ desc }}
+{% endfor %}
+
+{% endfor %}
+
+## Rules
+
+- Pick exactly one value per slot. No multi-valued slots.
+- The source content is your only ground truth. Never invoke model
+  priors or external knowledge about the topic.
+- When a slot is ambiguous, pick the more conservative value.
+- Cite source evidence in `reasoning` (quote a phrase, mention a
+  section heading, etc.).
+
+---
+
+## OUTPUT — WRITE HERE
+
+Write the classification by invoking ``curator.sh builders`` via
+execute_bash. Output target:
+
+    {{ output_path }}
+
+DO NOT use ``fs_write`` directly.
+
+### 1. Initialize
+
+    curator.sh builders init {{ output_path }} --schema classify
+
+### 2. Set every required field in one call
+
+    curator.sh builders add {{ output_path }} \
+        --set quintet.media=<media> \
+        --set quintet.form=<form> \
+        --set quintet.register=<register> \
+        --set quintet.discipline=<discipline> \
+        --set quintet.audience=<audience> \
+        --set topic='<3-12 word descriptor>' \
+        --set reasoning='<2-4 sentences citing source evidence>'
+
+All seven fields are required.

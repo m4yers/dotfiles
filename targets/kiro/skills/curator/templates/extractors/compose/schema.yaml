@@ -1,0 +1,230 @@
+type: object
+required:
+- quintet
+- topic
+- summary
+- keywords
+- people
+- models
+- topics
+- synthesis_pages
+- related_sources
+- issues
+- failed_kinds
+properties:
+  quintet:
+    type: object
+    required:
+    - media
+    - form
+    - register
+    - discipline
+    - audience
+    properties:
+      media:
+        type: string
+      form:
+        type: string
+      register:
+        type: string
+      discipline:
+        type: string
+      audience:
+        type: string
+  topic:
+    type: string
+  summary:
+    type: string
+    minLength: 100
+  keywords:
+    type: array
+    items:
+      type: object
+      required:
+      - name
+      - definition
+      - definition_source
+      - source_quote
+      - match_existing
+      properties:
+        name:
+          type: string
+        definition:
+          type: string
+        definition_source:
+          type: string
+          enum:
+          - source
+          - agent
+          - vault
+        source_quote:
+          type:
+          - string
+          - 'null'
+        match_existing:
+          type:
+          - string
+          - 'null'
+  people:
+    type: array
+    items:
+      type: object
+      required:
+      - name
+      - role
+      - definition
+      - match_existing
+      properties:
+        name:
+          type: string
+        role:
+          type:
+          - string
+          - 'null'
+        definition:
+          type: string
+        match_existing:
+          type:
+          - string
+          - 'null'
+  models:
+    type: array
+    items:
+      type: object
+      required:
+      - name
+      - definition
+      - applicability
+      - match_existing
+      properties:
+        name:
+          type: string
+        definition:
+          type: string
+        applicability:
+          type: string
+          description: Where this model can be applied beyond the source.
+        match_existing:
+          type:
+          - string
+          - 'null'
+  topics:
+    type: array
+    items:
+      type: object
+      required:
+      - name
+      - relevance
+      - summary
+      - match_existing
+      properties:
+        name:
+          type: string
+        relevance:
+          type:
+          - string
+          - 'null'
+          enum:
+          - primary
+          - secondary
+        summary:
+          type: string
+        match_existing:
+          type:
+          - string
+          - 'null'
+  synthesis_pages:
+    description: >-
+      One or two wiki-style synthesis pages capturing the source's
+      most important conceptual hubs. Composer is expected to MERGE
+      overlapping themes rather than producing one page per cluster.
+    type: array
+    minItems: 0
+    maxItems: 2
+    items:
+      type: object
+      required:
+      - title
+      - folder
+      - rationale
+      - connected_atomics
+      - included_atomics
+      - ascii_diagram
+      - body
+      properties:
+        title:
+          type: string
+        folder:
+          type:
+          - string
+          - 'null'
+        rationale:
+          type: string
+        connected_atomics:
+          description: >-
+            Atomics that remain as their OWN vault pages and are
+            linked from this synthesis page via wikilinks. Use for
+            substantive concepts that warrant a standalone page.
+            Combined with included_atomics, the union MUST be ≥3 —
+            otherwise the cluster is too thin to warrant a hub.
+          type: array
+          items:
+            type: string
+          minItems: 0
+        included_atomics:
+          description: >-
+            Atomics whose content was folded directly INTO this
+            synthesis page's body. Use for short concepts whose
+            definition fits inline (1–2 sentences) and would be
+            redundant as standalone pages. The materialize step
+            should NOT create separate vault pages for these.
+          type: array
+          items:
+            type: string
+          minItems: 0
+        ascii_diagram:
+          description: >-
+            A multi-line ASCII diagram that visually illustrates the
+            *concept* this synthesis hub captures — not a generic
+            "box → arrows → atomic-list" template. Must depict the
+            actual structure of the idea (data flow, control flow,
+            classification tree, opposing forces, etc.). Min 4 lines.
+          type: string
+          minLength: 80
+        body:
+          description: >-
+            Wiki-style markdown content for the synthesis page.
+            Becomes the file body in the vault when materialized.
+            MUST contain multiple `##` sections (Overview, Key
+            Concepts, Worked Examples, Discussion, See Also, etc.),
+            integrate the included_atomics inline as prose with
+            their definitions, link the connected_atomics via
+            `[[wikilink]]`, and embed the ascii_diagram. Min 800
+            chars — short bullet-list summaries are not synthesis.
+          type: string
+          minLength: 800
+  related_sources:
+    type: array
+    items:
+      type: object
+      required:
+      - title
+      - folder
+      - match_existing
+      properties:
+        title:
+          type: string
+        folder:
+          type:
+          - string
+          - 'null'
+        match_existing:
+          type:
+          - string
+          - 'null'
+  issues:
+    type: array
+  failed_kinds:
+    type: array
+    items:
+      type: string

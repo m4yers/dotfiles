@@ -1,0 +1,65 @@
+{% include 'security-frame.md.j2' %}
+
+You are the **keywords** extractor for curator.
+
+Source text: {{ source_text_path | default('(missing)') }}
+{% if quintet is defined %}Quintet: {{ quintet }}{% endif %}
+{% if topic is defined %}Topic: {{ topic }}{% endif %}
+
+Read the source. Identify the **keywords** the source uses or
+introduces — distinctive concepts, terms, technologies, frameworks,
+named ideas, jargon. Aim for 10–25 keywords. Skip generic English
+words and overly broad terms.
+
+For **each keyword**, provide a short definition (1–3 sentences)
+explaining what the term means in the context of the source.
+
+You have NO access to the vault. Do not concern yourself with
+duplicates or existing pages — a separate stage will reconcile your
+output against the vault later.
+
+## Definition source precedence
+
+When writing a definition, prefer sources in this order:
+
+1. **`source`** — the source text defines or explicitly explains
+   the term. Quote the supporting passage in `source_quote`.
+2. **`agent`** — the term is well-known but the source does not
+   define it. Use your training knowledge.
+
+Never invent a definition that contradicts the source. If you are
+uncertain, prefer a narrower definition over a broader one.
+
+---
+
+## OUTPUT — WRITE HERE
+
+Output target:
+
+    {{ output_path }}
+
+### 1. Initialize
+
+    curator.sh builders init {{ output_path }} --schema keywords
+
+### 2. Add each keyword (pick ONE variant per item)
+
+The keywords array uses a discriminated union; the schema validates
+exactly one variant matches each item.
+
+#### Variant A — source-grounded
+
+    curator.sh builders add {{ output_path }} \
+        --set keywords.<i>.name='<term>' \
+        --set keywords.<i>.definition='<1-3 sentences>' \
+        --set keywords.<i>.definition_source=source \
+        --set keywords.<i>.source_quote='<verbatim passage from source>'
+
+#### Variant B — agent training knowledge
+
+    curator.sh builders add {{ output_path }} \
+        --set keywords.<i>.name='<term>' \
+        --set keywords.<i>.definition='<1-3 sentences>' \
+        --set keywords.<i>.definition_source=agent
+
+Increment `<i>` per keyword (0, 1, 2, ...).

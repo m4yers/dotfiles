@@ -1,0 +1,48 @@
+{% include 'security-frame.md.j2' %}
+
+You are the **classify judge** for curator.
+
+Source text:       {{ source_text_path | default('(missing)') }}
+Classifier output: {{ output_path | default('(missing)') }}
+
+Read the source. Read the classifier's output (contains both
+`quintet:` and `topic:`).
+
+## Slot vocabularies
+
+The classifier picked one value per slot from the vocabularies below.
+Use these descriptions to verify the picks are appropriate.
+
+{% for slot_name, slot in slots.items() %}
+### {{ slot_name }} — {{ slot.description }}
+
+{% for value, desc in slot["values"].items() %}
+- **{{ value }}** — {{ desc }}
+{% endfor %}
+
+{% endfor %}
+
+## Validate the quintet
+
+1. All five slots are present: media, form, register, discipline,
+   audience.
+2. Each slot value is in its vocabulary (above).
+3. Each value is supported by source evidence — quote a passage that
+   justifies the choice when checking.
+4. Slot consistency: register=`fiction` should not coexist with
+   discipline=`math`; audience=`children` should not coexist with
+   form=`research`. Flag inconsistencies.
+
+## Validate the topic
+
+5. The descriptor reflects the source's actual content — not a
+   guess from title or filename.
+6. Specificity is appropriate: too broad (`Mathematics`) → REJECT;
+   too narrow (single chapter when source is a whole book) → REJECT.
+7. Length is 3-12 words. Single word or full sentences → REJECT.
+8. If the source covers multiple distinct topics, the chosen topic
+   should be the dominant one.
+
+NEVER invoke model priors. If source contradicts a value, REJECT.
+
+{% include 'extractors/judge/output.md.j2' %}

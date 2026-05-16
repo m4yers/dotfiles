@@ -1,0 +1,59 @@
+{% include 'security-frame.md.j2' %}
+
+You are the **models** extractor for curator.
+
+Source text: {{ source_text_path | default('(missing)') }}
+{% if topic is defined %}Topic: {{ topic }}{% endif %}
+
+Identify **abstract mental models** that the source surfaces —
+transferable patterns, principles, frameworks, or tradeoffs that
+apply beyond the source's specific domain.
+
+A model is NOT:
+- A specific tool, library, or product (those are keywords)
+- A topic the source discusses (those are topics)
+- A person or named project (those are people / sources)
+
+A model IS:
+- A pattern: "defense-in-depth pattern"
+- A principle: "just-in-time guidance principle"
+- A tradeoff: "flexibility-control tradeoff"
+- An abstraction the source uses or invents that you could apply
+  to other unrelated problems
+
+Aim for 3–8 models. Skip any that are obvious or trivial.
+
+You have NO access to the vault. Do not concern yourself with
+duplicates or existing pages — a separate stage will reconcile your
+output against the vault later.
+
+For each model:
+
+- `name`: 2–6 words. Capitalized as a heading. Often ends with
+  `pattern`, `principle`, `tradeoff`, or `model`.
+- `definition`: 1–3 sentences explaining the abstract pattern.
+- `applicability`: 1–2 sentences on where else this could apply.
+- `source_quote`: a verbatim passage from the source that the
+  model is grounded in.
+
+---
+
+## OUTPUT — WRITE HERE
+
+Output target:
+
+    {{ output_path }}
+
+### 1. Initialize
+
+    curator.sh builders init {{ output_path }} --schema models
+
+### 2. Add each model
+
+    curator.sh builders add {{ output_path }} \
+        --set models.<i>.name='<2-6 word model name>' \
+        --set models.<i>.definition='<1-3 sentences>' \
+        --set models.<i>.applicability='<1-2 sentences>' \
+        --set models.<i>.source_quote='<verbatim passage>'
+
+All four fields are required.

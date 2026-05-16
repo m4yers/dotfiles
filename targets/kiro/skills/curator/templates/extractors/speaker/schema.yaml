@@ -1,0 +1,23 @@
+type: object
+required:
+- speaker
+properties:
+  speaker:
+    type:
+    - object
+    - 'null'
+    required:
+    - name
+    - bio
+    - affiliation
+    properties:
+      name:
+        type: string
+      bio:
+        type:
+        - string
+        - 'null'
+      affiliation:
+        type:
+        - string
+        - 'null'

@@ -1,0 +1,28 @@
+type: object
+required:
+- guests
+properties:
+  guests:
+    type: array
+    items:
+      type: object
+      required:
+      - name
+      - role
+      - affiliation
+      - source_quote
+      properties:
+        name:
+          type: string
+        role:
+          type:
+          - string
+          - 'null'
+        affiliation:
+          type:
+          - string
+          - 'null'
+        source_quote:
+          type:
+          - string
+          - 'null'

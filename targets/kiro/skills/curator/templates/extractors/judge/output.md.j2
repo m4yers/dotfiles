@@ -1,0 +1,120 @@
+---
+
+## OUTPUT — WRITE VERDICT WITH PER-ITEM RUBRIC
+
+You MUST score the upstream output with a rubric applied **per item**,
+not just per output. Every keyword, person, model, topic, citation,
+synthesis page (etc.) gets its own `item_verdict` with per-dimension
+scores. Whole-output dimensions (e.g. deduplication, count) are
+emitted as item_verdicts with `target=null`.
+
+### Step 1 — declare your rubric in `_rubric`
+
+For every numbered verification criterion in the section above, add a
+`_rubric` entry. Use the bold header (snake_case) as the key and
+copy a short description of the criterion as the value. Example:
+
+    _rubric:
+      relevance:    "Item is a distinctive concept the source uses or introduces."
+      no_fabrication: "No claims that aren't backed by source evidence."
+
+This block is consumed by downstream tasks so they understand the
+scoring axes without re-reading your prompt.
+
+### Step 2 — score every item
+
+Walk the upstream output:
+
+- For list-shaped outputs (keywords, people, models, topics,
+  citations, synthesis_pages, etc.): emit ONE `item_verdict` per
+  item, with `target=<item.name>` matching the upstream name
+  verbatim. Score every applicable rubric dimension on that item.
+
+- For single-object outputs (classify's quintet, summary's text):
+  emit ONE `item_verdict` with `target=null`, scoring every rubric
+  dimension on the whole output.
+
+- Per-output dimensions (e.g. `deduplication`, `count`,
+  `failed_kinds_correctness`): emit additional `target=null`
+  entries scoring just those dimensions.
+
+For each `item_verdict`:
+
+- `verdict` — derive from this item's scores: any `FAIL` → REJECT,
+  otherwise any `REVIEW` → REVIEW, otherwise ACCEPT.
+- `scores` — `{<dimension>: PASS|REVIEW|FAIL}`. Keys MUST be names
+  declared in `_rubric`.
+- `rationale` — cite concrete evidence (quoted source passage,
+  named field). Do not score by gut.
+
+### Step 3 — derive the overall verdict
+
+The top-level `verdict` follows from `item_verdicts`:
+
+| Worst per-item verdict          | Overall |
+|---------------------------------|---------|
+| Any entry with `verdict=REJECT` | REJECT  |
+| Else any `verdict=REVIEW`       | REVIEW  |
+| All `verdict=ACCEPT`            | ACCEPT  |
+
+Inconsistency between item_verdicts and the overall verdict is a
+malformed verdict.
+
+### Step 4 — write the `reasoning` field
+
+A one-paragraph (≥30 char) summary naming the item_verdicts that
+drove the overall verdict. Example: "Per-item: 'Emil Stenström'
+verdict=REJECT (no_fabrication FAIL — name not in source body)
+drives overall REJECT; remaining people ACCEPT."
+
+### Build the verdict file
+
+The verdict output target is:
+
+    {{ verdict_path }}
+
+The agent output you are judging lives at:
+
+    {{ output_path }}
+
+DO NOT use ``fs_write`` to write the verdict file directly.
+
+#### 1. Initialize
+
+    curator.sh builders init {{ verdict_path }} --schema judge
+
+#### 2. Set ALL required fields in a single ``add`` call
+
+The schema requires `_rubric` (≥1 dimension), `verdict`, `reasoning`,
+and `item_verdicts` (≥1 entry). Validation runs after each ``add``,
+so a partial add will be rejected. Bundle every rubric definition,
+the top-level fields, AND your item_verdicts into one ``add``:
+
+    curator.sh builders add {{ verdict_path }} \
+        --set _rubric.<dim_a>='<description>' \
+        --set _rubric.<dim_b>='<description>' \
+        --set _rubric.<dim_c>='<description>' \
+        --set verdict=<ACCEPT|REVIEW|REJECT> \
+        --set reasoning='<≥30-char summary citing item_verdicts>' \
+        --set item_verdicts.0.target='<item-name-or-null>' \
+        --set item_verdicts.0.verdict=<ACCEPT|REVIEW|REJECT> \
+        --set item_verdicts.0.scores.<dim_a>=<PASS|REVIEW|FAIL> \
+        --set item_verdicts.0.scores.<dim_b>=<PASS|REVIEW|FAIL> \
+        --set item_verdicts.0.rationale='<evidence-cited explanation>' \
+        --set item_verdicts.1.target='<next-item>' \
+        --set item_verdicts.1.verdict=<ACCEPT|REVIEW|REJECT> \
+        --set item_verdicts.1.scores.<dim_a>=<PASS|REVIEW|FAIL> \
+        --set item_verdicts.1.scores.<dim_b>=<PASS|REVIEW|FAIL> \
+        --set item_verdicts.1.rationale='<...>' \
+        # ... repeat for every item
+
+For target=null, set the literal `null`:
+
+    --set item_verdicts.<i>.target=null
+
+For long item lists you may split into multiple ``add`` calls AFTER
+the first call has satisfied all required fields — each subsequent
+call appends additional item_verdicts indices.
+
+For an all-PASS rubric, the `issues` array stays empty. Use it only
+for auxiliary signals that don't fit per-item.

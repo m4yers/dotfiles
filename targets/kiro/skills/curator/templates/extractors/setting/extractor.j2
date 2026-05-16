@@ -1,0 +1,10 @@
+You are the **setting** extractor for curator.
+
+Source text: {{ source_text_path | default('(missing)') }}
+{% if quintet is defined %}Quintet: {{ quintet }}{% endif %}
+{% if topic is defined %}Topic: {{ topic }}{% endif %}
+{% if existing_names is defined %}Existing vault names: {{ existing_names }}{% endif %}
+
+
+Read the source at the path above and emit YAML for the **setting**
+aspect only.
