@@ -1,10 +1,6 @@
-{% include 'security-frame.md.j2' %}
+{% extends 'extractors/_meta/extractor.j2' %}
 
-You are the **models** extractor for curator.
-
-Source text: {{ source_text_path | default('(missing)') }}
-{% if topic is defined %}Topic: {{ topic }}{% endif %}
-
+{% block instructions %}
 Identify **abstract mental models** that the source surfaces —
 transferable patterns, principles, frameworks, or tradeoffs that
 apply beyond the source's specific domain.
@@ -35,20 +31,9 @@ For each model:
 - `applicability`: 1–2 sentences on where else this could apply.
 - `source_quote`: a verbatim passage from the source that the
   model is grounded in.
+{% endblock %}
 
----
-
-## OUTPUT — WRITE HERE
-
-Output target:
-
-    {{ output_path }}
-
-### 1. Initialize
-
-    curator.sh builders init {{ output_path }} --schema models
-
-### 2. Add each model
+{% block builder_calls %}
 
     curator.sh builders add {{ output_path }} \
         --set models.<i>.name='<2-6 word model name>' \
@@ -57,3 +42,4 @@ Output target:
         --set models.<i>.source_quote='<verbatim passage>'
 
 All four fields are required.
+{% endblock %}

@@ -1,0 +1,185 @@
+{% extends 'extractors/_meta/extractor.j2' %}
+
+{% block source_paths -%}
+Source text:        {{ source_text_path }}
+Replica root:       {{ replica_root }}
+Quintet:            {{ quintet | default('(missing)', true) }}
+Topic:              {{ topic   | default('(missing)', true) }}
+Summary:            {{ summary | default('(missing)', true) }}
+
+Wiki template:      {{ wiki_template_path }}
+Include dir:        {{ vault_templates_dir }}
+
+Per-kind extractor outputs (read each ``output.yaml`` for items
+in that kind's array):
+{% for kind, path in extraction_paths.items() %}
+- **{{ kind }}**: {{ path }}
+{%- endfor %}
+
+Per-kind judge verdicts (read each ``verdict.yaml`` to learn
+which items were REVIEW or REJECT):
+{% for kind, path in verdict_paths.items() %}
+- **{{ kind }}**: {{ path }}
+{%- endfor %}
+
+Per-kind destination map (drives the synthesis-vs-artifact
+folding rule below):
+{% for kind, dest in destinations.items() %}
+- **{{ kind }}** → mode: `{{ dest.mode }}`{% if dest.get('folder') %}, folder: `{{ dest.folder }}`{% endif %}
+{%- endfor %}
+{%- endblock %}
+
+{% block instructions %}
+You are the **synthesis** author. Mechanical work (extraction,
+classification, atomic page rendering) is already done. The
+replica directory at `{{ replica_root }}` contains every atomic
+page the source contributed. Your job is to add 1–2 wiki-style
+synthesis hub pages.
+
+Ultrathink about which kinds cluster into shared themes before
+committing to a hub split. Over-fragmentation is the most common
+failure mode — prefer one rich hub over two thin ones.
+
+## Read first
+
+1. Read each ``extraction_paths.<kind>`` file. Each file's
+   payload is a YAML object with one top-level key (the kind)
+   holding a list of items. Each item has at minimum a ``name``;
+   other fields vary by kind.
+2. Read each ``verdict_paths.<kind>`` file. Each carries
+   ``item_verdicts`` — an array of
+   ``{target, verdict, scores, rationale}``. Items with REJECT
+   verdicts SHOULD be omitted; REVIEW items can be included
+   with caution.
+3. List the replica directory `{{ replica_root }}` to see which
+   atomic pages already exist as standalone files. Wikilinks
+   (``[[Atomic Name]]``) MUST point at filenames that exist
+   there OR at ``### Name`` subsections you will create on the
+   same synthesis page (``[[#Name]]``).
+
+## Coverage obligations
+
+- **1–2 hubs total.** Merge overlapping themes; do NOT produce
+  one page per cluster. Over-fragmentation fails the judge.
+- **Synthesis-mode kinds MUST be folded inline.** Every kind
+  whose ``destinations.<kind>.mode == 'synthesis'`` (e.g.
+  ``topics``, ``themes``, ``key_points``, ``chapters``) has NO
+  standalone vault page. EVERY item from those kinds MUST
+  appear in some hub's ``key_concepts`` array as
+  ``mode: 'included'``. If you can't justify including an item,
+  the item is unused — that's a coverage failure.
+- **Artifact-mode kinds (e.g. ``keywords``, ``people``,
+  ``models``) already have standalone replica pages.** Either
+  ``mode: 'connected'`` (link to the standalone page) or
+  ``mode: 'included'`` (fold inline; the standalone page still
+  stands) is fine.
+
+## Authoring + rendering protocol
+
+For each hub you author, build a JSON file with the structured
+fields the wiki template requires, then run the renderer to
+turn it into markdown. The renderer (``render.sh`` from the
+``template`` skill) uses ``StrictUndefined`` and refuses to
+render if any field is missing — this is the enforcement
+mechanism. Do not skip fields; supply empty values
+(``""`` or ``[]``) for genuinely-absent optional fields.
+
+### Step 1 — author the JSON
+
+For each hub, write a JSON file at ``/tmp/<slug>.json``:
+
+```json
+{
+  "title":          "Hub Title",
+  "today":          "<YYYY-MM-DD today>",
+  "sources":        ["10 SOURCES/Articles/<source-basename>"],
+  "rationale":      "Opening paragraph (≥80 chars). Sits before ## Overview.",
+  "overview":       "Multi-paragraph prose (≥200 chars). Wikilinks on first occurrence of every atomic name.",
+  "ascii_diagram":  "Multi-line illustrative diagram (≥4 lines, ≥80 chars).\nUse box-drawing chars: ┌ ┐ └ ┘ │ ─ ┬ ┴ ├ ┤ ┼ ▼ ▲ ◄ ►",
+  "key_concepts":   [
+    {"name": "Atomic A", "mode": "included",  "summary": "Inline definition (≥30 chars)."},
+    {"name": "Atomic B", "mode": "connected", "summary": "Orientation pointing at [[Atomic B]]'s standalone page."},
+    {"name": "Atomic C", "mode": "included",  "summary": "Another inline definition."}
+  ],
+  "see_also":       [
+    {"name": "Other Hub or Atomic", "kind": "atomic", "note": "optional"}
+  ],
+  "worked_examples": [],
+  "discussion":      ""
+}
+```
+
+Required: ``title``, ``today``, ``sources``, ``rationale``,
+``overview``, ``ascii_diagram``, ``key_concepts`` (≥3 entries,
+each with ``name``/``mode``/``summary``), ``see_also``.
+``worked_examples`` and ``discussion`` are optional but MUST be
+present (empty array / empty string) — the renderer fails on
+missing keys.
+
+### Step 2 — render to the replica
+
+Run the wiki renderer; pipe stdout into the replica file. Use
+the **natural title verbatim** as the filename (with filesystem-
+illegal chars stripped — strip ``: * ? " < > |`` and replace
+``/`` with ``—``). DO NOT kebab-case the filename. Obsidian
+resolves wikilinks like ``[[Hub Title]]`` against the filename
+directly:
+
+```bash
+$SKILLS/home/template/scripts/render.sh \
+    --template {{ wiki_template_path }} \
+    --include-dir {{ vault_templates_dir }} \
+    --json-vars /tmp/<slug>.json \
+    --allow-unused \
+    > "{{ replica_root }}/21 SYNTHESIS/<Hub Title>.md"
+```
+
+Example: a hub titled ``Constraining LLM Coding Agents`` lands
+at ``{{ replica_root }}/21 SYNTHESIS/Constraining LLM Coding Agents.md``.
+
+If the renderer prints
+``ERROR: template variables not provided: <name>`` on stderr,
+add the missing key to your JSON (with an empty value if it's
+genuinely absent) and re-run. **Do not edit the rendered
+markdown by hand** — fix the JSON and re-render. The template
+is the source of truth for the layout.
+
+### Step 3 — record the path
+
+After each hub renders successfully, record its vault-relative
+path in your output:
+
+```bash
+curator.sh builders add {{ output_path }} \
+    --set paths.<i>='21 SYNTHESIS/<Hub Title>.md'
+```
+
+Increment ``<i>`` per hub (0, 1) — cap at 2.
+
+If you wrote zero hubs (the source genuinely has no
+hub-worthy themes), leave ``paths`` empty:
+
+```bash
+curator.sh builders add {{ output_path }} --set paths='[]'
+```
+
+## Inline wikilink discipline
+
+Inside ``rationale``, ``overview``, ``key_concepts.<i>.summary``,
+``worked_examples.<i>.body``, and ``discussion``, the FIRST
+occurrence of any atomic name MUST be wrapped as a wikilink:
+
+- connected atomic → ``[[Atomic Name]]``
+- included atomic on this page → ``[[#Atomic Name]]``
+- other-hub atomic → ``[[Atomic Name]]``
+
+Subsequent occurrences need not be wrapped.
+{% endblock %}
+
+{% block builder_calls %}
+The render protocol above includes the only ``builders`` calls
+needed: one ``builders add`` per hub to record the rendered
+path. The wiki template determines the page shape; you
+exclusively author the structured JSON and let the renderer
+produce the markdown.
+{% endblock %}

@@ -1,222 +1,41 @@
+{# templates/report.md.j2 — gate-operator overview.
+
+   Renders a single ``_REPORT.md`` into the replica root. The
+   summary extractor's output goes in verbatim; everything else
+   gets a one-line per-kind tally with names listed inline.
+
+   Inputs:
+     basename       — source basename
+     topic          — classify topic string
+     quintet        — classify quintet object
+     summary        — extract-summary's text (verbatim)
+     extractions    — {kind: [items]}, items have ``name`` field
+     synthesis_paths — list of ``21 SYNTHESIS/<slug>.md`` paths
+                       written by the synthesis agent (may be
+                       empty)
+#}
 # Curator Ingest Report
 
-## TL;DR
-
-**Topic:** {{ topic | default("(unknown)") }}
-
-{% if quintet -%}
+**Source:** `{{ basename }}`
+**Topic:** {{ topic }}
 **Classification:** `{{ quintet.media }}` / `{{ quintet.form }}` / `{{ quintet.register }}` / `{{ quintet.discipline }}` / `{{ quintet.audience }}`
-
-{% endif %}
-**At a glance:**
-
-| What             | Count |
-|------------------|------:|
-| Keywords         | {{ keywords | length }} |
-| Topics           | {{ topics | length }} |
-| People           | {{ people | length }} |
-| Models           | {{ models | length }} |
-| Synthesis pages  | {{ synthesis | length }} |
-| Related sources  | {{ related_sources | length }} |
-{% if failed_kinds %}| ⚠ Failed kinds   | {{ failed_kinds | length }} |
-{% endif %}{% if issues %}| ⚠ Issues         | {{ issues | length }} |
-{% endif %}
-
----
 
 ## Summary
 
 {{ summary }}
 
----
+## Extracted
 
-## Quintet Classification
+{% for kind in extractions | dictsort -%}
+{%- set items = kind[1] -%}
+**{{ kind[0] }}** ({{ items | length }}): {% for it in items -%}
+{{ it.name }}{% if not loop.last %}, {% endif %}
+{%- endfor %}
 
-{% if quintet -%}
-{% for k, v in quintet.items() %}
-- **{{ k }}** → `{{ v }}`
 {% endfor %}
-{%- else %}
-_(no quintet recorded)_
-{%- endif %}
-
----
-
-## Keywords ({{ keywords | length }})
-
-{% for kw in keywords %}
-{% if kw is mapping %}
-### {{ loop.index }}. {{ kw.name }}
-
-{% if kw.get("match_existing") -%}
-- **Existing vault page:** {{ kw.match_existing }}
-{% endif -%}
-{% if kw.get("definition_source") -%}
-- **Source:** `{{ kw.definition_source }}`
-{% endif %}
-{% if kw.get("definition") -%}
-{{ kw.definition }}
-{% endif %}
-
-{% if kw.get("source_quote") -%}
-> {{ kw.source_quote }}
-{% endif %}
-
-{% else %}
-- {{ kw }}
-{% endif %}
-{% endfor %}
-
----
-
-## Topics ({{ topics | length }})
-
-{% for t in topics %}
-{% if t is mapping %}
-### {{ loop.index }}. {{ t.name }}{% if t.relevance is defined %} _({{ t.relevance }})_{% endif %}
-
-{% if t.summary is defined -%}
-{{ t.summary }}
-{% endif %}
-
-{% else %}
-- {{ t }}
-{% endif %}
-{% endfor %}
-
----
-
-## People ({{ people | length }})
-
-{% for p in people %}
-{% if p is mapping %}
-### {{ loop.index }}. {{ p.name }}{% if p.role is defined %} _({{ p.role }})_{% endif %}
-
-{% if p.definition is defined -%}
-{{ p.definition }}
-{% endif %}
-
-{% else %}
-- {{ p }}
-{% endif %}
-{% endfor %}
-
----
-
-## Models / Principles ({{ models | length }})
-
-Abstract, transferable patterns the source introduces or motivates.
-
-{% for m in models %}
-{% if m is mapping %}
-### {{ loop.index }}. {{ m.name }}
-
-{% if m.definition is defined -%}
-**What it says**
-
-{{ m.definition }}
-{% endif %}
-
-{% if m.applicability is defined -%}
-**Where it applies**
-
-{{ m.applicability }}
-{% endif %}
-
-{% else %}
-- {{ m }}
-{% endif %}
-{% endfor %}
-
----
-
-## Synthesis Pages ({{ synthesis | length }})
-
-Hub pages this source justifies — clusters of atomic concepts that
-deserve a unifying note.
-
-{% for s in synthesis %}
-### {{ loop.index }}. {{ s.title }}
-
-{% if s.get("folder") %}**Folder:** `{{ s.folder }}`{% endif %}
-
-**Rationale**
-
-{{ s.rationale }}
-
-{% if s.get("ascii_diagram") %}
-**Diagram**
-
-```
-{{ s.ascii_diagram }}
-```
-
-{% endif %}
-{% if s.get("connected_atomics") or s.get("included_atomics") %}
-{% if s.get("connected_atomics") %}
-**Connected atomics** (kept as standalone pages, linked from synthesis): {{ s.connected_atomics | join(', ') }}
-
-{% endif %}
-{% if s.get("included_atomics") %}
-**Folded atomics** (defined inline in the synthesis body, no separate page): {{ s.included_atomics | join(', ') }}
-
-{% endif %}
-{% endif %}
-{% if s.get("body") %}
-<details>
-<summary>Proposed page body</summary>
-
-{{ s.body }}
-
-</details>
-
-{% endif %}
-{% endfor %}
-
----
-
-## Related Sources ({{ related_sources | length }})
-
-Sources mentioned that may be worth ingesting next.
-
-{% for r in related_sources %}
-{% if r is mapping %}
-- **{{ r.get("title") or r.get("url") }}**{% if r.get("url") and r.get("title") %}
-  - URL: <{{ r.url }}>{% endif %}{% if r.get("rationale") %}
-  - {{ r.rationale }}{% endif %}{% if r.get("folder") %}
-  - Vault folder: `{{ r.folder }}`{% endif %}{% if r.get("match_existing") %}
-  - Existing page: `{{ r.match_existing }}`{% endif %}
-{% else %}
-- {{ r }}
-{% endif %}
-{% endfor %}
-
-{% if failed_kinds %}
----
-
-## ⚠ Failed Extractor Kinds
-
-{% for k in failed_kinds %}
-- `{{ k }}`
-{% endfor %}
-
-These extractors did not produce usable output. Their content is
-absent from the proposed pages. Inspect their per-task verdicts
-under `<workdir>/tasks/<NN>-extract-<kind>/verdict.yaml`.
-
-{% endif %}
-{% if issues %}
----
-
-## ⚠ Composer Issues
-
-{% for i in issues -%}
-{% if i is mapping -%}
-- _{{ i.severity }}_ ({{ i.category }}){% if i.target is defined %} — {{ i.target }}{% endif %}
-  {{ i.message }}
-{% else -%}
-- {{ i }}
-{% endif -%}
-{% endfor %}
+{%- if synthesis_paths %}
+**synthesis** ({{ synthesis_paths | length }}): {% for p in synthesis_paths -%}
+[[{{ p }}]]{% if not loop.last %}, {% endif %}
+{%- endfor %}
 
 {% endif %}

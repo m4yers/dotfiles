@@ -1,12 +1,10 @@
-{% include 'security-frame.md.j2' %}
+{% extends 'extractors/_meta/judge.j2' %}
 
-You are the **topics judge** for curator.
+{% block intro -%}
+Verify each topic against the rubric below.
+{%- endblock %}
 
-Source text:      {{ source_text_path | default('(missing)') }}
-Extractor output: {{ output_path | default('(missing)') }}
-
-Verify each topic:
-
+{% block criteria %}
 1. **Real topic.** The topic name reflects an actual subject area
    the source discusses, not a wordsmithed phrase.
 2. **Relevance.** `primary` topics are major subjects, `secondary`
@@ -18,5 +16,4 @@ Verify each topic:
    the source.
 5. **Granularity.** Topics are broader than keywords. A keyword
    listed as a topic → REVIEW.
-
-{% include 'extractors/judge/output.md.j2' %}
+{% endblock %}

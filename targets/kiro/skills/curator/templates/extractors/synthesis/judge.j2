@@ -1,0 +1,93 @@
+{% extends 'extractors/_meta/judge.j2' %}
+
+{% block source_paths -%}
+Source text:        {{ source_text_path }}
+Synthesis output:   {{ output_path | default('(missing)', true) }}
+Replica root:       {{ replica_root | default('(missing)', true) }}
+Quintet:            {{ quintet | default('(missing)', true) }}
+Topic:              {{ topic   | default('(missing)', true) }}
+Summary:            {{ summary | default('(missing)', true) }}
+
+Wiki template:      {{ wiki_template_path | default('(missing)', true) }}
+
+Per-kind extractor outputs:
+{% for kind, path in extraction_paths.items() %}
+- **{{ kind }}**: {{ path }}
+{%- endfor %}
+
+Per-kind judge verdicts:
+{% for kind, path in verdict_paths.items() %}
+- **{{ kind }}**: {{ path }}
+{%- endfor %}
+
+Per-kind destinations:
+{% for kind, dest in destinations.items() %}
+- **{{ kind }}** → mode: `{{ dest.mode }}`{% if dest.get('folder') %}, folder: `{{ dest.folder }}`{% endif %}
+{%- endfor %}
+{%- endblock %}
+
+{% block intro -%}
+The synthesis agent wrote 0–2 vault-shaped markdown files into
+the replica's ``21 SYNTHESIS/`` directory. Read each file (paths
+listed in the synthesis output's ``paths`` array) and score it
+against the rubric below. Most criteria score per page
+(``target=<page title or path>``); page-count and orphan-coverage
+criteria are ``target=null``.
+{%- endblock %}
+
+{% block criteria %}
+1. **Page count.** Author should produce **0–2** synthesis
+   pages. Score (target=null):
+   - 0 pages — REVIEW only if the source is rich enough to
+     warrant at least one hub. Tag with
+     ``category=missing_synthesis``.
+   - 1–2 pages — PASS.
+   - 3 or more — REJECT with ``category=over_fragmented``.
+2. **Synthesis-mode coverage.** Read the merge file's
+   ``extractions``; for every kind whose
+   ``extraction_destinations.<kind>.mode == "synthesis"`` and
+   that has items, every item's name MUST appear at least once
+   in some synthesis page's ``## Key Concepts`` section as
+   either an included subsection (``### Name``) or a connected
+   wikilink (``[[Name]]``). Synthesis-mode items have no other
+   vault home. Score one target=null entry per kind with
+   uncovered items; uncovered items → REJECT with
+   ``category=orphan_synthesis_item`` and name the orphans.
+3. **Frontmatter required.** Each synthesis page MUST have YAML
+   frontmatter declaring at minimum ``type: synthesis``,
+   ``title``, ``sources`` (non-empty list pointing at a
+   ``10 SOURCES/`` page), and ``last_updated``. Missing →
+   REJECT.
+4. **Body structure.** Each page MUST have:
+   - An opening rationale paragraph (≥80 chars) before the first
+     ``##`` heading.
+   - A ``## Overview`` section with multi-paragraph prose
+     (≥200 chars combined).
+   - An ASCII diagram inside a fenced code block, ≥4 lines,
+     ≥80 chars total. Generic "title → bullets" → REJECT with
+     ``category=generic_ascii``.
+   - A ``## Key Concepts`` section with ≥3 entries (mix of
+     ``### Name`` subsections and ``- **[[Name]]** — ...``
+     bullets allowed).
+   Stub or missing sections → REJECT with
+   ``category=thin_synthesis``.
+5. **Mode rule.** Atomics whose kind is synthesis-mode MUST
+   appear as ``### Name`` (included) subsections, NOT as bare
+   ``[[Name]]`` wikilinks (which would route to nonexistent
+   standalone pages). Drift → REJECT with
+   ``category=mode_drift``.
+6. **Inline wikilinks.** Every atomic name (from this page's
+   key concepts or from any other extraction) mentioned in a
+   prose field — opening rationale, Overview body, Key Concepts
+   inline definition, Worked Examples body, Discussion —
+   MUST have its first occurrence wrapped as a wikilink.
+   Missing wikilinks → REJECT with
+   ``category=missing_wikilinks`` and quote the unwrapped
+   occurrence.
+7. **Wikilink targets exist.** Every ``[[Atomic Name]]`` in a
+   synthesis page MUST resolve to either an atomic page already
+   in the replica (under ``12 KEYWORDS/`` etc. with matching
+   stem) OR a ``### Name`` subsection inside this same
+   synthesis page. Dangling wikilinks → REJECT with
+   ``category=broken_wikilink``.
+{% endblock %}

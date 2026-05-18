@@ -1,15 +1,14 @@
-{% include 'security-frame.md.j2' %}
+{% extends 'extractors/_meta/extractor.j2' %}
 
-You are the **summary** extractor for curator.
-
+{% block source_paths -%}
 Source text:        {{ source_text_path | default('(missing)') }}
 Container metadata: {{ container_metadata | default('(none)') }}
-{% if quintet is defined %}Quintet: {{ quintet }}{% endif %}
-{% if topic is defined %}Topic: {{ topic }}{% endif %}
+{% if quintet %}Quintet: {{ quintet }}{% endif %}
+{% if topic %}Topic: {{ topic }}{% endif %}
 
 You run AFTER the other extractors. Their outputs are at:
 
-{% if upstream_outputs is defined %}
+{% if upstream_outputs %}
 {% for kind, path in upstream_outputs.items() %}
 - **{{ kind }}**: {{ path }}
 {% endfor %}
@@ -19,13 +18,18 @@ You run AFTER the other extractors. Their outputs are at:
 
 Their judges have already scored each extractor; verdicts are at:
 
-{% if upstream_verdicts is defined %}
+{% if upstream_verdicts %}
 {% for kind, path in upstream_verdicts.items() %}
 - **{{ kind }}** verdict: {{ path }}
 {% endfor %}
 {% else %}
 - (no upstream verdicts supplied)
 {% endif %}
+{%- endblock %}
+
+{% block instructions %}
+Ultrathink about the source's argument structure and which upstream
+items genuinely cross-check it before drafting.
 
 Read the source, each upstream output, AND each verdict.yaml. Each
 verdict carries:
@@ -65,22 +69,12 @@ The summary should:
 
 Length: 250–500 words. No bullet lists. Cite specific claims and
 numbers when the source provides them. Never invent statistics.
+{% endblock %}
 
----
-
-## OUTPUT — WRITE HERE
-
-Output target:
-
-    {{ output_path }}
-
-### 1. Initialize
-
-    curator.sh builders init {{ output_path }} --schema summary
-
-### 2. Set the summary text
+{% block builder_calls %}
 
     curator.sh builders add {{ output_path }} \
         --set text='<250-500 word summary as multi-paragraph text>'
 
 The single field `text` is required.
+{% endblock %}

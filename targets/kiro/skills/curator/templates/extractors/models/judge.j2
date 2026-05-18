@@ -1,12 +1,10 @@
-{% include 'security-frame.md.j2' %}
+{% extends 'extractors/_meta/judge.j2' %}
 
-You are the **models judge** for curator.
+{% block intro -%}
+Verify each model against the rubric below.
+{%- endblock %}
 
-Source text:      {{ source_text_path | default('(missing)') }}
-Extractor output: {{ output_path | default('(missing)') }}
-
-Verify each model:
-
+{% block criteria %}
 1. **Abstract.** The model is a transferable pattern, not a specific
    tool, person, or topic. A specific product → REJECT.
 2. **Source-grounded.** The model is recognizably present in the
@@ -18,5 +16,4 @@ Verify each model:
 5. **Naming.** Names end with a meaningful term like `pattern`,
    `principle`, `tradeoff`, `model`, or describe the structure
    directly.
-
-{% include 'extractors/judge/output.md.j2' %}
+{% endblock %}

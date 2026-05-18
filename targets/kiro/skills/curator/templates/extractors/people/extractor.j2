@@ -1,11 +1,6 @@
-{% include 'security-frame.md.j2' %}
+{% extends 'extractors/_meta/extractor.j2' %}
 
-You are the **people** extractor for curator.
-
-Source text:        {{ source_text_path | default('(missing)') }}
-Container metadata: {{ container_metadata | default('(none)') }}
-{% if topic is defined %}Topic: {{ topic }}{% endif %}
-
+{% block instructions %}
 Identify people associated with the source:
 
 1. **Author.** From `container_metadata` (the source's published
@@ -24,20 +19,9 @@ empty-string or a single phrase from the byline.
 You have NO access to the vault. Do not concern yourself with
 duplicates or existing pages — a separate stage will reconcile your
 output against the vault later.
+{% endblock %}
 
----
-
-## OUTPUT — WRITE HERE
-
-Output target:
-
-    {{ output_path }}
-
-### 1. Initialize
-
-    curator.sh builders init {{ output_path }} --schema people
-
-### 2. Add each person (pick ONE variant per item)
+{% block builder_calls %}
 
 #### Variant A — author (from container metadata)
 
@@ -59,3 +43,4 @@ metadata and never appears in the source body.
         --set people.<i>.source_quote='<verbatim passage from source>'
 
 `source_quote` MUST be a real passage from the source body.
+{% endblock %}

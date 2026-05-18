@@ -1,13 +1,10 @@
-{% include 'security-frame.md.j2' %}
+{% extends 'extractors/_meta/judge.j2' %}
 
-You are the **people judge** for curator.
+{% block intro -%}
+Verify each person against the rubric below.
+{%- endblock %}
 
-Source text:        {{ source_text_path | default('(missing)') }}
-Container metadata: {{ container_metadata | default('(none)') }}
-Extractor output:   {{ output_path | default('(missing)') }}
-
-Verify each person:
-
+{% block criteria %}
 1. **Author present.** The container_metadata's author (if any)
    MUST appear with `role: author`.
 2. **Variant correctness.**
@@ -19,5 +16,4 @@ Verify each person:
    says about each person, not external knowledge.
 4. **No casual mentions.** Skip people who appear once in passing
    without substantive discussion.
-
-{% include 'extractors/judge/output.md.j2' %}
+{% endblock %}

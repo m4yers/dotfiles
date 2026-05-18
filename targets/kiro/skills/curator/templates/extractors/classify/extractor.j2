@@ -1,11 +1,8 @@
-{% include 'security-frame.md.j2' %}
+{% extends 'extractors/_meta/extractor.j2' %}
 
-You are the **classifier** for curator.
-
-Source text:        {{ source_text_path | default('(missing)') }}
-Container metadata: {{ container_metadata | default('(none)') }}
-
-Read the source. Produce two pieces of metadata:
+{% block instructions %}
+You are the **classifier** for curator. Read the source. Produce
+two pieces of metadata:
 
 1. **Quintet** — five orthogonal slots driving Stage 2 extractor
    selection. Pick exactly one value per slot from the vocabularies
@@ -32,23 +29,9 @@ Read the source. Produce two pieces of metadata:
 - When a slot is ambiguous, pick the more conservative value.
 - Cite source evidence in `reasoning` (quote a phrase, mention a
   section heading, etc.).
+{% endblock %}
 
----
-
-## OUTPUT — WRITE HERE
-
-Write the classification by invoking ``curator.sh builders`` via
-execute_bash. Output target:
-
-    {{ output_path }}
-
-DO NOT use ``fs_write`` directly.
-
-### 1. Initialize
-
-    curator.sh builders init {{ output_path }} --schema classify
-
-### 2. Set every required field in one call
+{% block builder_calls %}
 
     curator.sh builders add {{ output_path }} \
         --set quintet.media=<media> \
@@ -60,3 +43,4 @@ DO NOT use ``fs_write`` directly.
         --set reasoning='<2-4 sentences citing source evidence>'
 
 All seven fields are required.
+{% endblock %}

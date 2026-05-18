@@ -8,7 +8,7 @@ the caller to remember to set PYTHONPATH.
 import sys
 from pathlib import Path
 
-# tests/ → curator/ (skill root) → scripts/
-_SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
+# tests/ → curator/ → scripts/
+_SCRIPTS = Path(__file__).resolve().parent.parent.parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))

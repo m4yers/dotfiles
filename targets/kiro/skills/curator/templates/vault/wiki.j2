@@ -1,0 +1,94 @@
+{# templates/vault/wiki.j2 — vault page for type=synthesis.
+
+   Defines the canonical shape of a synthesis hub page. Inputs
+   are the structured fields a synthesis agent populates; the
+   template arranges them into the wiki-style layout the vault
+   expects.
+
+   Required:
+     title           string — hub title (also the # heading).
+     rationale       string ≥80 chars — opening paragraph; sits
+                            BEFORE the ``## Overview`` heading.
+     overview        string ≥200 chars — multi-paragraph prose
+                            for the ``## Overview`` body.
+     ascii_diagram   string ≥4 lines, ≥80 chars — the hub's
+                            illustration; rendered inside a
+                            fenced code block.
+     key_concepts    list of {name, mode, summary}
+                            mode='included' → ``### Name`` subsection
+                            mode='connected' → bullet with ``[[Name]]``
+                            ≥3 entries.
+     see_also        list of {name, kind: atomic|source, note?}
+
+   Optional:
+     worked_examples list of {title, body} — case studies.
+     discussion      string — open questions, critique, gaps.
+     sources         list of vault paths — frontmatter entries.
+
+   Inline wikilink discipline (the agent's responsibility, not
+   the template's): in every prose field — rationale, overview,
+   key_concepts.<i>.summary, worked_examples.<i>.body,
+   discussion — the FIRST occurrence of any atomic name MUST be
+   wrapped as a wikilink. Connected atomics (their own page
+   exists) → ``[[Name]]``. Included atomics on THIS page →
+   ``[[#Name]]``. Other-hub atomics → ``[[Name]]``.
+#}
+---
+type: synthesis
+title: "{{ title }}"
+{%- if sources is defined and sources %}
+sources:
+{%- for src in sources %}
+  - "{{ src }}"
+{%- endfor %}
+{%- endif %}
+last_updated: {{ today }}
+---
+
+# {{ title }}
+
+{{ rationale }}
+
+## Overview
+
+{{ overview }}
+
+```
+{{ ascii_diagram }}
+```
+
+## Key Concepts
+
+{% for c in key_concepts -%}
+{% if c.mode == 'included' -%}
+### {{ c.name }}
+
+{{ c.summary }}
+
+{% else -%}
+- **[[{{ c.name }}]]** — {{ c.summary }}
+{% endif -%}
+{% endfor %}
+{%- if worked_examples is defined and worked_examples %}
+
+## Worked Examples
+
+{% for ex in worked_examples -%}
+### {{ ex.title }}
+
+{{ ex.body }}
+
+{% endfor -%}
+{%- endif -%}
+{%- if discussion is defined and discussion %}
+
+## Discussion
+
+{{ discussion }}
+{%- endif %}
+
+## See Also
+
+{% for s in see_also -%}
+- [[{{ s.name }}]]{% if s.get('note') %} — {{ s.get('note') }}{% endif %}
+{% endfor -%}

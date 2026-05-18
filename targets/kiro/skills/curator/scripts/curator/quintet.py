@@ -1,8 +1,9 @@
 """Quintet classification — vocabularies + extractor rule matching.
 
-Vocabularies, semantic descriptions, and rules live in
-``<skill_root>/quintet.yaml``. This module is a thin loader + matcher;
-to add new extractor combinations or new slot values, edit the YAML.
+Vocabularies, semantic descriptions, and rules live in package-local
+``quintet.yaml`` (next to this module). This module is a thin loader +
+matcher; to add new extractor combinations or new slot values, edit
+the YAML.
 
 The quintet ``(media, form, register, discipline, audience)`` captures
 a source's nature across five orthogonal dimensions. Every slot takes
@@ -23,9 +24,8 @@ from typing import Tuple
 import yaml
 
 
-# Skill root: <skill>/scripts/curator/quintet.py → <skill>/
-_SKILL_ROOT  = Path(__file__).resolve().parent.parent.parent
-_QUINTET_FILE = _SKILL_ROOT / "quintet.yaml"
+# quintet.yaml lives next to this module.
+_QUINTET_FILE = Path(__file__).resolve().parent / "quintet.yaml"
 
 
 @lru_cache(maxsize=1)
@@ -44,6 +44,27 @@ def slots() -> dict:
     Used by prompt rendering to inject vocabularies + descriptions.
     """
     return _load()["slots"]
+
+
+def destinations() -> dict:
+    """Return the parsed ``destinations`` block.
+
+    Each entry is keyed by extractor kind name and carries
+    ``{mode: artifact|synthesis, folder?: <vault-path>}``. Missing
+    when the kind is special-cased upstream of compose (summary,
+    classify) or absent from the YAML.
+    """
+    return _load().get("destinations") or {}
+
+
+def destination_for(kind: str) -> dict | None:
+    """Return the destination spec for ``kind``, or None if absent.
+
+    Callers should treat a None return as "no destination declared
+    — the kind has no artifact/synthesis routing" (typical for
+    summary/classify/compose).
+    """
+    return destinations().get(kind)
 
 
 def _values(slot: str) -> Tuple[str, ...]:

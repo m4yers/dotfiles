@@ -11,9 +11,8 @@ Run-driving (orchestrator's loop):
 
 Task-implementation (invoked by tasks via cmd arrays in stages.py):
     source   fetch | convert
-    vault    context | commit | page (materialize | apply-plan | verify-batch)
-    builders compose-merge-issues
-    report   render
+    vault    match | replica (build | apply)
+    builders init | add
 
 All CLI output is YAML on stdout.
 """
@@ -21,7 +20,7 @@ from __future__ import annotations
 
 import typer
 
-from curator import builders, report, runtime, security, source, vault
+from curator import builders, runtime, source, vault
 
 
 app = typer.Typer(
@@ -40,8 +39,6 @@ app.command("status")(runtime.cli_status)
 app.add_typer(source.app,   name="source")
 app.add_typer(vault.app,    name="vault")
 app.add_typer(builders.app, name="builders")
-app.add_typer(report.app,   name="report")
-app.command("security-scan")(security.cli_security_scan)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,16 @@
+{# templates/vault/keyword.j2 — vault page for type=keyword.
+
+   Rendering produces a complete page from a single ``item``;
+   build-replica overwrites both fresh and modified target paths
+   with this output.
+#}
+---
+type: keyword
+title: "{{ item.name }}"
+last_updated: {{ today }}
+---
+
+# {{ item.name }}
+
+{% if item.get('definition') %}{{ item.get('definition').strip() }}
+{% endif -%}

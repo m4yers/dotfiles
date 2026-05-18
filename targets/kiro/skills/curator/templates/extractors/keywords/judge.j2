@@ -1,14 +1,10 @@
-{% include 'security-frame.md.j2' %}
+{% extends 'extractors/_meta/judge.j2' %}
 
-You are the **keywords judge** for curator.
+{% block intro -%}
+Read the source and the extractor output. Verify each keyword.
+{%- endblock %}
 
-Source text:      {{ source_text_path | default('(missing)') }}
-Extractor output: {{ output_path | default('(missing)') }}
-{% if quintet is defined %}Quintet: {{ quintet }}{% endif %}
-{% if topic is defined %}Topic: {{ topic }}{% endif %}
-
-Read the source and the extractor output. Verify each keyword:
-
+{% block criteria %}
 1. **Relevance.** The keyword is a distinctive concept the source
    uses or introduces — not a generic English word.
 2. **Variant correctness.** The schema enforces three variants by
@@ -19,5 +15,4 @@ Read the source and the extractor output. Verify each keyword:
 3. **No fabrication.** Definitions sourced from `agent` should be
    neutral, widely-accepted explanations, not speculative claims.
 4. **Naming.** Names are in natural form, not over-tokenized.
-
-{% include 'extractors/judge/output.md.j2' %}
+{% endblock %}

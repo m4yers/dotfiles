@@ -1,10 +1,6 @@
-{% include 'security-frame.md.j2' %}
+{% extends 'extractors/_meta/extractor.j2' %}
 
-You are the **topics** extractor for curator.
-
-Source text: {{ source_text_path | default('(missing)') }}
-{% if topic is defined %}Primary topic: {{ topic }}{% endif %}
-
+{% block instructions %}
 Identify the **topics** discussed in the source — broader subject
 areas the source addresses. Aim for 5–12 topics; each should cover
 a meaningful section or recurring theme.
@@ -24,20 +20,9 @@ Topics are coarser than keywords — `state machines` is a keyword;
 the primary `topic` (one classification-level descriptor); the
 primary describes the source as a whole, while topics break it
 down.
+{% endblock %}
 
----
-
-## OUTPUT — WRITE HERE
-
-Output target:
-
-    {{ output_path }}
-
-### 1. Initialize
-
-    curator.sh builders init {{ output_path }} --schema topics
-
-### 2. Add each topic
+{% block builder_calls %}
 
     curator.sh builders add {{ output_path }} \
         --set topics.<i>.name='<2-6 word topic name>' \
@@ -46,3 +31,4 @@ Output target:
         --set topics.<i>.source_quote='<verbatim passage>'
 
 All four fields are required for every topic.
+{% endblock %}

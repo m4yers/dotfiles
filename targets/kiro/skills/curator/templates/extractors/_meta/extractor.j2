@@ -1,0 +1,64 @@
+{#
+  Base template for every extractor under extractors/<kind>/extractor.j2.
+
+  Required vars (provided by prompts.py via --json-vars):
+    kind                string — the extractor kind name
+    output_path         string — absolute path the agent must write
+    source_text_path    string — converted source markdown path
+    quintet_path        string — path to the package-local quintet.yaml vocabulary
+    container_metadata  string|object|null — convert-stage metadata,
+                                              null for tasks pre-convert
+    quintet             object|null         — classified quintet,
+                                              null for the classify task
+    topic               string|null         — classified topic, null
+                                              for the classify task
+
+  Required overrides in child templates:
+    {% block instructions %}  — kind-specific extraction instructions
+    {% block builder_calls %} — `curator.sh builders add ...` calls;
+                                content goes UNDER the shared
+                                "### 2. Set fields per the schema"
+                                header that the base provides.
+
+  Optional overrides:
+    {% block source_paths %}  — extra upstream paths beyond the defaults
+                                (used by summary/compose which read upstream
+                                outputs and verdicts)
+    {% block extras %}        — content placed after the OUTPUT block
+
+  All children get security-frame.md.j2 prepended automatically.
+#}
+{% include 'security-frame.md.j2' %}
+
+You are the **{{ kind }}** extractor for curator.
+
+{% block source_paths -%}
+Source text:        {{ source_text_path }}
+Quintet vocabulary: {{ quintet_path }}
+Container metadata: {{ container_metadata | default('(none)', true) }}
+Classified quintet: {{ quintet | default('(not yet classified)', true) }}
+Classified topic:   {{ topic | default('(not yet classified)', true) }}
+{%- endblock %}
+
+{% block instructions required %}{% endblock %}
+
+---
+
+## Writing Output
+
+Write the extractor output by invoking ``curator.sh builders`` via
+execute_bash. DO NOT use ``fs_write`` directly.
+
+Output target:
+
+    {{ output_path }}
+
+### 1. Initialize
+
+    curator.sh builders init {{ output_path }} --schema {{ kind }}
+
+### 2. Set fields per the schema
+
+{% block builder_calls required %}{% endblock %}
+
+{% block extras %}{% endblock %}

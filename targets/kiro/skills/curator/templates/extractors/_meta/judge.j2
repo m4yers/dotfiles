@@ -1,3 +1,60 @@
+{#
+  Base template for every judge under extractors/<kind>/judge.j2.
+
+  Required vars (provided by prompts.py via --json-vars):
+    kind                string — the judge kind name
+    output_path         string — absolute path to the extractor output
+                                 being judged
+    verdict_path        string — absolute path where the judge writes
+                                 verdict.yaml
+    source_text_path    string — converted source markdown path
+    quintet_path        string — path to the package-local quintet.yaml vocabulary
+    container_metadata  string|object|null
+    quintet             object|null
+    topic               string|null
+
+  Required overrides in child templates:
+    {% block criteria %}      — numbered rubric criteria with bold headers
+
+  Optional overrides:
+    {% block source_paths %}  — extra upstream paths (used by compose judge
+                                that reads upstream extractor + verdict files)
+    {% block intro %}         — one-paragraph intro between source paths
+                                and criteria; default is generic
+    {% block extras %}        — content placed before the OUTPUT section
+
+  All children get security-frame.md.j2 prepended automatically and
+  the rubric-driven OUTPUT block appended (formerly a separate
+  include; now inlined directly here for self-containment).
+#}
+{% include 'security-frame.md.j2' %}
+
+You are the **{{ kind }} judge** for curator.
+
+{% block source_paths -%}
+Source text:        {{ source_text_path }}
+Extractor output:   {{ output_path | default('(missing)', true) }}
+Quintet vocabulary: {{ quintet_path }}
+Container metadata: {{ container_metadata | default('(none)', true) }}
+Classified quintet: {{ quintet | default('(not yet classified)', true) }}
+Classified topic:   {{ topic | default('(not yet classified)', true) }}
+{%- endblock %}
+
+{% block intro -%}
+Read the source. Read the extractor output. Verify each {{ kind }}
+item against the rubric below.
+{% endblock %}
+
+Think hard about whether each item is grounded in the source before
+scoring. Cite the specific passage your verdict relies on.
+
+{% block criteria required %}{% endblock %}
+
+NEVER invoke model priors beyond the source. If the source does not
+support a claim, treat it as fabrication.
+
+{% block extras %}{% endblock %}
+
 ---
 
 ## OUTPUT — WRITE VERDICT WITH PER-ITEM RUBRIC
@@ -11,8 +68,7 @@ emitted as item_verdicts with `target=null`.
 ### Step 1 — declare your rubric in `_rubric`
 
 For every numbered verification criterion in the section above, add a
-`_rubric` entry. Use the bold header (snake_case) as the key and
-copy a short description of the criterion as the value. Example:
+`_rubric` entry. Example:
 
     _rubric:
       relevance:    "Item is a distinctive concept the source uses or introduces."
@@ -63,7 +119,7 @@ malformed verdict.
 ### Step 4 — write the `reasoning` field
 
 A one-paragraph (≥30 char) summary naming the item_verdicts that
-drove the overall verdict. Example: "Per-item: 'Emil Stenström'
+drove the overall verdict. Example: "Per-item: 'Joe Black'
 verdict=REJECT (no_fabrication FAIL — name not in source body)
 drives overall REJECT; remaining people ACCEPT."
 
@@ -75,7 +131,7 @@ The verdict output target is:
 
 The agent output you are judging lives at:
 
-    {{ output_path }}
+    {{ output_path | default('(missing)', true) }}
 
 DO NOT use ``fs_write`` to write the verdict file directly.
 

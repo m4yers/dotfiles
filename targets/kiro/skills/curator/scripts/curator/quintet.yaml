@@ -188,3 +188,53 @@ rules:
   # Per-audience additions.
   - match: ["*", "*", "*", "*", academic]
     extractors: [citations]
+
+
+# Destinations — for each extractor kind, declare what happens to its
+# output during composition + materialization. Two modes:
+#
+#   artifact:  each item becomes its own vault page in `folder`. The
+#              composer also surfaces the items in the report so the
+#              gate operator can review them. Synthesis pages MAY
+#              link to artifact items via `[[Atomic Name]]` wikilinks.
+#
+#   synthesis: items are NOT materialized as separate vault pages.
+#              The composer MUST fold them into a synthesis page's
+#              `key_concepts` (mode=included) or weave them into the
+#              synthesis body. Items still appear in the report so
+#              reviewers can see what was extracted, but only the
+#              synthesis page reaches the vault.
+#
+# Folders refer to vault paths relative to the vault root (e.g.
+# "12 KEYWORDS"). Synthesis-mode entries omit `folder`.
+#
+# Special kinds (`summary`, `classify`, `compose`) are intentionally
+# absent: summary feeds the report's narrative section, classify
+# produces the quintet itself, compose is the integration step.
+
+destinations:
+  # ── Artifact mode — own vault page per item ─────────────────────
+  keywords:      {mode: artifact, folder: "12 KEYWORDS"}
+  models:        {mode: artifact, folder: "14 MODELS"}
+  people:        {mode: artifact, folder: "13 PEOPLE"}
+  authors:       {mode: artifact, folder: "13 PEOPLE"}
+  guests:        {mode: artifact, folder: "13 PEOPLE"}
+  speaker:       {mode: artifact, folder: "13 PEOPLE"}
+  citations:     {mode: artifact, folder: "10 SOURCES"}
+  quotes:        {mode: artifact, folder: "11 QUOTES"}
+
+  # ── Synthesis mode — folded into synthesis pages ────────────────
+  topics:        {mode: synthesis}
+  themes:        {mode: synthesis}
+  characters:    {mode: synthesis}
+  setting:       {mode: synthesis}
+  story:         {mode: synthesis}
+  chapters:      {mode: synthesis}
+  abstract:      {mode: synthesis}
+  contributions: {mode: synthesis}
+  methods:       {mode: synthesis}
+  results:       {mode: synthesis}
+  key_points:    {mode: synthesis}
+  exercises:     {mode: synthesis}
+  code_examples: {mode: synthesis}
+  transcript:    {mode: synthesis}

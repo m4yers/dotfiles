@@ -51,6 +51,11 @@ _SCHEMA_FIELD = "_schema"
 
 
 def _schema_path(kind: str) -> Path:
+    # The "judge" schema is shared across every extractor's per-item
+    # rubric verdict; it lives next to the base judge template under
+    # _meta/ rather than in a per-kind extractors/<kind>/ dir.
+    if kind == "judge":
+        return _TEMPLATES_DIR / "extractors" / "_meta" / "judge-output-schema.yaml"
     return _TEMPLATES_DIR / "extractors" / kind / "schema.yaml"
 
 

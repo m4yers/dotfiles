@@ -38,6 +38,16 @@ from curator import quintet as q_mod
 # Resolved at plan-build time to the absolute curator.sh path.
 CURATOR_SH = str(Path(__file__).resolve().parent.parent / "curator.sh")
 
+# secure-llm is a sibling skill that hosts the heuristic security
+# scanner and the ``security-frame.md.j2`` LLM preamble. We invoke
+# its CLI wrapper as a tool task; ``SKILLS`` env var override the
+# default location for non-standard layouts.
+import os
+_SKILLS_HOME = Path(os.environ.get(
+    "SKILLS", str(Path.home() / ".kiro/skills")))
+SECURITY_SCAN_SH = str(
+    _SKILLS_HOME / "home/secure-llm/scripts/security-scan.sh")
+
 
 # ── stage1 ───────────────────────────────────────────────────────
 
@@ -70,7 +80,7 @@ def _stage1_tasks(wd: Path | str, origin: str) -> list[dict]:
         {
             "id":   "security_scan",
             "kind": "tool",
-            "cmd":  [CURATOR_SH, "security-scan",
+            "cmd":  [SECURITY_SCAN_SH,
                      "${task:convert:converted_path}"],
             "depends_on": ["convert"],
         },
@@ -213,113 +223,127 @@ def _stage2_tasks(wd: Path | str, extractor_kinds: list[str]) -> list[dict]:
         for k in matchable_kinds:
             match_args += [f"--{k}", f"${{task_path:extract-{k}}}"]
         vault_match_task = {
-            "id":   "vault_match",
+            "id":   "vault-match",
             "kind": "tool",
             "cmd":  match_args,
             "depends_on": [f"extract-{k}" for k in matchable_kinds],
         }
 
-    compose_task = {
-        "id":    "compose",
-        "kind":  "agent",
-        "agent": "curator-composer",
-        "template": "compose",
-        "vars": {
-            "source_text_path": "${task:convert:converted_path}",
-            "quintet":          "${task:classify:quintet}",
-            "topic":            "${task:classify:topic}",
-            "workdir":          workdir,
-            "extract_kinds":    extractor_kinds,
-            "upstream_outputs": {
-                k: f"${{task_path:extract-{k}}}"
-                for k in extractor_kinds
-            },
-            # Judge verdicts for every upstream agent task. Composer uses
-            # these to populate `failed_kinds` (verdict==REJECT) and to
-            # inherit upstream issues into the composed `issues` array.
-            "upstream_verdicts": {
-                **{
-                    k: f"${{verdict_path:extract-{k}}}"
-                    for k in extractor_kinds
-                },
-                "classify": "${verdict_path:classify}",
-            },
-            "vault_match_path": "${task_path:vault_match}",
-        },
-        "judge": {
-            "agent":    "curator-judge",
-            "template": "compose",
-            "vars": {
-                "source_text_path": "${task:convert:converted_path}",
-                "quintet":          "${task:classify:quintet}",
-                "workdir":          workdir,
-                "extract_kinds":    extractor_kinds,
-                "upstream_outputs": {
-                    k: f"${{task_path:extract-{k}}}"
-                    for k in extractor_kinds
-                },
-                # Same verdict map for the judge so it can validate that
-                # `failed_kinds` matches the actual REJECT set.
-                "upstream_verdicts": {
-                    **{
-                        k: f"${{verdict_path:extract-{k}}}"
-                        for k in extractor_kinds
-                    },
-                    "classify": "${verdict_path:classify}",
-                },
-                "vault_match_path": "${task_path:vault_match}",
-            },
-        },
-        "depends_on": extract_task_ids + ["classify", "convert"]
-                        + (["vault_match"] if vault_match_task else []),
+    # Per-extractor paths the synthesis agent and build-replica
+    # iterate. ``extract-summary`` is excluded — its payload is a
+    # string (the summary), not an item list, and it's surfaced
+    # separately as ``${task:extract-summary:summary}``.
+    item_kinds = [k for k in parallel_extractor_kinds]
+    extraction_paths = {
+        k: f"${{task_path:extract-{k}}}" for k in item_kinds
+    }
+    verdict_paths = {
+        k: f"${{verdict_path:extract-{k}}}" for k in item_kinds
+    }
+    destinations_map = {
+        k: q_mod.destination_for(k) or {"mode": "synthesis"}
+        for k in extractor_kinds
     }
 
+    # Synthesis renders each hub through ``templates/vault/wiki.j2``
+    # via the shared ``render.sh`` shim. Pass the absolute paths so
+    # the agent can call render.sh from a tool task without
+    # discovering them itself.
+    skill_root = Path(__file__).resolve().parent.parent.parent
+    wiki_template_path = str(
+        skill_root / "templates" / "vault" / "wiki.j2")
+    vault_templates_dir = str(skill_root / "templates" / "vault")
+
     tail_tasks = [
+        # Build the workdir replica — one atomic page per item.
+        # Reads each extract-<kind>/output.yaml directly; vault-
+        # match supplies alias hits. Synthesis pages are NOT built
+        # here.
         {
-            "id":   "render_report",
+            "id":   "build-replica",
             "kind": "tool",
-            "cmd":  [CURATOR_SH, "report", "render", workdir],
-            "depends_on": ["compose"],
+            "cmd":  [CURATOR_SH, "vault", "replica", "build", workdir],
+            "depends_on": extract_task_ids + ["classify"]
+                            + (["vault-match"] if vault_match_task
+                                                else []),
         },
+        # Synthesis. Authors 1–2 wiki hub pages and writes them
+        # DIRECTLY into the replica via ``fs_write``. Output.yaml
+        # carries only the list of paths the agent wrote
+        # (apply-replica picks them up by walking the replica
+        # filesystem). The agent reads upstream task outputs
+        # directly — quintet/topic from classify, summary from
+        # extract-summary, items from each extract-<kind>, and
+        # judge metadata from each verdict.yaml.
+        {
+            "id":    "synthesis",
+            "kind":  "agent",
+            "agent": "curator-composer",
+            "template": "synthesis",
+            "vars": {
+                "source_text_path":  "${task:convert:converted_path}",
+                "replica_root":      f"{workdir}/vault-replica",
+                "quintet":           "${task:classify:quintet}",
+                "topic":             "${task:classify:topic}",
+                "summary":           "${task:extract-summary:summary}",
+                "extraction_paths":  extraction_paths,
+                "verdict_paths":     verdict_paths,
+                "destinations":      destinations_map,
+                "wiki_template_path":  wiki_template_path,
+                "vault_templates_dir": vault_templates_dir,
+            },
+            "judge": {
+                "agent":    "curator-judge",
+                "template": "synthesis",
+                "vars": {
+                    "source_text_path":  "${task:convert:converted_path}",
+                    "replica_root":      f"{workdir}/vault-replica",
+                    "quintet":           "${task:classify:quintet}",
+                    "topic":             "${task:classify:topic}",
+                    "summary":           "${task:extract-summary:summary}",
+                    "extraction_paths":  extraction_paths,
+                    "verdict_paths":     verdict_paths,
+                    "destinations":      destinations_map,
+                    "wiki_template_path":  wiki_template_path,
+                    "vault_templates_dir": vault_templates_dir,
+                },
+            },
+            "depends_on": ["build-replica"],
+        },
+        # Render the gate operator's overview ``_REPORT.md`` into
+        # the replica root. Pulls verbatim summary + per-kind item
+        # counts + synthesis-page paths so the gate has one
+        # scannable document to read before drilling into files.
+        {
+            "id":   "report",
+            "kind": "tool",
+            "cmd":  [CURATOR_SH, "vault", "report", workdir],
+            "depends_on": ["synthesis"],
+        },
+        # Human gate — orchestrator drives editor with diffs for
+        # modified files and plain views for new files. Output:
+        # ``{proceed: true|false}``.
         {
             "id":   "gate",
             "kind": "human",
-            "metadata": {"report_from_task": "render_report"},
-            "depends_on": ["render_report"],
+            "metadata": {"replica_dir": "vault-replica"},
+            "depends_on": ["report"],
         },
+        # Apply the (possibly user-edited) replica to the vault.
+        # Files the user deleted between build and apply are
+        # skipped with ``user_deleted`` reason. Synthesis pages
+        # under ``21 SYNTHESIS/`` are validated + applied even
+        # though the build-replica manifest doesn't list them.
         {
-            "id":   "materialize",
+            "id":   "apply-replica",
             "kind": "tool",
-            "cmd":  [CURATOR_SH, "vault", "page", "materialize",
-                     "${task:gate:approved_path}"],
+            "cmd":  [CURATOR_SH, "vault", "replica", "apply", workdir],
             "depends_on": ["gate"],
-        },
-        {
-            "id":   "apply_plan",
-            "kind": "tool",
-            "cmd":  [CURATOR_SH, "vault", "page", "apply-plan",
-                     "${task:materialize:plan_path}"],
-            "depends_on": ["materialize"],
-        },
-        {
-            "id":   "verify_batch",
-            "kind": "tool",
-            "cmd":  [CURATOR_SH, "vault", "page", "verify-batch",
-                     "${task:gate:approved_path}"],
-            "depends_on": ["apply_plan"],
-        },
-        {
-            "id":   "commit",
-            "kind": "tool",
-            "cmd":  [CURATOR_SH, "vault", "commit",
-                     "ingest: ${task:fetch:basename}"],
-            "depends_on": ["verify_batch"],
         },
     ]
 
     return (
         extract_tasks
         + ([vault_match_task] if vault_match_task else [])
-        + [compose_task]
         + tail_tasks
     )

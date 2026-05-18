@@ -1,0 +1,18 @@
+{# templates/vault/model.j2 — vault page for type=model.
+
+   Models are transferable patterns; the ``applicability`` block
+   is the differentiator vs. a plain keyword.
+#}
+---
+type: model
+title: "{{ item.name }}"
+last_updated: {{ today }}
+---
+
+# {{ item.name }}
+
+{% if item.get('definition') %}{{ item.get('definition').strip() }}
+
+{% endif -%}
+{% if item.get('applicability') %}**Applicability.** {{ item.get('applicability').strip() }}
+{% endif -%}

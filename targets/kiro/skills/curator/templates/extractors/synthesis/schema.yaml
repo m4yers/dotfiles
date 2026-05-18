@@ -1,0 +1,26 @@
+# Schema for the synthesis agent's output.yaml.
+#
+# The synthesis agent writes vault-shaped markdown files directly
+# into ``<workdir>/vault-replica/21 SYNTHESIS/<slug>.md`` via
+# ``fs_write``. This schema validates only the per-task envelope
+# the agent emits: a list of vault-relative paths the agent wrote.
+#
+# Apply-replica relies on a filesystem walk of the replica root,
+# not on this list, but the list is the agent's "I'm done, here's
+# what I wrote" contract — visible in stdout and in the per-task
+# output.yaml so an operator can audit the run.
+
+type: object
+required: [paths]
+properties:
+  paths:
+    description: >-
+      Vault-relative paths of synthesis pages the agent wrote into
+      the replica. Each path MUST start with ``21 SYNTHESIS/`` and
+      end with ``.md``.
+    type: array
+    minItems: 0
+    maxItems: 2
+    items:
+      type: string
+      pattern: '^21 SYNTHESIS/.+\.md$'
