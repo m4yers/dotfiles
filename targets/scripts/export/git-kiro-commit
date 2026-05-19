@@ -28,14 +28,17 @@ if git diff --cached --quiet; then
 fi
 
 diff_file=$(mktemp)
-trap 'rm -f "$diff_file"' EXIT
+prompt_file=$(mktemp)
+trap 'rm -f "$diff_file" "$prompt_file"' EXIT
 git diff --cached > "$diff_file"
 
-prompt="Write a concise git commit message for the following diff. Output ONLY the commit message — a subject line (max 72 chars), then optionally a blank line and a short body. No markdown, no fences, no explanation. Do NOT prefix the subject with the script or tool name.
+{
+  echo "Write a concise git commit message for the following diff. Output ONLY the commit message — a subject line (max 72 chars), then optionally a blank line and a short body. No markdown, no fences, no explanation. Do NOT prefix the subject with the script or tool name."
+  echo
+  cat "$diff_file"
+} > "$prompt_file"
 
-$(cat "$diff_file")"
-
-msg=$(kiro-cli chat --no-interactive --wrap=never --trust-tools= "$prompt" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^> //' | sed 's/^git-kiro-commit: //')
+msg=$(kiro-cli chat --no-interactive --wrap=never --trust-tools= < "$prompt_file" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/^> //' | sed 's/^git-kiro-commit: //')
 
 echo ""
 echo "--- Proposed commit message ---"

@@ -1,28 +1,32 @@
 {% extends 'extractors/_meta/judge.j2' %}
 
 {% block source_paths -%}
-Source text:        {{ source_text_path }}
-Synthesis output:   {{ output_path | default('(missing)', true) }}
-Replica root:       {{ replica_root | default('(missing)', true) }}
-Quintet:            {{ quintet | default('(missing)', true) }}
-Topic:              {{ topic   | default('(missing)', true) }}
-Summary:            {{ summary | default('(missing)', true) }}
+Source text:        {{ source.converted_path | default('(missing)', true) }}
+Synthesis output:   {{ task.output_path | default('(missing)', true) }}
+Replica root:       {{ run.replica_root }}
+Quintet:            {{ upstream.classify.output.quintet }}
+Topic:              {{ upstream.classify.output.topic }}
+{% if upstream['extract-summary'] is defined -%}
+Summary:            {{ upstream['extract-summary'].output.summary | default('(no summary)', true) }}
+{%- else -%}
+Summary:            (no summary)
+{%- endif %}
 
-Wiki template:      {{ wiki_template_path | default('(missing)', true) }}
+Wiki template:      {{ templates.wiki_template_path }}
 
-Per-kind extractor outputs:
-{% for kind, path in extraction_paths.items() %}
-- **{{ kind }}**: {{ path }}
+Per-peer extractor outputs:
+{% for peer in peers %}
+- **{{ peer.task_id }}**: {{ peer.task_path }}
 {%- endfor %}
 
-Per-kind judge verdicts:
-{% for kind, path in verdict_paths.items() %}
-- **{{ kind }}**: {{ path }}
+Per-peer judge verdicts:
+{% for peer in peers %}
+- **{{ peer.task_id }}**: {{ peer.verdict_path | default('(no judge)', true) }}
 {%- endfor %}
 
 Per-kind destinations:
 {% for kind, dest in destinations.items() %}
-- **{{ kind }}** → mode: `{{ dest.mode }}`{% if dest.get('folder') %}, folder: `{{ dest.folder }}`{% endif %}
+- **{{ kind }}** → mode: `{{ dest.mode }}`{% if dest.folder %}, folder: `{{ dest.folder }}`{% endif %}
 {%- endfor %}
 {%- endblock %}
 
@@ -45,13 +49,13 @@ criteria are ``target=null``.
    - 3 or more — REJECT with ``category=over_fragmented``.
 2. **Synthesis-mode coverage.** Read the merge file's
    ``extractions``; for every kind whose
-   ``extraction_destinations.<kind>.mode == "synthesis"`` and
-   that has items, every item's name MUST appear at least once
-   in some synthesis page's ``## Key Concepts`` section as
-   either an included subsection (``### Name``) or a connected
-   wikilink (``[[Name]]``). Synthesis-mode items have no other
-   vault home. Score one target=null entry per kind with
-   uncovered items; uncovered items → REJECT with
+   ``destinations.<kind>.mode == "synthesis"`` and that has
+   items, every item's name MUST appear at least once in some
+   synthesis page's ``## Key Concepts`` section as either an
+   included subsection (``### Name``) or a connected wikilink
+   (``[[Name]]``). Synthesis-mode items have no other vault
+   home. Score one target=null entry per kind with uncovered
+   items; uncovered items → REJECT with
    ``category=orphan_synthesis_item`` and name the orphans.
 3. **Frontmatter required.** Each synthesis page MUST have YAML
    frontmatter declaring at minimum ``type: synthesis``,

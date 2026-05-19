@@ -5,21 +5,20 @@ You are the **classifier** for curator. Read the source. Produce
 two pieces of metadata:
 
 1. **Quintet** — five orthogonal slots driving Stage 2 extractor
-   selection. Pick exactly one value per slot from the vocabularies
-   below.
+   selection. Pick exactly one value per slot from the vocabulary
+   block below.
 2. **Topic** — a 3-12 word descriptor of the source's primary subject
    matter, used as a steering hint for downstream extractors.
 
-## Slot vocabularies
+## Quintet vocabulary
 
-{% for slot_name, slot in slots.items() %}
-### {{ slot_name }} — {{ slot.description }}
+The full vocabulary lives at {{ quintet.path }}. The relevant
+section (slots + per-value descriptions) is included verbatim
+below; consult it to pick each slot's value.
 
-{% for value, desc in slot["values"].items() %}
-- **{{ value }}** — {{ desc }}
-{% endfor %}
-
-{% endfor %}
+```yaml
+{% include 'curator/quintet.yaml' %}
+```
 
 ## Rules
 
@@ -33,7 +32,7 @@ two pieces of metadata:
 
 {% block builder_calls %}
 
-    curator.sh builders add {{ output_path }} \
+    curator.sh builders add {{ task.output_path }} \
         --set quintet.media=<media> \
         --set quintet.form=<form> \
         --set quintet.register=<register> \

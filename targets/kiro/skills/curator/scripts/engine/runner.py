@@ -94,7 +94,19 @@ class EngineRun:
     def next_action(self) -> Optional[ActionSpec]:
         """Advance internal tasks; return next external batch, or
         None if the plan is complete or has no further work to do
-        without external completions arriving first."""
+        without external completions arriving first.
+
+        External tasks in the returned batch are NOT committed to
+        ``running`` — the caller is responsible for calling
+        :meth:`commit_running` after any per-task setup (prompt
+        rendering, dispatcher prep) has succeeded. This lets the
+        caller fail cleanly without leaving tasks stranded in
+        ``running`` with no progress.
+
+        To distinguish "all tasks terminal" from "blocked, awaiting
+        external", the caller should check :func:`algorithm.is_done`
+        on the live plan when this method returns None.
+        """
         while True:
             plan = store.load_plan(self.workdir)
 
@@ -125,10 +137,22 @@ class EngineRun:
                     self._run_internal(task, plan)
                 continue   # reload plan — new tasks may be ready
 
-            # Yield the external batch.
-            algorithm.mark_running(plan, [t.id for t in external])
-            store.save_plan(self.workdir, plan)
+            # Yield the external batch WITHOUT committing running.
+            # Caller commits via commit_running after rendering.
             return self._action_spec(external, plan)
+
+    def commit_running(self, task_ids: list[str]) -> None:
+        """Mark the given tasks as ``running`` and persist.
+
+        Used by the caller of :meth:`next_action` to commit the
+        external batch after all per-task setup (e.g., prompt
+        rendering) has succeeded. Calling this before all setup is
+        complete risks leaving a task in ``running`` without the
+        artifacts the orchestrator needs (e.g., prompt files).
+        """
+        plan = store.load_plan(self.workdir)
+        algorithm.mark_running(plan, task_ids)
+        store.save_plan(self.workdir, plan)
 
     def complete(
         self,
@@ -166,17 +190,72 @@ class EngineRun:
         substitution as tool task cmds (`${workdir}`, `${task_workdir}`,
         `${task:<id>}`, `${task:<id>:<dotpath>}`). When ``task_id`` is
         provided, ``${task_workdir}`` resolves to that task's subdir.
+
+        Type preservation: when a string is *exactly* a single
+        ``${task:<id>[:<dotpath>]}`` placeholder (no surrounding text),
+        the native upstream value is returned — dict/list stay
+        structured, scalars stay scalars. Embedded placeholders or
+        non-``task:`` placeholders fall through to the same string-
+        coercing pipeline as tool argv (``_resolve_cmd``), preserving
+        the existing contract for tool tasks.
         """
         plan = store.load_plan(self.workdir)
         twd = (store.task_dir(self.workdir, task_id, plan=plan)
                if task_id is not None else self.workdir / "tasks")
         if isinstance(value, str):
-            return self._resolve_cmd([value], task_id or "", twd)[0]
+            return self._resolve_string_native(value, task_id or "", twd)
         if isinstance(value, list):
             return [self.resolve_value(v, task_id) for v in value]
         if isinstance(value, dict):
             return {k: self.resolve_value(v, task_id) for k, v in value.items()}
         return value
+
+    # Whole-string-is-a-single-placeholder check — used to decide
+    # whether to return a native Python type or fall back to string
+    # substitution.
+    _WHOLE_PLACEHOLDER_RE = __import__("re").compile(r"^\$\{([^}]+)\}$")
+
+    def _resolve_string_native(self, s: str, task_id: str,
+                                  task_workdir: Path) -> Any:
+        """Resolve a single string. If the entire string is one
+        ``${task:<id>[:<field>]}`` placeholder, return the native
+        Python value loaded from the upstream output (dict/list/
+        scalar). Otherwise, delegate to ``_resolve_cmd`` which
+        produces a string with all placeholders substituted.
+        """
+        m = self._WHOLE_PLACEHOLDER_RE.match(s)
+        if m and m.group(1).startswith("task:"):
+            spec = m.group(1)
+            _, _, rest = spec.partition(":")
+            if ":" in rest:
+                tid, _, field = rest.partition(":")
+            else:
+                tid, field = rest, ""
+            doc = self._load_task_output(tid)
+            if not field:
+                return doc
+            cur = doc
+            for part in field.split("."):
+                if isinstance(cur, dict) and part in cur:
+                    cur = cur[part]
+                else:
+                    return None
+            return cur
+        # Embedded placeholder (or any non-task: placeholder) —
+        # fall back to string substitution.
+        return self._resolve_cmd([s], task_id, task_workdir)[0]
+
+    def _load_task_output(self, task_id: str) -> Any:
+        """Load <wd>/tasks/<id>/output.yaml and return the parsed
+        document. Missing files return None — callers must tolerate.
+        """
+        import yaml as _yaml
+        plan = store.load_plan(self.workdir)
+        p = store.task_output_path(self.workdir, task_id, plan=plan)
+        try:
+            return _yaml.safe_load(p.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return None
 
     def extend(self, more_tasks: Iterable[Task] | Plan) -> None:
         """Append tasks to the live plan.

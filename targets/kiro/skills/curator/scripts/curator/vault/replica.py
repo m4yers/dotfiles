@@ -395,12 +395,33 @@ def build_report(workdir: Path) -> dict:
         basename, topic, quintet, summary,
         extractions, synthesis_paths)
 
+    rendered = _mdformat_wrap(rendered, width=80)
+
     rr = _replica_root(workdir)
     rr.mkdir(parents=True, exist_ok=True)
     out_path = rr / _REPORT_NAME
     out_path.write_text(rendered, encoding="utf-8")
 
     return {"report_path": str(out_path)}
+
+
+def _mdformat_wrap(markdown: str, *, width: int) -> str:
+    """Pass ``markdown`` through ``mdformat --wrap=<width>`` and
+    return the formatted output.
+
+    If mdformat is unavailable or errors out, fall back to the
+    unformatted input — the report is informational and a missing
+    formatter must not abort the run.
+    """
+    try:
+        proc = subprocess.run(
+            ["mdformat", "--wrap", str(width), "-"],
+            input=markdown, capture_output=True, text=True,
+            check=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return markdown
+    return proc.stdout
 
 
 def _safe_load(workdir: Path, task_id: str, plan) -> dict | None:

@@ -1,38 +1,42 @@
 {% extends 'extractors/_meta/extractor.j2' %}
 
 {% block source_paths -%}
-Source text:        {{ source_text_path }}
-Replica root:       {{ replica_root }}
-Quintet:            {{ quintet | default('(missing)', true) }}
-Topic:              {{ topic   | default('(missing)', true) }}
-Summary:            {{ summary | default('(missing)', true) }}
+Source text:        {{ source.converted_path | default('(missing)', true) }}
+Replica root:       {{ run.replica_root }}
+Quintet:            {{ upstream.classify.output.quintet }}
+Topic:              {{ upstream.classify.output.topic }}
+{% if upstream['extract-summary'] is defined -%}
+Summary:            {{ upstream['extract-summary'].output.summary | default('(no summary)', true) }}
+{%- else -%}
+Summary:            (no summary)
+{%- endif %}
 
-Wiki template:      {{ wiki_template_path }}
-Include dir:        {{ vault_templates_dir }}
+Wiki template:      {{ templates.wiki_template_path }}
+Include dir:        {{ templates.vault_templates_dir }}
 
-Per-kind extractor outputs (read each ``output.yaml`` for items
+Per-peer extractor outputs (read each ``output.yaml`` for items
 in that kind's array):
-{% for kind, path in extraction_paths.items() %}
-- **{{ kind }}**: {{ path }}
+{% for peer in peers %}
+- **{{ peer.task_id }}**: {{ peer.task_path }}
 {%- endfor %}
 
-Per-kind judge verdicts (read each ``verdict.yaml`` to learn
+Per-peer judge verdicts (read each ``verdict.yaml`` to learn
 which items were REVIEW or REJECT):
-{% for kind, path in verdict_paths.items() %}
-- **{{ kind }}**: {{ path }}
+{% for peer in peers %}
+- **{{ peer.task_id }}**: {{ peer.verdict_path | default('(no judge)', true) }}
 {%- endfor %}
 
 Per-kind destination map (drives the synthesis-vs-artifact
 folding rule below):
 {% for kind, dest in destinations.items() %}
-- **{{ kind }}** → mode: `{{ dest.mode }}`{% if dest.get('folder') %}, folder: `{{ dest.folder }}`{% endif %}
+- **{{ kind }}** → mode: `{{ dest.mode }}`{% if dest.folder %}, folder: `{{ dest.folder }}`{% endif %}
 {%- endfor %}
 {%- endblock %}
 
 {% block instructions %}
 You are the **synthesis** author. Mechanical work (extraction,
 classification, atomic page rendering) is already done. The
-replica directory at `{{ replica_root }}` contains every atomic
+replica directory at `{{ run.replica_root }}` contains every atomic
 page the source contributed. Your job is to add 1–2 wiki-style
 synthesis hub pages.
 
@@ -42,16 +46,16 @@ failure mode — prefer one rich hub over two thin ones.
 
 ## Read first
 
-1. Read each ``extraction_paths.<kind>`` file. Each file's
-   payload is a YAML object with one top-level key (the kind)
-   holding a list of items. Each item has at minimum a ``name``;
-   other fields vary by kind.
-2. Read each ``verdict_paths.<kind>`` file. Each carries
+1. Read each peer's ``task_path`` file. Each file's payload is a
+   YAML object with one top-level key (the peer kind) holding a
+   list of items. Each item has at minimum a ``name``; other
+   fields vary by kind.
+2. Read each peer's ``verdict_path`` file. Each carries
    ``item_verdicts`` — an array of
    ``{target, verdict, scores, rationale}``. Items with REJECT
    verdicts SHOULD be omitted; REVIEW items can be included
    with caution.
-3. List the replica directory `{{ replica_root }}` to see which
+3. List the replica directory `{{ run.replica_root }}` to see which
    atomic pages already exist as standalone files. Wikilinks
    (``[[Atomic Name]]``) MUST point at filenames that exist
    there OR at ``### Name`` subsections you will create on the
@@ -127,15 +131,15 @@ directly:
 
 ```bash
 $SKILLS/home/template/scripts/render.sh \
-    --template {{ wiki_template_path }} \
-    --include-dir {{ vault_templates_dir }} \
+    --template {{ templates.wiki_template_path }} \
+    --include-dir {{ templates.vault_templates_dir }} \
     --json-vars /tmp/<slug>.json \
     --allow-unused \
-    > "{{ replica_root }}/21 SYNTHESIS/<Hub Title>.md"
+    > "{{ run.replica_root }}/21 SYNTHESIS/<Hub Title>.md"
 ```
 
 Example: a hub titled ``Constraining LLM Coding Agents`` lands
-at ``{{ replica_root }}/21 SYNTHESIS/Constraining LLM Coding Agents.md``.
+at ``{{ run.replica_root }}/21 SYNTHESIS/Constraining LLM Coding Agents.md``.
 
 If the renderer prints
 ``ERROR: template variables not provided: <name>`` on stderr,
@@ -150,7 +154,7 @@ After each hub renders successfully, record its vault-relative
 path in your output:
 
 ```bash
-curator.sh builders add {{ output_path }} \
+curator.sh builders add {{ task.output_path }} \
     --set paths.<i>='21 SYNTHESIS/<Hub Title>.md'
 ```
 
@@ -160,7 +164,7 @@ If you wrote zero hubs (the source genuinely has no
 hub-worthy themes), leave ``paths`` empty:
 
 ```bash
-curator.sh builders add {{ output_path }} --set paths='[]'
+curator.sh builders add {{ task.output_path }} --set paths='[]'
 ```
 
 ## Inline wikilink discipline

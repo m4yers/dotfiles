@@ -21,17 +21,22 @@ Each agent task has a ``template`` field naming the kind. The
 extractor and judge templates inherit security-frame and rubric-
 output blocks from the bases under ``_meta/``.
 
-This module's job is only:
+Rendering pipeline:
 
-1. resolve task ``vars`` placeholders via ``EngineRun``,
-2. inject runtime paths (``output_path``, ``verdict_path``),
-3. invoke the shared renderer at ``$SKILLS/home/template/scripts/render.sh``
-   to produce the prompt,
-4. write the resulting prompt file to the task workdir.
+1. ``render_context.build_render_context`` produces the schema-shaped
+   variables dict (see templates/extractors/_meta/context-schema.yaml).
+2. For backward compatibility, the per-task ``vars:`` block is also
+   resolved via the engine's ``${task:...}`` placeholder system and
+   merged on top of the schema context — flat names old templates
+   reference (``source_text_path``, ``quintet``, ...) keep working.
+   New templates should reach for the namespaced bags
+   (``source.converted_path``, ``upstream.classify.output.quintet``).
+3. The shared renderer at ``$SKILLS/home/template/scripts/render.sh``
+   reads the merged dict from a JSON file (``--json-vars``) and
+   writes the prompt to the task workdir.
 
-Templates are rendered through the shared renderer rather than a
-per-skill jinja Environment so curator does not vendor jinja2 (per
-conventions.md § Template Rendering).
+Templates render through the shared renderer rather than a
+per-skill jinja Environment so curator does not vendor jinja2.
 """
 from __future__ import annotations
 
@@ -41,14 +46,15 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from engine import store
 from engine.runner import EngineRun
-from curator import quintet as _quintet
+from curator.render_context import build_render_context
 
 
 # Skill paths.
 _SKILL_ROOT     = Path(__file__).resolve().parent.parent.parent
 _TEMPLATES_DIR  = _SKILL_ROOT / "templates"
-_QUINTET_PATH   = Path(__file__).resolve().parent / "quintet.yaml"
+_CURATOR_PKG    = Path(__file__).resolve().parent  # for {% include 'curator/quintet.yaml' %}
 _RENDER_SH      = (Path(os.environ.get("SKILLS",
                                           str(Path.home() / ".kiro/skills"))).
                    joinpath("home/template/scripts/render.sh"))
@@ -65,29 +71,6 @@ _SECURE_LLM_TEMPLATES = (
 _EXTRACTOR_PROMPT_NAME = "extractor-prompt.md"
 _JUDGE_PROMPT_NAME     = "judge-prompt.md"
 
-# Templates that need ``slots`` (the quintet vocabulary). Other
-# templates do not reference it; injecting it everywhere would be
-# rejected by the renderer's strict-unused check (without
-# ``--allow-unused``) and bloats the JSON vars file.
-_SLOTS_KINDS: frozenset[str] = frozenset({"classify"})
-
-
-# Defaults injected into every extractor/judge prompt context. The
-# base templates (extractors/_meta/{extractor,judge}.j2) reference
-# these unconditionally; injecting safe defaults lets per-task vars
-# omit them without triggering the renderer's strict-undefined
-# check. ``None`` here means "absent" — the templates use the
-# ``| default('...', true)`` filter so a None value renders as a
-# "(missing)" placeholder.
-_COMMON_VAR_DEFAULTS: dict[str, object] = {
-    "container_metadata": None,
-    "quintet":            None,
-    "topic":              None,
-    "quintet_path":       str(_QUINTET_PATH),
-    "upstream_outputs":   {},
-    "upstream_verdicts":  {},
-}
-
 
 def _render(
     template_path: Path,
@@ -98,6 +81,11 @@ def _render(
     rendered text to ``output_path``. Raises CalledProcessError with
     captured stderr if the renderer exits non-zero.
 
+    Include dirs cover:
+      - templates/ (extractor / judge / shared template assets)
+      - secure-llm's templates (security-frame.md.j2)
+      - curator/ package dir (so classify can {% include 'curator/quintet.yaml' %})
+
     ``VIRTUAL_ENV`` is stripped from the subprocess env so the
     renderer's ``uv run`` resolves to its own venv (curator runs
     under its own VIRTUAL_ENV which would otherwise conflict)."""
@@ -106,7 +94,7 @@ def _render(
     with tempfile.NamedTemporaryFile(
         "w", suffix=".json", delete=False, encoding="utf-8",
     ) as f:
-        json.dump(variables, f)
+        json.dump(variables, f, default=str)
         vars_file = f.name
 
     env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
@@ -118,6 +106,7 @@ def _render(
                 "--template",     str(template_path),
                 "--include-dir",  str(_TEMPLATES_DIR),
                 "--include-dir",  str(_SECURE_LLM_TEMPLATES),
+                "--include-dir",  str(_CURATOR_PKG.parent),  # so 'curator/quintet.yaml' resolves
                 "--json-vars",    vars_file,
                 "--allow-unused",
             ],
@@ -133,34 +122,33 @@ def _render(
 
 
 def render_agent_prompts(run: EngineRun, task: dict) -> dict[str, str]:
-    """Render extractor + judge prompts for a task.
+    """Render extractor + judge prompts for an agent task.
 
-    ``task['template']`` is the kind name (e.g., ``"classify"``). The
-    renderer loads ``templates/extractors/<kind>/{extractor,judge}.j2``
-    and writes the output to the task workdir.
+    Variables passed to each render call are the schema render
+    context (see render_context.py). Templates read schema bags
+    directly (`task.output_path`, `upstream.classify.output.quintet`,
+    `peers`, etc.); no per-task vars block is consulted, no legacy
+    flat names are injected.
     """
     task_id      = task["id"]
     task_workdir = Path(task["task_workdir"])
     output_path  = Path(task["output_path"])
     verdict_path = task_workdir / "verdict.yaml"
 
+    # Build the schema-shaped context once for both extractor and judge.
+    plan = store.load_plan(run.workdir)
+    task_obj = plan.get(task_id)
+    schema_ctx = build_render_context(run.workdir, task_obj, plan)
+
     extras: dict[str, str] = {}
 
     # ── extractor ─────────────────────────────────────────
     kind = task.get("template")
     if kind:
-        ext_vars = dict(task.get("vars") or {})
-        ext_vars = run.resolve_value(ext_vars, task_id=task_id)
-        ext_vars.setdefault("output_path", str(output_path))
-        ext_vars.setdefault("kind", kind)
-        for k, v in _COMMON_VAR_DEFAULTS.items():
-            ext_vars.setdefault(k, v)
-        if kind in _SLOTS_KINDS:
-            ext_vars.setdefault("slots", _quintet.slots())
         ext_path = task_workdir / _EXTRACTOR_PROMPT_NAME
         _render(
             _TEMPLATES_DIR / "extractors" / kind / "extractor.j2",
-            ext_vars,
+            schema_ctx,
             ext_path,
         )
         extras["extractor_prompt_path"] = str(ext_path)
@@ -173,19 +161,10 @@ def render_agent_prompts(run: EngineRun, task: dict) -> dict[str, str]:
         if not judge_kind:
             raise ValueError(
                 f"task {task_id!r} has judge but no judge.template")
-        judge_vars = dict(judge.get("vars") or {})
-        judge_vars = run.resolve_value(judge_vars, task_id=task_id)
-        judge_vars.setdefault("output_path",  str(output_path))
-        judge_vars.setdefault("verdict_path", str(verdict_path))
-        judge_vars.setdefault("kind", judge_kind)
-        for k, v in _COMMON_VAR_DEFAULTS.items():
-            judge_vars.setdefault(k, v)
-        if judge_kind in _SLOTS_KINDS:
-            judge_vars.setdefault("slots", _quintet.slots())
         judge_path = task_workdir / _JUDGE_PROMPT_NAME
         _render(
             _TEMPLATES_DIR / "extractors" / judge_kind / "judge.j2",
-            judge_vars,
+            schema_ctx,
             judge_path,
         )
         extras["judge_prompt_path"] = str(judge_path)

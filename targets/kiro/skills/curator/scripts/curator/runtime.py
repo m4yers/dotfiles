@@ -11,6 +11,7 @@ between calls.
 from __future__ import annotations
 
 import importlib
+import subprocess
 from pathlib import Path
 from typing import Any, Callable
 
@@ -67,7 +68,14 @@ def cli_next(workdir: str) -> None:
     next ready task is kind=agent or kind=human. For each yielded
     agent task, curator renders the extractor + judge prompts and
     augments the task spec with their absolute paths. The orchestrator
-    just reads the prompt files and dispatches the sub-agents."""
+    just reads the prompt files and dispatches the sub-agents.
+
+    Lifecycle: external tasks are committed to ``running`` AFTER
+    successful prompt rendering. A render failure leaves tasks
+    pending so a fix-and-retry loop just works. A stuck plan (not
+    done, but no ready tasks) is surfaced as an error rather than a
+    misleading ``done: true``.
+    """
     wd = Path(workdir).resolve()
     try:
         run = EngineRun.resume(wd)
@@ -79,27 +87,67 @@ def cli_next(workdir: str) -> None:
         fail(str(e))
 
     if action is None:
-        emit({"done": True, "workdir": str(wd)})
-        return
+        plan = store.load_plan(wd)
+        if algorithm.is_done(plan):
+            emit({"done": True, "workdir": str(wd)})
+            return
+        # Not done, but engine has no ready tasks — the plan is stuck:
+        # a non-terminal task is blocking dependents with no path
+        # forward. Surface it explicitly so the orchestrator stops.
+        non_terminal = [t.id for t in plan.tasks
+                          if t.status not in TERMINAL_STATUSES]
+        fail(
+            f"stuck: plan has non-terminal tasks but no ready successors: "
+            f"{non_terminal}",
+            stuck_tasks=non_terminal,
+        )
 
-    # Render agent/judge prompts for every agent task in the batch.
-    # Human tasks get no prompts; tool tasks never reach this point.
+    # Render agent/judge prompts for every agent task in the batch
+    # BEFORE committing them to running. A render failure leaves the
+    # whole batch pending so the orchestrator can fix the underlying
+    # bug (template, vars) and re-run `next` to retry.
     augmented_tasks: list[dict] = []
     for task in action.tasks:
         if task.get("kind") == "agent":
             try:
                 paths = render_agent_prompts(run, task)
+            except subprocess.CalledProcessError as e:
+                fail(
+                    f"prompt render failed for task {task['id']!r}: "
+                    f"{_render_stderr_tail(e)}",
+                    task_id=task["id"],
+                )
             except Exception as e:
                 fail(f"prompt render failed for task {task['id']!r}: {e}",
                       task_id=task["id"])
             task = {**task, **paths}
         augmented_tasks.append(task)
 
+    # All renders succeeded — commit the batch to running.
+    run.commit_running([t["id"] for t in action.tasks])
+
     emit({
         "done":     False,
         "workdir":  str(action.workdir),
         "ready":    augmented_tasks,
     })
+
+
+def _render_stderr_tail(e: "subprocess.CalledProcessError") -> str:
+    """Extract the most informative line from a render.sh failure.
+
+    The renderer (``home/template/scripts/render.sh``) prints Jinja
+    errors as ``ERROR: <message>`` to stderr. ``CalledProcessError``'s
+    ``__str__`` only reports the exit code; that hides the actual
+    Jinja error. Surface the last non-empty stderr line so users see
+    e.g. ``'str object' has no attribute 'get'`` instead of just
+    ``returned non-zero exit status 1``.
+    """
+    stderr = (e.stderr or "").strip()
+    if not stderr:
+        return f"exit={e.returncode} (renderer produced no stderr)"
+    last = stderr.splitlines()[-1].strip()
+    return last or f"exit={e.returncode}"
 
 
 def cli_complete(workdir: str, task_id: str) -> None:
@@ -300,3 +348,85 @@ def cli_status(workdir: str) -> None:
         emit({"status": "DONE_WITH_CONCERNS", **summary})
         return
     emit({"status": "DONE", **summary})
+
+
+# ── gate-list ──────────────────────────────────────────────────────
+
+
+def cli_gate_list(workdir: str) -> None:
+    """`curator.sh gate-list <wd>` — emit gate review targets as TSV.
+
+    Lines (tab-separated, one record per file):
+
+        report\\t<replica>/_REPORT.md
+        manifest-create\\t<replica_path>
+        manifest-modify\\t<vault_path>\\t<replica_path>
+        synthesis-create\\t<replica_path>
+        synthesis-modify\\t<vault_path>\\t<replica_path>
+
+    Order: report first, then manifest entries (manifest.yaml order),
+    then synthesis pages (sorted). Files referenced but missing on
+    disk are skipped with a warning to stderr — the orchestrator
+    drives a strict consumer and silent emission would surface as a
+    silent editor no-op.
+
+    Output is TSV rather than YAML because the sole consumer is a
+    bash ``while IFS=$'\\t' read`` loop in the gate driver. This
+    keeps vault paths with spaces and apostrophes safe without the
+    orchestrator running yq on every line.
+    """
+    from curator.vault.config import VAULT_ROOT, SYNTHESIS_DIR
+
+    wd = Path(workdir).resolve()
+    replica = wd / "vault-replica"
+    if not replica.exists():
+        fail(f"replica not built: {replica}")
+
+    def _emit(*fields: str) -> None:
+        print("\t".join(fields))
+
+    def _warn(msg: str) -> None:
+        print(f"warning: {msg}", file=__import__("sys").stderr)
+
+    # 1. Report
+    report = replica / "_REPORT.md"
+    if report.exists():
+        _emit("report", str(report))
+    else:
+        _warn(f"_REPORT.md missing in replica: {replica}")
+
+    # 2. Manifest entries (manifest.yaml order)
+    manifest_path = replica / "manifest.yaml"
+    if manifest_path.exists():
+        try:
+            manifest = yaml.safe_load(
+                manifest_path.read_text(encoding="utf-8")) or {}
+        except Exception as e:
+            fail(f"manifest parse failed: {e}")
+        for entry in manifest.get("entries") or []:
+            vp = entry.get("vault_path")
+            op = entry.get("op")
+            if not vp:
+                continue
+            replica_path = replica / vp
+            if not replica_path.exists():
+                _warn(f"manifest entry missing on disk: {replica_path}")
+                continue
+            if op == "create":
+                _emit("manifest-create", str(replica_path))
+            else:  # 'modified' or any future op with an existing original
+                vault_path = VAULT_ROOT / vp
+                _emit("manifest-modify", str(vault_path),
+                       str(replica_path))
+
+    # 3. Synthesis pages — NOT in manifest, walk the directory
+    synth_dir = replica / SYNTHESIS_DIR
+    if synth_dir.exists():
+        for entry in sorted(synth_dir.iterdir()):
+            if not entry.is_file() or entry.suffix != ".md":
+                continue
+            existing = VAULT_ROOT / SYNTHESIS_DIR / entry.name
+            if existing.exists():
+                _emit("synthesis-modify", str(existing), str(entry))
+            else:
+                _emit("synthesis-create", str(entry))

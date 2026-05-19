@@ -34,11 +34,10 @@ sub-agents on the batches `curator next` yields and to drive the human gate.
    ```bash
    eval "$($SKILLS/home/tiling/scripts/run-ttm.sh layout build)"
    ```
-4. Run ingest and capture the workdir. `yq` is not always
-   installed; parse with python:
+4. Run ingest and capture the workdir:
    ```bash
    WD=$($SKILLS/home/curator/scripts/curator.sh ingest "<url-or-path>" \
-           | python3 -c "import sys, yaml; print(yaml.safe_load(sys.stdin)['workdir'])")
+           | $SKILLS/home/curator/scripts/yq.sh .workdir)
    ```
 5. If `ingest` fails: NEEDS_CONTEXT.
 
@@ -56,36 +55,44 @@ On completion: proceed to Step 2.
    complete:
    ```bash
    while true; do
-       $SKILLS/home/curator/scripts/curator.sh next "$WD" > /tmp/next.yaml
-       done=$(python3 -c "import sys, yaml; print(yaml.safe_load(open('/tmp/next.yaml')).get('done'))")
-       [ "$done" = "True" ] && break
-       # Dispatch every task in `.ready` per its kind. Agent
-       # tasks in one batch are independent — dispatch all
-       # extractor+judge pairs in parallel.
+       if ! $SKILLS/home/curator/scripts/curator.sh next "$WD" \
+                > /tmp/next.yaml 2> /tmp/next.err; then
+           echo "BLOCKED: curator next failed"
+           cat /tmp/next.err
+           exit 1
+       fi
+       done=$($SKILLS/home/curator/scripts/yq.sh .done < /tmp/next.yaml)
+       [ "$done" = "true" ] && break
        # See "Helper: Dispatch agent task" / "Helper: Drive
        # human gate" below for the per-kind protocol.
-       # When all dispatched tasks have written their outputs:
-       for id in $(python3 -c "import sys, yaml; [print(t['id']) for t in yaml.safe_load(open('/tmp/next.yaml')).get('ready') or []]"); do
-           $SKILLS/home/curator/scripts/curator.sh complete "$WD" "$id"
+       for id in $($SKILLS/home/curator/scripts/yq.sh '.ready[].id' < /tmp/next.yaml); do
+           if ! $SKILLS/home/curator/scripts/curator.sh complete "$WD" "$id"; then
+               echo "BLOCKED: curator complete $id failed"
+               exit 1
+           fi
        done
    done
    ```
 3. If `next` or `complete` errors: BLOCKED with the failed
-   task id.
+   task id (printed to stderr by the script).
 
 On loop exit: proceed to Step 3.
 
 ### Step 3: Report outcome
 
-1. Set tiling activity to Done:
+1. Set tiling activity:
    ```bash
-   $SKILLS/home/tiling/scripts/run-ttm.sh activity set "curator($TARGET): Done"
+   $SKILLS/home/tiling/scripts/run-ttm.sh activity set "curator($TARGET): Report outcome"
    ```
 2. Run the status oracle and report its verdict:
    ```bash
    $SKILLS/home/curator/scripts/curator.sh status "$WD"
    ```
    Aggregates judge verdicts across the run.
+3. Set tiling activity to Done:
+   ```bash
+   $SKILLS/home/tiling/scripts/run-ttm.sh activity set "curator($TARGET): Done"
+   ```
 
 ## Helper: Dispatch agent task
 
@@ -146,7 +153,7 @@ replica contains:
   the natural item names (e.g. `Claude's C Compiler.md`) so
   Obsidian wikilinks resolve directly.
 - Synthesis hub pages under `21 SYNTHESIS/` written by the
-  synthesis agent. NOT in the manifest.
+  synthesis agent and not tracked in the manifest.
 - `_REPORT.md` at the replica root — gate operator's
   TL;DR overview.
 - `manifest.yaml` — engine state, skipped by apply.
@@ -158,22 +165,37 @@ Gate driver protocol:
    $SKILLS/home/tiling/scripts/run-ttm.sh activity set "curator($TARGET): Human gate"
    eval "$($SKILLS/home/tiling/scripts/run-ttm.sh layout build)"
    ```
-2. Open `<replica_root>/_REPORT.md` first — it shows the
-   verbatim summary, per-kind item counts, and synthesis-page
-   list.
-3. Walk manifest entries. For each:
-   - `op: modified` → open a diff:
-     `editor show diff <original_path> <replica_path>`.
-   - `op: create` → open the file directly:
-     `editor show file <replica_path>`.
-4. Walk `<replica_root>/21 SYNTHESIS/` for synthesis pages.
-   Open each (diff if a vault page already exists at the same
-   path, plain otherwise).
-5. STOP and wait for the user to review. The user may edit any
+2. Drive the editor by consuming `curator.sh gate-list <wd>`, which
+   emits one tab-separated record per file in protocol order
+   (report → manifest entries → synthesis pages):
+
+   ```bash
+   EDITOR=$SKILLS/home/editor/scripts/run-editor.sh
+   $EDITOR reset
+   $SKILLS/home/curator/scripts/curator.sh gate-list "$WD" \
+       | while IFS=$'\t' read -r kind a b; do
+           case "$kind" in
+               *-modify) $EDITOR show diff "$a" "$b" ;;
+               *)        $EDITOR show file "$a" ;;
+           esac
+       done
+   ```
+
+   - `kind` ∈ `report`, `manifest-create`, `manifest-modify`,
+     `synthesis-create`, `synthesis-modify`.
+   - Two-field records (`report`, `*-create`) carry the file path
+     in `a`. Three-field records (`*-modify`) carry the original
+     vault path in `a` and the replica path in `b`.
+   - The engine warns to stderr and skips manifest entries whose
+     replica file is missing on disk; the orchestrator MUST NOT
+     synthesize its own iteration over `manifest.yaml` (vault
+     paths contain spaces and apostrophes — naive shell loops
+     break).
+3. STOP and wait for the user to review. The user may edit any
    replica file in place or `rm` files they want to reject —
    the replica state at apply time is the authoritative
    decision.
-6. When the user signals proceed/abort, write the gate's
+4. When the user signals proceed/abort, write the gate's
    `output.yaml`:
 
    ```yaml

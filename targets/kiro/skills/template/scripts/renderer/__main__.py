@@ -32,6 +32,13 @@ def _load_vars(args):
         if not isinstance(loaded, dict):
             sys.exit("ERROR: --json-vars must be a JSON object")
         variables.update(loaded)
+    if args.yaml_vars:
+        import yaml as _yaml
+        with open(args.yaml_vars) as f:
+            loaded = _yaml.safe_load(f)
+        if not isinstance(loaded, dict):
+            sys.exit("ERROR: --yaml-vars must be a YAML mapping")
+        variables.update(loaded)
     for kv in args.var:
         if "=" not in kv:
             sys.exit(f"ERROR: --var expects K=V, got {kv!r}")
@@ -89,6 +96,11 @@ def main():
                    help="variable assignment, repeatable")
     p.add_argument("--json-vars",
                    help="JSON file whose keys become variables")
+    p.add_argument("--yaml-vars",
+                   help="YAML file whose top-level mapping keys "
+                        "become variables. Equivalent to --json-vars "
+                        "but in YAML form; native types preserved on "
+                        "load (dicts/lists stay structured).")
     p.add_argument("--include-dir", action="append", default=[],
                    metavar="PATH",
                    help="search directory for {% include %} resolution; "

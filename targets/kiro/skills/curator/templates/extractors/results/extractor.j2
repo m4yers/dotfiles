@@ -14,7 +14,7 @@ required keys, and any per-variant rules.
 
 {% block builder_calls %}
 
-    curator.sh builders add {{ output_path }} \
+    curator.sh builders add {{ task.output_path }} \
         --set results.<i>.<key>='<value>' [--set ...]
 
 Repeat for each item / field group the schema requires. Indices are

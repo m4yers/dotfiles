@@ -1,47 +1,53 @@
 {#
   Base template for every judge under extractors/<kind>/judge.j2.
 
-  Required vars (provided by prompts.py via --json-vars):
-    kind                string — the judge kind name
-    output_path         string — absolute path to the extractor output
-                                 being judged
-    verdict_path        string — absolute path where the judge writes
-                                 verdict.yaml
-    source_text_path    string — converted source markdown path
-    quintet_path        string — path to the package-local quintet.yaml vocabulary
-    container_metadata  string|object|null
-    quintet             object|null
-    topic               string|null
+  All variables come from the curator render-context schema
+  (templates/extractors/_meta/context-schema.yaml). The
+  judge sees the same context as the extractor — including
+  `task.output_path` (the extractor's output to verify) and
+  `task.judge_output_path` (where the judge writes its verdict).
+
+  Bags used here:
+    task                        — current task identity + paths
+    quintet                     — classify config (path)
+    source                      — fetched + converted artifacts
+                                   (only present once convert is done)
+    upstream.classify           — present iff classify is in deps
 
   Required overrides in child templates:
     {% block criteria %}      — numbered rubric criteria with bold headers
 
   Optional overrides:
-    {% block source_paths %}  — extra upstream paths (used by compose judge
-                                that reads upstream extractor + verdict files)
+    {% block source_paths %}  — extra upstream paths (used by compose
+                                judge that reads upstream extractor +
+                                verdict files)
     {% block intro %}         — one-paragraph intro between source paths
                                 and criteria; default is generic
     {% block extras %}        — content placed before the OUTPUT section
 
   All children get security-frame.md.j2 prepended automatically and
-  the rubric-driven OUTPUT block appended (formerly a separate
-  include; now inlined directly here for self-containment).
+  the rubric-driven OUTPUT block appended.
 #}
 {% include 'security-frame.md.j2' %}
 
-You are the **{{ kind }} judge** for curator.
+You are the **{{ task.template }} judge** for curator.
 
 {% block source_paths -%}
-Source text:        {{ source_text_path }}
-Extractor output:   {{ output_path | default('(missing)', true) }}
-Quintet vocabulary: {{ quintet_path }}
-Container metadata: {{ container_metadata | default('(none)', true) }}
-Classified quintet: {{ quintet | default('(not yet classified)', true) }}
-Classified topic:   {{ topic | default('(not yet classified)', true) }}
+Source text:        {{ source.converted_path | default('(missing)', true) }}
+Extractor output:   {{ task.output_path | default('(missing)', true) }}
+Quintet vocabulary: {{ quintet.path }}
+Container metadata: {{ source.container_metadata | default('(none)', true) }}
+{% if upstream.classify is defined -%}
+Classified quintet: {{ upstream.classify.output.quintet }}
+Classified topic:   {{ upstream.classify.output.topic }}
+{%- else -%}
+Classified quintet: (not yet classified)
+Classified topic:   (not yet classified)
+{%- endif %}
 {%- endblock %}
 
 {% block intro -%}
-Read the source. Read the extractor output. Verify each {{ kind }}
+Read the source. Read the extractor output. Verify each {{ task.template }}
 item against the rubric below.
 {% endblock %}
 
@@ -127,17 +133,17 @@ drives overall REJECT; remaining people ACCEPT."
 
 The verdict output target is:
 
-    {{ verdict_path }}
+    {{ task.judge_output_path }}
 
 The agent output you are judging lives at:
 
-    {{ output_path | default('(missing)', true) }}
+    {{ task.output_path | default('(missing)', true) }}
 
 DO NOT use ``fs_write`` to write the verdict file directly.
 
 #### 1. Initialize
 
-    curator.sh builders init {{ verdict_path }} --schema judge
+    curator.sh builders init {{ task.judge_output_path }} --schema judge
 
 #### 2. Set ALL required fields in a single ``add`` call
 
@@ -146,7 +152,7 @@ and `item_verdicts` (≥1 entry). Validation runs after each ``add``,
 so a partial add will be rejected. Bundle every rubric definition,
 the top-level fields, AND your item_verdicts into one ``add``:
 
-    curator.sh builders add {{ verdict_path }} \
+    curator.sh builders add {{ task.judge_output_path }} \
         --set _rubric.<dim_a>='<description>' \
         --set _rubric.<dim_b>='<description>' \
         --set _rubric.<dim_c>='<description>' \

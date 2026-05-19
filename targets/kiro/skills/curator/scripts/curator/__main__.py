@@ -8,6 +8,7 @@ Run-driving (orchestrator's loop):
     next <workdir>                advance internal tasks; emit next batch or done
     complete <workdir> <task-id>  mark agents/human task done
     status <workdir>              aggregate verdicts; emit DONE / DONE_WITH_CONCERNS / BLOCKED / IN_PROGRESS / NEEDS_CONTEXT
+    gate-list <workdir>           emit TSV of gate review targets (report / manifest / synthesis)
 
 Task-implementation (invoked by tasks via cmd arrays in stages.py):
     source   fetch | convert
@@ -34,6 +35,7 @@ app.command("ingest")(runtime.cli_ingest)
 app.command("next")(runtime.cli_next)
 app.command("complete")(runtime.cli_complete)
 app.command("status")(runtime.cli_status)
+app.command("gate-list")(runtime.cli_gate_list)
 
 # Task-implementation (invoked by tasks).
 app.add_typer(source.app,   name="source")

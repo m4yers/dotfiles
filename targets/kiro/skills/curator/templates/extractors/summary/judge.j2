@@ -1,5 +1,8 @@
 {% extends 'extractors/_meta/judge.j2' %}
 
+{# Length parameters mirror the extractor template: spelled out
+   per media in the criteria below. #}
+
 {% block intro -%}
 Verify the summary against the rubric below. The summary is a
 single text output — emit one item_verdict with target=null.
@@ -11,10 +14,18 @@ single text output — emit one item_verdict with target=null.
 2. **Comprehensive.** The summary captures the source's central
    thesis, main argument, and conclusions. A summary that misses
    the central thesis → REJECT.
-3. **Length.** 250–500 words. Substantially shorter or longer →
-   REVIEW.
-4. **Structure.** Multi-paragraph prose, not bullet lists or
-   one giant paragraph.
+3. **Length.** Budget by source media
+   (`upstream.classify.output.quintet.media`):
+   - `article` or `paper`: 200–300 words.
+   - any other media: 350–500 words.
+
+   Substantially shorter or longer → REVIEW.
+4. **Paragraph count.** Cap by source media:
+   - `article` or `paper`: AT MOST 3 paragraphs.
+   - any other media: AT MOST 5 paragraphs.
+
+   More paragraphs than the cap → REVIEW. Bullet lists or one
+   giant paragraph → REVIEW.
 5. **Numbers verified.** Any statistic in the summary matches the
    source verbatim.
 {% endblock %}

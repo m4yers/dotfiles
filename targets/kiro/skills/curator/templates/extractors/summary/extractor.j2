@@ -1,37 +1,32 @@
 {% extends 'extractors/_meta/extractor.j2' %}
 
+{# Summary is the meta extractor — runs after every other extractor
+   and produces a narrative summary grounded in both the source and
+   the trustworthy peer extractors. Length parameters are spelled
+   out per media in the prose below. #}
+
 {% block source_paths -%}
-Source text:        {{ source_text_path | default('(missing)') }}
-Container metadata: {{ container_metadata | default('(none)') }}
-{% if quintet %}Quintet: {{ quintet }}{% endif %}
-{% if topic %}Topic: {{ topic }}{% endif %}
+Source text:        {{ source.converted_path | default('(missing)', true) }}
+Container metadata: {{ source.container_metadata | default('(none)', true) }}
+Quintet:            {{ upstream.classify.output.quintet }}
+Topic:              {{ upstream.classify.output.topic }}
 
-You run AFTER the other extractors. Their outputs are at:
+You run AFTER {{ peers | length }} other extractors. Each peer's
+output and judge verdict are listed below — read the output and
+verdict for each peer before drafting.
 
-{% if upstream_outputs %}
-{% for kind, path in upstream_outputs.items() %}
-- **{{ kind }}**: {{ path }}
+{% for peer in peers %}
+- **{{ peer.task_id }}**:
+    output:  {{ peer.task_path }}
+    verdict: {{ peer.verdict_path | default('(no judge)', true) }}
 {% endfor %}
-{% else %}
-- (no upstream outputs supplied)
-{% endif %}
-
-Their judges have already scored each extractor; verdicts are at:
-
-{% if upstream_verdicts %}
-{% for kind, path in upstream_verdicts.items() %}
-- **{{ kind }}** verdict: {{ path }}
-{% endfor %}
-{% else %}
-- (no upstream verdicts supplied)
-{% endif %}
 {%- endblock %}
 
 {% block instructions %}
-Ultrathink about the source's argument structure and which upstream
+Ultrathink about the source's argument structure and which peer
 items genuinely cross-check it before drafting.
 
-Read the source, each upstream output, AND each verdict.yaml. Each
+Read the source, each peer's output, AND each verdict.yaml. Each
 verdict carries:
 
 - `verdict: ACCEPT|REVIEW|REJECT` (overall)
@@ -42,7 +37,7 @@ verdict carries:
 
 Use the **item_verdicts** to weight your synthesis at item granularity:
 
-- For each upstream output item with `verdict=ACCEPT`, treat it as
+- For each peer output item with `verdict=ACCEPT`, treat it as
   fully reliable for cross-checking.
 - For `verdict=REVIEW`, mention the item cautiously; if the
   rationale flags a specific aspect, exclude that aspect.
@@ -50,31 +45,36 @@ Use the **item_verdicts** to weight your synthesis at item granularity:
   cross-check on the source. Skip it. If many items in a kind are
   REJECTed, mention the gap in the takeaways paragraph.
 
-Note: the upstream's overall `verdict` is informational only —
-filter at the item level via `item_verdicts`, not by the
-top-level label.
+Note: the peer's overall `verdict` is informational only — filter
+at the item level via `item_verdicts`, not by the top-level label.
 
 Produce a meta-summary that integrates what the source says with
-what the (trustworthy) extractors found.
+what the (trustworthy) peer extractors found.
 
 The summary should:
 1. Open with one sentence stating the source's central thesis.
 2. Walk through the main argument or narrative in the source's
-   own structure (3–6 paragraphs).
+   own structure.
 3. Surface the source's key claims, evidence, and conclusions.
 4. End with a paragraph on takeaways — practical implications,
    open questions, or notable gaps.
-5. Reflect the extractors' findings (keywords, topics, models)
-   as a cross-check on what mattered in the source.
+5. Reflect the peers' findings (keywords, topics, models) as a
+   cross-check on what mattered in the source.
 
-Length: 250–500 words. No bullet lists. Cite specific claims and
-numbers when the source provides them. Never invent statistics.
+Length, by source media (`upstream.classify.output.quintet.media`):
+
+- `article` or `paper`: **150–200 words, AT MOST 3 paragraphs**.
+- any other media (`book`, `podcast`, `video`, `lecture`, ...):
+  **350–500 words, AT MOST 5 paragraphs**.
+
+No bullet lists. Cite specific claims and numbers when the source
+provides them. Never invent statistics.
 {% endblock %}
 
 {% block builder_calls %}
 
-    curator.sh builders add {{ output_path }} \
-        --set text='<250-500 word summary as multi-paragraph text>'
+    curator.sh builders add {{ task.output_path }} \
+        --set summary='<200–300 words for article/paper, 350–500 for other media; multi-paragraph text>'
 
-The single field `text` is required.
+The single field `summary` is required.
 {% endblock %}

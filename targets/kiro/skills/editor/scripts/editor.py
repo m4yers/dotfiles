@@ -89,17 +89,26 @@ def _is_clean_vim(pane):
         Path(tmp).unlink(missing_ok=True)
 
 
+def _vim_str_escape(s):
+    """Escape a string for use inside vim single-quoted literals.
+
+    Vim single-quoted strings escape ' by doubling: 'Claude''s'.
+    """
+    return s.replace("'", "''")
+
+
 def _open_or_reuse(pane, vim_new_tab_cmd, vim_reuse_cmd, filename):
     """Open in current tab if clean, reuse existing tab, or new tab."""
     if _is_clean_vim(pane):
         vcmd(pane, vim_reuse_cmd)
         return
     # Search all tabs for the file, switch if found
+    fn_esc = _vim_str_escape(filename)
     vim_expr = (
         f":let found=0 | "
         f"for t in range(1,tabpagenr('$')) | "
         f"  for b in tabpagebuflist(t) | "
-        f"    if fnamemodify(bufname(b),':p')==fnamemodify('{filename}',':p') | "
+        f"    if fnamemodify(bufname(b),':p')==fnamemodify('{fn_esc}',':p') | "
         f"      exe 'tabn '.t | let found=1 | break | "
         f"    endif | "
         f"  endfor | "
@@ -130,8 +139,15 @@ def cmd_show_diff(args):
         time.sleep(0.1)
     except subprocess.CalledProcessError:
         pass  # not in a git repo — let fugitive fail naturally
-    new_cmd = f":tabnew {args.file} | Gvdiffsplit {args.ref}"
-    reuse_cmd = f":e {args.file} | only | Gvdiffsplit {args.ref}"
+    fn_esc = _vim_str_escape(args.file)
+    new_cmd = (
+        f":execute 'tabnew ' . fnameescape('{fn_esc}') "
+        f"| Gvdiffsplit {args.ref}"
+    )
+    reuse_cmd = (
+        f":execute 'edit ' . fnameescape('{fn_esc}') "
+        f"| only | Gvdiffsplit {args.ref}"
+    )
     _open_or_reuse(pane, new_cmd, reuse_cmd, args.file)
 
 
@@ -143,8 +159,11 @@ def cmd_show_file(args):
     """
     pane = resolve_editor()
     ensure_vim(pane)
-    new_cmd = f":tabnew {args.file}"
-    reuse_cmd = f":e {args.file} | only"
+    fn_esc = _vim_str_escape(args.file)
+    new_cmd = f":execute 'tabnew ' . fnameescape('{fn_esc}')"
+    reuse_cmd = (
+        f":execute 'edit ' . fnameescape('{fn_esc}') | only"
+    )
     _open_or_reuse(pane, new_cmd, reuse_cmd, args.file)
 
 

@@ -1,8 +1,8 @@
 {% extends 'extractors/_meta/judge.j2' %}
 
 {% block source_paths -%}
-Source text:       {{ source_text_path | default('(missing)') }}
-Classifier output: {{ output_path | default('(missing)') }}
+Source text:       {{ source.converted_path | default('(missing)', true) }}
+Classifier output: {{ task.output_path | default('(missing)', true) }}
 {%- endblock %}
 
 {% block intro -%}
@@ -10,19 +10,14 @@ Read the source. Read the classifier's output (contains both
 `quintet:` and `topic:`). Emit one item_verdict with target=null
 covering all 8 dimensions below.
 
-## Slot vocabularies
+## Quintet vocabulary
 
-The classifier picked one value per slot from the vocabularies below.
-Use these descriptions to verify the picks are appropriate.
+The classifier picked one value per slot from the vocabulary below.
+Use the descriptions to verify the picks are appropriate.
 
-{% for slot_name, slot in slots.items() %}
-### {{ slot_name }} — {{ slot.description }}
-
-{% for value, desc in slot["values"].items() %}
-- **{{ value }}** — {{ desc }}
-{% endfor %}
-
-{% endfor %}
+```yaml
+{% include 'curator/quintet.yaml' %}
+```
 {%- endblock %}
 
 {% block criteria %}

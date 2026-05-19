@@ -3,13 +3,10 @@
    Shared by the ``people``, ``authors``, ``guests``, and
    ``speaker`` extractor kinds. Each kind populates a subset of
    the optional fields; the template renders whatever is present.
-#}
+-#}
 ---
 type: person
 title: "{{ item.name }}"
-{%- if item.get('role') %}
-role: {{ item.get('role') }}
-{%- endif %}
 {%- if item.get('affiliation') %}
 affiliation: "{{ item.get('affiliation') }}"
 {%- endif %}
@@ -18,9 +15,7 @@ last_updated: {{ today }}
 
 # {{ item.name }}
 
-{% if item.get('role') %}_Role: {{ item.get('role') }}_{% if item.get('affiliation') %} · {{ item.get('affiliation') }}{% endif %}
-
-{% elif item.get('affiliation') %}_{{ item.get('affiliation') }}_
+{% if item.get('affiliation') %}_{{ item.get('affiliation') }}_
 
 {% endif -%}
 {% if item.get('bio') %}{{ item.get('bio').strip() }}

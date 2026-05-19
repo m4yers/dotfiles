@@ -1,17 +1,19 @@
 {#
   Base template for every extractor under extractors/<kind>/extractor.j2.
 
-  Required vars (provided by prompts.py via --json-vars):
-    kind                string — the extractor kind name
-    output_path         string — absolute path the agent must write
-    source_text_path    string — converted source markdown path
-    quintet_path        string — path to the package-local quintet.yaml vocabulary
-    container_metadata  string|object|null — convert-stage metadata,
-                                              null for tasks pre-convert
-    quintet             object|null         — classified quintet,
-                                              null for the classify task
-    topic               string|null         — classified topic, null
-                                              for the classify task
+  All variables come from the curator render-context schema
+  (templates/extractors/_meta/context-schema.yaml). Templates
+  read schema bags directly; no flat-var aliasing.
+
+  Bags used here:
+    task                 — current task identity + paths
+    quintet              — classify config (path)
+    source               — fetched + converted artifacts (only present
+                            once convert is done)
+    upstream.classify    — only present for tasks with classify in
+                            their transitive depends_on (so the
+                            classify task itself sees no
+                            upstream.classify)
 
   Required overrides in child templates:
     {% block instructions %}  — kind-specific extraction instructions
@@ -22,22 +24,27 @@
 
   Optional overrides:
     {% block source_paths %}  — extra upstream paths beyond the defaults
-                                (used by summary/compose which read upstream
-                                outputs and verdicts)
+                                (used by summary/synthesis which read
+                                peer outputs and verdicts)
     {% block extras %}        — content placed after the OUTPUT block
 
   All children get security-frame.md.j2 prepended automatically.
 #}
 {% include 'security-frame.md.j2' %}
 
-You are the **{{ kind }}** extractor for curator.
+You are the **{{ task.template }}** extractor for curator.
 
 {% block source_paths -%}
-Source text:        {{ source_text_path }}
-Quintet vocabulary: {{ quintet_path }}
-Container metadata: {{ container_metadata | default('(none)', true) }}
-Classified quintet: {{ quintet | default('(not yet classified)', true) }}
-Classified topic:   {{ topic | default('(not yet classified)', true) }}
+Source text:        {{ source.converted_path | default('(missing)', true) }}
+Quintet vocabulary: {{ quintet.path }}
+Container metadata: {{ source.container_metadata | default('(none)', true) }}
+{% if upstream.classify is defined -%}
+Classified quintet: {{ upstream.classify.output.quintet }}
+Classified topic:   {{ upstream.classify.output.topic }}
+{%- else -%}
+Classified quintet: (not yet classified)
+Classified topic:   (not yet classified)
+{%- endif %}
 {%- endblock %}
 
 {% block instructions required %}{% endblock %}
@@ -51,11 +58,11 @@ execute_bash. DO NOT use ``fs_write`` directly.
 
 Output target:
 
-    {{ output_path }}
+    {{ task.output_path }}
 
 ### 1. Initialize
 
-    curator.sh builders init {{ output_path }} --schema {{ kind }}
+    curator.sh builders init {{ task.output_path }} --schema {{ task.template }}
 
 ### 2. Set fields per the schema
 

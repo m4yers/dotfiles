@@ -72,6 +72,104 @@ $SKILLS/home/template/scripts/render.sh \
 - Callers capture stdout; stderr is reserved for errors and uv output.
 - Template paths are caller-relative — this script does not search.
 
+## Pitfalls
+
+### `{% set %}` outside blocks is dead code under `{% extends %}`
+
+Jinja2 inheritance changes execution: only the child's `{% block %}`
+overrides run. Statements at the top level of the child — outside any
+block — are parsed but never executed. That includes `{% set %}`,
+`{% if %}`, and any other tag.
+
+Symptom under this skill: the `find_undeclared_variables` pre-check
+reports the set-target as missing, and the renderer exits with:
+
+```
+ERROR: template variables not provided: <var>
+```
+
+The error implies "you forgot to pass `<var>` in `--json-vars`" — but
+the real cause is that `{% set <var> %}` was placed where it never
+runs.
+
+**Wrong** (sets at top level run nowhere):
+
+```jinja
+{% extends 'base.j2' %}
+
+{% set tier = 'fast' if quintet.media == 'paper' else 'slow' %}
+
+{% block body %}
+Plan: {{ tier }}
+{% endblock %}
+```
+
+**Right** (sets live inside the block that consumes them):
+
+```jinja
+{% extends 'base.j2' %}
+
+{% block body %}
+{% set tier = 'fast' if quintet.media == 'paper' else 'slow' %}
+Plan: {{ tier }}
+{% endblock %}
+```
+
+If multiple blocks need the same value, either repeat the `{% set %}`
+in each block or put a `{% macro %}` in a shared base/partial and
+import it.
+
+### Leading-comment whitespace leaks into output
+
+Jinja's plain `{# ... #}` comments swallow the comment body but emit
+the trailing newline. A template starting with a doc comment will
+therefore render with a blank first line:
+
+```
+   ← blank
+---
+type: keyword
+```
+
+If the consumer parses frontmatter strictly (e.g. requires `---` on
+line 1) the file will be rejected. Use whitespace-controlled
+delimiters (`{#- ... -#}`) or have the caller `lstrip()` the rendered
+output.
+
+### Cross-skill `{% include %}` requires every partial dir on `--include-dir`
+
+`render.sh` resolves bare-filename includes against the
+`--include-dir` list and nothing else. Templates that pull in
+partials owned by another skill — e.g. the shared security frame at
+`secure-llm/templates/security-frame.md.j2` — fail with:
+
+```
+ERROR: included template not found: 'security-frame.md.j2'
+```
+
+unless the caller passes that other skill's `templates/` dir too.
+Production callers usually wire this correctly; the trap shows up in
+ad-hoc smoke tests where the developer assumes `--include-dir =
+<my-skill>/templates` is enough.
+
+**Convention:** every directory whose `*.j2` files are referenced by
+bare-filename `{% include %}` must be passed as a separate
+`--include-dir`. Order matters only on name collisions (first match
+wins), so list the most-specific dir first.
+
+```bash
+$SKILLS/home/template/scripts/render.sh \
+    --template extractors/summary/judge.j2 \
+    --include-dir <my-skill>/templates \
+    --include-dir <secure-llm>/templates \
+    --json-vars vars.json
+```
+
+If your template depends on a cross-skill partial, document that
+dependency next to your `--include-dir` flags so future maintainers
+do not have to grep for every `{% include %}` to reconstruct the
+search path.
+
 ## Completion
 
 | Status          | Criteria                           |

@@ -89,16 +89,9 @@ def _stage1_tasks(wd: Path | str, origin: str) -> list[dict]:
             "kind":  "agent",
             "agent": "curator-extractor",
             "template": "classify",
-            "vars": {
-                "source_text_path":   "${task:convert:converted_path}",
-                "container_metadata": "${task:convert:metadata}",
-            },
             "judge": {
                 "agent":    "curator-judge",
                 "template": "classify",
-                "vars": {
-                    "source_text_path": "${task:convert:converted_path}",
-                },
             },
             "depends_on": ["convert", "security_scan"],
             # Declarative stage transition: when classify completes,
@@ -150,22 +143,9 @@ def _stage2_tasks(wd: Path | str, extractor_kinds: list[str]) -> list[dict]:
             "kind":  "agent",
             "agent": "curator-extractor",
             "template": kind,
-            "vars": {
-                "source_text_path":  "${task:convert:converted_path}",
-                "container_metadata": "${task:convert:metadata}",
-                "source_vault_path": "${task:fetch:path}",
-                "quintet":           "${task:classify:quintet}",
-                "topic":             "${task:classify:topic}",
-            },
             "judge": {
                 "agent":    "curator-judge",
                 "template": kind,
-                "vars": {
-                    "source_text_path":   "${task:convert:converted_path}",
-                    "container_metadata": "${task:convert:metadata}",
-                    "quintet":            "${task:classify:quintet}",
-                    "topic":              "${task:classify:topic}",
-                },
             },
             "depends_on": ["classify", "convert"],
         }
@@ -181,31 +161,9 @@ def _stage2_tasks(wd: Path | str, extractor_kinds: list[str]) -> list[dict]:
             "kind":  "agent",
             "agent": "curator-extractor",
             "template": "summary",
-            "vars": {
-                "source_text_path":   "${task:convert:converted_path}",
-                "container_metadata": "${task:convert:metadata}",
-                "quintet":            "${task:classify:quintet}",
-                "topic":              "${task:classify:topic}",
-                "upstream_outputs": {
-                    k: f"${{task_path:extract-{k}}}"
-                    for k in parallel_extractor_kinds
-                },
-                # Per-extractor judge verdicts. Lets summary down-weight
-                # or skip kinds whose extractor was REJECTed by its judge.
-                "upstream_verdicts": {
-                    k: f"${{verdict_path:extract-{k}}}"
-                    for k in parallel_extractor_kinds
-                },
-            },
             "judge": {
                 "agent":    "curator-judge",
                 "template": "summary",
-                "vars": {
-                    "source_text_path":   "${task:convert:converted_path}",
-                    "container_metadata": "${task:convert:metadata}",
-                    "quintet":            "${task:classify:quintet}",
-                    "topic":              "${task:classify:topic}",
-                },
             },
             "depends_on": parallel_extract_ids + ["classify", "convert"],
         }
@@ -229,30 +187,9 @@ def _stage2_tasks(wd: Path | str, extractor_kinds: list[str]) -> list[dict]:
             "depends_on": [f"extract-{k}" for k in matchable_kinds],
         }
 
-    # Per-extractor paths the synthesis agent and build-replica
-    # iterate. ``extract-summary`` is excluded — its payload is a
-    # string (the summary), not an item list, and it's surfaced
-    # separately as ``${task:extract-summary:summary}``.
-    item_kinds = [k for k in parallel_extractor_kinds]
-    extraction_paths = {
-        k: f"${{task_path:extract-{k}}}" for k in item_kinds
-    }
-    verdict_paths = {
-        k: f"${{verdict_path:extract-{k}}}" for k in item_kinds
-    }
-    destinations_map = {
-        k: q_mod.destination_for(k) or {"mode": "synthesis"}
-        for k in extractor_kinds
-    }
-
-    # Synthesis renders each hub through ``templates/vault/wiki.j2``
-    # via the shared ``render.sh`` shim. Pass the absolute paths so
-    # the agent can call render.sh from a tool task without
-    # discovering them itself.
-    skill_root = Path(__file__).resolve().parent.parent.parent
-    wiki_template_path = str(
-        skill_root / "templates" / "vault" / "wiki.j2")
-    vault_templates_dir = str(skill_root / "templates" / "vault")
+    # Per-kind paths the synthesis agent and build-replica iterate.
+    # Built by the engine context (peers / upstream / destinations);
+    # nothing to plumb at the plan layer.
 
     tail_tasks = [
         # Build the workdir replica — one atomic page per item.
@@ -272,41 +209,16 @@ def _stage2_tasks(wd: Path | str, extractor_kinds: list[str]) -> list[dict]:
         # carries only the list of paths the agent wrote
         # (apply-replica picks them up by walking the replica
         # filesystem). The agent reads upstream task outputs
-        # directly — quintet/topic from classify, summary from
-        # extract-summary, items from each extract-<kind>, and
-        # judge metadata from each verdict.yaml.
+        # via the schema render context (peers / upstream /
+        # destinations / templates) — no plan-time vars plumbing.
         {
             "id":    "synthesis",
             "kind":  "agent",
             "agent": "curator-composer",
             "template": "synthesis",
-            "vars": {
-                "source_text_path":  "${task:convert:converted_path}",
-                "replica_root":      f"{workdir}/vault-replica",
-                "quintet":           "${task:classify:quintet}",
-                "topic":             "${task:classify:topic}",
-                "summary":           "${task:extract-summary:summary}",
-                "extraction_paths":  extraction_paths,
-                "verdict_paths":     verdict_paths,
-                "destinations":      destinations_map,
-                "wiki_template_path":  wiki_template_path,
-                "vault_templates_dir": vault_templates_dir,
-            },
             "judge": {
                 "agent":    "curator-judge",
                 "template": "synthesis",
-                "vars": {
-                    "source_text_path":  "${task:convert:converted_path}",
-                    "replica_root":      f"{workdir}/vault-replica",
-                    "quintet":           "${task:classify:quintet}",
-                    "topic":             "${task:classify:topic}",
-                    "summary":           "${task:extract-summary:summary}",
-                    "extraction_paths":  extraction_paths,
-                    "verdict_paths":     verdict_paths,
-                    "destinations":      destinations_map,
-                    "wiki_template_path":  wiki_template_path,
-                    "vault_templates_dir": vault_templates_dir,
-                },
             },
             "depends_on": ["build-replica"],
         },

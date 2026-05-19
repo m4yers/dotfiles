@@ -34,6 +34,9 @@ ARXIV_SHORT_TITLE_MAX = 60
 # ── yt-dlp ──────────────────────────────────────────────
 
 # Socket timeout in seconds for every yt-dlp network operation.
+# 60s tolerates yt-dlp's TLS handshake plus initial range request
+# on slow networks while still surfacing wedged sockets within a
+# minute.
 YTDLP_SOCKET_TIMEOUT = 60
 
 # Anchor the running transcript with a [MM:SS] marker each time the
