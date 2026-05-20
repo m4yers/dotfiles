@@ -9,17 +9,28 @@
      topic          — classify topic string
      quintet        — classify quintet object
      summary        — extract-summary's text (verbatim)
-     extractions    — {kind: [items]}, items have ``name`` field
-     synthesis_paths — list of ``21 SYNTHESIS/<slug>.md`` paths
-                       written by the synthesis agent (may be
-                       empty)
-     manifest_modifications  — [{vault_path, kind, name}] for
-                               artifact pages that overwrite an
-                               existing vault page (manifest
-                               entries with op=modified)
-     synthesis_modifications — [{vault_path, name}] for synthesis
-                               pages whose path already exists in
-                               the vault and would be overwritten
+
+     artifact_extractions  — {kind: {materialised: [items], skipped: [items]}}
+                             one entry per artifact-mode kind. ``materialised``
+                             items got vault pages; ``skipped`` were extracted
+                             but pruned (or never built) — informational only.
+     synthesis_extractions — {kind: [items]} for synthesis-mode kinds (topics,
+                             themes, etc.). These never become atomic pages;
+                             they feed into the synthesis hub.
+
+     synthesis_paths       — list of ``21 SYNTHESIS/<slug>.md`` paths written
+                             by the synthesis agent.
+     orphan_links          — list of wikilink targets in synthesis hubs that
+                             match neither a surviving artifact nor an existing
+                             vault page (broken links the operator may want to
+                             fix before applying).
+
+     manifest_modifications  — [{vault_path, kind, name}] for artifact pages
+                               that overwrite an existing vault page (manifest
+                               entries with op=modified).
+     synthesis_modifications — [{vault_path, name}] for synthesis pages whose
+                               path already exists in the vault and would be
+                               overwritten.
 #}
 # Curator Ingest Report
 
@@ -58,16 +69,49 @@ not opened individually.
 
 ## Extracted
 
-{% for kind in extractions | dictsort -%}
+{% for kind in artifact_extractions | dictsort -%}
+{%- set buckets = kind[1] -%}
+{%- set materialised = buckets.materialised or [] -%}
+{%- set skipped      = buckets.skipped or [] -%}
+
+### {{ kind[0] }}
+
+**materialised** ({{ materialised | length }}): {% if materialised %}{% for it in materialised -%}
+{{ it.name }}{% if not loop.last %}, {% endif %}
+{%- endfor %}{% else %}_none_{% endif %}
+
+**skipped** ({{ skipped | length }}): {% if skipped %}{% for it in skipped -%}
+{{ it.name }}{% if not loop.last %}, {% endif %}
+{%- endfor %}{% else %}_none_{% endif %}
+
+{% endfor %}
+{%- if synthesis_extractions %}
+## Fed into synthesis
+
+{% for kind in synthesis_extractions | dictsort -%}
 {%- set items = kind[1] -%}
 **{{ kind[0] }}** ({{ items | length }}): {% for it in items -%}
 {{ it.name }}{% if not loop.last %}, {% endif %}
 {%- endfor %}
 
 {% endfor %}
+{%- endif %}
 {%- if synthesis_paths %}
-**synthesis** ({{ synthesis_paths | length }}): {% for p in synthesis_paths -%}
-[[{{ p }}]]{% if not loop.last %}, {% endif %}
-{%- endfor %}
+## Synthesis hubs
 
+{% for p in synthesis_paths -%}
+- [[{{ p }}]]
+{% endfor %}
+{%- endif %}
+{%- if orphan_links %}
+## Orphan synthesis links
+
+The synthesis hubs link to the following targets that match neither
+a built artifact nor an existing vault page. They will render as
+broken links in Obsidian — edit the synthesis hub at gate time to
+remove or fix them.
+
+{% for t in orphan_links %}
+- `[[{{ t }}]]`
+{%- endfor %}
 {% endif %}

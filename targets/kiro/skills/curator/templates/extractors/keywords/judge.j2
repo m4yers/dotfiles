@@ -5,14 +5,29 @@ Read the source and the extractor output. Verify each keyword.
 {%- endblock %}
 
 {% block criteria %}
-1. **Relevance.** The keyword is a distinctive concept the source
-   uses or introduces — not a generic English word.
-2. **Variant correctness.** The schema enforces three variants by
+1. **Concept-shaped, not product-shaped.** A keyword is a concept,
+   methodology, abstraction, principle, or phenomenon that
+   benefits from a precise definition — NOT a specific commercial
+   or open-source product, tool, codename, brand, organization,
+   paper, dataset, benchmark, or test suite. Examples that MUST
+   be REJECTED: "Claude", "Codex", "Csmith", "YARPGen",
+   "JustHTML", "ChatGPT", "GCC torture test suite".
+
+   Rule of thumb: would a textbook define this term, or does it
+   just identify a specific instance? Textbook → ACCEPT.
+   Brand/product identifier → REJECT.
+
+2. **Relevance.** The keyword is a distinctive concept the source
+   uses or introduces — not a generic English word or overly
+   broad term.
+
+3. **Variant correctness.** The schema enforces two variants by
    `definition_source`. Verify the agent picked the right one:
    - `source` → `source_quote` MUST appear verbatim in the source
    - `agent` → source must NOT define the term inline
-   - `vault` → `match_existing` is a real existing vault page
-3. **No fabrication.** Definitions sourced from `agent` should be
+
+4. **No fabrication.** Definitions sourced from `agent` should be
    neutral, widely-accepted explanations, not speculative claims.
-4. **Naming.** Names are in natural form, not over-tokenized.
+
+5. **Naming.** Names are in natural form, not over-tokenized.
 {% endblock %}

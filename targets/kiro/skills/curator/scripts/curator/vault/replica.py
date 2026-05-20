@@ -341,6 +341,269 @@ def _render_page_via_template(kind: str, item: dict) -> str:
     return proc.stdout.lstrip()
 
 
+# ── prune ───────────────────────────────────────────────
+
+
+# Wikilink syntax in Obsidian:
+#   [[Target]]
+#   [[Target|Alias]]      ← we extract Target, ignore Alias
+#   [[Target#Heading]]    ← we strip #Heading
+#   [[Target^block]]      ← we strip ^block
+# We do NOT match [[ ]] inside fenced code blocks (``` ... ```)
+# because synthesis hubs may include code samples that contain
+# bracketed text by coincidence.
+import re as _re
+
+# Match an opening fence line (```lang) and the closing fence (```).
+# We toggle a state flag while walking lines.
+_FENCE_RE = _re.compile(r"^[\t ]*```")
+
+# Match wikilinks anywhere on a line. We capture the target, which is
+# everything before the first '|', '#', or '^'.
+_WIKILINK_RE = _re.compile(r"\[\[([^\[\]]+?)\]\]")
+
+
+def _wikilink_targets(text: str) -> list[str]:
+    """Return every wikilink target in ``text``, in encounter order.
+
+    Strips alias (``|...``), heading (``#...``) and block (``^...``)
+    suffixes. Skips wikilinks inside fenced code blocks.
+    """
+    targets: list[str] = []
+    in_fence = False
+    for line in text.splitlines():
+        if _FENCE_RE.match(line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        for raw in _WIKILINK_RE.findall(line):
+            # Strip alias (after '|'), heading (after '#'), block
+            # (after '^') — keep only the target.
+            target = raw
+            for sep in ("|", "#", "^"):
+                if sep in target:
+                    target = target.split(sep, 1)[0]
+            target = target.strip()
+            if target:
+                targets.append(target)
+    return targets
+
+
+def _frontmatter_link_targets(fm: dict) -> list[str]:
+    """Wikilink targets that live in the page's YAML frontmatter.
+
+    Synthesis pages list their underlying artifacts under
+    ``sources:`` (and sometimes other list-of-wikilinks fields).
+    Each entry may already be wrapped in ``[[...]]`` or be a
+    plain name; we accept both. Frontmatter wikilinks count
+    identically to body wikilinks for prune decisions.
+    """
+    targets: list[str] = []
+    for value in (fm or {}).values():
+        if isinstance(value, str):
+            inner = value.strip()
+            if inner.startswith("[[") and inner.endswith("]]"):
+                targets.extend(_wikilink_targets(inner))
+        elif isinstance(value, list):
+            for item in value:
+                if not isinstance(item, str):
+                    continue
+                inner = item.strip()
+                if inner.startswith("[[") and inner.endswith("]]"):
+                    targets.extend(_wikilink_targets(inner))
+                elif inner:
+                    targets.append(inner)
+    return targets
+
+
+def _collect_synthesis_link_targets(replica_root: Path) -> list[str]:
+    """Walk every synthesis hub page and collect every wikilink
+    target the gate operator would click in Obsidian. Order
+    preserved (first hub first, body before frontmatter); no
+    deduplication — caller normalizes."""
+    targets: list[str] = []
+    synth_dir = replica_root / SYNTHESIS_DIR
+    if not synth_dir.exists():
+        return targets
+    for entry in sorted(synth_dir.iterdir()):
+        if not entry.is_file() or entry.suffix != ".md":
+            continue
+        try:
+            raw = entry.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        try:
+            fm, body = parse(raw)
+        except ValueError:
+            fm, body = {}, raw
+        targets.extend(_wikilink_targets(body))
+        targets.extend(_frontmatter_link_targets(fm))
+    return targets
+
+
+def prune_replica(workdir: Path) -> dict:
+    """Prune unreferenced new artifact pages from the replica.
+
+    Walks synthesis hubs, extracts every wikilink target, and
+    removes any manifest entry whose name is not linked AND whose
+    op is ``create``. Modified entries are always kept (the vault
+    already has the page; pruning would delete a vault overwrite
+    without removing the underlying page).
+
+    Returns::
+
+        {
+          "kept_linked":     [{vault_path, kind, name}, ...],
+          "kept_modified":   [{vault_path, kind, name}, ...],
+          "pruned":          [{vault_path, kind, name}, ...],
+          "orphan_links":    ["Target", ...],
+          "manifest_path":   "<replica>/manifest.yaml",
+        }
+
+    ``orphan_links`` lists wikilink targets that match neither a
+    surviving manifest entry NOR an existing vault page. These
+    will render as broken links in Obsidian; the gate operator
+    can edit the synthesis hub or accept them.
+    """
+    rr = _replica_root(workdir)
+    if not rr.exists():
+        raise FileNotFoundError(f"replica missing at {rr}")
+    mp = _manifest_path(workdir)
+    if not mp.exists():
+        raise FileNotFoundError(f"manifest missing at {mp}")
+
+    manifest = yaml.safe_load(mp.read_text(encoding="utf-8")) or {}
+    entries = list(manifest.get("entries") or [])
+
+    # Build the wikilink target set. Normalize so 'Foo Bar' and
+    # 'foo  bar' compare equal.
+    raw_targets = _collect_synthesis_link_targets(rr)
+    norm_targets = {_normalize(t) for t in raw_targets if t}
+
+    kept_linked: list[dict] = []
+    kept_modified: list[dict] = []
+    pruned: list[dict] = []
+    surviving_entries: list[dict] = []
+    surviving_names_norm: set[str] = set()
+
+    for entry in entries:
+        name = entry.get("name") or ""
+        op   = entry.get("op")
+        norm_name = _normalize(name)
+
+        if op == "modified":
+            kept_modified.append(_summarize_entry(entry))
+            surviving_entries.append(entry)
+            surviving_names_norm.add(norm_name)
+            continue
+
+        # op == 'create' (or any future op without an existing
+        # original) — only keep if synthesis links to it.
+        if norm_name in norm_targets:
+            kept_linked.append(_summarize_entry(entry))
+            surviving_entries.append(entry)
+            surviving_names_norm.add(norm_name)
+            continue
+
+        # Pruned: delete the replica file and drop the entry.
+        vp = entry.get("vault_path")
+        if isinstance(vp, str):
+            replica_file = rr / vp
+            if replica_file.exists():
+                try:
+                    replica_file.unlink()
+                except OSError:
+                    pass  # best-effort; manifest removal still happens
+        pruned.append(_summarize_entry(entry))
+
+    # Compute orphan links: wikilink targets that match neither
+    # a surviving artifact nor an existing vault page.
+    seen: set[str] = set()
+    orphan_links: list[str] = []
+    for raw in raw_targets:
+        if not raw:
+            continue
+        if raw in seen:
+            continue
+        seen.add(raw)
+        norm = _normalize(raw)
+        if norm in surviving_names_norm:
+            continue
+        # Existing vault page check: try the name as a flat
+        # filename in any artifact-mode folder. Cheap and
+        # sufficient for the orphan signal.
+        if _name_matches_any_vault_page(raw):
+            continue
+        orphan_links.append(raw)
+
+    # Persist the trimmed manifest. Preserve other top-level keys.
+    new_manifest = {**manifest, "entries": surviving_entries}
+    mp.write_text(
+        yaml.safe_dump(new_manifest, sort_keys=False,
+                        allow_unicode=True),
+        encoding="utf-8",
+    )
+
+    return {
+        "kept_linked":   kept_linked,
+        "kept_modified": kept_modified,
+        "pruned":        pruned,
+        "orphan_links":  orphan_links,
+        "manifest_path": str(mp),
+    }
+
+
+def _summarize_entry(entry: dict) -> dict:
+    """Return only the gate-operator-relevant fields of a manifest
+    entry, for inclusion in the prune output."""
+    return {
+        "vault_path": entry.get("vault_path"),
+        "kind":       entry.get("kind"),
+        "name":       entry.get("name"),
+    }
+
+
+def _name_matches_any_vault_page(name: str) -> bool:
+    """True if a vault page exists matching this wikilink target.
+
+    Handles two wikilink shapes Obsidian accepts:
+
+    - **Path-style** — e.g. ``[[10 SOURCES/Articles/Foo]]``. The
+      target is a vault-relative path. Check
+      ``<VAULT_ROOT>/<target>.md`` directly; do NOT slugify
+      (slashes are part of the path, not the filename).
+    - **Plain name** — e.g. ``[[Csmith]]``. Search known
+      artifact-mode folders for ``<name>.md``. ``10 SOURCES/`` is
+      organized one level deep by source kind (``Articles``,
+      ``Books``, ``Papers``, ``Videos``), so recurse one level
+      there. The other artifact folders are flat.
+    """
+    from curator.vault.config import VAULT_ROOT
+
+    # Path-style wikilink — exact path lookup, no slug mangling.
+    if "/" in name:
+        return (VAULT_ROOT / f"{name}.md").exists()
+
+    # Plain name — search flat artifact folders.
+    fname = slugify_basename(name) or name
+    flat_folders = ("12 KEYWORDS", "13 PEOPLE", "14 MODELS",
+                    "11 QUOTES")
+    for folder in flat_folders:
+        if (VAULT_ROOT / folder / f"{fname}.md").exists():
+            return True
+
+    # 10 SOURCES is nested one level by kind; check each
+    # subdir for a matching flat filename.
+    sources_root = VAULT_ROOT / "10 SOURCES"
+    if sources_root.is_dir():
+        for sub in sources_root.iterdir():
+            if sub.is_dir() and (sub / f"{fname}.md").exists():
+                return True
+
+    return False
+
+
 # ── report ──────────────────────────────────────────────
 
 
@@ -353,11 +616,15 @@ def build_report(workdir: Path) -> dict:
     - extract-summary's summary text (pasted verbatim)
     - each ``extract-<kind>``'s items (kind name + count + names)
     - the synthesis task's emitted paths
+    - the manifest (post-prune) to compute materialised/skipped
+      per artifact-mode kind
+    - prune-replica's output (orphan synthesis links)
 
     Writes to ``<wd>/vault-replica/_REPORT.md``. Listed in
     ``_INTERNAL_FILES`` so apply-replica skips it.
     """
     from engine import store
+    from curator import quintet as q_mod
     plan = store.load_plan(workdir)
 
     classify = _safe_load(workdir, "classify", plan)
@@ -367,7 +634,8 @@ def build_report(workdir: Path) -> dict:
     summary_doc = _safe_load(workdir, "extract-summary", plan)
     summary = ((summary_doc or {}).get("summary") or "").strip()
 
-    extractions: dict[str, list[dict]] = {}
+    # Per-kind extractor outputs (everything except summary).
+    raw_extractions: dict[str, list[dict]] = {}
     for task in plan.tasks:
         if not task.id.startswith("extract-"):
             continue
@@ -377,15 +645,62 @@ def build_report(workdir: Path) -> dict:
         out = _safe_load(workdir, task.id, plan) or {}
         items = out.get(kind)
         if isinstance(items, list):
-            # Keep only items with a usable identifier so the
-            # report's name list is meaningful.
-            extractions[kind] = [
+            raw_extractions[kind] = [
                 it for it in items
                 if isinstance(it, dict) and it.get("name")
             ]
 
+    # Per-kind destinations from quintet rule table — only
+    # ``mode: artifact`` kinds split into materialised/skipped.
+    # Other kinds (synthesis-mode) feed the synthesis hub and are
+    # listed flat under "Fed into synthesis".
+    destinations = {
+        kind: q_mod.destination_for(kind) or {"mode": "synthesis"}
+        for kind in raw_extractions.keys()
+    }
+
+    # Manifest (post-prune) tells us which artifact-mode items
+    # actually got built. Items in extractor output but not in
+    # manifest are "skipped" (either pruned by prune-replica or
+    # never built — both look the same to the gate operator).
+    manifest = _load_manifest(workdir) or {}
+    manifest_entries = manifest.get("entries") or []
+    materialised_by_kind: dict[str, set[str]] = {}
+    for entry in manifest_entries:
+        kind = entry.get("kind")
+        name = entry.get("name")
+        if not isinstance(kind, str) or not isinstance(name, str):
+            continue
+        materialised_by_kind.setdefault(kind, set()).add(_normalize(name))
+
+    artifact_extractions: dict[str, dict[str, list[dict]]] = {}
+    synthesis_extractions: dict[str, list[dict]] = {}
+    for kind, items in raw_extractions.items():
+        mode = (destinations.get(kind) or {}).get("mode")
+        if mode == "artifact":
+            mat_norms = materialised_by_kind.get(kind, set())
+            materialised: list[dict] = []
+            skipped: list[dict] = []
+            for it in items:
+                if _normalize(it["name"]) in mat_norms:
+                    materialised.append(it)
+                else:
+                    skipped.append(it)
+            artifact_extractions[kind] = {
+                "materialised": materialised,
+                "skipped":      skipped,
+            }
+        else:
+            synthesis_extractions[kind] = items
+
     synthesis_doc = _safe_load(workdir, "synthesis", plan)
     synthesis_paths = ((synthesis_doc or {}).get("paths") or [])
+
+    # Orphan synthesis links — populated by prune-replica's output.
+    prune_doc = _safe_load(workdir, "prune-replica", plan) or {}
+    orphan_links = prune_doc.get("orphan_links") or []
+    if not isinstance(orphan_links, list):
+        orphan_links = []
 
     fetch_doc = _safe_load(workdir, "fetch", plan)
     basename  = ((fetch_doc or {}).get("basename")
@@ -399,8 +714,7 @@ def build_report(workdir: Path) -> dict:
     # front (the editor only opens these as diffs; new pages are
     # listed but not opened).
     manifest_modifications: list[dict] = []
-    manifest = _load_manifest(workdir) or {}
-    for entry in manifest.get("entries") or []:
+    for entry in manifest_entries:
         if entry.get("op") != "modified":
             continue
         vp = entry.get("vault_path")
@@ -428,7 +742,8 @@ def build_report(workdir: Path) -> dict:
 
     rendered = _render_report_via_template(
         basename, topic, quintet, summary,
-        extractions, synthesis_paths,
+        artifact_extractions, synthesis_extractions,
+        synthesis_paths, orphan_links,
         manifest_modifications, synthesis_modifications)
 
     rendered = _mdformat_wrap(rendered, width=80)
@@ -482,8 +797,10 @@ def _render_report_via_template(
     topic: str,
     quintet: dict,
     summary: str,
-    extractions: dict[str, list[dict]],
+    artifact_extractions: dict[str, dict[str, list[dict]]],
+    synthesis_extractions: dict[str, list[dict]],
     synthesis_paths: list[str],
+    orphan_links: list[str],
     manifest_modifications: list[dict],
     synthesis_modifications: list[dict],
 ) -> str:
@@ -495,8 +812,10 @@ def _render_report_via_template(
         "topic":           topic,
         "quintet":         quintet,
         "summary":         summary,
-        "extractions":     extractions,
-        "synthesis_paths": synthesis_paths,
+        "artifact_extractions":  artifact_extractions,
+        "synthesis_extractions": synthesis_extractions,
+        "synthesis_paths":       synthesis_paths,
+        "orphan_links":          orphan_links,
         "manifest_modifications":  manifest_modifications,
         "synthesis_modifications": synthesis_modifications,
     }

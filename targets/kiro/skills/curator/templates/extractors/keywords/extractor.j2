@@ -2,9 +2,13 @@
 
 {% block instructions %}
 Read the source. Identify the **keywords** the source uses or
-introduces — distinctive concepts, terms, technologies, frameworks,
-named ideas, jargon. Aim for 10–25 keywords. Skip generic English
-words and overly broad terms.
+introduces — concepts, methodologies, abstractions, principles,
+phenomena, or technical terms that **benefit from a precise
+definition**. A reader landing on the keyword's vault page should
+gain understanding from the definition.
+
+Aim for 10–25 keywords. Skip generic English words and overly
+broad terms.
 
 For **each keyword**, provide a short definition (1–3 sentences)
 explaining what the term means in the context of the source.
@@ -12,6 +16,39 @@ explaining what the term means in the context of the source.
 You have NO access to the vault. Do not concern yourself with
 duplicates or existing pages — a separate stage will reconcile your
 output against the vault later.
+
+## What is a keyword
+
+A keyword IS:
+
+- A **concept** that needs explanation: e.g. "executable oracles",
+  "zero degrees of freedom", "miscompilation", "soundness",
+  "precision".
+- A **methodology, technique, or class of tools**: e.g.
+  "property-based testing", "fuzzing", "runtime sanitizers",
+  "code coverage".
+- A **pattern, principle, or phenomenon**: e.g. "gaming the
+  system", "tool-centric software engineering".
+- A **technical abstraction** that requires definition: e.g.
+  "LLVM IR", "dataflow transfer functions".
+
+A keyword IS NOT:
+
+- A **specific commercial product or service**: e.g. "Claude",
+  "Codex", "ChatGPT", "GitHub Copilot".
+- A **specific open-source project, tool, or codename**: e.g.
+  "Csmith", "YARPGen", "JustHTML", "Claude's C Compiler".
+- A **named organization, paper, dataset, benchmark, or test
+  suite**: e.g. "GCC torture test suite", "MMLU", "HumanEval".
+- A **person, company, or institution**: those have their own
+  extraction kinds (people, authors, etc.).
+
+**Rule of thumb:** if the term is a brand or product name, it
+identifies a specific instance and does NOT belong here — readers
+do not need a definition for "Claude" the way they do for "zero
+degrees of freedom". When in doubt: would a textbook define this
+term, or does it just identify a product? Textbook → keyword.
+Product identifier → skip.
 
 ## Definition source precedence
 

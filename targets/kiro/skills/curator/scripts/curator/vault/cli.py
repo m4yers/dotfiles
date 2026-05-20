@@ -19,6 +19,7 @@ from curator.vault.replica import (
     apply_replica,
     build_replica,
     build_report,
+    prune_replica,
 )
 
 
@@ -158,6 +159,35 @@ def cli_replica_apply(
         raise typer.Exit(code=1)
 
 
+def cli_replica_prune(
+    workdir: Annotated[str, typer.Argument(
+        help="Run workdir; reads synthesis hubs from "
+             "<wd>/vault-replica/21 SYNTHESIS/, prunes manifest "
+             "entries whose op=create name is not wikilinked.")],
+) -> None:
+    """Prune unreferenced new artifact pages from the replica.
+
+    Scans every ``<wd>/vault-replica/21 SYNTHESIS/*.md`` for
+    wikilinks (body + frontmatter). For each manifest entry:
+
+    - ``op: modified`` → kept (vault already has the page).
+    - ``op: create`` whose name is wikilinked → kept.
+    - ``op: create`` whose name is NOT wikilinked → replica file
+      deleted, manifest entry removed.
+
+    Surfaces ``orphan_links`` — wikilink targets that match
+    neither a surviving artifact nor an existing vault page;
+    these will render as broken links in Obsidian.
+    """
+    from pathlib import Path as _Path
+    wd = _Path(workdir).resolve()
+    try:
+        result = prune_replica(wd)
+    except FileNotFoundError as e:
+        fail(str(e))
+    emit(result)
+
+
 # ── report ──────────────────────────────────────────────
 
 
@@ -192,6 +222,7 @@ replica_app = typer.Typer(
 )
 replica_app.command("build")(cli_replica_build)
 replica_app.command("apply")(cli_replica_apply)
+replica_app.command("prune")(cli_replica_prune)
 
 
 app = typer.Typer(

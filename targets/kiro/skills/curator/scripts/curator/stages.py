@@ -222,6 +222,19 @@ def _stage2_tasks(wd: Path | str, extractor_kinds: list[str]) -> list[dict]:
             },
             "depends_on": ["build-replica"],
         },
+        # Prune unreferenced new artifact pages. Synthesis hubs are
+        # the primary content; atomic pages exist only to support
+        # them. Any ``op: create`` artifact that no synthesis hub
+        # wikilinks is dead weight — delete it from the replica
+        # and the manifest. ``op: modified`` entries are kept
+        # regardless because their vault originals may already be
+        # referenced from elsewhere in the vault.
+        {
+            "id":   "prune-replica",
+            "kind": "tool",
+            "cmd":  [CURATOR_SH, "vault", "replica", "prune", workdir],
+            "depends_on": ["synthesis"],
+        },
         # Render the gate operator's overview ``_REPORT.md`` into
         # the replica root. Pulls verbatim summary + per-kind item
         # counts + synthesis-page paths so the gate has one
@@ -230,7 +243,7 @@ def _stage2_tasks(wd: Path | str, extractor_kinds: list[str]) -> list[dict]:
             "id":   "report",
             "kind": "tool",
             "cmd":  [CURATOR_SH, "vault", "report", workdir],
-            "depends_on": ["synthesis"],
+            "depends_on": ["prune-replica"],
         },
         # Human gate — orchestrator drives editor with diffs for
         # modified files and plain views for new files. Output:
