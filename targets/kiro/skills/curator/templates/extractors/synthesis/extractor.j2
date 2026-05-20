@@ -69,13 +69,25 @@ failure mode — prefer one rich page over two thin ones.
 
 ## Voice and framing
 
-The page is a wiki entry on its own topic, not commentary on the
-source it draws from. Concretely:
+The page is an **encyclopedic wiki entry on its own topic**.
+Imagine the reader landed here from any link, not from the
+source. The topic is the subject; the source and the
+extracted artifacts (people, models, keywords) are supporting
+material that bolsters specific claims. Concretely:
 
 - **Open with the topic, not the page.** Do NOT use phrases like
   "this hub orbits…", "this companion hub turns…", "this page
   covers…", "this article presents…". Open by stating what the
   topic *is* and why it matters.
+- **Lead with substance, never with setup.** Forbidden meta-
+  openers and meta-transitions in any prose field include:
+  "the premise is…", "the general lesson…", "the key insight…",
+  "the takeaway…", "the bottom line…", "what follows is…",
+  "in this article…", "as we shall see…", "it bears noting…",
+  "the bridging observation is…", "the upshot…". When tempted
+  to write "The general lesson: X is Y." — write "X is Y."
+  directly. The reader does not need the page to telegraph its
+  own structure.
 - **Describe the topic on its own terms.** Treat materialized
   atomic pages (people, models, keywords) as supporting links —
   reach for ``[[Person Name]]`` when the person is factually
@@ -84,14 +96,32 @@ source it draws from. Concretely:
   reads more cleanly.
 - **Do not center the source.** Phrases like "the article's
   central thesis", "the article's negative case", "the source
-  argues" reframe the page as commentary on a document. Make
-  the same point directly ("The central claim is…", "The
-  negative case is…") and let the source/author appear as
-  wikilinks in supporting clauses.
+  argues", "the article catalogues", "Author X writes that…",
+  "the source piece that grounds the cases below" reframe the
+  page as commentary on a document. Make the same point as a
+  direct claim ("The central claim is…", "The negative case is…",
+  "Catalogued correctness oracles include…") and attribute
+  specific framings via inline wikilinks
+  (``[[Author Name]] argues…``) only when attribution adds
+  factual value.
 - **Cite, don't narrate.** The source goes in the ``sources``
   frontmatter field and may appear as a ``[[Source Title]]``
   wikilink where natural. Do not paraphrase the source's
-  rhetorical structure.
+  rhetorical structure or reference its existence ("the piece
+  that grounds the cases below", "the article begins by…").
+- **Use artifacts as supporting evidence.** Each ``[[Atomic Name]]``
+  wikilink is a citation that bolsters the claim it appears in.
+  Do not introduce a wikilink for its own sake; introduce it
+  when the named entity directly supports the local point.
+- **No internal vault vocabulary in reader-facing text.** Never
+  use the words "atomic", "atomic page", "artifact", "keyword
+  artifact", "synthesis hub", "vault", "replica", "extractor",
+  or "key concept" as prose terms or as See-Also notes — they
+  are curator scaffolding, invisible to the reader. Instead,
+  describe the linked entity by what it *is* in the topic's
+  own vocabulary ("a related principle", "the term", "the
+  programmer credited with the framing", "a parallel pattern
+  from incentive design").
 - **Multi-source futureproofing.** A topic may later be revisited
   by other sources; write prose that survives that — describe
   the topic, attribute specific framings to specific people via
@@ -133,16 +163,16 @@ For each page, write a JSON file at ``/tmp/<slug>.json``:
   "title":          "Topic Title",
   "today":          "<YYYY-MM-DD today>",
   "sources":        ["10 SOURCES/Articles/<source-basename>"],
-  "rationale":      "Opening paragraph (≥80 chars) introducing the topic on its own terms. Sits before ## Overview. Do NOT narrate the page's structure or reference 'this hub'/'this page'/'this article'; describe the topic.",
-  "overview":       "Multi-paragraph prose (≥200 chars) describing the topic. Wikilinks on first occurrence of every atomic name. Treat the source as a citation target (frontmatter + wikilinks), not as the subject of the prose.",
+  "rationale":      "Opening paragraph (≥80 chars) defining and motivating the topic in its own terms. Sits before ## Overview. Lead with substance: state what the topic is and why it matters. NEVER narrate the page or reference 'this hub'/'this page'/'this article'/'the source piece'.",
+  "overview":       "Multi-paragraph prose (≥200 chars) explaining the topic as if for a reader who landed here from any link. Lead with substance, never with setup ('the premise is…', 'the general lesson…' are forbidden). Use ``[[Atomic Name]]`` wikilinks as supporting citations that bolster specific claims, not as the page's organizing center. Treat the source as a citation target (frontmatter + wikilinks), not the subject of the prose.",
   "ascii_diagram":  "Multi-line illustrative diagram (≥4 lines, ≥80 chars).\nUse box-drawing chars: ┌ ┐ └ ┘ │ ─ ┬ ┴ ├ ┤ ┼ ▼ ▲ ◄ ►",
   "key_concepts":   [
-    {"name": "Atomic A", "mode": "included",  "summary": "Inline definition (≥30 chars)."},
-    {"name": "Atomic B", "mode": "connected", "summary": "Orientation pointing at [[Atomic B]]'s standalone page."},
+    {"name": "Atomic A", "mode": "included",  "summary": "Inline definition (≥30 chars). Describes what A is, in topic-relevant terms."},
+    {"name": "Atomic B", "mode": "connected", "summary": "One-sentence explanation of what B is and why it is relevant to this topic. NEVER 'see [[B]]' or 'the keyword' — the bullet head already carries the wikilink; the note must add substance."},
     {"name": "Atomic C", "mode": "included",  "summary": "Another inline definition."}
   ],
   "see_also":       [
-    {"name": "Related Topic or Atomic", "kind": "atomic", "note": "optional"}
+    {"name": "Related Topic or Atomic", "kind": "atomic", "note": "Substantive note: relationship to this topic, or omit. NEVER use vault vocabulary ('keyword artifact', 'atomic page', 'synthesis hub') as the note."}
   ],
   "worked_examples": [],
   "discussion":      ""
