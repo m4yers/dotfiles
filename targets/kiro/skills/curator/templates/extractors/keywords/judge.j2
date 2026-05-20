@@ -29,5 +29,18 @@ Read the source and the extractor output. Verify each keyword.
 4. **No fabrication.** Definitions sourced from `agent` should be
    neutral, widely-accepted explanations, not speculative claims.
 
-5. **Naming.** Names are in natural form, not over-tokenized.
+5. **Naming.** Names follow Title Case with optional
+   parenthetical abbreviation:
+   - Each word capitalized; short stopwords (a, an, the, of,
+     for, in, on, at, to, by, and, or, but) lowercase unless
+     first or last. Hyphenated parts each capitalized.
+   - Acronyms preserve their case (LLM, LLVM, GCC, JSON, JIT).
+   - When a widely-known abbreviation exists, write the full
+     form followed by the short form in parens at the end:
+     "Low-Level Virtual Machine (LLVM)", "Large Language Model
+     Coding Agents (LLM Coding Agents)".
+   - Do NOT invent abbreviations. Bare title-case is correct
+     when no common short form exists ("Miscompilation",
+     "Property-Based Testing").
+   - Names should be in natural form, not over-tokenized.
 {% endblock %}

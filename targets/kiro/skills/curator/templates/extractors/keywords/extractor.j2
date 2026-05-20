@@ -50,6 +50,35 @@ degrees of freedom". When in doubt: would a textbook define this
 term, or does it just identify a product? Textbook → keyword.
 Product identifier → skip.
 
+## Naming convention
+
+Names use **Title Case** with abbreviations in parentheses where
+the term has a widely-known short form.
+
+- Capitalize each word; lowercase short stopwords (a, an, the,
+  of, for, in, on, at, to, by, and, or, but) unless first or
+  last. Hyphenated parts are each capitalized.
+- Preserve acronym case: `LLM`, `LLVM`, `GCC`, `JSON`, `JIT`.
+- Symbols, units, and code identifiers keep their natural form.
+- If the term has a widely-recognized abbreviation or short
+  form, write the full form first and put the short form in
+  parentheses. Place the parenthetical at the end.
+
+Examples:
+
+- `executable oracles`  →  **Executable Oracles**
+- `zero degrees of freedom`  →  **Zero Degrees of Freedom**
+- `property-based testing`  →  **Property-Based Testing**
+- `miscompilation`  →  **Miscompilation**
+- `LLVM IR`  →  **Low-Level Virtual Machine Intermediate
+  Representation (LLVM IR)**
+- `LLM coding agents`  →  **Large Language Model Coding Agents
+  (LLM Coding Agents)**
+- `runtime sanitizers`  →  **Runtime Sanitizers**
+
+Use the parenthetical form ONLY when an abbreviation is in
+common use; do not invent acronyms. If unsure, omit parens.
+
 ## Definition source precedence
 
 When writing a definition, prefer sources in this order:
