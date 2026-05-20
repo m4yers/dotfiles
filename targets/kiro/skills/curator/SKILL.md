@@ -167,7 +167,10 @@ Gate driver protocol:
    ```
 2. Drive the editor by consuming `curator.sh gate-list <wd>`, which
    emits one tab-separated record per file in protocol order
-   (report → manifest entries → synthesis pages):
+   (report → manifest entries → synthesis pages). Only open the
+   report and entries that overwrite existing vault pages — new
+   files are surfaced in the report's "Modifying existing vault
+   pages" section, not via the editor:
 
    ```bash
    EDITOR=$SKILLS/home/editor/scripts/run-editor.sh
@@ -175,8 +178,9 @@ Gate driver protocol:
    $SKILLS/home/curator/scripts/curator.sh gate-list "$WD" \
        | while IFS=$'\t' read -r kind a b; do
            case "$kind" in
+               report)   $EDITOR show file "$a" ;;
                *-modify) $EDITOR show diff "$a" "$b" ;;
-               *)        $EDITOR show file "$a" ;;
+               # *-create entries: not opened in editor — see report
            esac
        done
    ```
@@ -186,6 +190,11 @@ Gate driver protocol:
    - Two-field records (`report`, `*-create`) carry the file path
      in `a`. Three-field records (`*-modify`) carry the original
      vault path in `a` and the replica path in `b`.
+   - `*-create` records are emitted by `gate-list` but the gate
+     driver intentionally skips them — new pages are reviewed via
+     the report's listing rather than opened individually. The
+     report enumerates every modification so the user knows which
+     existing vault files would be overwritten before approving.
    - The engine warns to stderr and skips manifest entries whose
      replica file is missing on disk; the orchestrator MUST NOT
      synthesize its own iteration over `manifest.yaml` (vault

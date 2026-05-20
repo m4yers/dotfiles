@@ -13,6 +13,13 @@
      synthesis_paths — list of ``21 SYNTHESIS/<slug>.md`` paths
                        written by the synthesis agent (may be
                        empty)
+     manifest_modifications  — [{vault_path, kind, name}] for
+                               artifact pages that overwrite an
+                               existing vault page (manifest
+                               entries with op=modified)
+     synthesis_modifications — [{vault_path, name}] for synthesis
+                               pages whose path already exists in
+                               the vault and would be overwritten
 #}
 # Curator Ingest Report
 
@@ -23,6 +30,31 @@
 ## Summary
 
 {{ summary }}
+
+## Modifying existing vault pages
+
+{% set total_mods = (manifest_modifications | length) + (synthesis_modifications | length) -%}
+{%- if total_mods == 0 -%}
+_None — every replica page is a new file._
+{%- else -%}
+The following replica files would overwrite existing vault pages on
+apply. The gate driver opens each of these as a diff against the
+vault original; new pages are listed under **Extracted** below but
+not opened individually.
+
+{% if manifest_modifications -%}
+**Atomic pages** ({{ manifest_modifications | length }}):
+{% for m in manifest_modifications %}
+- `{{ m.vault_path }}` — {{ m.kind }}: {{ m.name }}
+{%- endfor %}
+{% endif -%}
+{%- if synthesis_modifications %}
+**Synthesis pages** ({{ synthesis_modifications | length }}):
+{% for m in synthesis_modifications %}
+- `{{ m.vault_path }}`
+{%- endfor %}
+{% endif -%}
+{%- endif %}
 
 ## Extracted
 

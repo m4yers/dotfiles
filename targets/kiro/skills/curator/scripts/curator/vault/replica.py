@@ -391,9 +391,45 @@ def build_report(workdir: Path) -> dict:
     basename  = ((fetch_doc or {}).get("basename")
                  or "unknown-source")
 
+    # Files in this run that overwrite existing vault pages. Two
+    # sources: manifest entries with op=modified (extractor
+    # artifacts that matched an existing page) and synthesis pages
+    # whose replica path also exists in the vault. The report
+    # enumerates both so the gate operator sees every overwrite up
+    # front (the editor only opens these as diffs; new pages are
+    # listed but not opened).
+    manifest_modifications: list[dict] = []
+    manifest = _load_manifest(workdir) or {}
+    for entry in manifest.get("entries") or []:
+        if entry.get("op") != "modified":
+            continue
+        vp = entry.get("vault_path")
+        if not isinstance(vp, str):
+            continue
+        manifest_modifications.append({
+            "vault_path": vp,
+            "kind":       entry.get("kind") or "",
+            "name":       entry.get("name") or vp,
+        })
+
+    synthesis_modifications: list[dict] = []
+    rr = _replica_root(workdir)
+    synth_dir = rr / SYNTHESIS_DIR
+    if synth_dir.exists():
+        for entry in sorted(synth_dir.iterdir()):
+            if not entry.is_file() or entry.suffix != ".md":
+                continue
+            rel = f"{SYNTHESIS_DIR}/{entry.name}"
+            if abs_path(rel).exists():
+                synthesis_modifications.append({
+                    "vault_path": rel,
+                    "name":       entry.stem,
+                })
+
     rendered = _render_report_via_template(
         basename, topic, quintet, summary,
-        extractions, synthesis_paths)
+        extractions, synthesis_paths,
+        manifest_modifications, synthesis_modifications)
 
     rendered = _mdformat_wrap(rendered, width=80)
 
@@ -448,6 +484,8 @@ def _render_report_via_template(
     summary: str,
     extractions: dict[str, list[dict]],
     synthesis_paths: list[str],
+    manifest_modifications: list[dict],
+    synthesis_modifications: list[dict],
 ) -> str:
     """Render ``templates/report.md.j2`` via the shared render.sh
     shim. Returns the rendered markdown."""
@@ -459,6 +497,8 @@ def _render_report_via_template(
         "summary":         summary,
         "extractions":     extractions,
         "synthesis_paths": synthesis_paths,
+        "manifest_modifications":  manifest_modifications,
+        "synthesis_modifications": synthesis_modifications,
     }
 
     with tempfile.NamedTemporaryFile(
