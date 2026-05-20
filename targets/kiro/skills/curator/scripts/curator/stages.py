@@ -254,6 +254,19 @@ def _stage2_tasks(wd: Path | str, extractor_kinds: list[str]) -> list[dict]:
             "metadata": {"replica_dir": "vault-replica"},
             "depends_on": ["report"],
         },
+        # Strip dead [[wikilinks]] from synthesis hubs after the
+        # gate. The user may delete replica files at the gate;
+        # references to those deletions would render as broken
+        # links in Obsidian. Rewrites them to plain text
+        # (preserving alias visible text). Atomic pages are
+        # leaves and are not touched.
+        {
+            "id":   "strip-dead-links",
+            "kind": "tool",
+            "cmd":  [CURATOR_SH, "vault", "replica",
+                     "strip-dead-links", workdir],
+            "depends_on": ["gate"],
+        },
         # Apply the (possibly user-edited) replica to the vault.
         # Files the user deleted between build and apply are
         # skipped with ``user_deleted`` reason. Synthesis pages
@@ -263,7 +276,7 @@ def _stage2_tasks(wd: Path | str, extractor_kinds: list[str]) -> list[dict]:
             "id":   "apply-replica",
             "kind": "tool",
             "cmd":  [CURATOR_SH, "vault", "replica", "apply", workdir],
-            "depends_on": ["gate"],
+            "depends_on": ["strip-dead-links"],
         },
     ]
 

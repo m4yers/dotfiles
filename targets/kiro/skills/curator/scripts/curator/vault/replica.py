@@ -685,6 +685,215 @@ def _name_matches_any_vault_page(name: str) -> bool:
     return False
 
 
+# ── strip dead links ────────────────────────────────────
+
+
+# Frontmatter delimiters: keep the original block verbatim so
+# unrelated YAML formatting (comments, key order, list style) is
+# not perturbed. The body is the only region we rewrite.
+_FRONTMATTER_RE = _re.compile(r"\A(---\n.*?\n---\n)(.*)\Z", _re.DOTALL)
+
+
+def _split_frontmatter_block(raw: str) -> tuple[str, str]:
+    """Split the raw text into (frontmatter_block, body).
+
+    ``frontmatter_block`` includes the opening + closing ``---``
+    delimiters and the trailing newline so concatenation
+    reproduces the original on-disk bytes when body is unchanged.
+    Returns ('', raw) when no frontmatter is present.
+    """
+    m = _FRONTMATTER_RE.match(raw)
+    if not m:
+        return "", raw
+    return m.group(1), m.group(2)
+
+
+def _resolve_visible_text(target: str, alias: str) -> str:
+    """Visible text for a stripped wikilink.
+
+    ``[[X|Y]]``         → ``Y`` (alias preserves intent)
+    ``[[X]]``           → ``X`` (heading/block dropped)
+    ``[[X#anchor]]``    → ``X`` (anchor meaningless without page)
+    ``[[X^block]]``     → ``X``
+    """
+    if alias:
+        return alias
+    name = target
+    for sep in ("#", "^"):
+        if sep in name:
+            name = name.split(sep, 1)[0]
+    return name.strip()
+
+
+def _replica_page_names(rr: Path) -> set[str]:
+    """Normalized stems of every ``.md`` file currently on disk
+    in the replica (excluding internal files like manifest /
+    report). Reflects post-gate state — files the user deleted
+    are absent."""
+    names: set[str] = set()
+    for path in rr.rglob("*.md"):
+        if path.name in _INTERNAL_FILES:
+            continue
+        names.add(_normalize(path.stem))
+    return names
+
+
+def _strip_body_dead_links(
+    body: str,
+    replica_names: set[str],
+) -> tuple[str, list[dict], int]:
+    """Rewrite dead wikilinks in ``body`` to plain text.
+
+    Returns (new_body, stripped, kept):
+      stripped — list of {target, replacement} for each dead link
+      kept     — count of wikilinks left intact
+
+    Wikilinks inside fenced code blocks are left alone (Obsidian
+    does not render them as links there). Intra-page anchor links
+    (``[[#section]]``) are kept verbatim.
+    """
+    stripped: list[dict] = []
+    kept = 0
+    out_lines: list[str] = []
+    in_fence = False
+
+    for line in body.splitlines(keepends=True):
+        # Strip the trailing newline only for fence detection;
+        # keep the original line unchanged when reassembling.
+        bare = line.rstrip("\n")
+        if _FENCE_RE.match(bare):
+            in_fence = not in_fence
+            out_lines.append(line)
+            continue
+        if in_fence:
+            out_lines.append(line)
+            continue
+
+        def _sub(match: "_re.Match[str]") -> str:
+            nonlocal kept
+            inner = match.group(1)
+            target_part, sep, alias = inner.partition("|")
+            target_part = target_part.strip()
+            alias = alias.strip()
+
+            # Intra-page anchor — no target page to resolve.
+            if target_part.startswith("#"):
+                kept += 1
+                return match.group(0)
+
+            # Strip heading/block from target before resolution.
+            page_target = target_part
+            for s in ("#", "^"):
+                if s in page_target:
+                    page_target = page_target.split(s, 1)[0]
+            page_target = page_target.strip()
+
+            # Path-style or plain — both flow through
+            # _name_matches_any_vault_page; replica names cover
+            # the workdir side.
+            norm = _normalize(page_target)
+            if norm in replica_names:
+                kept += 1
+                return match.group(0)
+            if _name_matches_any_vault_page(page_target):
+                kept += 1
+                return match.group(0)
+
+            replacement = _resolve_visible_text(target_part, alias)
+            stripped.append({
+                "target":      inner,
+                "replacement": replacement,
+            })
+            return replacement
+
+        new_line = _WIKILINK_RE.sub(_sub, line)
+        out_lines.append(new_line)
+
+    return "".join(out_lines), stripped, kept
+
+
+def strip_dead_links(workdir: Path) -> dict:
+    """Rewrite synthesis hub wikilinks whose target won't resolve
+    at apply time.
+
+    Runs AFTER the human gate and BEFORE apply-replica. The user
+    may have deleted replica files at the gate; references to
+    those deletions become dead ``[[wikilinks]]`` that Obsidian
+    paints as broken. This step rewrites them to plain text:
+
+    - ``[[Target]]``         → ``Target``
+    - ``[[Target|Alias]]``   → ``Alias``
+    - ``[[Target#anchor]]``  → ``Target``
+    - ``[[#anchor]]``        → kept verbatim (intra-page link)
+
+    A target resolves if either:
+
+    - a ``.md`` file is present in the post-gate replica (any
+      depth, excluding internal files), OR
+    - an existing vault page matches via
+      ``_name_matches_any_vault_page``.
+
+    Only synthesis hubs (``21 WIKI/*.md``) are rewritten. Atomic
+    pages are leaves and don't carry cross-references. Wikilinks
+    in fenced code blocks are NOT rewritten. Frontmatter is left
+    verbatim — its ``sources:`` entries are metadata, not
+    rendered links.
+
+    Returns::
+
+        {
+          "files_edited":   [{path, stripped: [...]}, ...],
+          "stripped_total": int,
+          "kept_total":     int,
+        }
+    """
+    rr = _replica_root(workdir)
+    if not rr.exists():
+        raise FileNotFoundError(f"replica missing at {rr}")
+
+    synth_dir = rr / SYNTHESIS_DIR
+    if not synth_dir.exists():
+        return {
+            "files_edited":   [],
+            "stripped_total": 0,
+            "kept_total":     0,
+        }
+
+    replica_names = _replica_page_names(rr)
+
+    files_edited: list[dict] = []
+    stripped_total = 0
+    kept_total = 0
+
+    for entry in sorted(synth_dir.iterdir()):
+        if not entry.is_file() or entry.suffix != ".md":
+            continue
+        try:
+            raw = entry.read_text(encoding="utf-8")
+        except OSError:
+            continue
+
+        fm_block, body = _split_frontmatter_block(raw)
+        new_body, stripped, kept = _strip_body_dead_links(
+            body, replica_names)
+        kept_total += kept
+        if not stripped:
+            continue
+        stripped_total += len(stripped)
+        new_text = fm_block + new_body
+        entry.write_text(new_text, encoding="utf-8")
+        files_edited.append({
+            "path":     str(entry),
+            "stripped": stripped,
+        })
+
+    return {
+        "files_edited":   files_edited,
+        "stripped_total": stripped_total,
+        "kept_total":     kept_total,
+    }
+
+
 # ── report ──────────────────────────────────────────────
 
 

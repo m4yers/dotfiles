@@ -20,6 +20,7 @@ from curator.vault.replica import (
     build_replica,
     build_report,
     prune_replica,
+    strip_dead_links,
 )
 
 
@@ -188,6 +189,33 @@ def cli_replica_prune(
     emit(result)
 
 
+def cli_replica_strip_dead_links(
+    workdir: Annotated[str, typer.Argument(
+        help="Run workdir; rewrites dead [[wikilinks]] in "
+             "<wd>/vault-replica/21 WIKI/*.md to plain text "
+             "after the human gate.")],
+) -> None:
+    """Strip dead wikilinks from synthesis hubs after the gate.
+
+    The user may delete replica files at the gate. References to
+    those deletions become broken links in Obsidian. This step
+    rewrites every dead ``[[Target]]`` (and ``[[Target|Alias]]``)
+    in synthesis hubs to plain text, preserving alias visible
+    text and intra-page anchor links.
+
+    Resolution: a target is alive when a ``.md`` file is present
+    in the post-gate replica OR an existing vault page matches
+    via the prune-replica helper.
+    """
+    from pathlib import Path as _Path
+    wd = _Path(workdir).resolve()
+    try:
+        result = strip_dead_links(wd)
+    except FileNotFoundError as e:
+        fail(str(e))
+    emit(result)
+
+
 # ── report ──────────────────────────────────────────────
 
 
@@ -223,6 +251,7 @@ replica_app = typer.Typer(
 replica_app.command("build")(cli_replica_build)
 replica_app.command("apply")(cli_replica_apply)
 replica_app.command("prune")(cli_replica_prune)
+replica_app.command("strip-dead-links")(cli_replica_strip_dead_links)
 
 
 app = typer.Typer(
