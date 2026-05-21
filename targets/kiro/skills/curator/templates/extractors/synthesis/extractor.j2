@@ -201,11 +201,11 @@ $SKILLS/home/template/scripts/render.sh \
     --include-dir {{ templates.vault_templates_dir }} \
     --json-vars /tmp/<slug>.json \
     --allow-unused \
-    > "{{ run.replica_root }}/21 SYNTHESIS/<Topic Title>.md"
+    > "{{ run.replica_root }}/21 WIKI/<Topic Title>.md"
 ```
 
 Example: a page titled ``Constraining LLM Coding Agents`` lands
-at ``{{ run.replica_root }}/21 SYNTHESIS/Constraining LLM Coding Agents.md``.
+at ``{{ run.replica_root }}/21 WIKI/Constraining LLM Coding Agents.md``.
 
 If the renderer prints
 ``ERROR: template variables not provided: <name>`` on stderr,
@@ -221,7 +221,7 @@ path in your output:
 
 ```bash
 curator.sh builders add {{ task.output_path }} \
-    --set paths.<i>='21 SYNTHESIS/<Topic Title>.md'
+    --set paths.<i>='21 WIKI/<Topic Title>.md'
 ```
 
 Increment ``<i>`` per page (0, 1) — cap at 2.

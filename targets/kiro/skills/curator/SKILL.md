@@ -132,7 +132,7 @@ the agent to:
   vars).
 - Build a structured JSON file per hub at `/tmp/<slug>.json`.
 - Render each hub against the wiki template, piping the
-  rendered markdown into `<replica_root>/21 SYNTHESIS/<Title>.md`.
+  rendered markdown into `<replica_root>/21 WIKI/<Title>.md`.
 - The renderer uses StrictUndefined and refuses to render if
   any required field is missing — this is the layout-
   enforcement mechanism.
@@ -152,7 +152,7 @@ replica contains:
   vault-relative paths listed in `manifest.yaml`. Filenames are
   the natural item names (e.g. `Claude's C Compiler.md`) so
   Obsidian wikilinks resolve directly.
-- Synthesis hub pages under `21 SYNTHESIS/` written by the
+- Synthesis hub pages under `21 WIKI/` written by the
   synthesis agent and not tracked in the manifest.
 - `_REPORT.md` at the replica root — gate operator's
   TL;DR overview.
@@ -215,7 +215,7 @@ Gate driver protocol:
 
 The downstream `apply-replica` task walks the replica + manifest: manifest
 entries become vault writes, replica files outside the manifest under
-`21 SYNTHESIS/` are validated + applied as synthesis pages, deleted manifest
+`21 WIKI/` are validated + applied as synthesis pages, deleted manifest
 entries become `skipped: user_deleted`. No separate decisions YAML is needed.
 
 ## Rules

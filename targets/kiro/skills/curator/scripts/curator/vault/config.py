@@ -32,7 +32,7 @@ KEYWORDS_DIR  = "12 KEYWORDS"
 PEOPLE_DIR    = "13 PEOPLE"
 MODELS_DIR    = "14 MODELS"
 ZETTEL_DIR    = "20 ZETTELKASTEN"
-SYNTHESIS_DIR = "21 SYNTHESIS"
+SYNTHESIS_DIR = "21 WIKI"
 
 # Curator write list. Paths under these prefixes are writable.
 WRITABLE_PREFIXES = (

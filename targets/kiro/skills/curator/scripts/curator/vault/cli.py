@@ -162,12 +162,12 @@ def cli_replica_apply(
 def cli_replica_prune(
     workdir: Annotated[str, typer.Argument(
         help="Run workdir; reads synthesis hubs from "
-             "<wd>/vault-replica/21 SYNTHESIS/, prunes manifest "
+             "<wd>/vault-replica/21 WIKI/, prunes manifest "
              "entries whose op=create name is not wikilinked.")],
 ) -> None:
     """Prune unreferenced new artifact pages from the replica.
 
-    Scans every ``<wd>/vault-replica/21 SYNTHESIS/*.md`` for
+    Scans every ``<wd>/vault-replica/21 WIKI/*.md`` for
     wikilinks (body + frontmatter). For each manifest entry:
 
     - ``op: modified`` → kept (vault already has the page).

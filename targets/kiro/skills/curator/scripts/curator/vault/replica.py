@@ -156,7 +156,7 @@ def build_replica(
 
     # Wipe per-kind artifact folders so a re-run produces a clean
     # set of atomic pages. Synthesis pages live under
-    # ``21 SYNTHESIS/`` and are authored by a downstream agent
+    # ``21 WIKI/`` and are authored by a downstream agent
     # task, NOT by build-replica — they are deliberately preserved
     # across re-runs so the agent's work is not destroyed by a
     # mechanical rebuild.
@@ -1009,13 +1009,13 @@ def apply_replica(workdir: Path) -> dict:
             })
 
     # Untracked files — replica files with no manifest entry.
-    # Synthesis pages (under ``21 SYNTHESIS/``) are expected here:
+    # Synthesis pages (under ``21 WIKI/``) are expected here:
     # the synthesis agent writes them directly via fs_write rather
     # than going through the build-replica manifest. Validate +
     # apply them just like tracked entries; vault-state decides
     # ``op`` (create vs modified).
     #
-    # Untracked files OUTSIDE ``21 SYNTHESIS/`` are flagged as
+    # Untracked files OUTSIDE ``21 WIKI/`` are flagged as
     # failures so non-synthesis content cannot slip past
     # build-replica's validation.
     for f in _walk_replica_files(rr):

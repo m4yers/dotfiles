@@ -32,7 +32,7 @@ def vault_root(tmp_path, monkeypatch):
     """Isolated tmp vault, monkeypatched into vault.config + .pages."""
     vault = tmp_path / "vault"
     for sub in ("12 KEYWORDS", "13 PEOPLE", "14 MODELS",
-                "21 SYNTHESIS"):
+                "21 WIKI"):
         (vault / sub).mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(config, "VAULT_ROOT", vault)
     monkeypatch.setattr(pages,  "VAULT_ROOT", vault)
@@ -134,7 +134,7 @@ def test_synthesis_create_when_vault_lacks_page(
     replica, vault_root, capsys,
 ):
     wd, rr = replica
-    p = rr / "21 SYNTHESIS/Hub.md"
+    p = rr / "21 WIKI/Hub.md"
     _touch(p)
     _write_manifest(rr, [])
 
@@ -148,8 +148,8 @@ def test_synthesis_modify_when_vault_has_page(
     replica, vault_root, capsys,
 ):
     wd, rr = replica
-    p_replica = rr / "21 SYNTHESIS/Hub.md"
-    p_vault   = vault_root / "21 SYNTHESIS/Hub.md"
+    p_replica = rr / "21 WIKI/Hub.md"
+    p_vault   = vault_root / "21 WIKI/Hub.md"
     _touch(p_replica)
     _touch(p_vault)
     _write_manifest(rr, [])
@@ -186,8 +186,8 @@ def test_emits_in_protocol_order(replica, vault_root, capsys):
     _touch(rr / "_REPORT.md")
     _touch(rr / "12 KEYWORDS/B.md")
     _touch(rr / "12 KEYWORDS/A.md")
-    _touch(rr / "21 SYNTHESIS/Z.md")
-    _touch(rr / "21 SYNTHESIS/A.md")
+    _touch(rr / "21 WIKI/Z.md")
+    _touch(rr / "21 WIKI/A.md")
     _write_manifest(rr, [
         {"vault_path": "12 KEYWORDS/B.md", "op": "create",
          "kind": "keywords", "name": "B"},
@@ -203,8 +203,8 @@ def test_emits_in_protocol_order(replica, vault_root, capsys):
         "report",
         "manifest-create",  # B (manifest order)
         "manifest-create",  # A
-        "synthesis-create", # 21 SYNTHESIS/A.md (sorted)
-        "synthesis-create", # 21 SYNTHESIS/Z.md
+        "synthesis-create", # 21 WIKI/A.md (sorted)
+        "synthesis-create", # 21 WIKI/Z.md
     ]
     # Manifest preserves manifest.yaml order (B before A)
     manifest_paths = [r[1] for r in rows if r[0] == "manifest-create"]
@@ -215,8 +215,8 @@ def test_emits_in_protocol_order(replica, vault_root, capsys):
     # Synthesis is alphabetical (A before Z)
     synth_paths = [r[1] for r in rows if r[0] == "synthesis-create"]
     assert synth_paths == [
-        str(rr / "21 SYNTHESIS/A.md"),
-        str(rr / "21 SYNTHESIS/Z.md"),
+        str(rr / "21 WIKI/A.md"),
+        str(rr / "21 WIKI/Z.md"),
     ]
 
 

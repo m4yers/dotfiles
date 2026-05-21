@@ -30,7 +30,7 @@ def vault_root(tmp_path, monkeypatch):
     """Isolated tmp vault — same shape as test_replica's fixture."""
     vault = tmp_path / "vault"
     for sub in ("12 KEYWORDS", "13 PEOPLE", "14 MODELS",
-                 "11 QUOTES", "10 SOURCES", "21 SYNTHESIS"):
+                 "11 QUOTES", "10 SOURCES", "21 WIKI"):
         (vault / sub).mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(config,  "VAULT_ROOT", vault)
     monkeypatch.setattr(pages,   "VAULT_ROOT", vault)
@@ -44,7 +44,7 @@ def workdir(tmp_path):
     (rr / "12 KEYWORDS").mkdir(parents=True)
     (rr / "13 PEOPLE").mkdir(parents=True)
     (rr / "14 MODELS").mkdir(parents=True)
-    (rr / "21 SYNTHESIS").mkdir(parents=True)
+    (rr / "21 WIKI").mkdir(parents=True)
     return wd
 
 
@@ -67,7 +67,7 @@ def _write_replica(wd: Path, vault_path: str, body: str = "stub\n") -> Path:
 
 
 def _write_synthesis(wd: Path, name: str, body: str) -> Path:
-    p = wd / "vault-replica" / "21 SYNTHESIS" / name
+    p = wd / "vault-replica" / "21 WIKI" / name
     p.write_text(body, encoding="utf-8")
     return p
 

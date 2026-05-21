@@ -257,7 +257,7 @@ def _stage2_tasks(wd: Path | str, extractor_kinds: list[str]) -> list[dict]:
         # Apply the (possibly user-edited) replica to the vault.
         # Files the user deleted between build and apply are
         # skipped with ``user_deleted`` reason. Synthesis pages
-        # under ``21 SYNTHESIS/`` are validated + applied even
+        # under ``21 WIKI/`` are validated + applied even
         # though the build-replica manifest doesn't list them.
         {
             "id":   "apply-replica",

@@ -32,7 +32,7 @@ def vault_root(tmp_path, monkeypatch):
     vault.mkdir()
     # Pre-create every writable folder so save() can land files.
     for sub in ("12 KEYWORDS", "13 PEOPLE", "14 MODELS",
-                 "21 SYNTHESIS",
+                 "21 WIKI",
                  "10 SOURCES/Articles", "10 SOURCES/Papers",
                  "10 SOURCES/Books", "10 SOURCES/Videos"):
         (vault / sub).mkdir(parents=True, exist_ok=True)
@@ -399,12 +399,12 @@ def test_apply_records_validation_failure_per_path(
 def test_apply_accepts_untracked_synthesis_pages(
     vault_root, workdir,
 ):
-    """Synthesis pages live under ``21 SYNTHESIS/`` and are
+    """Synthesis pages live under ``21 WIKI/`` and are
     written directly into the replica by the synthesis agent
     (NOT via the build-replica manifest). Apply-replica should
     pick them up, validate, and save them.
 
-    Untracked files OUTSIDE ``21 SYNTHESIS/`` remain errors.
+    Untracked files OUTSIDE ``21 WIKI/`` remain errors.
     """
     composed = {
         "extractions": {
@@ -420,7 +420,7 @@ def test_apply_accepts_untracked_synthesis_pages(
     replica.build_replica(workdir, composed.get("extractions") or {}, composed.get("extraction_destinations") or {}, None, "src")
 
     # Synthesis agent simulates writing a hub page directly.
-    syn_dir = workdir / "vault-replica" / "21 SYNTHESIS"
+    syn_dir = workdir / "vault-replica" / "21 WIKI"
     syn_dir.mkdir(parents=True, exist_ok=True)
     syn_file = syn_dir / "the-hub.md"
     syn_file.write_text(serialize(
@@ -446,12 +446,12 @@ def test_apply_accepts_untracked_synthesis_pages(
     by_path = {r["vault_path"]: r for r in result["results"]}
     # Tracked atomic page applied.
     assert by_path["12 KEYWORDS/Atomic.md"]["ok"] is True
-    # Untracked synthesis page accepted (under 21 SYNTHESIS/).
-    assert by_path["21 SYNTHESIS/the-hub.md"]["ok"] is True
-    assert by_path["21 SYNTHESIS/the-hub.md"]["kind"] == "synthesis"
-    assert by_path["21 SYNTHESIS/the-hub.md"]["op"] == "create"
+    # Untracked synthesis page accepted (under 21 WIKI/).
+    assert by_path["21 WIKI/the-hub.md"]["ok"] is True
+    assert by_path["21 WIKI/the-hub.md"]["kind"] == "synthesis"
+    assert by_path["21 WIKI/the-hub.md"]["op"] == "create"
     # Untracked non-synthesis flagged as error.
     assert by_path["12 KEYWORDS/Smuggled.md"]["ok"] is False
     assert "untracked" in by_path["12 KEYWORDS/Smuggled.md"]["error"]
     # And synthesis page actually landed in the vault.
-    assert (vault_root / "21 SYNTHESIS" / "the-hub.md").exists()
+    assert (vault_root / "21 WIKI" / "the-hub.md").exists()
