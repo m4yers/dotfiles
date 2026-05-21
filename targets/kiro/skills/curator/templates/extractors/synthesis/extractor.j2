@@ -132,16 +132,25 @@ material that bolsters specific claims. Concretely:
 - **1–2 pages total.** Merge overlapping topics; do NOT produce
   one page per cluster. Over-fragmentation fails the judge.
 - **Every extracted item that belongs in a key-concept
-  position MUST appear in some page's ``key_concepts`` array
-  as ``[[Name]]`` with a one-sentence ``summary``.** Synthesis-
-  mode kinds (``topics``, ``themes``, ``key_points``,
-  ``chapters``) have no standalone vault page — their
-  ``[[Name]]`` wikilinks resolve to nothing on disk and the
-  post-gate strip-dead-links task will rewrite them to plain
-  text. Artifact-mode kinds (``keywords``, ``people``,
-  ``models``) already have replica pages so their wikilinks
-  resolve directly. Either way, the agent's job is the same:
-  one ``[[Name]] - summary`` bullet per item it wants to surface.
+  position MUST appear at least once as a ``[[Name]]``
+  wikilink on some synthesis page** — either as a
+  ``- [[Name]] - <summary>`` bullet in that page's
+  ``key_concepts`` array, OR as an inline ``[[Name]]``
+  wikilink in the page's ``rationale``, ``overview``,
+  ``worked_examples.<i>.body``, or ``discussion.<i>.summary``
+  prose. Pick one location per item — once you have linked
+  an item from the overview (or any other prose field), do
+  NOT also list it in ``key_concepts``. Duplicating the same
+  item in both prose and the bulleted list is noise.
+  Synthesis-mode kinds (``topics``, ``themes``,
+  ``key_points``, ``chapters``) have no standalone vault
+  page — their ``[[Name]]`` wikilinks resolve to nothing on
+  disk and the post-gate strip-dead-links task will rewrite
+  them to plain text. Artifact-mode kinds (``keywords``,
+  ``people``, ``models``) already have replica pages so
+  their wikilinks resolve directly. Either way, the agent's
+  job is the same: link each item exactly once on some hub
+  page, in whichever location reads best.
 
 ## Authoring + rendering protocol
 

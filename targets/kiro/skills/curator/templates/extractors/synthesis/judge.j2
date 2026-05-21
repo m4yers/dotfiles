@@ -51,12 +51,20 @@ criteria are ``target=null``.
    extractor's output. For every kind whose
    ``destinations.<kind>.mode == "synthesis"`` and that has
    items, every item's name MUST appear at least once as a
-   ``- [[Name]] - …`` bullet under some synthesis page's
-   ``## Key Concepts`` section. (Synthesis-mode wikilinks
-   resolve to nothing on disk; the post-gate strip-dead-links
-   task rewrites them to plain text. The judge's job is only
-   to confirm the item is surfaced.) Uncovered items → REJECT
-   with ``category=orphan_synthesis_item`` and name the
+   ``[[Name]]`` wikilink on some synthesis page — either as
+   a ``- [[Name]] - …`` bullet under that page's
+   ``## Key Concepts`` section, OR as an inline
+   ``[[Name]]`` wikilink in the page's opening rationale,
+   ``## Overview`` prose, ``## Worked Examples`` body, or
+   ``## Discussion`` text. An item is *covered* when it is
+   linked anywhere on a hub page; the location does not
+   matter and items linked in prose do NOT also need to
+   appear in Key Concepts. (Synthesis-mode wikilinks resolve
+   to nothing on disk; the post-gate strip-dead-links task
+   rewrites them to plain text. The judge's job is only to
+   confirm the item is surfaced somewhere on a hub.)
+   Uncovered items → REJECT with
+   ``category=orphan_synthesis_item`` and name the
    orphans.
 3. **Frontmatter required.** Each synthesis page MUST have YAML
    frontmatter declaring at minimum ``type: synthesis``,
