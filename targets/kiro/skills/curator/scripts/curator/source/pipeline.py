@@ -20,6 +20,7 @@ from curator.source.errors import (
     error_envelope,
 )
 from curator.source.handlers import (
+    handle_gdrive,
     handle_html,
     handle_local,
     handle_pdf,
@@ -82,6 +83,8 @@ def _dispatch(url_or_path: str):
 
     if "youtube.com" in host or host == "youtu.be":
         return handle_youtube
+    if host == "drive.google.com":
+        return handle_gdrive
     if (host == "arxiv.org"
             and (path.startswith("/abs/")
                  or path.startswith("/pdf/"))):

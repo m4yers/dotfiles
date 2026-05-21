@@ -6,6 +6,7 @@ imports them directly to dispatch by URL/path shape.
 """
 from __future__ import annotations
 
+from curator.source.handlers.gdrive  import handle_gdrive
 from curator.source.handlers.html    import handle_html
 from curator.source.handlers.local   import handle_local
 from curator.source.handlers.pdf     import handle_pdf
@@ -13,6 +14,7 @@ from curator.source.handlers.youtube import handle_youtube
 
 
 __all__ = [
+    "handle_gdrive",
     "handle_html",
     "handle_local",
     "handle_pdf",
