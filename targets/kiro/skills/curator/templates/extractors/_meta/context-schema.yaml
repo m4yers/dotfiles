@@ -162,7 +162,14 @@ $defs:
     properties:
       fetched_path:
         type: [string, 'null']
-        # Path to the raw fetched file (HTML, PDF, audio, ...).
+        # Absolute path to the raw fetched file (HTML, PDF, audio, ...).
+      vault_path:
+        type: [string, 'null']
+        # Vault-relative path of the saved source. This is the
+        # canonical reference templates use when authoring
+        # frontmatter ``sources:`` wikilinks — it tracks the
+        # actual destination folder (Videos/, Papers/, Articles/,
+        # Books/, …) rather than hardcoding one.
       converted_path:
         type: [string, 'null']
         # Path to the markdown the convert task produced.

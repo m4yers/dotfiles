@@ -195,6 +195,7 @@ def _build_source(workdir: Path, plan: Plan) -> dict[str, Any]:
 
     Reads:
       - fetch's       output.yaml → fetched_path (raw file path)
+                                     + vault_path (vault-relative)
       - convert's     output.yaml → converted_path + container_metadata
       - security_scan's output.yaml → security_scan
     """
@@ -202,8 +203,24 @@ def _build_source(workdir: Path, plan: Plan) -> dict[str, Any]:
     fetch_out   = _load_task_output(workdir, "fetch",   plan) or {}
     sec_out     = _load_task_output(workdir, "security_scan", plan) or {}
 
+    fetched_path = fetch_out.get("path")
+    vault_path: str | None = None
+    if isinstance(fetched_path, str) and fetched_path:
+        # Lazy import to avoid pulling vault config into the
+        # render context module's import surface.
+        from curator.vault.pages import VAULT_ROOT
+        try:
+            vault_path = str(
+                Path(fetched_path).resolve().relative_to(VAULT_ROOT))
+        except (ValueError, OSError):
+            # fetched_path lives outside the vault (shouldn't
+            # happen for production fetch handlers, but don't
+            # let it crash render).
+            vault_path = None
+
     return {
-        "fetched_path":      fetch_out.get("path"),
+        "fetched_path":      fetched_path,
+        "vault_path":        vault_path,
         "converted_path":    convert_out.get("converted_path"),
         "container_metadata": convert_out.get("metadata") or {},
         "security_scan":     sec_out,

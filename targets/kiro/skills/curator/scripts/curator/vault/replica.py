@@ -227,6 +227,87 @@ def _normalize(name: str) -> str:
     return " ".join(name.lower().split())
 
 
+# ── per-kind display name ───────────────────────────────
+#
+# Different extractor schemas use different identity fields:
+# ``name`` (keywords, models, people, topics, themes, …),
+# ``title`` (citations, chapters, code_examples), ``summary``
+# (key_points), ``claim`` (contributions, results), ``prompt``
+# (exercises), ``text`` (quotes). Both the report and the
+# atomic-page builder need ONE call to pick the right field per
+# kind — otherwise items silently disappear from the report and
+# from manifests because the code defaulted to ``item['name']``.
+
+# Per-kind text fields that should be truncated to a one-liner
+# label when no explicit name/title exists.
+_KIND_TEXT_LABEL = {
+    "key_points":     "summary",
+    "contributions":  "claim",
+    "results":        "claim",
+    "exercises":      "prompt",
+    "quotes":         "text",
+}
+
+
+def _truncate_label(s: str, max_chars: int = 80) -> str:
+    """Reduce a multi-line text field to a single-line label.
+
+    First sentence wins if it's short enough; otherwise truncate
+    at the last whitespace before ``max_chars`` and append ``…``.
+
+    A "sentence end" is a period followed by whitespace + uppercase
+    letter (or end-of-string). This avoids breaking on abbreviations
+    like ``vs.``, ``e.g.``, ``i.e.``, or ``Mr.``.
+    """
+    s = (s or "").split("\n", 1)[0].strip()
+    if not s:
+        return ""
+    # Sentence end: period + whitespace + uppercase letter.
+    m = _SENTENCE_END_RE.search(s)
+    if m and m.start() + 1 <= max_chars:
+        return s[:m.start() + 1]
+    if len(s) <= max_chars:
+        return s
+    cut = s.rfind(" ", 0, max_chars)
+    if cut <= 0:
+        cut = max_chars
+    return s[:cut].rstrip() + "…"
+
+
+# Period followed by whitespace and an uppercase letter — treats
+# this as a sentence boundary and short-circuits truncation when
+# the first sentence already fits the label budget.
+import re as _re_label
+_SENTENCE_END_RE = _re_label.compile(r"\.\s+[A-Z]")
+
+
+def _display_name(kind: str, item: dict) -> str | None:
+    """Pick the most meaningful display label for an item.
+
+    Resolution order:
+      1. ``item['name']`` if non-empty.
+      2. ``item['title']`` if non-empty (citations, chapters,
+         code_examples).
+      3. The kind's text-label field (``summary``, ``claim``,
+         ``prompt``, ``text``) truncated to ~80 chars.
+      4. ``None`` — caller should treat as "unlabelled" and
+         skip rather than silently include.
+    """
+    if not isinstance(item, dict):
+        return None
+    for field in ("name", "title"):
+        v = item.get(field)
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+    text_field = _KIND_TEXT_LABEL.get(kind)
+    if text_field:
+        v = item.get(text_field)
+        if isinstance(v, str) and v.strip():
+            label = _truncate_label(v)
+            return label or None
+    return None
+
+
 def _build_atomic_page(
     rr: Path,
     kind: str,
@@ -244,10 +325,10 @@ def _build_atomic_page(
     whether a vault original exists to diff against.
 
     Returns the manifest entry, or None if the item lacks a
-    name or the kind has no vault-type template.
+    display label or the kind has no vault-type template.
     """
-    name = item.get("name")
-    if not isinstance(name, str) or not name.strip():
+    name = _display_name(kind, item)
+    if not name:
         return None
     if not _kind_has_page_template(kind):
         return None
@@ -635,6 +716,10 @@ def build_report(workdir: Path) -> dict:
     summary = ((summary_doc or {}).get("summary") or "").strip()
 
     # Per-kind extractor outputs (everything except summary).
+    # Each item is augmented with a unified ``name`` field via
+    # _display_name so the report template (which iterates with
+    # ``it.name``) picks up kinds that use ``title`` (citations),
+    # ``summary`` (key_points), etc.
     raw_extractions: dict[str, list[dict]] = {}
     for task in plan.tasks:
         if not task.id.startswith("extract-"):
@@ -644,11 +729,20 @@ def build_report(workdir: Path) -> dict:
             continue
         out = _safe_load(workdir, task.id, plan) or {}
         items = out.get(kind)
-        if isinstance(items, list):
-            raw_extractions[kind] = [
-                it for it in items
-                if isinstance(it, dict) and it.get("name")
-            ]
+        if not isinstance(items, list):
+            continue
+        projected: list[dict] = []
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            label = _display_name(kind, it)
+            if not label:
+                continue
+            # Project a unified ``name`` field without mutating
+            # the upstream dict — the report template iterates
+            # with ``{{ it.name }}``.
+            projected.append({**it, "name": label})
+        raw_extractions[kind] = projected
 
     # Per-kind destinations from quintet rule table — only
     # ``mode: artifact`` kinds split into materialised/skipped.

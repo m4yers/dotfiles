@@ -118,6 +118,7 @@ def _fetch_meta(url: str) -> dict:
     opts = {
         "quiet": True,
         "no_warnings": True,
+        "noprogress": True,
         "skip_download": True,
         "socket_timeout": YTDLP_SOCKET_TIMEOUT,
     }
@@ -153,6 +154,7 @@ def _fetch_transcript(url: str, wd: Path) -> str:
         opts = {
             "quiet": True,
             "no_warnings": True,
+            "noprogress": True,
             "skip_download": True,
             "subtitleslangs": ["en.*", "en"],
             "subtitlesformat": "vtt",
@@ -187,6 +189,7 @@ def _fetch_thumbnail(url: str, assets_dir: Path, wd: Path) -> None:
     opts = {
         "quiet": True,
         "no_warnings": True,
+        "noprogress": True,
         "skip_download": True,
         "writethumbnail": True,
         "outtmpl": str(assets_dir / "thumbnail.%(ext)s"),
@@ -247,5 +250,5 @@ def _build_source_md(url: str, meta: dict, transcript: str) -> str:
 
 def _youtube_dest(basename: str) -> tuple[str, bool]:
     """Return (canonical vault-relative path, exists)."""
-    candidate = f"{VIDEOS_DIR}/{basename}"
+    candidate = f"{VIDEOS_DIR}/{basename}.md"
     return candidate, vault.abs_path(candidate).exists()
