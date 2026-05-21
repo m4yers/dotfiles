@@ -308,6 +308,60 @@ def _display_name(kind: str, item: dict) -> str | None:
     return None
 
 
+def _format_field_value(v) -> str:
+    """Render a per-item field value as a single Markdown-safe
+    string for the report.
+
+    Rules:
+      - ``None`` → ``_null_`` so reviewers see the field was
+        considered and the source had nothing to fill it with.
+      - bool → ``true`` / ``false`` (lowercase, YAML-style).
+      - int / float → ``str(v)``.
+      - ``str`` → returned verbatim, with internal newlines
+        replaced by ``\\n`` escape sequences so the field stays
+        on one bullet line. No truncation.
+      - list of scalars → comma-joined.
+      - list of dicts / dicts → YAML block, indented under the
+        bullet so structure is preserved.
+      - empty list → ``[]``.
+      - anything else → ``str(v)`` as a last resort.
+    """
+    if v is None:
+        return "_null_"
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        return str(v)
+    if isinstance(v, str):
+        if not v:
+            return '""'
+        # Collapse internal newlines so the field renders inline.
+        # The reviewer can still read the full content; only the
+        # whitespace is normalized.
+        return v.replace("\r\n", "\n").replace("\n", " \\n ")
+    if isinstance(v, list):
+        if not v:
+            return "[]"
+        if all(isinstance(it, (str, int, float, bool)) or it is None
+                for it in v):
+            return ", ".join(_format_field_value(it) for it in v)
+        # Heterogeneous or list-of-dicts: dump as a YAML block. The
+        # template indents this under the bullet so it renders as a
+        # nested code-style segment.
+        return yaml.safe_dump(
+            v, sort_keys=False, allow_unicode=True,
+            default_flow_style=False,
+        ).rstrip()
+    if isinstance(v, dict):
+        if not v:
+            return "{}"
+        return yaml.safe_dump(
+            v, sort_keys=False, allow_unicode=True,
+            default_flow_style=False,
+        ).rstrip()
+    return str(v)
+
+
 def _build_atomic_page(
     rr: Path,
     kind: str,
@@ -925,10 +979,10 @@ def build_report(workdir: Path) -> dict:
     summary = ((summary_doc or {}).get("summary") or "").strip()
 
     # Per-kind extractor outputs (everything except summary).
-    # Each item is augmented with a unified ``name`` field via
-    # _display_name so the report template (which iterates with
-    # ``it.name``) picks up kinds that use ``title`` (citations),
-    # ``summary`` (key_points), etc.
+    # Each kind becomes a section in the report; each item
+    # becomes a sub-section with its full field set rendered as
+    # a bullet list. No truncation — the report is the
+    # gate operator's authoritative dump.
     raw_extractions: dict[str, list[dict]] = {}
     for task in plan.tasks:
         if not task.id.startswith("extract-"):
@@ -940,32 +994,21 @@ def build_report(workdir: Path) -> dict:
         items = out.get(kind)
         if not isinstance(items, list):
             continue
-        projected: list[dict] = []
+        kept: list[dict] = []
         for it in items:
             if not isinstance(it, dict):
                 continue
             label = _display_name(kind, it)
             if not label:
                 continue
-            # Project a unified ``name`` field without mutating
-            # the upstream dict — the report template iterates
-            # with ``{{ it.name }}``.
-            projected.append({**it, "name": label})
-        raw_extractions[kind] = projected
+            kept.append({"_display_name": label, "_raw": it})
+        raw_extractions[kind] = kept
 
-    # Per-kind destinations from quintet rule table — only
-    # ``mode: artifact`` kinds split into materialised/skipped.
-    # Other kinds (synthesis-mode) feed the synthesis hub and are
-    # listed flat under "Fed into synthesis".
-    destinations = {
-        kind: q_mod.destination_for(kind) or {"mode": "synthesis"}
-        for kind in raw_extractions.keys()
-    }
-
-    # Manifest (post-prune) tells us which artifact-mode items
-    # actually got built. Items in extractor output but not in
-    # manifest are "skipped" (either pruned by prune-replica or
-    # never built — both look the same to the gate operator).
+    # Manifest (post-prune) tells us which items actually got
+    # built as atomic pages. Items present in extractor output
+    # but absent from the manifest are "(not materialized)".
+    # Synthesis-mode kinds are always not materialized — they
+    # have no atomic-page form by design.
     manifest = _load_manifest(workdir) or {}
     manifest_entries = manifest.get("entries") or []
     materialised_by_kind: dict[str, set[str]] = {}
@@ -976,25 +1019,32 @@ def build_report(workdir: Path) -> dict:
             continue
         materialised_by_kind.setdefault(kind, set()).add(_normalize(name))
 
-    artifact_extractions: dict[str, dict[str, list[dict]]] = {}
-    synthesis_extractions: dict[str, list[dict]] = {}
-    for kind, items in raw_extractions.items():
-        mode = (destinations.get(kind) or {}).get("mode")
-        if mode == "artifact":
-            mat_norms = materialised_by_kind.get(kind, set())
-            materialised: list[dict] = []
-            skipped: list[dict] = []
-            for it in items:
-                if _normalize(it["name"]) in mat_norms:
-                    materialised.append(it)
-                else:
-                    skipped.append(it)
-            artifact_extractions[kind] = {
-                "materialised": materialised,
-                "skipped":      skipped,
-            }
-        else:
-            synthesis_extractions[kind] = items
+    # Build the per-kind / per-item structure passed to the
+    # template. Order kinds alphabetically for stable output.
+    extractions: dict[str, dict] = {}
+    for kind in sorted(raw_extractions.keys()):
+        items = raw_extractions[kind]
+        mat_norms = materialised_by_kind.get(kind, set())
+        rendered_items: list[dict] = []
+        for entry in items:
+            label = entry["_display_name"]
+            raw = entry["_raw"]
+            # Field list: every key on the item except internal
+            # placeholders the report doesn't need to surface.
+            fields: list[dict] = []
+            for k, v in raw.items():
+                if k == "_schema":
+                    continue
+                fields.append({
+                    "name":  k,
+                    "value": _format_field_value(v),
+                })
+            rendered_items.append({
+                "display_name": label,
+                "materialized": _normalize(label) in mat_norms,
+                "fields":       fields,
+            })
+        extractions[kind] = {"items": rendered_items}
 
     synthesis_doc = _safe_load(workdir, "synthesis", plan)
     synthesis_paths = ((synthesis_doc or {}).get("paths") or [])
@@ -1045,7 +1095,7 @@ def build_report(workdir: Path) -> dict:
 
     rendered = _render_report_via_template(
         basename, topic, quintet, summary,
-        artifact_extractions, synthesis_extractions,
+        extractions,
         synthesis_paths, orphan_links,
         manifest_modifications, synthesis_modifications)
 
@@ -1100,8 +1150,7 @@ def _render_report_via_template(
     topic: str,
     quintet: dict,
     summary: str,
-    artifact_extractions: dict[str, dict[str, list[dict]]],
-    synthesis_extractions: dict[str, list[dict]],
+    extractions: dict[str, dict],
     synthesis_paths: list[str],
     orphan_links: list[str],
     manifest_modifications: list[dict],
@@ -1115,8 +1164,7 @@ def _render_report_via_template(
         "topic":           topic,
         "quintet":         quintet,
         "summary":         summary,
-        "artifact_extractions":  artifact_extractions,
-        "synthesis_extractions": synthesis_extractions,
+        "extractions":     extractions,
         "synthesis_paths":       synthesis_paths,
         "orphan_links":          orphan_links,
         "manifest_modifications":  manifest_modifications,

@@ -1,8 +1,9 @@
 {# templates/report.md.j2 — gate-operator overview.
 
-   Renders a single ``_REPORT.md`` into the replica root. The
-   summary extractor's output goes in verbatim; everything else
-   gets a one-line per-kind tally with names listed inline.
+   Renders ``_REPORT.md`` into the replica root. Every extraction
+   gets its own section; every item gets its own sub-section
+   with the materialization marker on the first line followed
+   by a full field dump (no truncation).
 
    Inputs:
      basename       — source basename
@@ -10,27 +11,26 @@
      quintet        — classify quintet object
      summary        — extract-summary's text (verbatim)
 
-     artifact_extractions  — {kind: {materialised: [items], skipped: [items]}}
-                             one entry per artifact-mode kind. ``materialised``
-                             items got vault pages; ``skipped`` were extracted
-                             but pruned (or never built) — informational only.
-     synthesis_extractions — {kind: [items]} for synthesis-mode kinds (topics,
-                             themes, etc.). These never become atomic pages;
-                             they feed into the synthesis hub.
+     extractions    — { kind: {items: [
+                          {display_name, materialized, fields: [
+                              {name, value}, ...
+                          ]},
+                          ...
+                       ]} }
+                       Pre-formatted by build_report — every field
+                       value is already a Markdown-safe string.
 
-     synthesis_paths       — list of ``21 WIKI/<slug>.md`` paths written
-                             by the synthesis agent.
-     orphan_links          — list of wikilink targets in synthesis hubs that
-                             match neither a surviving artifact nor an existing
-                             vault page (broken links the operator may want to
-                             fix before applying).
+     synthesis_paths       — list of ``21 WIKI/<slug>.md`` paths
+     orphan_links          — wikilink targets unresolved at
+                             prune-replica time.
 
-     manifest_modifications  — [{vault_path, kind, name}] for artifact pages
-                               that overwrite an existing vault page (manifest
-                               entries with op=modified).
-     synthesis_modifications — [{vault_path, name}] for synthesis pages whose
-                               path already exists in the vault and would be
-                               overwritten.
+     manifest_modifications  — [{vault_path, kind, name}] for atomic
+                               pages that overwrite an existing
+                               vault page (manifest entries with
+                               op=modified).
+     synthesis_modifications — [{vault_path, name}] for synthesis
+                               pages whose path already exists in
+                               the vault and would be overwritten.
 #}
 # Curator Ingest Report
 
@@ -50,8 +50,7 @@ _None — every replica page is a new file._
 {%- else -%}
 The following replica files would overwrite existing vault pages on
 apply. The gate driver opens each of these as a diff against the
-vault original; new pages are listed under **Extracted** below but
-not opened individually.
+vault original; new pages are listed under their kind below.
 
 {% if manifest_modifications -%}
 **Atomic pages** ({{ manifest_modifications | length }}):
@@ -67,35 +66,26 @@ not opened individually.
 {% endif -%}
 {%- endif %}
 
-## Extracted
+{% for kind in extractions | dictsort -%}
+{%- set items = kind[1]['items'] -%}
+{%- set kind_label = kind[0].replace('_', ' ').replace('-', ' ').upper() -%}
+## {{ kind_label }}({{ items | length }})
 
-{% for kind in artifact_extractions | dictsort -%}
-{%- set buckets = kind[1] -%}
-{%- set materialised = buckets.materialised or [] -%}
-{%- set skipped      = buckets.skipped or [] -%}
+{% if not items -%}
+_None._
 
-### {{ kind[0] }}
+{% else -%}
+{% for it in items -%}
+### {{ it.display_name }}
 
-**materialised** ({{ materialised | length }}): {% if materialised %}{% for it in materialised -%}
-{{ it.name }}{% if not loop.last %}, {% endif %}
-{%- endfor %}{% else %}_none_{% endif %}
+({{ 'materialized' if it.materialized else 'not materialized' }})
 
-**skipped** ({{ skipped | length }}): {% if skipped %}{% for it in skipped -%}
-{{ it.name }}{% if not loop.last %}, {% endif %}
-{%- endfor %}{% else %}_none_{% endif %}
-
+{% for f in it.fields -%}
+- **{{ f.name }}:** {{ f.value }}
 {% endfor %}
-{%- if synthesis_extractions %}
-## Fed into synthesis
-
-{% for kind in synthesis_extractions | dictsort -%}
-{%- set items = kind[1] -%}
-**{{ kind[0] }}** ({{ items | length }}): {% for it in items -%}
-{{ it.name }}{% if not loop.last %}, {% endif %}
-{%- endfor %}
-
-{% endfor %}
-{%- endif %}
+{% endfor -%}
+{% endif -%}
+{% endfor -%}
 {%- if synthesis_paths %}
 ## Synthesis hubs
 
