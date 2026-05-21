@@ -116,12 +116,12 @@ material that bolsters specific claims. Concretely:
 - **No internal vault vocabulary in reader-facing text.** Never
   use the words "atomic", "atomic page", "artifact", "keyword
   artifact", "synthesis hub", "vault", "replica", "extractor",
-  or "key concept" as prose terms or as See-Also notes — they
-  are curator scaffolding, invisible to the reader. Instead,
-  describe the linked entity by what it *is* in the topic's
-  own vocabulary ("a related principle", "the term", "the
-  programmer credited with the framing", "a parallel pattern
-  from incentive design").
+  or "key concept" as prose terms — they are curator
+  scaffolding, invisible to the reader. Instead, describe the
+  linked entity by what it *is* in the topic's own vocabulary
+  ("a related principle", "the term", "the programmer credited
+  with the framing", "a parallel pattern from incentive
+  design").
 - **Multi-source futureproofing.** A topic may later be revisited
   by other sources; write prose that survives that — describe
   the topic, attribute specific framings to specific people via
@@ -131,18 +131,17 @@ material that bolsters specific claims. Concretely:
 
 - **1–2 pages total.** Merge overlapping topics; do NOT produce
   one page per cluster. Over-fragmentation fails the judge.
-- **Synthesis-mode kinds MUST be folded inline.** Every kind
-  whose ``destinations.<kind>.mode == 'synthesis'`` (e.g.
-  ``topics``, ``themes``, ``key_points``, ``chapters``) has NO
-  standalone vault page. EVERY item from those kinds MUST
-  appear in some page's ``key_concepts`` array as
-  ``mode: 'included'``. If you can't justify including an item,
-  the item is unused — that's a coverage failure.
-- **Artifact-mode kinds (e.g. ``keywords``, ``people``,
-  ``models``) already have standalone replica pages.** Either
-  ``mode: 'connected'`` (link to the standalone page) or
-  ``mode: 'included'`` (fold inline; the standalone page still
-  stands) is fine.
+- **Every extracted item that belongs in a key-concept
+  position MUST appear in some page's ``key_concepts`` array
+  as ``[[Name]]`` with a one-sentence ``summary``.** Synthesis-
+  mode kinds (``topics``, ``themes``, ``key_points``,
+  ``chapters``) have no standalone vault page — their
+  ``[[Name]]`` wikilinks resolve to nothing on disk and the
+  post-gate strip-dead-links task will rewrite them to plain
+  text. Artifact-mode kinds (``keywords``, ``people``,
+  ``models``) already have replica pages so their wikilinks
+  resolve directly. Either way, the agent's job is the same:
+  one ``[[Name]] - summary`` bullet per item it wants to surface.
 
 ## Authoring + rendering protocol
 
@@ -167,24 +166,48 @@ For each page, write a JSON file at ``/tmp/<slug>.json``:
   "overview":       "Multi-paragraph prose (≥200 chars) explaining the topic as if for a reader who landed here from any link. Lead with substance, never with setup ('the premise is…', 'the general lesson…' are forbidden). Use ``[[Atomic Name]]`` wikilinks as supporting citations that bolster specific claims, not as the page's organizing center. Treat the source as a citation target (frontmatter + wikilinks), not the subject of the prose.",
   "ascii_diagram":  "Multi-line illustrative diagram (≥4 lines, ≥80 chars).\nUse box-drawing chars: ┌ ┐ └ ┘ │ ─ ┬ ┴ ├ ┤ ┼ ▼ ▲ ◄ ►",
   "key_concepts":   [
-    {"name": "Atomic A", "mode": "included",  "summary": "Inline definition (≥30 chars). Describes what A is, in topic-relevant terms."},
-    {"name": "Atomic B", "mode": "connected", "summary": "One-sentence explanation of what B is and why it is relevant to this topic. NEVER 'see [[B]]' or 'the keyword' — the bullet head already carries the wikilink; the note must add substance."},
-    {"name": "Atomic C", "mode": "included",  "summary": "Another inline definition."}
-  ],
-  "see_also":       [
-    {"name": "Related Topic or Atomic", "kind": "atomic", "note": "Substantive note: relationship to this topic, or omit. NEVER use vault vocabulary ('keyword artifact', 'atomic page', 'synthesis hub') as the note."}
+    {"name": "Atomic A", "summary": "One-sentence definition of A in topic-relevant terms (≥30 chars). Treat this as the bullet's gloss after the ``[[A]]`` wikilink."},
+    {"name": "Atomic B", "summary": "One-sentence explanation of what B is and why it is relevant to this topic. NEVER 'see [[B]]' or 'the keyword' — the bullet head already carries the wikilink; the gloss must add substance."},
+    {"name": "Atomic C", "summary": "Another one-sentence gloss."}
   ],
   "worked_examples": [],
-  "discussion":      ""
+  "discussion":      []
 }
 ```
 
 Required: ``title``, ``today``, ``sources``, ``rationale``,
 ``overview``, ``ascii_diagram``, ``key_concepts`` (≥3 entries,
-each with ``name``/``mode``/``summary``), ``see_also``.
-``worked_examples`` and ``discussion`` are optional but MUST be
-present (empty array / empty string) — the renderer fails on
-missing keys.
+each with ``name`` and ``summary``). ``worked_examples`` and
+``discussion`` are optional but MUST be present (empty array)
+— the renderer fails on missing keys.
+
+### Discussion shape
+
+When the source surfaces ongoing debate, open questions, or
+contested framings, populate ``discussion`` with **at most 3**
+topic entries. Each entry has shape:
+
+```json
+{
+  "topic":   "Concise framing of the debate / open question",
+  "summary": "1-2 sentence framing in the topic's own terms.",
+  "actors":  [
+    {"name": "Person Or Group", "argument": "Their position in one sentence."}
+  ]
+}
+```
+
+``actors`` is optional — leave it as ``[]`` when the source
+frames the topic but does not name specific participants.
+Otherwise, name every actor the source attributes a position
+to, with a single-sentence summary of their argument. Use
+``[[Person Name]]`` only inside ``summary`` prose; the
+``actors.<i>.name`` field is rendered with its own wikilink by
+the template.
+
+If the source is purely expository (no live debate, no
+identified open questions), leave ``discussion: []``. Do NOT
+fabricate disagreement.
 
 ### Step 2 — render to the replica
 
@@ -236,14 +259,14 @@ curator.sh builders add {{ task.output_path }} --set paths='[]'
 ## Inline wikilink discipline
 
 Inside ``rationale``, ``overview``, ``key_concepts.<i>.summary``,
-``worked_examples.<i>.body``, and ``discussion``, the FIRST
-occurrence of any atomic name MUST be wrapped as a wikilink:
-
-- connected atomic → ``[[Atomic Name]]``
-- included atomic on this page → ``[[#Atomic Name]]``
-- atomic on another synthesis page → ``[[Atomic Name]]``
-
-Subsequent occurrences need not be wrapped.
+``worked_examples.<i>.body``, and ``discussion.<i>.summary``,
+the FIRST occurrence of any atomic name MUST be wrapped as a
+wikilink ``[[Atomic Name]]``. Subsequent occurrences need not be
+wrapped. Wikilinks that resolve to no atomic page (synthesis-
+mode kinds, people who weren't extracted, etc.) are normalized
+to plain text by the post-gate strip-dead-links task — write
+them as ``[[Name]]`` regardless and let the pipeline handle
+resolution.
 {% endblock %}
 
 {% block builder_calls %}

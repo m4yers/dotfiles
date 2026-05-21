@@ -14,24 +14,30 @@
      ascii_diagram   string ≥4 lines, ≥80 chars — the hub's
                             illustration; rendered inside a
                             fenced code block.
-     key_concepts    list of {name, mode, summary}
-                            mode='included' → ``### Name`` subsection
-                            mode='connected' → bullet with ``[[Name]]``
-                            ≥3 entries.
-     see_also        list of {name, kind: atomic|source, note?}
+     key_concepts    list of {name, summary}
+                            Rendered as ``- [[Name]] - summary``
+                            bullets. ≥3 entries.
 
    Optional:
      worked_examples list of {title, body} — case studies.
-     discussion      string — open questions, critique, gaps.
+     discussion      list of {topic, summary, actors?}, ≤3
+                            entries. Each renders as a
+                            ``### topic`` subsection with a
+                            framing paragraph followed by an
+                            actor list (when actors are
+                            identified). actors is a list of
+                            {name, argument}; empty / omitted
+                            when the source frames the topic
+                            but does not name participants.
      sources         list of vault paths — frontmatter entries.
 
    Inline wikilink discipline (the agent's responsibility, not
    the template's): in every prose field — rationale, overview,
    key_concepts.<i>.summary, worked_examples.<i>.body,
-   discussion — the FIRST occurrence of any atomic name MUST be
-   wrapped as a wikilink. Connected atomics (their own page
-   exists) → ``[[Name]]``. Included atomics on THIS page →
-   ``[[#Name]]``. Other-hub atomics → ``[[Name]]``.
+   discussion.<i>.summary — the FIRST occurrence of any atomic
+   name MUST be wrapped as a wikilink. ``[[Name]]`` resolves to
+   an atomic page when one exists; otherwise the post-gate
+   strip-dead-links task rewrites it to plain text.
 -#}
 ---
 type: synthesis
@@ -60,15 +66,8 @@ last_updated: {{ today }}
 ## Key Concepts
 
 {% for c in key_concepts -%}
-{% if c.mode == 'included' -%}
-### {{ c.name }}
-
-{{ c.summary }}
-
-{% else -%}
-- **[[{{ c.name }}]]** — {{ c.summary }}
-{% endif -%}
-{% endfor %}
+- [[{{ c.name }}]] - {{ c.summary }}
+{% endfor -%}
 {%- if worked_examples is defined and worked_examples %}
 
 ## Worked Examples
@@ -84,11 +83,14 @@ last_updated: {{ today }}
 
 ## Discussion
 
-{{ discussion }}
-{%- endif %}
+{% for d in discussion -%}
+### {{ d.topic }}
 
-## See Also
-
-{% for s in see_also -%}
-- [[{{ s.name }}]]{% if s.get('note') %} — {{ s.get('note') }}{% endif %}
+{{ d.summary }}
+{% if d.get('actors') %}
+{% for a in d.actors -%}
+- [[{{ a.name }}]] - {{ a.argument }}
 {% endfor -%}
+{% endif %}
+{% endfor -%}
+{%- endif %}
