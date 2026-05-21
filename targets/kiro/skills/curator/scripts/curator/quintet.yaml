@@ -30,12 +30,10 @@ slots:
       book:    Long-form authored work bound as discrete chapters.
       paper:   Peer-reviewed or preprint research paper.
       article: Single-piece web article, blog post, or news story.
-      podcast: Audio recording from an episodic series.
       video:   Visual recording, typically with audio narration.
-      talk:    Recorded conference talk or presentation.
-      lecture: Recorded class lecture, typically a single instructor.
+               Can be a transcript.
       audio:   Standalone audio not part of a podcast (interviews,
-               recordings, audiobooks).
+               recordings, audiobooks). Can be a transcript
 
   form:
     description: >-
@@ -137,16 +135,15 @@ rules:
     extractors: [authors]
   - match: [paper,   "*", "*", "*", "*"]
     extractors: [authors, abstract, citations]
-  - match: [podcast, "*", "*", "*", "*"]
-    extractors: [transcript]
-  - match: [video,   "*", "*", "*", "*"]
-    extractors: [transcript]
-  - match: [lecture, "*", "*", "*", "*"]
-    extractors: [transcript, key_points]
-  - match: [talk,    "*", "*", "*", "*"]
-    extractors: [transcript]
   - match: [article, "*", "*", "*", "*"]
     extractors: [people]
+
+  # NOTE: For audio/video sources the transcript IS the source —
+  # the YouTube handler writes [MM:SS]-anchored subtitles into
+  # source.md and the convert step lays extracted text into
+  # source.md. So no extractor needs to re-emit a transcript
+  # field; if you ever need an LLM-derived transcript-style
+  # output, add the kind back with its own rules.
 
   # Per-register additions.
   - match: ["*", "*", non_fiction, "*", "*"]
@@ -238,4 +235,3 @@ destinations:
   key_points:    {mode: synthesis}
   exercises:     {mode: synthesis}
   code_examples: {mode: synthesis}
-  transcript:    {mode: synthesis}

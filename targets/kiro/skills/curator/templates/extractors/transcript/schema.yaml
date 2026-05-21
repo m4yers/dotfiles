@@ -1,7 +1,0 @@
-type: object
-required:
-- transcript
-properties:
-  transcript:
-    type: string
-    minLength: 50
