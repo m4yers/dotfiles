@@ -46,8 +46,11 @@ def render_task(
     context = _build_context(task, workdir, plan)
 
     try:
+        search_paths = [str(template_path.parent)]
+        if task.template_search_paths:
+            search_paths.extend(task.template_search_paths)
         env = jinja2.Environment(
-            loader=jinja2.FileSystemLoader(str(template_path.parent)),
+            loader=jinja2.FileSystemLoader(search_paths),
             undefined=jinja2.StrictUndefined,
             keep_trailing_newline=True,
         )

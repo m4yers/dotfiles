@@ -35,6 +35,7 @@ class Task:
     # agent kind
     agent: str | None = None
     template: str | None = None
+    template_search_paths: list[str] | None = None
     vars: dict[str, Any] = field(default_factory=dict)
 
     # execution

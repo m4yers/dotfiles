@@ -190,5 +190,12 @@ with whichever non-empty output it finds.
 - `loom/validate/references.py` — reference + JMESPath + type checks
 - `loom/errors.py` — exception hierarchy
 
+## Template inheritance
+
+For templates that use Jinja `{% extends %}` or `{% include %}`, set
+`template_search_paths` on the task to include any directories the
+included paths resolve against. Loom's FileSystemLoader uses
+`[template_path.parent, *template_search_paths]`.
+
 Tests live at `scripts/loom/tests/` (215 cases covering all in-scope
 constraints; coverage matrix at `~/shared/projects/loom/promoted/test-coverage.md`).

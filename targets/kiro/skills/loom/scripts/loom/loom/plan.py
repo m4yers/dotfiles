@@ -39,6 +39,7 @@ def agent(
     when: str | None = None,
     vars: dict[str, Any] | None = None,
     agent: str | None = None,
+    template_search_paths: list[str | Path] | None = None,
 ) -> Task:
     '''Build an agent kind Task.'''
     if template is None:
@@ -54,6 +55,10 @@ def agent(
         vars=dict(vars or {}),
         depends_on=list(depends_on or []),
         when=when,
+        template_search_paths=(
+            [str(p) for p in template_search_paths]
+            if template_search_paths is not None else None
+        ),
     )
 
 
@@ -65,6 +70,7 @@ def human(
     depends_on: list[str] | None = None,
     when: str | None = None,
     vars: dict[str, Any] | None = None,
+    template_search_paths: list[str | Path] | None = None,
 ) -> Task:
     '''Build a human kind Task.'''
     return Task(
@@ -75,6 +81,10 @@ def human(
         vars=dict(vars or {}),
         depends_on=list(depends_on or []),
         when=when,
+        template_search_paths=(
+            [str(p) for p in template_search_paths]
+            if template_search_paths is not None else None
+        ),
     )
 
 

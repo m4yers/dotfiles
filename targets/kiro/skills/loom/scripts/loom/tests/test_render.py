@@ -119,3 +119,48 @@ class TestRenderErrors:
             render_task(plan.get('x'), tmp_path, plan)
         assert exc_info.value.task_id == 'x'
         assert exc_info.value.template_path == '/missing.j2'
+
+
+class TestTemplateSearchPaths:
+    def test_extends_resolves_via_search_paths(self, tmp_path):
+        # Base template in a separate root
+        root = tmp_path / 'templates'
+        base = root / '_meta' / 'base.j2'
+        base.parent.mkdir(parents=True)
+        base.write_text('BASE:{% block body %}default{% endblock %}', encoding='utf-8')
+
+        # Child template in a subdirectory
+        child = root / 'kind' / 'extractor.j2'
+        child.parent.mkdir(parents=True)
+        child.write_text(
+            "{% extends '_meta/base.j2' %}{% block body %}custom={{ task.id }}{% endblock %}",
+            encoding='utf-8')
+
+        plan = LoomPlan(tasks=[
+            Task(id='x', kind='agent', template=str(child),
+                 output_schema='/s.yaml',
+                 template_search_paths=[str(root)]),
+        ])
+        store.ensure_task_dir(tmp_path, plan, 'x')
+        result = render_task(plan.get('x'), tmp_path, plan)
+        assert 'BASE:custom=x' in result
+
+    def test_extends_fails_without_search_paths(self, tmp_path):
+        root = tmp_path / 'templates'
+        base = root / '_meta' / 'base.j2'
+        base.parent.mkdir(parents=True)
+        base.write_text('BASE:{% block body %}default{% endblock %}', encoding='utf-8')
+
+        child = root / 'kind' / 'extractor.j2'
+        child.parent.mkdir(parents=True)
+        child.write_text(
+            "{% extends '_meta/base.j2' %}{% block body %}custom{% endblock %}",
+            encoding='utf-8')
+
+        plan = LoomPlan(tasks=[
+            Task(id='x', kind='agent', template=str(child),
+                 output_schema='/s.yaml'),
+        ])
+        store.ensure_task_dir(tmp_path, plan, 'x')
+        with pytest.raises(RenderFailed):
+            render_task(plan.get('x'), tmp_path, plan)
