@@ -1,0 +1,5 @@
+type: object
+required: [verdict]
+properties:
+  verdict: {type: string, enum: [ACCEPT, REVIEW, REJECT]}
+  reasons: {type: array, items: {type: string}}

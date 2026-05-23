@@ -1,0 +1,19 @@
+{% extends 'extractors/_meta/judge.j2' %}
+
+{% block intro -%}
+Verify each model against the rubric below.
+{%- endblock %}
+
+{% block criteria %}
+1. **Abstract.** The model is a transferable pattern, not a specific
+   tool, person, or topic. A specific product → REJECT.
+2. **Source-grounded.** The model is recognizably present in the
+   source — not invented from extractor's training data.
+3. **Quote provenance.** `source_quote` is a verbatim passage that
+   the model is built from.
+4. **Applicability concrete.** The applicability sentence names a
+   plausible different domain, not just generic words.
+5. **Naming.** Names end with a meaningful term like `pattern`,
+   `principle`, `tradeoff`, `model`, or describe the structure
+   directly.
+{% endblock %}

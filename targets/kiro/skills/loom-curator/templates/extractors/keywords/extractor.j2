@@ -1,0 +1,116 @@
+{% extends 'extractors/_meta/extractor.j2' %}
+
+{% block instructions %}
+Read the source. Identify the **keywords** the source uses or
+introduces — concepts, methodologies, abstractions, principles,
+phenomena, or technical terms that **benefit from a precise
+definition**. A reader landing on the keyword's vault page should
+gain understanding from the definition.
+
+Aim for 10–25 keywords. Skip generic English words and overly
+broad terms.
+
+For **each keyword**, provide a short definition (1–3 sentences)
+explaining what the term means in the context of the source.
+
+You have NO access to the vault. Do not concern yourself with
+duplicates or existing pages — a separate stage will reconcile your
+output against the vault later.
+
+## What is a keyword
+
+A keyword IS:
+
+- A **concept** that needs explanation: e.g. "executable oracles",
+  "zero degrees of freedom", "miscompilation", "soundness",
+  "precision".
+- A **methodology, technique, or class of tools**: e.g.
+  "property-based testing", "fuzzing", "runtime sanitizers",
+  "code coverage".
+- A **pattern, principle, or phenomenon**: e.g. "gaming the
+  system", "tool-centric software engineering".
+- A **technical abstraction** that requires definition: e.g.
+  "LLVM IR", "dataflow transfer functions".
+
+A keyword IS NOT:
+
+- A **specific commercial product or service**: e.g. "Claude",
+  "Codex", "ChatGPT", "GitHub Copilot".
+- A **specific open-source project, tool, or codename**: e.g.
+  "Csmith", "YARPGen", "JustHTML", "Claude's C Compiler".
+- A **named organization, paper, dataset, benchmark, or test
+  suite**: e.g. "GCC torture test suite", "MMLU", "HumanEval".
+- A **person, company, or institution**: those have their own
+  extraction kinds (people, authors, etc.).
+
+**Rule of thumb:** if the term is a brand or product name, it
+identifies a specific instance and does NOT belong here — readers
+do not need a definition for "Claude" the way they do for "zero
+degrees of freedom". When in doubt: would a textbook define this
+term, or does it just identify a product? Textbook → keyword.
+Product identifier → skip.
+
+## Naming convention
+
+Names use **Title Case** with abbreviations in parentheses where
+the term has a widely-known short form.
+
+- Capitalize each word; lowercase short stopwords (a, an, the,
+  of, for, in, on, at, to, by, and, or, but) unless first or
+  last. Hyphenated parts are each capitalized.
+- Preserve acronym case: `LLM`, `LLVM`, `GCC`, `JSON`, `JIT`.
+- Symbols, units, and code identifiers keep their natural form.
+- If the term has a widely-recognized abbreviation or short
+  form, write the full form first and put the short form in
+  parentheses. Place the parenthetical at the end.
+
+Examples:
+
+- `executable oracles`  →  **Executable Oracles**
+- `zero degrees of freedom`  →  **Zero Degrees of Freedom**
+- `property-based testing`  →  **Property-Based Testing**
+- `miscompilation`  →  **Miscompilation**
+- `LLVM IR`  →  **Low-Level Virtual Machine Intermediate
+  Representation (LLVM IR)**
+- `LLM coding agents`  →  **Large Language Model Coding Agents
+  (LLM Coding Agents)**
+- `runtime sanitizers`  →  **Runtime Sanitizers**
+
+Use the parenthetical form ONLY when an abbreviation is in
+common use; do not invent acronyms. If unsure, omit parens.
+
+## Definition source precedence
+
+When writing a definition, prefer sources in this order:
+
+1. **`source`** — the source text defines or explicitly explains
+   the term. Quote the supporting passage in `source_quote`.
+2. **`agent`** — the term is well-known but the source does not
+   define it. Use your training knowledge.
+
+Never invent a definition that contradicts the source. If you are
+uncertain, prefer a narrower definition over a broader one.
+{% endblock %}
+
+{% block builder_calls %}
+
+The keywords array uses a discriminated union; the schema validates
+exactly one variant matches each item.
+
+#### Variant A — source-grounded
+
+    curator.sh builders add {{ task.output_path }} \
+        --set keywords.<i>.name='<term>' \
+        --set keywords.<i>.definition='<1-3 sentences>' \
+        --set keywords.<i>.definition_source=source \
+        --set keywords.<i>.source_quote='<verbatim passage from source>'
+
+#### Variant B — agent training knowledge
+
+    curator.sh builders add {{ task.output_path }} \
+        --set keywords.<i>.name='<term>' \
+        --set keywords.<i>.definition='<1-3 sentences>' \
+        --set keywords.<i>.definition_source=agent
+
+Increment `<i>` per keyword (0, 1, 2, ...).
+{% endblock %}

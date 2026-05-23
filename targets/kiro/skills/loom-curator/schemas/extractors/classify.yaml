@@ -1,0 +1,90 @@
+type: object
+required:
+- quintet
+properties:
+  quintet:
+    type: object
+    required:
+    - audience
+    - discipline
+    - form
+    - media
+    - register
+    properties:
+      media:
+        type: string
+        enum:
+        - article
+        - audio
+        - book
+        - paper
+        - video
+      form:
+        type: string
+        enum:
+        - anthology
+        - blog
+        - documentary
+        - interview
+        - keynote
+        - lecture
+        - monograph
+        - monologue
+        - news
+        - novel
+        - opinion
+        - paperback
+        - pop_science
+        - preprint
+        - research
+        - review
+        - roundtable
+        - talk
+        - textbook
+        - tutorial
+      register:
+        type: string
+        enum:
+        - creative
+        - fiction
+        - non_fiction
+        - reference
+      discipline:
+        type: string
+        enum:
+        - art
+        - biology
+        - business
+        - chemistry
+        - cs
+        - economics
+        - engineering
+        - fantasy
+        - film
+        - historical_fiction
+        - history
+        - horror
+        - law
+        - literary
+        - literature
+        - math
+        - medicine
+        - music
+        - mystery
+        - philosophy
+        - physics
+        - politics
+        - psychology
+        - romance
+        - sci_fi
+        - self_help
+        - sociology
+        - thriller
+      audience:
+        type: string
+        enum:
+        - academic
+        - children
+        - enthusiast
+        - general
+        - professional

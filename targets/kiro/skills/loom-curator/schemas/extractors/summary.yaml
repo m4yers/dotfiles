@@ -1,0 +1,4 @@
+type: object
+properties:
+  summary: {type: string}
+  key_points: {type: array}

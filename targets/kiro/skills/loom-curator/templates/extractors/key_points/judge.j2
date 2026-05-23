@@ -1,0 +1,16 @@
+{% extends 'extractors/_meta/judge.j2' %}
+
+{% block criteria %}
+1. **Support.** Every claim about an item is grounded in the source —
+   no fabricated names, dates, properties, or quotes. Items inferred
+   from URLs or other side channels (without explicit prose support)
+   count as fabrications.
+2. **Relevance.** Each item belongs to the key_points aspect of the
+   source — not stretched in from an adjacent aspect (e.g. a person
+   mistaken for an author, a topic mistaken for a key point).
+3. **Naming.** Names are in their natural form, not over-tokenized,
+   slugified, or camelCased. Capitalization matches source usage.
+4. **Reconciliation.** When the extractor sets `match_existing`, the
+   referenced vault page must really cover the item; when it sets
+   `match_existing: null`, no obvious vault page exists for it.
+{% endblock %}

@@ -1,0 +1,96 @@
+{# templates/vault/wiki.j2 — vault page for type=synthesis.
+
+   Defines the canonical shape of a synthesis hub page. Inputs
+   are the structured fields a synthesis agent populates; the
+   template arranges them into the wiki-style layout the vault
+   expects.
+
+   Required:
+     title           string — hub title (also the # heading).
+     rationale       string ≥80 chars — opening paragraph; sits
+                            BEFORE the ``## Overview`` heading.
+     overview        string ≥200 chars — multi-paragraph prose
+                            for the ``## Overview`` body.
+     ascii_diagram   string ≥4 lines, ≥80 chars — the hub's
+                            illustration; rendered inside a
+                            fenced code block.
+     key_concepts    list of {name, summary}
+                            Rendered as ``- [[Name]] - summary``
+                            bullets. ≥3 entries.
+
+   Optional:
+     worked_examples list of {title, body} — case studies.
+     discussion      list of {topic, summary, actors?}, ≤3
+                            entries. Each renders as a
+                            ``### topic`` subsection with a
+                            framing paragraph followed by an
+                            actor list (when actors are
+                            identified). actors is a list of
+                            {name, argument}; empty / omitted
+                            when the source frames the topic
+                            but does not name participants.
+     sources         list of vault paths — frontmatter entries.
+
+   Inline wikilink discipline (the agent's responsibility, not
+   the template's): in every prose field — rationale, overview,
+   key_concepts.<i>.summary, worked_examples.<i>.body,
+   discussion.<i>.summary — the FIRST occurrence of any atomic
+   name MUST be wrapped as a wikilink. ``[[Name]]`` resolves to
+   an atomic page when one exists; otherwise the post-gate
+   strip-dead-links task rewrites it to plain text.
+-#}
+---
+type: synthesis
+title: "{{ title }}"
+{%- if sources is defined and sources %}
+sources:
+{%- for src in sources %}
+  - "{{ src }}"
+{%- endfor %}
+{%- endif %}
+last_updated: {{ today }}
+---
+
+# {{ title }}
+
+{{ rationale }}
+
+## Overview
+
+{{ overview }}
+
+```
+{{ ascii_diagram }}
+```
+
+## Key Concepts
+
+{% for c in key_concepts -%}
+- [[{{ c.name }}]] - {{ c.summary }}
+{% endfor -%}
+{%- if worked_examples is defined and worked_examples %}
+
+## Worked Examples
+
+{% for ex in worked_examples -%}
+### {{ ex.title }}
+
+{{ ex.body }}
+
+{% endfor -%}
+{%- endif -%}
+{%- if discussion is defined and discussion %}
+
+## Discussion
+
+{% for d in discussion -%}
+### {{ d.topic }}
+
+{{ d.summary }}
+{% if d.get('actors') %}
+{% for a in d.actors -%}
+- [[{{ a.name }}]] - {{ a.argument }}
+{% endfor -%}
+{% endif %}
+{% endfor -%}
+{%- endif %}

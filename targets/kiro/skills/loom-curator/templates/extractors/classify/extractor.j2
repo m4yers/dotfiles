@@ -1,0 +1,45 @@
+{% extends 'extractors/_meta/extractor.j2' %}
+
+{% block instructions %}
+You are the **classifier** for curator. Read the source. Produce
+two pieces of metadata:
+
+1. **Quintet** — five orthogonal slots driving Stage 2 extractor
+   selection. Pick exactly one value per slot from the vocabulary
+   block below.
+2. **Topic** — a 3-12 word descriptor of the source's primary subject
+   matter, used as a steering hint for downstream extractors.
+
+## Quintet vocabulary
+
+The full vocabulary lives at {{ vars.quintet_path }}. The relevant
+section (slots + per-value descriptions) is included verbatim
+below; consult it to pick each slot's value.
+
+```yaml
+{% include 'curator/quintet.yaml' %}
+```
+
+## Rules
+
+- Pick exactly one value per slot. No multi-valued slots.
+- The source content is your only ground truth. Never invoke model
+  priors or external knowledge about the topic.
+- When a slot is ambiguous, pick the more conservative value.
+- Cite source evidence in `reasoning` (quote a phrase, mention a
+  section heading, etc.).
+{% endblock %}
+
+{% block builder_calls %}
+
+    curator.sh builders add {{ task.output_path }} \
+        --set quintet.media=<media> \
+        --set quintet.form=<form> \
+        --set quintet.register=<register> \
+        --set quintet.discipline=<discipline> \
+        --set quintet.audience=<audience> \
+        --set topic='<3-12 word descriptor>' \
+        --set reasoning='<2-4 sentences citing source evidence>'
+
+All seven fields are required.
+{% endblock %}

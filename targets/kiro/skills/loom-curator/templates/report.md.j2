@@ -1,0 +1,107 @@
+{# templates/report.md.j2 — gate-operator overview.
+
+   Renders ``_REPORT.md`` into the replica root. Every extraction
+   gets its own section; every item gets its own sub-section
+   with the materialization marker on the first line followed
+   by a full field dump (no truncation).
+
+   Inputs:
+     basename       — source basename
+     topic          — classify topic string
+     quintet        — classify quintet object
+     summary        — extract-summary's text (verbatim)
+
+     extractions    — { kind: {items: [
+                          {display_name, materialized, fields: [
+                              {name, value}, ...
+                          ]},
+                          ...
+                       ]} }
+                       Pre-formatted by build_report — every field
+                       value is already a Markdown-safe string.
+
+     synthesis_paths       — list of ``21 WIKI/<slug>.md`` paths
+     orphan_links          — wikilink targets unresolved at
+                             prune-replica time.
+
+     manifest_modifications  — [{vault_path, kind, name}] for atomic
+                               pages that overwrite an existing
+                               vault page (manifest entries with
+                               op=modified).
+     synthesis_modifications — [{vault_path, name}] for synthesis
+                               pages whose path already exists in
+                               the vault and would be overwritten.
+#}
+# Curator Ingest Report
+
+**Source:** `{{ basename }}`
+**Topic:** {{ topic }}
+**Classification:** `{{ quintet.media }}` / `{{ quintet.form }}` / `{{ quintet.register }}` / `{{ quintet.discipline }}` / `{{ quintet.audience }}`
+
+## Summary
+
+{{ summary }}
+
+## Modifying existing vault pages
+
+{% set total_mods = (manifest_modifications | length) + (synthesis_modifications | length) -%}
+{%- if total_mods == 0 -%}
+_None — every replica page is a new file._
+{%- else -%}
+The following replica files would overwrite existing vault pages on
+apply. The gate driver opens each of these as a diff against the
+vault original; new pages are listed under their kind below.
+
+{% if manifest_modifications -%}
+**Atomic pages** ({{ manifest_modifications | length }}):
+{% for m in manifest_modifications %}
+- `{{ m.vault_path }}` — {{ m.kind }}: {{ m.name }}
+{%- endfor %}
+{% endif -%}
+{%- if synthesis_modifications %}
+**Synthesis pages** ({{ synthesis_modifications | length }}):
+{% for m in synthesis_modifications %}
+- `{{ m.vault_path }}`
+{%- endfor %}
+{% endif -%}
+{%- endif %}
+
+{% for kind in extractions | dictsort -%}
+{%- set items = kind[1]['items'] -%}
+{%- set kind_label = kind[0].replace('_', ' ').replace('-', ' ').upper() -%}
+## {{ kind_label }}({{ items | length }})
+
+{% if not items -%}
+_None._
+
+{% else -%}
+{% for it in items -%}
+### {{ it.display_name }}
+
+({{ 'materialized' if it.materialized else 'not materialized' }})
+
+{% for f in it.fields -%}
+- **{{ f.name }}:** {{ f.value }}
+{% endfor %}
+{% endfor -%}
+{% endif -%}
+{% endfor -%}
+{%- if synthesis_paths %}
+## Synthesis hubs
+
+{% for p in synthesis_paths -%}
+- [[{{ p }}]]
+{% endfor %}
+{%- endif %}
+{%- if orphan_links %}
+## Orphan synthesis links
+
+The synthesis hubs link to the following targets that match neither
+a built artifact nor an existing vault page. They will render as
+broken links in Obsidian — edit the synthesis hub at gate time to
+remove or fix them.
+
+{% for t in orphan_links %}
+- `[[{{ t }}]]`
+{%- endfor %}
+{% endif %}

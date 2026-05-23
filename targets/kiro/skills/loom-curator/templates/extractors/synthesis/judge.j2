@@ -1,0 +1,122 @@
+{% extends 'extractors/_meta/judge.j2' %}
+
+{% block source_paths -%}
+Source text:        {{ upstream.convert.output.converted_path | default('(missing)', true) }}
+Synthesis output:   {{ extracted.task_path | default('(missing)', true) }}
+Replica root:       {{ vars.replica_root }}
+Quintet:            {{ upstream.classify.output.quintet }}
+Topic:              {{ upstream.classify.output.topic }}
+{% if upstream['extract-summary'] is defined -%}
+Summary:            {{ upstream['extract-summary'].output.summary | default('(no summary)', true) }}
+{%- else -%}
+Summary:            (no summary)
+{%- endif %}
+
+Wiki template:      {{ vars.wiki_template_path }}
+
+{% set peers = [] %}
+{% for tid, peer in upstream.items() if tid.startswith('extract-') and tid != task.id and peer.status == 'done' %}
+{% set judge_id = 'judge-' + tid[8:] %}
+{% set _ = peers.append({'task_id': tid, 'task_path': peer.task_path, 'verdict_path': upstream[judge_id].task_path if upstream[judge_id] is defined else None}) %}
+{% endfor %}
+Per-peer extractor outputs:
+{% for peer in peers %}
+- **{{ peer.task_id }}**: {{ peer.task_path }}
+{%- endfor %}
+
+Per-peer judge verdicts:
+{% for peer in peers %}
+- **{{ peer.task_id }}**: {{ peer.verdict_path | default('(no judge)', true) }}
+{%- endfor %}
+
+Per-kind destinations:
+{% for kind, dest in vars.destinations.items() %}
+- **{{ kind }}** → mode: `{{ dest.mode }}`{% if dest.get('folder') %}, folder: `{{ dest.folder }}`{% endif %}
+{%- endfor %}
+{%- endblock %}
+
+{% block intro -%}
+The synthesis agent wrote 0–2 vault-shaped markdown files into
+the replica's ``21 WIKI/`` directory. Read each file (paths
+listed in the synthesis output's ``paths`` array) and score it
+against the rubric below. Most criteria score per page
+(``target=<page title or path>``); page-count and orphan-coverage
+criteria are ``target=null``.
+{%- endblock %}
+
+{% block criteria %}
+1. **Page count.** Author should produce **0–2** synthesis
+   pages. Score (target=null):
+   - 0 pages — REVIEW only if the source is rich enough to
+     warrant at least one synthesis page. Tag with
+     ``category=missing_synthesis``.
+   - 1–2 pages — PASS.
+   - 3 or more — REJECT with ``category=over_fragmented``.
+2. **Coverage of synthesis-mode kinds.** Read each peer
+   extractor's output. For every kind whose
+   ``destinations.<kind>.mode == "synthesis"`` and that has
+   items, every item's name MUST appear at least once as a
+   ``[[Name]]`` wikilink on some synthesis page — either as
+   a ``- [[Name]] - …`` bullet under that page's
+   ``## Key Concepts`` section, OR as an inline
+   ``[[Name]]`` wikilink in the page's opening rationale,
+   ``## Overview`` prose, ``## Worked Examples`` body, or
+   ``## Discussion`` text. An item is *covered* when it is
+   linked anywhere on a hub page; the location does not
+   matter and items linked in prose do NOT also need to
+   appear in Key Concepts. (Synthesis-mode wikilinks resolve
+   to nothing on disk; the post-gate strip-dead-links task
+   rewrites them to plain text. The judge's job is only to
+   confirm the item is surfaced somewhere on a hub.)
+   Uncovered items → REJECT with
+   ``category=orphan_synthesis_item`` and name the
+   orphans.
+3. **Frontmatter required.** Each synthesis page MUST have YAML
+   frontmatter declaring at minimum ``type: synthesis``,
+   ``title``, ``sources`` (non-empty list pointing at a
+   ``10 SOURCES/`` page), and ``last_updated``. Missing →
+   REJECT.
+4. **Body structure.** Each page MUST have:
+   - An opening rationale paragraph (≥80 chars) before the first
+     ``##`` heading.
+   - A ``## Overview`` section with multi-paragraph prose
+     (≥200 chars combined).
+   - An ASCII diagram inside a fenced code block, ≥4 lines,
+     ≥80 chars total. Generic "title → bullets" → REJECT with
+     ``category=generic_ascii``.
+   - A ``## Key Concepts`` section composed exclusively of
+     ``- [[Name]] - <summary>`` bullets, ≥3 entries. No
+     ``###`` subsections inside Key Concepts (those drifted in
+     from the old template; flag as
+     ``category=stale_subsection``).
+   Stub or missing sections → REJECT with
+   ``category=thin_synthesis``.
+5. **Inline wikilinks.** Every atomic name (from this page's
+   key concepts or from any other extraction) mentioned in a
+   prose field — opening rationale, Overview body, Key Concepts
+   summary, Worked Examples body, Discussion — MUST have its
+   first occurrence wrapped as a wikilink. Missing wikilinks →
+   REJECT with ``category=missing_wikilinks`` and quote the
+   unwrapped occurrence.
+6. **Wikilink targets.** Every ``[[Name]]`` is fine to author
+   even when no atomic page exists — the post-gate strip-dead-
+   links task rewrites unresolved wikilinks to plain text. The
+   judge does NOT score broken wikilinks; that is the strip
+   task's responsibility. Score this dimension PASS by default.
+7. **Discussion shape.** ``discussion`` is optional. When
+   present:
+   - **At most 3 topics.** 4 or more → REJECT with
+     ``category=over_discussed``.
+   - **Each topic** MUST carry a non-empty ``topic`` string and
+     a ``summary`` of 1-2 sentences in the topic's own framing.
+     Stub topics → REJECT with
+     ``category=thin_discussion``.
+   - **Actors** are optional; when supplied, every entry MUST
+     have ``name`` and ``argument`` and the argument MUST be
+     supported by the source. Fabricated positions → REJECT
+     with ``category=invented_argument`` and quote the
+     unsupported argument.
+   When ``discussion`` is empty, score PASS without further
+   checks — purely expository sources legitimately have no
+   live debate to surface.
+{% endblock %}

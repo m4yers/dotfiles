@@ -1,0 +1,22 @@
+{% extends 'extractors/_meta/extractor.j2' %}
+
+{% block instructions %}
+Read the source. Identify the **chapters** for this source — list of {number, title, summary}.
+
+Use ONLY content the source supports. When the source is silent on a
+field, set it to null (where the schema permits null). Never invent.
+
+The schema enforces shape; load it implicitly via ``builders init`` and
+fill the required fields below. Refer to the on-disk schema at
+``templates/extractors/chapters/schema.yaml`` for the exact field set,
+required keys, and any per-variant rules.
+{% endblock %}
+
+{% block builder_calls %}
+
+    curator.sh builders add {{ task.output_path }} \
+        --set chapters.<i>.<key>='<value>' [--set ...]
+
+Repeat for each item / field group the schema requires. Indices are
+0-based. For string|null fields, pass ``null`` to leave unset.
+{% endblock %}
