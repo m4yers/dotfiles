@@ -40,9 +40,6 @@ class Task:
     # execution
     status: str = STATUS_PENDING
 
-    # free-form pass-through
-    metadata: dict[str, Any] = field(default_factory=dict)
-
     def to_dict(self) -> dict:
         '''Return dict omitting keys whose value is None or empty list/dict.'''
         d = asdict(self)

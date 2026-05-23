@@ -14,7 +14,6 @@ def tool(
     output_schema: str | Path,
     depends_on: list[str] | None = None,
     when: str | None = None,
-    metadata: dict[str, Any] | None = None,
 ) -> Task:
     '''Build a tool kind Task.'''
     if cmd is None or len(cmd) == 0:
@@ -28,7 +27,6 @@ def tool(
         output_schema=str(output_schema),
         depends_on=list(depends_on or []),
         when=when,
-        metadata=dict(metadata or {}),
     )
 
 
@@ -41,7 +39,6 @@ def agent(
     when: str | None = None,
     vars: dict[str, Any] | None = None,
     agent: str | None = None,
-    metadata: dict[str, Any] | None = None,
 ) -> Task:
     '''Build an agent kind Task.'''
     if template is None:
@@ -57,7 +54,6 @@ def agent(
         vars=dict(vars or {}),
         depends_on=list(depends_on or []),
         when=when,
-        metadata=dict(metadata or {}),
     )
 
 
@@ -69,7 +65,6 @@ def human(
     depends_on: list[str] | None = None,
     when: str | None = None,
     vars: dict[str, Any] | None = None,
-    metadata: dict[str, Any] | None = None,
 ) -> Task:
     '''Build a human kind Task.'''
     return Task(
@@ -80,7 +75,6 @@ def human(
         vars=dict(vars or {}),
         depends_on=list(depends_on or []),
         when=when,
-        metadata=dict(metadata or {}),
     )
 
 

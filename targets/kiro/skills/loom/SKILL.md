@@ -93,7 +93,8 @@ Caller supplies the workdir path. Loom creates:
 │   ├── prompt.md         # rendered prompt (agent/human only)
 │   ├── stderr.log        # tool subprocess stderr
 │   ├── render-error.log  # jinja error, if any
-│   └── schema-error.log  # output_schema mismatch, if any
+│   ├── schema-error.log  # output_schema mismatch, if any
+│   └── skip-reason.log   # predicate skip reason, if any
 └── global/               # cross-task shared state, skill-owned
 ```
 

@@ -54,8 +54,8 @@ class LoomRuntime:
 
             for t, reason in skipped:
                 t.status = STATUS_SKIPPED
-                t.metadata = dict(t.metadata) if t.metadata else {}
-                t.metadata['_skip_reason'] = reason
+                td = store.ensure_task_dir(self.workdir, plan, t.id)
+                (td / 'skip-reason.log').write_text(reason, encoding='utf-8')
             if skipped:
                 store.save_plan(self.workdir, plan)
 
@@ -225,12 +225,11 @@ class LoomRuntime:
         t = plan.get(task_id)
         td = store.ensure_task_dir(self.workdir, plan, task_id)
         for fname in ('output.yaml', 'prompt.md',
-                      'render-error.log', 'schema-error.log', 'stderr.log'):
+                      'render-error.log', 'schema-error.log',
+                      'stderr.log', 'skip-reason.log'):
             f = td / fname
             if f.exists():
                 f.unlink()
-        if isinstance(t.metadata, dict) and '_skip_reason' in t.metadata:
-            del t.metadata['_skip_reason']
         t.status = STATUS_PENDING
         store.save_plan(self.workdir, plan)
 

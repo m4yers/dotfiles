@@ -53,7 +53,8 @@ def test_a_or_b_predicates(tmp_path):
     # Verify extract-video was skipped
     p = rt.plan()
     assert p.get('extract-video').status == 'skipped'
-    assert '_skip_reason' in p.get('extract-video').metadata
+    td_video = rt.task_dir('extract-video')
+    assert (td_video / 'skip-reason.log').exists()
 
     # Complete the agent task
     rt.commit_running(['extract-paper'])

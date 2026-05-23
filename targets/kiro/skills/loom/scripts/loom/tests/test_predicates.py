@@ -113,7 +113,8 @@ class TestSkipReason:
         p = rt.plan()
         branch = p.get('branch')
         assert branch.status == 'skipped'
-        assert '_skip_reason' in branch.metadata
+        td = rt.task_dir('branch')
+        assert (td / 'skip-reason.log').exists()
 
 
 class TestSugarNativeEquivalence:

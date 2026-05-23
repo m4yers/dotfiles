@@ -46,7 +46,6 @@ class TestTask:
         assert t.depends_on == []
         assert t.when is None
         assert t.vars == {}
-        assert t.metadata == {}
         assert t.status == STATUS_PENDING
 
     def test_to_dict_omits_none_and_empty(self):
@@ -56,16 +55,14 @@ class TestTask:
         assert 'template' not in d
         assert 'depends_on' not in d
         assert 'vars' not in d
-        assert 'metadata' not in d
 
     def test_to_dict_preserves_values(self):
         t = Task(id='x', kind='tool', cmd=['echo'], output_schema='/s.yaml',
-                 depends_on=['a'], metadata={'key': 'val'})
+                 depends_on=['a'])
         d = t.to_dict()
         assert d['id'] == 'x'
         assert d['cmd'] == ['echo']
         assert d['depends_on'] == ['a']
-        assert d['metadata'] == {'key': 'val'}
 
     def test_from_dict_roundtrip(self):
         t = Task(id='x', kind='agent', template='/t.j2',
