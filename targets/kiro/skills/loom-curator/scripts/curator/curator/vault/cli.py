@@ -74,7 +74,7 @@ def cli_replica_build(
     """
     from pathlib import Path as _Path
     import yaml as _yaml
-    from engine import store
+    from loom.engine import store
     from curator import quintet as q_mod
 
     wd = _Path(workdir).resolve()
@@ -89,7 +89,7 @@ def cli_replica_build(
         kind = task.id[len("extract-"):]
         if kind == "summary":
             continue
-        out_path = store.task_output_path(wd, task.id, plan=plan)
+        out_path = store.task_output_path(wd, plan, task.id)
         if not out_path.exists():
             continue
         loaded = _yaml.safe_load(out_path.read_text(encoding="utf-8"))
@@ -111,7 +111,7 @@ def cli_replica_build(
     # miss.
     vault_matches: dict | None = None
     if "vault-match" in plan.ids():
-        vm_path = store.task_output_path(wd, "vault-match", plan=plan)
+        vm_path = store.task_output_path(wd, plan, "vault-match")
         if vm_path.exists():
             loaded = _yaml.safe_load(vm_path.read_text(encoding="utf-8"))
             if isinstance(loaded, dict):
@@ -120,7 +120,7 @@ def cli_replica_build(
     # Source basename for the replica's source-tracking — the
     # build only uses it to derive a default filename slug for
     # any kind that ever needs source attribution.
-    fetch_path = store.task_output_path(wd, "fetch", plan=plan) \
+    fetch_path = store.task_output_path(wd, plan, "fetch") \
         if "fetch" in plan.ids() else None
     basename = "unknown-source"
     if fetch_path and fetch_path.exists():

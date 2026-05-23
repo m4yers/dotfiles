@@ -22,7 +22,7 @@ TEMPLATES  = SKILL_ROOT / 'templates'
 SCHEMAS    = SKILL_ROOT / 'schemas'
 SCRIPTS    = SKILL_ROOT / 'scripts'
 CURATOR_SH = SCRIPTS / 'curator.sh'
-SECURITY_SCAN_SH = Path(__file__).resolve().parents[5] / 'secure-llm' / 'scripts' / 'security-scan.sh'
+SECURITY_SCAN_SH = Path(__file__).resolve().parents[4] / 'secure-llm' / 'scripts' / 'security-scan.sh'
 QUINTET    = SKILL_ROOT / 'scripts' / 'curator' / 'curator' / 'quintet.yaml'
 
 _SEARCH_PATHS = [str(TEMPLATES), str(TEMPLATES / 'extractors' / '_meta'), str(QUINTET.parent.parent)]

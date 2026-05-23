@@ -112,7 +112,7 @@ _INTERNAL_FILES = frozenset({_MANIFEST_NAME, _REPORT_NAME})
 
 def _replica_root(workdir: Path) -> Path:
     """Path of the replica directory inside a workdir."""
-    return Path(workdir) / _REPLICA_DIRNAME
+    return Path(workdir) / "global" / _REPLICA_DIRNAME
 
 
 def _manifest_path(workdir: Path) -> Path:
@@ -967,7 +967,7 @@ def build_report(workdir: Path) -> dict:
     Writes to ``<wd>/vault-replica/_REPORT.md``. Listed in
     ``_INTERNAL_FILES`` so apply-replica skips it.
     """
-    from engine import store
+    from loom.engine import store
     from curator import quintet as q_mod
     plan = store.load_plan(workdir)
 
@@ -1134,8 +1134,8 @@ def _safe_load(workdir: Path, task_id: str, plan) -> dict | None:
     because a single upstream is malformed."""
     if task_id not in plan.ids():
         return None
-    from engine import store
-    p = store.task_output_path(workdir, task_id, plan=plan)
+    from loom.engine import store
+    p = store.task_output_path(workdir, plan, task_id)
     if not p.exists():
         return None
     try:
