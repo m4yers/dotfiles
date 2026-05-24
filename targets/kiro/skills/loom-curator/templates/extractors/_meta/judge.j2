@@ -142,7 +142,7 @@ DO NOT use ``fs_write`` to write the verdict file directly.
 
 #### 1. Initialize
 
-    curator.sh builders init {{ task.output_path }} --schema judge
+    {{ vars.loom_sh }} output init {{ run.workdir }} --task {{ task.id }}
 
 #### 2. Set ALL required fields in a single ``add`` call
 
@@ -151,7 +151,7 @@ and `item_verdicts` (≥1 entry). Validation runs after each ``add``,
 so a partial add will be rejected. Bundle every rubric definition,
 the top-level fields, AND your item_verdicts into one ``add``:
 
-    curator.sh builders add {{ task.output_path }} \
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
         --set _rubric.<dim_a>='<description>' \
         --set _rubric.<dim_b>='<description>' \
         --set _rubric.<dim_c>='<description>' \

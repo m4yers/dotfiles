@@ -32,7 +32,7 @@ below; consult it to pick each slot's value.
 
 {% block builder_calls %}
 
-    curator.sh builders add {{ task.output_path }} \
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
         --set quintet.media=<media> \
         --set quintet.form=<form> \
         --set quintet.register=<register> \

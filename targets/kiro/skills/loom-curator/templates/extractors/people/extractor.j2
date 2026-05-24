@@ -34,7 +34,7 @@ output against the vault later.
 
 #### Variant A — author (from container metadata)
 
-    curator.sh builders add {{ task.output_path }} \
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
         --set people.<i>.name='<full name>' \
         --set people.<i>.role=author \
         --set people.<i>.definition='<1-3 sentences>' \
@@ -45,7 +45,7 @@ metadata and never appears in the source body.
 
 #### Variant B — source-attested (named in source body)
 
-    curator.sh builders add {{ task.output_path }} \
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
         --set people.<i>.name='<full name>' \
         --set people.<i>.role=<guest|speaker|researcher|engineer|scholar|contributor|editor|host> \
         --set people.<i>.definition='<1-3 sentences>' \

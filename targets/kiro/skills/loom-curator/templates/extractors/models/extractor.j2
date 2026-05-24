@@ -37,7 +37,7 @@ For each model:
 
 {% block builder_calls %}
 
-    curator.sh builders add {{ task.output_path }} \
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
         --set models.<i>.name='<2-6 word model name>' \
         --set models.<i>.definition='<1-3 sentences>' \
         --set models.<i>.applicability='<1-2 sentences>' \

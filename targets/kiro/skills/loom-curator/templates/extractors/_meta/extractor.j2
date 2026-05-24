@@ -10,7 +10,7 @@
 
   Required overrides in child templates:
     {% block instructions %}  — kind-specific extraction instructions
-    {% block builder_calls %} — `curator.sh builders add ...` calls;
+    {% block builder_calls %} — `loom output add ...` calls;
                                 content goes UNDER the shared
                                 "### 2. Set fields per the schema"
                                 header that the base provides.
@@ -46,7 +46,7 @@ Classified topic:   (not yet classified)
 
 ## Writing Output
 
-Write the extractor output by invoking ``curator.sh builders`` via
+Write the extractor output by invoking ``loom output`` via
 execute_bash. DO NOT use ``fs_write`` directly.
 
 Output target:
@@ -55,7 +55,7 @@ Output target:
 
 ### 1. Initialize
 
-    curator.sh builders init {{ task.output_path }} --schema {{ vars.kind_name }}
+    {{ vars.loom_sh }} output init {{ run.workdir }} --task {{ task.id }}
 
 ### 2. Set fields per the schema
 

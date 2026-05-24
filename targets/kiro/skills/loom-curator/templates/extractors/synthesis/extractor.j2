@@ -257,7 +257,7 @@ After each page renders successfully, record its vault-relative
 path in your output:
 
 ```bash
-curator.sh builders add {{ task.output_path }} \
+{{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
     --set paths.<i>='21 WIKI/<Topic Title>.md'
 ```
 
@@ -267,7 +267,7 @@ If you wrote zero pages (the source genuinely has no topics
 worth a stand-alone wiki entry), leave ``paths`` empty:
 
 ```bash
-curator.sh builders add {{ task.output_path }} --set paths='[]'
+{{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} --set paths='[]'
 ```
 
 ## Inline wikilink discipline
@@ -284,8 +284,8 @@ resolution.
 {% endblock %}
 
 {% block builder_calls %}
-The render protocol above includes the only ``builders`` calls
-needed: one ``builders add`` per page to record the rendered
+The render protocol above includes the only ``loom output`` calls
+needed: one ``loom output add`` per page to record the rendered
 path. The wiki template determines the page shape; you
 exclusively author the structured JSON and let the renderer
 produce the markdown.

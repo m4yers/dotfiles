@@ -24,7 +24,7 @@ down.
 
 {% block builder_calls %}
 
-    curator.sh builders add {{ task.output_path }} \
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
         --set topics.<i>.name='<2-6 word topic name>' \
         --set topics.<i>.relevance=primary|secondary \
         --set topics.<i>.summary='<2-4 sentences>' \

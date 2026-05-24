@@ -2,7 +2,7 @@
 import typer
 
 from curator import runtime, status
-from curator import source, vault, builders
+from curator import source, vault
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
 
@@ -13,7 +13,6 @@ app.command('status')(status.cli_status)
 
 app.add_typer(source.app, name='source')
 app.add_typer(vault.app, name='vault')
-app.add_typer(builders.app, name='builders')
 
 if __name__ == '__main__':
     app()

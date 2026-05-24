@@ -23,9 +23,16 @@ SCHEMAS    = SKILL_ROOT / 'schemas'
 SCRIPTS    = SKILL_ROOT / 'scripts'
 CURATOR_SH = SCRIPTS / 'curator.sh'
 SECURITY_SCAN_SH = Path(__file__).resolve().parents[4] / 'secure-llm' / 'scripts' / 'security-scan.sh'
+SECURE_LLM_TEMPLATES = Path(__file__).resolve().parents[4] / 'secure-llm' / 'templates'
+LOOM_SH = Path(__file__).resolve().parents[4] / 'loom' / 'scripts' / 'loom.sh'
 QUINTET    = SKILL_ROOT / 'scripts' / 'curator' / 'curator' / 'quintet.yaml'
 
-_SEARCH_PATHS = [str(TEMPLATES), str(TEMPLATES / 'extractors' / '_meta'), str(QUINTET.parent.parent)]
+_SEARCH_PATHS = [
+    str(TEMPLATES),
+    str(TEMPLATES / 'extractors' / '_meta'),
+    str(SECURE_LLM_TEMPLATES),
+    str(QUINTET.parent.parent),
+]
 
 
 def _load_destinations() -> dict:
@@ -39,6 +46,7 @@ _VARS = {
     'vault_templates_dir': str(TEMPLATES / 'vault'),
     'destinations':        _load_destinations(),
     'replica_root':        '${global:vault-replica}',
+    'loom_sh':             str(LOOM_SH),
 }
 
 

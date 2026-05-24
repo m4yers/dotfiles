@@ -78,7 +78,7 @@ provides them. Never invent statistics.
 
 {% block builder_calls %}
 
-    curator.sh builders add {{ task.output_path }} \
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
         --set summary='<200–300 words for article/paper, 350–500 for other media; multi-paragraph text>'
 
 The single field `summary` is required.
