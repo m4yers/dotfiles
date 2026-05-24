@@ -1,1 +1,21 @@
 type: object
+required:
+- exercises
+properties:
+  exercises:
+    type: array
+    items:
+      type: object
+      required:
+      - chapter
+      - type
+      - prompt
+      properties:
+        chapter:
+          type:
+          - integer
+          - 'null'
+        type:
+          type: string
+        prompt:
+          type: string

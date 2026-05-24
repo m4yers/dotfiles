@@ -1,1 +1,28 @@
 type: object
+required:
+- results
+properties:
+  results:
+    type: array
+    items:
+      type: object
+      required:
+      - claim
+      - evidence
+      - metric
+      - source_quote
+      properties:
+        claim:
+          type: string
+        evidence:
+          type:
+          - string
+          - 'null'
+        metric:
+          type:
+          - string
+          - 'null'
+        source_quote:
+          type:
+          - string
+          - 'null'

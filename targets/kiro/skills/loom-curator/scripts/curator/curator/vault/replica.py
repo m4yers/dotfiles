@@ -51,7 +51,7 @@ from curator.vault.pages import (
 # render.sh shim (lives in the ``template`` skill).
 # replica.py is at <curator>/scripts/curator/vault/replica.py;
 # four .parent hops reach the skill root.
-_SKILL_ROOT    = Path(__file__).resolve().parent.parent.parent.parent
+_SKILL_ROOT    = Path(__file__).resolve().parent.parent.parent.parent.parent
 _TEMPLATES_DIR = _SKILL_ROOT / "templates"
 _VAULT_TEMPLATES_DIR = _TEMPLATES_DIR / "vault"
 _RENDER_SH     = (Path(os.environ.get(

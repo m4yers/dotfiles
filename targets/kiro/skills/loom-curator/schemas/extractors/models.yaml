@@ -1,1 +1,27 @@
 type: object
+required:
+- models
+properties:
+  models:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - definition
+      - applicability
+      - source_quote
+      properties:
+        name:
+          type: string
+        definition:
+          type: string
+          minLength: 30
+        applicability:
+          type: string
+          minLength: 20
+        source_quote:
+          type:
+          - string
+          - 'null'

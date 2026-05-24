@@ -1,1 +1,29 @@
 type: object
+required: [people]
+properties:
+  people:
+    type: array
+    items:
+      oneOf:
+        # ── Variant 1: author (from container metadata) ──
+        - type: object
+          additionalProperties: false
+          required: [name, role, definition, source_quote]
+          properties:
+            name:           {type: string}
+            role:           {const: author}
+            definition:     {type: string}
+            source_quote:   {type: ["string", "null"]}
+
+        # ── Variant 2: source-attested person ──
+        - type: object
+          additionalProperties: false
+          required: [name, role, definition, source_quote]
+          properties:
+            name:           {type: string}
+            role:
+              type: string
+              enum: [guest, speaker, researcher, engineer, scholar,
+                      contributor, editor, host]
+            definition:     {type: string}
+            source_quote:   {type: string}

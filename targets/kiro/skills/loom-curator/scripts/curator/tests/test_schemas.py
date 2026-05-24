@@ -35,7 +35,18 @@ VALID_SAMPLES = {
     'pipeline/fetch.yaml': {'path': '/tmp/source.txt'},
     'pipeline/convert.yaml': {'converted_path': '/tmp/out.md'},
     'pipeline/gate.yaml': {'proceed': True},
-    'pipeline/judge-verdict.yaml': {'verdict': 'ACCEPT', 'reasons': []},
+    'pipeline/judge-verdict.yaml': {
+        'verdict': 'ACCEPT',
+        'reasoning': 'all rubric dimensions pass per evidence',
+        '_rubric': {'overall': 'whole-output verdict per rubric'},
+        'item_verdicts': [{
+            'target': None,
+            'verdict': 'ACCEPT',
+            'scores': {'overall': 'PASS'},
+            'rationale': 'evidence-cited rationale',
+        }],
+        'issues': [],
+    },
     'extractors/classify.yaml': {
         'quintet': {
             'media': 'paper', 'form': 'research',

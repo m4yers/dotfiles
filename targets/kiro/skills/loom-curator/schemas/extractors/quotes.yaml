@@ -1,1 +1,23 @@
 type: object
+required:
+- quotes
+properties:
+  quotes:
+    type: array
+    items:
+      type: object
+      required:
+      - text
+      - speaker
+      - context
+      properties:
+        text:
+          type: string
+        speaker:
+          type:
+          - string
+          - 'null'
+        context:
+          type:
+          - string
+          - 'null'

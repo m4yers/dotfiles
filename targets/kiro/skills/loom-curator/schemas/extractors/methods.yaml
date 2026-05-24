@@ -1,1 +1,24 @@
 type: object
+required:
+- methods
+properties:
+  methods:
+    type: array
+    items:
+      type: object
+      required:
+      - name
+      - description
+      - applicability
+      - source_quote
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        applicability:
+          type: string
+        source_quote:
+          type:
+          - string
+          - 'null'

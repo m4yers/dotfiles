@@ -41,8 +41,8 @@ app = typer.Typer(
 )
 
 
-# Schema location: <skill>/templates/<kind>/schema.yaml
-_TEMPLATES_DIR = Path(__file__).resolve().parent.parent.parent.parent / "templates"
+# Schema location: <skill>/schemas/{pipeline,extractors}/<name>.yaml (loom-curator layout)
+_SCHEMAS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "schemas"
 
 _SCHEMA_FIELD = "_schema"
 
@@ -51,12 +51,12 @@ _SCHEMA_FIELD = "_schema"
 
 
 def _schema_path(kind: str) -> Path:
-    # The "judge" schema is shared across every extractor's per-item
-    # rubric verdict; it lives next to the base judge template under
-    # _meta/ rather than in a per-kind extractors/<kind>/ dir.
+    # Single source of truth: loom-curator's schemas/ tree.
+    # The "judge" kind shares one schema across every extractor's
+    # per-item rubric verdict, served from pipeline/judge-verdict.yaml.
     if kind == "judge":
-        return _TEMPLATES_DIR / "extractors" / "_meta" / "judge-output-schema.yaml"
-    return _TEMPLATES_DIR / "extractors" / kind / "schema.yaml"
+        return _SCHEMAS_DIR / "pipeline" / "judge-verdict.yaml"
+    return _SCHEMAS_DIR / "extractors" / f"{kind}.yaml"
 
 
 def _load_schema_at(p: Path) -> dict:

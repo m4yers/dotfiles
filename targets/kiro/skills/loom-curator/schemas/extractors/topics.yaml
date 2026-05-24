@@ -1,1 +1,14 @@
 type: object
+required: [topics]
+properties:
+  topics:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [name, relevance, summary, source_quote]
+      properties:
+        name:         {type: string}
+        relevance:    {type: string, enum: [primary, secondary]}
+        summary:      {type: string}
+        source_quote: {type: string}
