@@ -68,9 +68,11 @@ criteria are ``target=null``.
    to nothing on disk; the post-gate strip-dead-links task
    rewrites them to plain text. The judge's job is only to
    confirm the item is surfaced somewhere on a hub.)
-   Uncovered items → REJECT with
+   Uncovered items → REVIEW with
    ``category=orphan_synthesis_item`` and name the
-   orphans.
+   orphans. (Coverage is a quality concern but does not block
+   apply: a hub page with strong prose can be applied even if
+   one or two items aren't wikilinked.)
 3. **Frontmatter required.** Each synthesis page MUST have YAML
    frontmatter declaring at minimum ``type: synthesis``,
    ``title``, ``sources`` (non-empty list pointing at a
