@@ -79,6 +79,9 @@ pending  →  ready  →  running  →  done | failed | skipped
 
 - `ready` is yielded but not yet committed; idempotent on re-yield.
 - `skipped` is `pending → skipped` when a `when:` predicate is false.
+- A task with at least one dep that has every dep in `skipped` status is
+  auto-skipped via cascade — there's nothing to act on. Cascade applies
+  after `when:` evaluation: an explicit `when: false` always wins.
 - Render failure transitions `ready → failed` (skipping `running`).
 
 ## Workdir layout

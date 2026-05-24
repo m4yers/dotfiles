@@ -112,15 +112,24 @@ def partition_ready(
     plan: LoomPlan,
     workdir: Path,
 ) -> tuple[list[Task], list[tuple[Task, str]]]:
-    '''Split candidates by predicate evaluation.'''
-    runnable = []
-    skipped = []
+    '''Split candidates by predicate evaluation and cascade-skip.'''
+    by_id = {t.id: t for t in plan.tasks}
+    runnable: list[Task] = []
+    skipped: list[tuple[Task, str]] = []
     for t in candidates:
         ok, reason = eval_predicate(t.when, plan, workdir)
-        if ok:
-            runnable.append(t)
-        else:
+        if not ok:
             skipped.append((t, reason or 'when-false'))
+            continue
+        # Cascade skip: if every dep is skipped, this task has nothing to act on.
+        if t.depends_on:
+            dep_statuses = [by_id[dep].status for dep in t.depends_on
+                           if dep in by_id]
+            if dep_statuses and all(s == STATUS_SKIPPED for s in dep_statuses):
+                skipped.append((t,
+                    f'cascade: all {len(dep_statuses)} deps skipped'))
+                continue
+        runnable.append(t)
     return runnable, skipped
 
 

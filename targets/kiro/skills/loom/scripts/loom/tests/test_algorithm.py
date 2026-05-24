@@ -211,3 +211,54 @@ class TestPartitionReady:
         runnable, skipped = partition_ready([plan.get('x')], plan, tmp_path)
         assert len(runnable) == 1
         assert len(skipped) == 0
+
+
+class TestCascadeSkip:
+    '''Cascade-skip: task with deps all skipped is auto-skipped.'''
+
+    @pytest.mark.parametrize('scenario,dep_statuses,expected_runnable,expected_reason', [
+        # Mixed deps: A done, B skipped → C runnable
+        ('mixed_deps', {'a': 'done', 'b': 'skipped'}, True, None),
+        # All deps skipped → cascade skip
+        ('all_skipped_2', {'a': 'skipped', 'b': 'skipped'}, False, 'cascade: all 2 deps skipped'),
+        # Single dep skipped → cascade skip
+        ('single_skipped', {'a': 'skipped'}, False, 'cascade: all 1 deps skipped'),
+    ])
+    def test_cascade_parametrized(self, tmp_path, scenario, dep_statuses, expected_runnable, expected_reason):
+        tasks = []
+        dep_ids = []
+        for tid, status in dep_statuses.items():
+            tasks.append(Task(id=tid, kind='tool', cmd=['echo'], status=status))
+            dep_ids.append(tid)
+        tasks.append(Task(id='c', kind='agent', template='/t.j2',
+                          depends_on=dep_ids))
+        plan = LoomPlan(tasks=tasks)
+        runnable, skipped = partition_ready([plan.get('c')], plan, tmp_path)
+        if expected_runnable:
+            assert len(runnable) == 1 and runnable[0].id == 'c'
+            assert skipped == []
+        else:
+            assert runnable == []
+            assert len(skipped) == 1
+            assert skipped[0][1] == expected_reason
+
+    def test_no_deps_always_runnable(self, tmp_path):
+        '''Task with no depends_on is never cascade-skipped.'''
+        plan = LoomPlan(tasks=[
+            Task(id='x', kind='tool', cmd=['echo']),
+        ])
+        runnable, skipped = partition_ready([plan.get('x')], plan, tmp_path)
+        assert len(runnable) == 1
+        assert skipped == []
+
+    def test_when_false_wins_over_cascade(self, tmp_path):
+        '''when:false evaluated first; cascade never reached.'''
+        plan = LoomPlan(tasks=[
+            Task(id='a', kind='tool', cmd=['echo'], status='skipped'),
+            Task(id='b', kind='agent', template='/t.j2',
+                 depends_on=['a'], when="task.a.form == 'paper'"),
+        ])
+        runnable, skipped = partition_ready([plan.get('b')], plan, tmp_path)
+        assert runnable == []
+        assert len(skipped) == 1
+        assert 'when-false' in skipped[0][1]
