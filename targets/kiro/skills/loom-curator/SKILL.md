@@ -6,12 +6,10 @@ description: Curator on top of loom. Ingests a source (URL or file) into an Obsi
 
 # Loom-curator
 
-Drives sub-agents to ingest a source into an Obsidian vault. Identical
-purpose to the legacy `curator` skill, but the entire execution plan is
-declared statically up front (derived from `quintet.yaml` rules + the
-`templates/extractors/` directory layout) and driven by `loom`. Every
-agent task pairs with an independent judge agent task. The plan is
-frozen at ingest time — no runtime extension or transitions.
+Drives sub-agents to ingest a source into an Obsidian vault. The
+orchestrator's job: drive `$CURATOR next/complete`, dispatch each
+yielded agent task, and run the human gate. Loom handles plan,
+rendering, validation, and skip logic.
 
 ## Parameters
 
@@ -21,7 +19,7 @@ frozen at ingest time — no runtime extension or transitions.
 
 ### Step 1: Ingest
 
-1. Set up tooling aliases. Reuse these throughout the workflow:
+1. Set up tooling aliases:
    ```bash
    SKILLS=~/.kiro/skills
    CURATOR=$SKILLS/home/loom-curator/scripts/curator.sh
@@ -30,224 +28,122 @@ frozen at ingest time — no runtime extension or transitions.
    EDITOR=$SKILLS/home/editor/scripts/run-editor.sh
    ANALYTICS=$SKILLS/home/skill-analytics/scripts/add-invocation.sh
    ```
-2. Set tiling activity:
+2. Set tiling activity, record invocation, build layout:
    ```bash
    TARGET=$(basename "<url-or-path>")
    $TILING activity set "loom-curator($TARGET): Ingest"
-   ```
-3. Record invocation:
-   ```bash
    $ANALYTICS loom-curator user:$(whoami)
-   ```
-4. Build layout:
-   ```bash
    eval "$($TILING layout build)"
    ```
-5. Run ingest and capture the workdir:
+3. Ingest:
    ```bash
    WD=$($CURATOR ingest "<url-or-path>" | $YQ .workdir)
    ```
-6. If `ingest` fails (validation or fetch handler error): NEEDS_CONTEXT.
-
-On completion: proceed to Step 2.
+4. If `ingest` fails: NEEDS_CONTEXT.
 
 ### Step 2: Drive the loop
 
-1. Set tiling activity:
-   ```bash
-   $TILING activity set "loom-curator($TARGET): Drive the loop"
-   ```
-2. Loop: call `$CURATOR next "$WD"` and break when it reports done.
-   Each call returns either `{done: true}`, `{done: false, ready: [...]}`,
-   or `{done: false, stuck: true, summary: ...}`. The engine runs all
-   ready tool tasks inline and yields agent + human tasks for the
-   orchestrator to dispatch.
+```bash
+$TILING activity set "loom-curator($TARGET): Drive the loop"
 
-   ```bash
-   while true; do
-       if ! $CURATOR next "$WD" > /tmp/next.yaml 2> /tmp/next.err; then
-           echo "BLOCKED: curator next failed"
-           cat /tmp/next.err
-           exit 1
-       fi
-       done=$($YQ .done < /tmp/next.yaml)
-       [ "$done" = "true" ] && break
-       stuck=$($YQ '.stuck // false' < /tmp/next.yaml)
-       if [ "$stuck" = "true" ]; then
-           echo "BLOCKED: plan is stuck"
-           cat /tmp/next.yaml
-           exit 1
-       fi
-       # Dispatch each ready external task — see "Helper: Dispatch agent
-       # task" / "Helper: Drive human gate" below.
-       for id in $($YQ '.ready[].id' < /tmp/next.yaml); do
-           # ... per-id dispatch (see helpers) ...
-           # then mark done:
-           $CURATOR complete "$WD" "$id"
-       done
-   done
-   ```
+while true; do
+    $CURATOR next "$WD" > /tmp/next.yaml 2> /tmp/next.err \
+        || { echo "BLOCKED: next failed"; cat /tmp/next.err; exit 1; }
 
-On loop exit: proceed to Step 3.
+    [ "$($YQ .done < /tmp/next.yaml)" = "true" ] && break
+    if [ "$($YQ '.stuck // false' < /tmp/next.yaml)" = "true" ]; then
+        echo "BLOCKED: plan stuck"; cat /tmp/next.yaml; exit 1
+    fi
+
+    # Per-id dispatch — see helpers below.
+    for id in $($YQ '.ready[].id' < /tmp/next.yaml); do
+        # ... dispatch agent / drive gate ...
+        $CURATOR complete "$WD" "$id"
+    done
+done
+```
 
 ### Step 3: Report outcome
 
-1. Set tiling activity:
-   ```bash
-   $TILING activity set "loom-curator($TARGET): Report outcome"
-   ```
-2. Run the status oracle and report its verdict:
-   ```bash
-   $CURATOR status "$WD"
-   ```
-   Aggregates judge verdicts across the run.
-3. Set tiling activity to Done:
-   ```bash
-   $TILING activity set "loom-curator($TARGET): Done"
-   ```
+```bash
+$TILING activity set "loom-curator($TARGET): Report outcome"
+$CURATOR status "$WD"
+$TILING activity set "loom-curator($TARGET): Done"
+```
 
 ## Helper: Dispatch agent task
 
-Each `next` response yields a list of `ready` agent and human tasks.
-Loom has already rendered each task's prompt to `<task_workdir>/prompt.md`
-before yielding. The task spec carries:
+`$CURATOR next` yields ready agent tasks with their `prompt_path`
+already rendered. For each id, dispatch via the `subagent` MCP tool
+with `role:` picked by id prefix:
 
-```yaml
-- id: extract-keywords
-  kind: agent
-  task_workdir:    .../tasks/26-extract-keywords
-  output_path:     .../tasks/26-extract-keywords/output.yaml
-  prompt_path:     .../tasks/26-extract-keywords/prompt.md
-```
+| Task id          | role               |
+|------------------|--------------------|
+| `classify`       | `curator-extractor` |
+| `extract-<kind>` | `curator-extractor` |
+| `judge-<kind>`   | `curator-judge`     |
+| `synthesis`      | `curator-composer`  |
+| `judge-synthesis`| `curator-judge`     |
 
-For each agent task in the ready batch:
+The sub-agent's `prompt_template` should instruct it to `fs_read` the
+`prompt_path` and follow it. The agent writes its own output (the
+prompt instructs how). After dispatch returns, call
+`$CURATOR complete "$WD" "<id>"`.
 
-1. Pick the agent role from the task id:
-   - `classify` → `curator-extractor`
-   - `judge-classify` → `curator-judge`
-   - `extract-<kind>` → `curator-extractor`
-   - `judge-<kind>` → `curator-judge`
-   - `synthesis` → `curator-composer`
-   - `judge-synthesis` → `curator-judge`
-2. Dispatch via the `subagent` MCP tool. Pass the rendered prompt path
-   in the prompt_template (instructing the sub-agent to `fs_read` it
-   and follow it). Use `role: <picked above>`.
-3. The agent writes its output via `$CURATOR builders init/add` calls
-   (the prompt itself instructs the agent how). Output lands at
-   `output_path`.
-4. After dispatch returns, call `$CURATOR complete "$WD" "<id>"` to
-   validate the output against the task's `output_schema` and mark
-   the task `done`. On schema failure, `complete` raises
-   `OutputSchemaError` and the task is marked `failed`.
-
-Multiple agent tasks in one batch are independent — fan out via the
-`subagent` tool's `stages` array with no `depends_on` between them.
+Dispatch independent ids in parallel via the `subagent` `stages`
+array with no `depends_on`.
 
 ## Helper: Drive human gate
 
-The `gate` task is a human kind. Loom yields it but does not render a
-prompt (gate has no template). The orchestrator drives gate review.
+`gate` is a human kind task. Loom yields it without a prompt; the
+orchestrator drives review:
 
-1. Set tiling activity and ensure layout:
-   ```bash
-   $TILING activity set "loom-curator($TARGET): Human gate"
-   eval "$($TILING layout build)"
-   ```
-2. List gate review targets via `gate-list`:
-   ```bash
-   $CURATOR gate-list "$WD"
-   ```
-   Emits TSV records (one per file): `report` | `manifest-create` |
-   `manifest-modify` | `synthesis-create` | `synthesis-modify`. Use
-   the editor skill to show diffs for `*-modify` records and content
-   for `report`.
-3. Drive the editor:
-   ```bash
-   $EDITOR reset
-   $CURATOR gate-list "$WD" \
-       | while IFS=$'\t' read -r kind a b; do
-           case "$kind" in
-               report)   $EDITOR show file "$a" ;;
-               *-modify) $EDITOR show diff "$a" "$b" ;;
-               # *-create entries are surfaced in the report's
-               # "Modifying existing vault pages" section, not opened
-               # individually
-           esac
-       done
-   ```
-4. STOP and wait for the user to review. The user may edit any replica
-   file in `<workdir>/global/vault-replica/` or `rm` files they want to
-   reject — replica state at apply time is the authoritative decision.
-5. When the user signals proceed/abort, write the gate's `output.yaml`:
-   ```yaml
-   # to apply the replica
-   proceed: true
-   # OR to abort
-   proceed: false
-   ```
-   Save to `<task_workdir>/output.yaml`, then call:
-   ```bash
-   $CURATOR complete "$WD" gate
-   ```
-6. The downstream `strip-dead-links` and `apply-replica` tasks are
-   gated on `task."gate".proceed == true`. If the user set
-   `proceed: false`, both are skipped via `when:` predicate and the
-   plan finishes without writing to the vault.
+```bash
+$TILING activity set "loom-curator($TARGET): Human gate"
+eval "$($TILING layout build)"
 
-## How the plan is shaped
-
-Loom-curator's plan has 58 task slots regardless of source. The active
-set depends on the quintet:
-
-```
-fetch (tool)
-└── convert (tool)
-    └── security_scan (tool)
-        └── classify (agent)
-            └── judge-classify (agent)
-                ├── extract-summary (agent, always run)
-                ├── extract-keywords (agent, always run)
-                └── 20 conditional extract-<kind> tasks
-                    └── each pairs with judge-<kind>
-                        ├── (cascade: extractor skipped → judge auto-skipped)
-                        └── (after all judges) build-replica (tool)
-                            └── synthesis (agent)
-                                └── judge-synthesis (agent)
-                                    └── prune-replica (tool)
-                                        └── report (tool)
-                                            └── gate (human)
-                                                ├── strip-dead-links (tool, when proceed)
-                                                └── apply-replica (tool, when proceed)
+$EDITOR reset
+$CURATOR gate-list "$WD" \
+    | while IFS=$'\t' read -r kind a b; do
+        case "$kind" in
+            report)   $EDITOR show file "$a" ;;
+            *-modify) $EDITOR show diff "$a" "$b" ;;
+            # *-create entries surface in the report; not opened individually
+        esac
+    done
 ```
 
-The 20 conditional extractors fire based on `quintet.yaml`'s rule
-table. For an `(article, blog, non_fiction, cs, professional)` source,
-4 extractors run + summary + keywords = 6 agent extractor tasks (12
-counting their judges). The remaining 17 extractor pairs auto-skip via
-`when:` predicates and cascade-skip.
+STOP and wait for the user. They may edit or `rm` files in
+`<workdir>/global/vault-replica/`; replica state at apply time is the
+authoritative decision.
+
+When the user signals proceed/abort, write the gate's output and
+complete:
+
+```bash
+echo "proceed: true"  > "$WD/tasks/56-gate/output.yaml"  # or false
+$CURATOR complete "$WD" gate
+```
+
+`strip-dead-links` and `apply-replica` are gated on
+`proceed == true` via loom's `when:` predicates — `false` skips both.
 
 ## Rules
 
-1. Use the `subagent` MCP tool for kind=agent tasks. Tool tasks run
-   inside `next` (engine subprocess); orchestrator does not see them.
-2. The `gate` task MUST be human-driven. Auto-approving silently
-   removes the user's veto.
+1. Dispatch kind=agent tasks via `subagent`. Tool/human tasks the
+   orchestrator never sees in `ready`; loom runs tools inline and
+   yields humans for the gate driver.
+2. The gate MUST be human-driven. Auto-approving removes the user's
+   veto.
 3. Source binary files and `*.assets/` folders are immutable.
-4. Atomic page filenames use natural item names (no kebab-casing).
-   Obsidian wikilinks like `[[Item Name]]` resolve against these
-   directly.
-5. Synthesis pages go through `templates/vault/wiki.j2` rather than
-   direct markdown authoring. The template enforces the layout; the
-   agent fills structured fields.
-6. Plan extension is NOT used — every task is declared at ingest
-   time. If a future feature needs runtime task addition, use
-   `loom.extend` explicitly from the orchestrator.
+4. Atomic page filenames use natural item names (no kebab-casing) so
+   `[[Item Name]]` wikilinks resolve directly.
 
 ## Completion
 
 | Status               | Criteria                                              |
 |----------------------|-------------------------------------------------------|
-| `DONE`               | `next` returned done; no judge verdict was REJECT     |
-| `DONE_WITH_CONCERNS` | `next` returned done; ≥1 verdict was REJECT          |
+| `DONE`               | `next` reported done; no judge verdict was REJECT     |
+| `DONE_WITH_CONCERNS` | `next` reported done; ≥1 verdict was REJECT          |
 | `BLOCKED`            | `next` / `complete` errored, or stuck plan reported   |
-| `NEEDS_CONTEXT`      | `ingest` rejected the input (validation or fetch fail) |
+| `NEEDS_CONTEXT`      | `ingest` rejected the input                           |
