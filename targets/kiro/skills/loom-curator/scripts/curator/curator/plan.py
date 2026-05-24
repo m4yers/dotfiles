@@ -42,6 +42,35 @@ _VARS = {
 }
 
 
+def _ensure_classify_schema() -> None:
+    """Regenerate schemas/extractors/classify.yaml from quintet.yaml.
+
+    Keeps the classify task's output_schema enum in sync with the
+    slot vocabularies. Called from derive_plan so loom validates
+    against the current vocabulary on every ingest.
+    """
+    rules_doc = yaml.safe_load(QUINTET.read_text())
+    slots = rules_doc['slots']
+    schema = {
+        'type': 'object',
+        'required': ['quintet'],
+        'properties': {
+            'quintet': {
+                'type': 'object',
+                'required': sorted(slots.keys()),
+                'properties': {
+                    slot: {'type': 'string',
+                           'enum': sorted(info['values'].keys())}
+                    for slot, info in slots.items()
+                },
+            },
+        },
+    }
+    out = SCHEMAS / 'extractors' / 'classify.yaml'
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(yaml.safe_dump(schema, sort_keys=False))
+
+
 def derive_plan(workdir: Path, source_url: str) -> LoomPlan:
     '''Build the full loom plan for an ingest run.'''
     kinds = discovery.list_extractor_kinds(TEMPLATES)
