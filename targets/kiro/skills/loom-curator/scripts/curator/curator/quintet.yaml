@@ -34,6 +34,13 @@ slots:
                Can be a transcript.
       audio:   Standalone audio not part of a podcast (interviews,
                recordings, audiobooks). Can be a transcript
+      podcast: Episodic audio program with hosts and guests
+               (interviews, roundtables). Distinct from `audio`,
+               which is one-off / unscheduled.
+      talk:    Spoken presentation before a live audience
+               (conference talk, keynote, lecture). Distinct from
+               `video`, which captures recordings without the
+               live-audience framing.
 
   form:
     description: >-

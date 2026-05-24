@@ -18,6 +18,8 @@ properties:
         - audio
         - book
         - paper
+        - podcast
+        - talk
         - video
       form:
         type: string
