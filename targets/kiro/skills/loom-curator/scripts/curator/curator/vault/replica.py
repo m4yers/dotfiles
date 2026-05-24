@@ -1079,53 +1079,17 @@ def build_report(workdir: Path) -> dict:
             "name":       entry.get("name") or vp,
         })
 
-    synthesis_modifications: list[dict] = []
-    rr = _replica_root(workdir)
-    synth_dir = rr / SYNTHESIS_DIR
-    if synth_dir.exists():
-        for entry in sorted(synth_dir.iterdir()):
-            if not entry.is_file() or entry.suffix != ".md":
-                continue
-            rel = f"{SYNTHESIS_DIR}/{entry.name}"
-            if abs_path(rel).exists():
-                synthesis_modifications.append({
-                    "vault_path": rel,
-                    "name":       entry.stem,
-                })
+    return {
+        'basename': basename,
+        'topic': topic,
+        'quintet': quintet,
+        'summary': summary,
+        'extractions': extractions,
+        'synthesis_paths': synthesis_paths,
+        'orphan_links': orphan_links,
+        'manifest_modifications': manifest_modifications,
+    }
 
-    rendered = _render_report_via_template(
-        basename, topic, quintet, summary,
-        extractions,
-        synthesis_paths, orphan_links,
-        manifest_modifications, synthesis_modifications)
-
-    rendered = _mdformat_wrap(rendered, width=80)
-
-    rr = _replica_root(workdir)
-    rr.mkdir(parents=True, exist_ok=True)
-    out_path = rr / _REPORT_NAME
-    out_path.write_text(rendered, encoding="utf-8")
-
-    return {"report_path": str(out_path)}
-
-
-def _mdformat_wrap(markdown: str, *, width: int) -> str:
-    """Pass ``markdown`` through ``mdformat --wrap=<width>`` and
-    return the formatted output.
-
-    If mdformat is unavailable or errors out, fall back to the
-    unformatted input — the report is informational and a missing
-    formatter must not abort the run.
-    """
-    try:
-        proc = subprocess.run(
-            ["mdformat", "--wrap", str(width), "-"],
-            input=markdown, capture_output=True, text=True,
-            check=True,
-        )
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        return markdown
-    return proc.stdout
 
 
 def _safe_load(workdir: Path, task_id: str, plan) -> dict | None:
@@ -1143,59 +1107,6 @@ def _safe_load(workdir: Path, task_id: str, plan) -> dict | None:
     except yaml.YAMLError:
         return None
     return loaded if isinstance(loaded, dict) else None
-
-
-def _render_report_via_template(
-    basename: str,
-    topic: str,
-    quintet: dict,
-    summary: str,
-    extractions: dict[str, dict],
-    synthesis_paths: list[str],
-    orphan_links: list[str],
-    manifest_modifications: list[dict],
-    synthesis_modifications: list[dict],
-) -> str:
-    """Render ``templates/report.md.j2`` via the shared render.sh
-    shim. Returns the rendered markdown."""
-    template_path = _SKILL_ROOT / "templates" / "report.md.j2"
-    variables = {
-        "basename":        basename,
-        "topic":           topic,
-        "quintet":         quintet,
-        "summary":         summary,
-        "extractions":     extractions,
-        "synthesis_paths":       synthesis_paths,
-        "orphan_links":          orphan_links,
-        "manifest_modifications":  manifest_modifications,
-        "synthesis_modifications": synthesis_modifications,
-    }
-
-    with tempfile.NamedTemporaryFile(
-        "w", suffix=".json", delete=False, encoding="utf-8",
-    ) as f:
-        json.dump(variables, f)
-        vars_file = f.name
-
-    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
-    try:
-        proc = subprocess.run(
-            [
-                str(_RENDER_SH),
-                "--template",    str(template_path),
-                "--include-dir", str(_SKILL_ROOT / "templates"),
-                "--json-vars",   vars_file,
-                "--allow-unused",
-            ],
-            capture_output=True, text=True, check=True, env=env,
-        )
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(
-            f"report.md.j2 render failed: "
-            f"{(e.stderr or '').strip() or e}") from e
-    finally:
-        Path(vars_file).unlink(missing_ok=True)
-    return proc.stdout.lstrip()
 
 
 # ── apply ───────────────────────────────────────────────

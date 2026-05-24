@@ -1,3 +1,37 @@
 type: object
+required: [basename, topic, quintet, summary, extractions, synthesis_paths, orphan_links, manifest_modifications]
 properties:
-  report_path: {type: string}
+  basename: {type: string}
+  topic: {type: string}
+  quintet:
+    type: object
+    properties:
+      media: {type: string}
+      form: {type: string}
+      register: {type: string}
+      discipline: {type: string}
+      audience: {type: string}
+  summary: {type: string}
+  extractions:
+    type: object
+    additionalProperties:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+  synthesis_paths:
+    type: array
+    items: {type: string}
+  orphan_links:
+    type: array
+    items: {type: string}
+  manifest_modifications:
+    type: array
+    items:
+      type: object
+      properties:
+        vault_path: {type: string}
+        kind: {type: string}
+        name: {type: string}

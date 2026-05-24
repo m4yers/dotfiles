@@ -10,7 +10,6 @@ app.command('ingest')(runtime.cli_ingest)
 app.command('next')(runtime.cli_next)
 app.command('complete')(runtime.cli_complete)
 app.command('status')(status.cli_status)
-app.command('gate-list')(runtime.cli_gate_list)
 
 app.add_typer(source.app, name='source')
 app.add_typer(vault.app, name='vault')

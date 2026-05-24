@@ -3,10 +3,8 @@ from __future__ import annotations
 
 import datetime
 import shutil
-import sys
 from pathlib import Path
 
-import yaml
 from slugify import slugify
 
 import loom
@@ -108,59 +106,4 @@ def cli_complete(workdir: str, task_id: str) -> None:
     emit({'ok': True, 'task_id': task_id, 'workdir': str(wd)})
 
 
-def cli_gate_list(workdir: str) -> None:
-    '''`curator.sh gate-list <wd>` — emit gate review targets as TSV.
 
-    Reads replica from <workdir>/global/vault-replica/.
-    '''
-    from curator.vault.config import VAULT_ROOT, SYNTHESIS_DIR
-
-    wd = Path(workdir).expanduser().resolve()
-    replica = wd / 'global' / 'vault-replica'
-    if not replica.exists():
-        fail(f'replica not built: {replica}')
-
-    def _emit(*fields: str) -> None:
-        print('\t'.join(fields))
-
-    def _warn(msg: str) -> None:
-        print(f'warning: {msg}', file=sys.stderr)
-
-    report = replica / '_REPORT.md'
-    if report.exists():
-        _emit('report', str(report))
-    else:
-        _warn(f'_REPORT.md missing in replica: {replica}')
-
-    manifest_path = replica / 'manifest.yaml'
-    if manifest_path.exists():
-        try:
-            manifest = yaml.safe_load(
-                manifest_path.read_text(encoding='utf-8')) or {}
-        except Exception as e:
-            fail(f'manifest parse failed: {e}')
-        for entry in manifest.get('entries') or []:
-            vp = entry.get('vault_path')
-            op = entry.get('op')
-            if not vp:
-                continue
-            replica_path = replica / vp
-            if not replica_path.exists():
-                _warn(f'manifest entry missing on disk: {replica_path}')
-                continue
-            if op == 'create':
-                _emit('manifest-create', str(replica_path))
-            else:
-                vault_path = VAULT_ROOT / vp
-                _emit('manifest-modify', str(vault_path), str(replica_path))
-
-    synth_dir = replica / SYNTHESIS_DIR
-    if synth_dir.exists():
-        for entry in sorted(synth_dir.iterdir()):
-            if not entry.is_file() or entry.suffix != '.md':
-                continue
-            existing = VAULT_ROOT / SYNTHESIS_DIR / entry.name
-            if existing.exists():
-                _emit('synthesis-modify', str(existing), str(entry))
-            else:
-                _emit('synthesis-create', str(entry))

@@ -91,25 +91,22 @@ array with no `depends_on`.
 
 ## Helper: Drive human gate
 
-`gate` is a human kind task. Loom yields it without a prompt; the
-orchestrator drives review:
+`gate` is a human kind task. Loom renders the report template as
+the gate's prompt (using upstream report data as context).
 
 1. Set tiling activity and ensure layout:
    ```bash
    $TILING activity set "loom-curator($TARGET): Human gate"
    eval "$($TILING layout build)"
    ```
-2. Show review targets in the editor. `$CURATOR gate-list "$WD"` emits
-   tab-separated records (one per file). For each line:
-   - `report\t<path>` → `$EDITOR show file <path>`
-   - `manifest-modify\t<vault>\t<replica>` → `$EDITOR show diff <vault> <replica>`
-   - `synthesis-modify\t<vault>\t<replica>` → `$EDITOR show diff <vault> <replica>`
-   - `*-create` → skip (surfaced in the report)
-
+2. Open the gate's `prompt_path` in the editor — this is the
+   rendered report:
+   ```bash
+   $EDITOR show file "<prompt_path>"
+   ```
 3. STOP and wait for the user. They may edit or `rm` files in
-   `<workdir>/global/vault-replica/`; replica state at apply time is the
-   authoritative decision.
-
+   `<workdir>/global/vault-replica/`; replica state at apply time
+   is the authoritative decision.
 4. When the user signals proceed/abort:
    ```bash
    echo "proceed: true" > "$WD/tasks/56-gate/output.yaml"  # or false
