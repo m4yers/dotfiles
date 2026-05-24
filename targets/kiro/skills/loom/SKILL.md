@@ -193,6 +193,48 @@ with whichever non-empty output it finds.
 - `loom/validate/references.py` — reference + JMESPath + type checks
 - `loom/errors.py` — exception hierarchy
 
+## Output writer CLI
+
+Loom ships a small CLI that lets agent tasks write `output.yaml`
+through schema-validated shell calls instead of raw `fs_write`.
+Sub-agents (LLM tasks) invoke it from rendered prompts.
+
+```
+loom output init <workdir> --task <id>
+loom output add  <workdir> --task <id> --set path=value [--set ...]
+```
+
+- `init` resolves the task's `output_schema` from `plan.yaml`,
+  embeds the schema path in `_schema`, seeds top-level array /
+  object containers, and writes `tasks/<NN-id>/output.yaml`.
+- `add` applies dotted `path=value` assignments (numeric segments
+  are array indices), coerces values per the schema, validates the
+  full file against the schema, and writes back atomically.
+
+Loom still validates at `runtime.complete()`; the CLI's eager
+validation just shifts the failure earlier so a bad write is caught
+before the orchestrator marks the task done.
+
+The wrapper at `scripts/loom.sh` runs `python -m loom` under uv:
+
+```bash
+loom_sh=~/.kiro/skills/home/loom/scripts/loom.sh
+$loom_sh output init "$WORKDIR" --task extract-keywords
+$loom_sh output add  "$WORKDIR" --task extract-keywords \
+    --set keywords.0.name='RAG' \
+    --set keywords.0.definition='retrieval augmentation pattern'
+```
+
+Skills passing this wrapper into prompts typically inject it as a
+template var (e.g. `vars.loom_sh`) at plan time and reference
+`{{ run.workdir }}` and `{{ task.id }}` to address the task.
+
+Implementation reference:
+- `loom/builders.py` — write path: schema lookup, path setter,
+  type coercion, atomic save, jsonschema validation.
+- `loom/__main__.py` — argparse CLI (`output init`, `output add`).
+- `scripts/loom.sh` — uv wrapper.
+
 ## Template inheritance
 
 For templates that use Jinja `{% extends %}` or `{% include %}`, set
