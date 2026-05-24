@@ -1,7 +1,7 @@
 ---
 name: loom-curator
 type: workflow
-description: Loom-driven curator. Ingests a URL or file into an Obsidian vault. Use when the user says "loom-curator", "loom-ingest", or provides a URL or local file path to add to ~/Obsidian/MahVault. Do NOT use for the legacy curator skill — that has its own SKILL.md. Do NOT use for personal zettels — those are human-only.
+description: Curator. Ingests a URL or file into an Obsidian vault. Use when the user says "loom-curator", "loom-ingest", or provides a URL or local file path to add to ~/Obsidian/MahVault. Do NOT use for the legacy curator skill — that has its own SKILL.md. Do NOT use for personal zettels — those are human-only.
 ---
 
 # Loom-curator
