@@ -45,23 +45,19 @@ rendering, validation, and skip logic.
 
 ```bash
 $TILING activity set "loom-curator($TARGET): Drive the loop"
-
-while true; do
-    $CURATOR next "$WD" > /tmp/next.yaml 2> /tmp/next.err \
-        || { echo "BLOCKED: next failed"; cat /tmp/next.err; exit 1; }
-
-    [ "$($YQ .done < /tmp/next.yaml)" = "true" ] && break
-    if [ "$($YQ '.stuck // false' < /tmp/next.yaml)" = "true" ]; then
-        echo "BLOCKED: plan stuck"; cat /tmp/next.yaml; exit 1
-    fi
-
-    # Per-id dispatch — see helpers below.
-    for id in $($YQ '.ready[].id' < /tmp/next.yaml); do
-        # ... dispatch agent / drive gate ...
-        $CURATOR complete "$WD" "$id"
-    done
-done
 ```
+
+Loop until done:
+
+1. Run `$CURATOR next "$WD"`. Parse the YAML response.
+2. If `done: true` → break.
+3. If `stuck: true` → BLOCKED.
+4. Otherwise, for each `ready[].id`:
+   - If `id == gate` → drive the human gate (see helper).
+   - Else → dispatch the agent (see helper).
+   - Then `$CURATOR complete "$WD" <id>`.
+
+Independent ids in one batch can be dispatched in parallel.
 
 ### Step 3: Report outcome
 
