@@ -21,28 +21,33 @@ frozen at ingest time — no runtime extension or transitions.
 
 ### Step 1: Ingest
 
-1. Set tiling activity:
+1. Set up tooling aliases. Reuse these throughout the workflow:
    ```bash
    SKILLS=~/.kiro/skills
+   CURATOR=$SKILLS/home/loom-curator/scripts/curator.sh
+   YQ=$SKILLS/home/loom-curator/scripts/yq.sh
+   TILING=$SKILLS/home/tiling/scripts/run-ttm.sh
+   EDITOR=$SKILLS/home/editor/scripts/run-editor.sh
+   ANALYTICS=$SKILLS/home/skill-analytics/scripts/add-invocation.sh
+   ```
+2. Set tiling activity:
+   ```bash
    TARGET=$(basename "<url-or-path>")
-   $SKILLS/home/tiling/scripts/run-ttm.sh activity set "loom-curator($TARGET): Ingest"
+   $TILING activity set "loom-curator($TARGET): Ingest"
    ```
-2. Record invocation:
+3. Record invocation:
    ```bash
-   $SKILLS/home/skill-analytics/scripts/add-invocation.sh \
-       loom-curator user:$(whoami)
+   $ANALYTICS loom-curator user:$(whoami)
    ```
-3. Build layout:
+4. Build layout:
    ```bash
-   eval "$($SKILLS/home/tiling/scripts/run-ttm.sh layout build)"
+   eval "$($TILING layout build)"
    ```
-4. Run ingest and capture the workdir:
+5. Run ingest and capture the workdir:
    ```bash
-   WD=$(~/.kiro/skills/home/loom-curator/scripts/curator.sh \
-            ingest "<url-or-path>" \
-        | ~/.kiro/skills/home/loom-curator/scripts/yq.sh .workdir)
+   WD=$($CURATOR ingest "<url-or-path>" | $YQ .workdir)
    ```
-5. If `ingest` fails (validation or fetch handler error): NEEDS_CONTEXT.
+6. If `ingest` fails (validation or fetch handler error): NEEDS_CONTEXT.
 
 On completion: proceed to Step 2.
 
@@ -50,9 +55,9 @@ On completion: proceed to Step 2.
 
 1. Set tiling activity:
    ```bash
-   $SKILLS/home/tiling/scripts/run-ttm.sh activity set "loom-curator($TARGET): Drive the loop"
+   $TILING activity set "loom-curator($TARGET): Drive the loop"
    ```
-2. Loop: call `curator.sh next "$WD"` and break when it reports done.
+2. Loop: call `$CURATOR next "$WD"` and break when it reports done.
    Each call returns either `{done: true}`, `{done: false, ready: [...]}`,
    or `{done: false, stuck: true, summary: ...}`. The engine runs all
    ready tool tasks inline and yields agent + human tasks for the
@@ -60,10 +65,7 @@ On completion: proceed to Step 2.
 
    ```bash
    while true; do
-       SH=~/.kiro/skills/home/loom-curator/scripts/curator.sh
-       YQ=~/.kiro/skills/home/loom-curator/scripts/yq.sh
-
-       if ! $SH next "$WD" > /tmp/next.yaml 2> /tmp/next.err; then
+       if ! $CURATOR next "$WD" > /tmp/next.yaml 2> /tmp/next.err; then
            echo "BLOCKED: curator next failed"
            cat /tmp/next.err
            exit 1
@@ -81,7 +83,7 @@ On completion: proceed to Step 2.
        for id in $($YQ '.ready[].id' < /tmp/next.yaml); do
            # ... per-id dispatch (see helpers) ...
            # then mark done:
-           $SH complete "$WD" "$id"
+           $CURATOR complete "$WD" "$id"
        done
    done
    ```
@@ -92,16 +94,16 @@ On loop exit: proceed to Step 3.
 
 1. Set tiling activity:
    ```bash
-   $SKILLS/home/tiling/scripts/run-ttm.sh activity set "loom-curator($TARGET): Report outcome"
+   $TILING activity set "loom-curator($TARGET): Report outcome"
    ```
 2. Run the status oracle and report its verdict:
    ```bash
-   ~/.kiro/skills/home/loom-curator/scripts/curator.sh status "$WD"
+   $CURATOR status "$WD"
    ```
    Aggregates judge verdicts across the run.
 3. Set tiling activity to Done:
    ```bash
-   $SKILLS/home/tiling/scripts/run-ttm.sh activity set "loom-curator($TARGET): Done"
+   $TILING activity set "loom-curator($TARGET): Done"
    ```
 
 ## Helper: Dispatch agent task
@@ -121,7 +123,8 @@ before yielding. The task spec carries:
 For each agent task in the ready batch:
 
 1. Pick the agent role from the task id:
-   - `classify`, `judge-classify` → `curator-extractor` / `curator-judge`
+   - `classify` → `curator-extractor`
+   - `judge-classify` → `curator-judge`
    - `extract-<kind>` → `curator-extractor`
    - `judge-<kind>` → `curator-judge`
    - `synthesis` → `curator-composer`
@@ -129,10 +132,10 @@ For each agent task in the ready batch:
 2. Dispatch via the `subagent` MCP tool. Pass the rendered prompt path
    in the prompt_template (instructing the sub-agent to `fs_read` it
    and follow it). Use `role: <picked above>`.
-3. The agent writes its output via `curator.sh builders init/add` calls
+3. The agent writes its output via `$CURATOR builders init/add` calls
    (the prompt itself instructs the agent how). Output lands at
    `output_path`.
-4. After dispatch returns, call `curator.sh complete "$WD" "<id>"` to
+4. After dispatch returns, call `$CURATOR complete "$WD" "<id>"` to
    validate the output against the task's `output_schema` and mark
    the task `done`. On schema failure, `complete` raises
    `OutputSchemaError` and the task is marked `failed`.
@@ -147,13 +150,12 @@ prompt (gate has no template). The orchestrator drives gate review.
 
 1. Set tiling activity and ensure layout:
    ```bash
-   $SKILLS/home/tiling/scripts/run-ttm.sh activity set "loom-curator($TARGET): Human gate"
-   eval "$($SKILLS/home/tiling/scripts/run-ttm.sh layout build)"
+   $TILING activity set "loom-curator($TARGET): Human gate"
+   eval "$($TILING layout build)"
    ```
 2. List gate review targets via `gate-list`:
    ```bash
-   ~/.kiro/skills/home/loom-curator/scripts/curator.sh \
-       gate-list "$WD"
+   $CURATOR gate-list "$WD"
    ```
    Emits TSV records (one per file): `report` | `manifest-create` |
    `manifest-modify` | `synthesis-create` | `synthesis-modify`. Use
@@ -161,9 +163,8 @@ prompt (gate has no template). The orchestrator drives gate review.
    for `report`.
 3. Drive the editor:
    ```bash
-   EDITOR=$SKILLS/home/editor/scripts/run-editor.sh
    $EDITOR reset
-   ~/.kiro/skills/home/loom-curator/scripts/curator.sh gate-list "$WD" \
+   $CURATOR gate-list "$WD" \
        | while IFS=$'\t' read -r kind a b; do
            case "$kind" in
                report)   $EDITOR show file "$a" ;;
@@ -186,8 +187,7 @@ prompt (gate has no template). The orchestrator drives gate review.
    ```
    Save to `<task_workdir>/output.yaml`, then call:
    ```bash
-   ~/.kiro/skills/home/loom-curator/scripts/curator.sh \
-       complete "$WD" gate
+   $CURATOR complete "$WD" gate
    ```
 6. The downstream `strip-dead-links` and `apply-replica` tasks are
    gated on `task."gate".proceed == true`. If the user set
