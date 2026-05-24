@@ -39,9 +39,24 @@ A keyword IS NOT:
 - A **specific open-source project, tool, or codename**: e.g.
   "Csmith", "YARPGen", "JustHTML", "Claude's C Compiler".
 - A **named organization, paper, dataset, benchmark, or test
-  suite**: e.g. "GCC torture test suite", "MMLU", "HumanEval".
+  suite**: e.g. "GCC torture test suite", "MMLU", "HumanEval",
+  "Needle in a Haystack" (a context-window benchmark).
 - A **person, company, or institution**: those have their own
   extraction kinds (people, authors, etc.).
+
+### Hard disqualifier — benchmarks and test suites
+
+If the source ever describes a candidate term as **"a benchmark"**,
+**"a test"**, **"a test suite"**, **"a probe"**, **"a dataset"**,
+or anything similar — even once, even alongside conceptual usage —
+**drop it**. Benchmarks identify a specific instrument, not a
+transferable concept, and do not belong in keywords. (A separate
+extractor or a citation may capture them when relevant.)
+
+Examples to drop:
+- "There is a benchmark called needle in a haystack…" → drop.
+- "MMLU evaluates…" → drop.
+- "We test on HumanEval" → drop.
 
 **Rule of thumb:** if the term is a brand or product name, it
 identifies a specific instance and does NOT belong here — readers
