@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import loom
-from loom.engine.models import STATUS_FAILED, TERMINAL_STATUSES
+from loom.engine.models import STATUS_FAILED, STATUS_SKIPPED, TERMINAL_STATUSES
 
 from curator.utils import emit, fail
 

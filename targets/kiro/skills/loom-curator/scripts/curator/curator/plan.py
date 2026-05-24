@@ -169,7 +169,7 @@ def _pipeline_tail(parallel: list[str]) -> list:
         agent('synthesis',
               template=str(TEMPLATES / 'extractors' / 'synthesis' / 'extractor.j2'),
               depends_on=['build-replica'],
-              output_schema=_schema_pipeline('build-replica'),
+              output_schema=_schema_extractor('synthesis'),
               vars={**_VARS, 'kind_name': 'synthesis'},
               template_search_paths=_SEARCH_PATHS),
         agent('judge-synthesis',
