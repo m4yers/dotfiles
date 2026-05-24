@@ -34,13 +34,6 @@ slots:
                Can be a transcript.
       audio:   Standalone audio not part of a podcast (interviews,
                recordings, audiobooks). Can be a transcript
-      podcast: Episodic audio program with hosts and guests
-               (interviews, roundtables). Distinct from `audio`,
-               which is one-off / unscheduled.
-      talk:    Spoken presentation before a live audience
-               (conference talk, keynote, lecture). Distinct from
-               `video`, which captures recordings without the
-               live-audience framing.
 
   form:
     description: >-
@@ -175,13 +168,13 @@ rules:
     extractors: [contributions]
 
   # Per-form additions (podcasts / video / talk / article).
-  - match: [podcast, interview,  "*", "*", "*"]
+  - match: [audio,   interview,  "*", "*", "*"]
     extractors: [guests, quotes]
-  - match: [podcast, roundtable, "*", "*", "*"]
+  - match: [audio,   roundtable, "*", "*", "*"]
     extractors: [guests, quotes]
   - match: [video,   lecture,    "*", "*", "*"]
     extractors: [key_points]
-  - match: [talk,    keynote,    "*", "*", "*"]
+  - match: [video,   keynote,    "*", "*", "*"]
     extractors: [speaker, key_points]
   - match: [video,   talk,       "*", "*", "*"]
     extractors: [speaker, key_points]
