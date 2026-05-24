@@ -36,6 +36,8 @@ def cli_status(workdir: str) -> None:
             failed_ids.append(task.id)
         if not task.id.startswith('judge-'):
             continue
+        if task.status == STATUS_SKIPPED:
+            continue
         out = runtime.task_output(task.id)
         v = (out or {}).get('verdict')
         if v in _VERDICTS:

@@ -119,18 +119,14 @@ def _extractors(parallel: list[str], preds: dict[str, str | None]) -> list:
         if preds[kind] is not None:
             kw['when'] = preds[kind]
         out.append(agent(extract_id, **kw))
-        judge_kw = dict(
-            template=_template(kind, judge=True),
-            depends_on=[extract_id],
-            output_schema=_schema_pipeline('judge-verdict'),
-            vars={**_VARS, 'kind_name': kind},
-            template_search_paths=_SEARCH_PATHS,
-        )
-        # Judge inherits the extractor's `when:` so a skipped extractor
-        # also skips its judge (no point judging a task that didn't run).
-        if preds[kind] is not None:
-            judge_kw['when'] = preds[kind]
-        out.append(agent(f'judge-{kind}', **judge_kw))
+        # Judge inherits via cascade: if extract-X is skipped, judge-X is
+        # auto-skipped because its only dep is skipped.
+        out.append(agent(f'judge-{kind}',
+                         template=_template(kind, judge=True),
+                         depends_on=[extract_id],
+                         output_schema=_schema_pipeline('judge-verdict'),
+                         vars={**_VARS, 'kind_name': kind},
+                         template_search_paths=_SEARCH_PATHS))
     return out
 
 
