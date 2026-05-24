@@ -44,7 +44,7 @@ def cli_ingest(url_or_path: str) -> None:
         fail(f'plan validation failed: {e}')
     except Exception as e:
         fail(f'ingest failed: {e}')
-    emit({'workdir': str(runtime.workdir)})
+    print(runtime.workdir)
 
 
 def cli_next(workdir: str) -> None:

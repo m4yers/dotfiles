@@ -37,7 +37,7 @@ rendering, validation, and skip logic.
    ```
 3. Ingest:
    ```bash
-   WD=$($CURATOR ingest "<url-or-path>" | $YQ .workdir)
+   WD=$($CURATOR ingest "<url-or-path>")
    ```
 4. If `ingest` fails: NEEDS_CONTEXT.
 
