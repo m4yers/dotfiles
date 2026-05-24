@@ -1,8 +1,8 @@
 {% extends 'extractors/_meta/judge.j2' %}
 
 {% block source_paths -%}
-Source text:       {{ source.converted_path | default('(missing)', true) }}
-Classifier output: {{ task.output_path | default('(missing)', true) }}
+Source text:       {{ upstream.convert.output.converted_path | default('(missing)', true) }}
+Classifier output: {{ extracted.task_path | default('(missing)', true) }}
 {%- endblock %}
 
 {% block intro -%}

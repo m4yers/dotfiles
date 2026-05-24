@@ -1,8 +1,8 @@
 {% extends 'extractors/_meta/extractor.j2' %}
 
 {% block source_paths -%}
-Source text:        {{ source.converted_path | default('(missing)', true) }}
-Replica root:       {{ run.replica_root }}
+Source text:        {{ upstream.convert.output.converted_path | default('(missing)', true) }}
+Replica root:       {{ vars.replica_root }}
 Quintet:            {{ upstream.classify.output.quintet }}
 Topic:              {{ upstream.classify.output.topic }}
 {% if upstream['extract-summary'] is defined -%}
@@ -11,9 +11,14 @@ Summary:            {{ upstream['extract-summary'].output.summary | default('(no
 Summary:            (no summary)
 {%- endif %}
 
-Wiki template:      {{ templates.wiki_template_path }}
-Include dir:        {{ templates.vault_templates_dir }}
+Wiki template:      {{ vars.wiki_template_path }}
+Include dir:        {{ vars.vault_templates_dir }}
 
+{% set peers = [] %}
+{% for tid, peer in upstream.items() if tid.startswith('extract-') and tid != task.id and peer.status == 'done' %}
+{% set judge_id = 'judge-' + tid[8:] %}
+{% set _ = peers.append({'task_id': tid, 'task_path': peer.task_path, 'verdict_path': upstream[judge_id].task_path if upstream[judge_id] is defined else None}) %}
+{% endfor %}
 Per-peer extractor outputs (read each ``output.yaml`` for items
 in that kind's array):
 {% for peer in peers %}
@@ -28,15 +33,15 @@ which items were REVIEW or REJECT):
 
 Per-kind destination map (drives the synthesis-vs-artifact
 folding rule below):
-{% for kind, dest in destinations.items() %}
-- **{{ kind }}** → mode: `{{ dest.mode }}`{% if dest.folder %}, folder: `{{ dest.folder }}`{% endif %}
+{% for kind, dest in vars.destinations.items() %}
+- **{{ kind }}** → mode: `{{ dest.mode }}`{% if dest.get('folder') %}, folder: `{{ dest.folder }}`{% endif %}
 {%- endfor %}
 {%- endblock %}
 
 {% block instructions %}
 You are the **synthesis** author. Mechanical work (extraction,
 classification, atomic page rendering) is already done. The
-replica directory at `{{ run.replica_root }}` contains every atomic
+replica directory at `{{ vars.replica_root }}` contains every atomic
 page the source contributed. Your job is to add 1–2 synthesis
 pages.
 
@@ -61,7 +66,7 @@ failure mode — prefer one rich page over two thin ones.
    ``{target, verdict, scores, rationale}``. Items with REJECT
    verdicts SHOULD be omitted; REVIEW items can be included
    with caution.
-3. List the replica directory `{{ run.replica_root }}` to see which
+3. List the replica directory `{{ vars.replica_root }}` to see which
    atomic pages already exist as standalone files. Wikilinks
    (``[[Atomic Name]]``) MUST point at filenames that exist
    there OR at ``### Name`` subsections you will create on the
@@ -170,7 +175,7 @@ For each page, write a JSON file at ``/tmp/<slug>.json``:
 {
   "title":          "Topic Title",
   "today":          "<YYYY-MM-DD today>",
-  "sources":        ["{{ source.vault_path | default('<source-vault-path>', true) }}"],
+  "sources":        ["{{ upstream.fetch.output.path | default('<source-vault-path>', true) }}"],
   "rationale":      "Opening paragraph (≥80 chars) defining and motivating the topic in its own terms. Sits before ## Overview. Lead with substance: state what the topic is and why it matters. NEVER narrate the page or reference 'this hub'/'this page'/'this article'/'the source piece'.",
   "overview":       "Multi-paragraph prose (≥200 chars) explaining the topic as if for a reader who landed here from any link. Lead with substance, never with setup ('the premise is…', 'the general lesson…' are forbidden). Use ``[[Atomic Name]]`` wikilinks as supporting citations that bolster specific claims, not as the page's organizing center. Treat the source as a citation target (frontmatter + wikilinks), not the subject of the prose.",
   "ascii_diagram":  "Multi-line illustrative diagram (≥4 lines, ≥80 chars).\nUse box-drawing chars: ┌ ┐ └ ┘ │ ─ ┬ ┴ ├ ┤ ┼ ▼ ▲ ◄ ►",
@@ -229,15 +234,15 @@ directly:
 
 ```bash
 $SKILLS/home/template/scripts/render.sh \
-    --template {{ templates.wiki_template_path }} \
-    --include-dir {{ templates.vault_templates_dir }} \
+    --template {{ vars.wiki_template_path }} \
+    --include-dir {{ vars.vault_templates_dir }} \
     --json-vars /tmp/<slug>.json \
     --allow-unused \
-    > "{{ run.replica_root }}/21 WIKI/<Topic Title>.md"
+    > "{{ vars.replica_root }}/21 WIKI/<Topic Title>.md"
 ```
 
 Example: a page titled ``Constraining LLM Coding Agents`` lands
-at ``{{ run.replica_root }}/21 WIKI/Constraining LLM Coding Agents.md``.
+at ``{{ vars.replica_root }}/21 WIKI/Constraining LLM Coding Agents.md``.
 
 If the renderer prints
 ``ERROR: template variables not provided: <name>`` on stderr,
@@ -252,7 +257,7 @@ After each page renders successfully, record its vault-relative
 path in your output:
 
 ```bash
-curator.sh builders add {{ task.output_path }} \
+{{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
     --set paths.<i>='21 WIKI/<Topic Title>.md'
 ```
 
@@ -262,7 +267,7 @@ If you wrote zero pages (the source genuinely has no topics
 worth a stand-alone wiki entry), leave ``paths`` empty:
 
 ```bash
-curator.sh builders add {{ task.output_path }} --set paths='[]'
+{{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} --set paths='[]'
 ```
 
 ## Inline wikilink discipline
@@ -279,8 +284,8 @@ resolution.
 {% endblock %}
 
 {% block builder_calls %}
-The render protocol above includes the only ``builders`` calls
-needed: one ``builders add`` per page to record the rendered
+The render protocol above includes the only ``loom output`` calls
+needed: one ``loom output add`` per page to record the rendered
 path. The wiki template determines the page shape; you
 exclusively author the structured JSON and let the renderer
 produce the markdown.

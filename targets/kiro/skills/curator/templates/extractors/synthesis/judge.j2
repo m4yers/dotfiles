@@ -1,9 +1,9 @@
 {% extends 'extractors/_meta/judge.j2' %}
 
 {% block source_paths -%}
-Source text:        {{ source.converted_path | default('(missing)', true) }}
-Synthesis output:   {{ task.output_path | default('(missing)', true) }}
-Replica root:       {{ run.replica_root }}
+Source text:        {{ upstream.convert.output.converted_path | default('(missing)', true) }}
+Synthesis output:   {{ extracted.task_path | default('(missing)', true) }}
+Replica root:       {{ vars.replica_root }}
 Quintet:            {{ upstream.classify.output.quintet }}
 Topic:              {{ upstream.classify.output.topic }}
 {% if upstream['extract-summary'] is defined -%}
@@ -12,8 +12,13 @@ Summary:            {{ upstream['extract-summary'].output.summary | default('(no
 Summary:            (no summary)
 {%- endif %}
 
-Wiki template:      {{ templates.wiki_template_path }}
+Wiki template:      {{ vars.wiki_template_path }}
 
+{% set peers = [] %}
+{% for tid, peer in upstream.items() if tid.startswith('extract-') and tid != task.id and peer.status == 'done' %}
+{% set judge_id = 'judge-' + tid[8:] %}
+{% set _ = peers.append({'task_id': tid, 'task_path': peer.task_path, 'verdict_path': upstream[judge_id].task_path if upstream[judge_id] is defined else None}) %}
+{% endfor %}
 Per-peer extractor outputs:
 {% for peer in peers %}
 - **{{ peer.task_id }}**: {{ peer.task_path }}
@@ -25,8 +30,8 @@ Per-peer judge verdicts:
 {%- endfor %}
 
 Per-kind destinations:
-{% for kind, dest in destinations.items() %}
-- **{{ kind }}** → mode: `{{ dest.mode }}`{% if dest.folder %}, folder: `{{ dest.folder }}`{% endif %}
+{% for kind, dest in vars.destinations.items() %}
+- **{{ kind }}** → mode: `{{ dest.mode }}`{% if dest.get('folder') %}, folder: `{{ dest.folder }}`{% endif %}
 {%- endfor %}
 {%- endblock %}
 
@@ -50,22 +55,28 @@ criteria are ``target=null``.
 2. **Coverage of synthesis-mode kinds.** Read each peer
    extractor's output. For every kind whose
    ``destinations.<kind>.mode == "synthesis"`` and that has
-   items, every item's name MUST appear at least once as a
+   items, every item's name SHOULD appear at least once as a
    ``[[Name]]`` wikilink on some synthesis page — either as
    a ``- [[Name]] - …`` bullet under that page's
    ``## Key Concepts`` section, OR as an inline
    ``[[Name]]`` wikilink in the page's opening rationale,
    ``## Overview`` prose, ``## Worked Examples`` body, or
-   ``## Discussion`` text. An item is *covered* when it is
-   linked anywhere on a hub page; the location does not
-   matter and items linked in prose do NOT also need to
-   appear in Key Concepts. (Synthesis-mode wikilinks resolve
+   ``## Discussion`` text. (Synthesis-mode wikilinks resolve
    to nothing on disk; the post-gate strip-dead-links task
-   rewrites them to plain text. The judge's job is only to
-   confirm the item is surfaced somewhere on a hub.)
-   Uncovered items → REJECT with
-   ``category=orphan_synthesis_item`` and name the
-   orphans.
+   rewrites them to plain text.)
+
+   Score (target=null):
+   - **All synthesis-mode items covered, OR ≤25% uncovered AND
+     ≤3 absolute orphans** → PASS.
+   - More than 25% OR more than 3 orphans → REVIEW with
+     ``category=orphan_synthesis_item`` and name the orphans.
+   - Fewer than 50% covered → REJECT with
+     ``category=undercoverage``.
+
+   Coverage is a quality concern, not a blocker for apply. Hub
+   pages with strong prose pass even with a handful of items
+   that the prose surfaces by description rather than by
+   canonical wikilink.
 3. **Frontmatter required.** Each synthesis page MUST have YAML
    frontmatter declaring at minimum ``type: synthesis``,
    ``title``, ``sources`` (non-empty list pointing at a

@@ -16,6 +16,15 @@ who they are, drawing only on what the source says about them. If
 the source says nothing beyond the name, the definition can be
 empty-string or a single phrase from the byline.
 
+**Hard rule on names: do NOT fill in names from training data.**
+A person qualifies as Variant B (source-attested) ONLY if their full
+name appears verbatim in the source body or container metadata. If
+the source refers to someone by role only ("the author of FooLib",
+"the researcher who built X", "her co-author") without naming them,
+omit that person entirely. Do not infer or recall the name from
+prior knowledge — even if you know who is meant. The judge will
+REJECT entries whose names don't appear verbatim in the source.
+
 You have NO access to the vault. Do not concern yourself with
 duplicates or existing pages — a separate stage will reconcile your
 output against the vault later.
@@ -25,7 +34,7 @@ output against the vault later.
 
 #### Variant A — author (from container metadata)
 
-    curator.sh builders add {{ task.output_path }} \
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
         --set people.<i>.name='<full name>' \
         --set people.<i>.role=author \
         --set people.<i>.definition='<1-3 sentences>' \
@@ -36,7 +45,7 @@ metadata and never appears in the source body.
 
 #### Variant B — source-attested (named in source body)
 
-    curator.sh builders add {{ task.output_path }} \
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
         --set people.<i>.name='<full name>' \
         --set people.<i>.role=<guest|speaker|researcher|engineer|scholar|contributor|editor|host> \
         --set people.<i>.definition='<1-3 sentences>' \

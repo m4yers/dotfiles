@@ -1,23 +1,16 @@
 {#
   Base template for every extractor under extractors/<kind>/extractor.j2.
 
-  All variables come from the curator render-context schema
-  (templates/extractors/_meta/context-schema.yaml). Templates
-  read schema bags directly; no flat-var aliasing.
-
-  Bags used here:
-    task                 — current task identity + paths
-    quintet              — classify config (path)
-    source               — fetched + converted artifacts (only present
-                            once convert is done)
-    upstream.classify    — only present for tasks with classify in
-                            their transitive depends_on (so the
-                            classify task itself sees no
-                            upstream.classify)
+  All variables come from loom's default context bags:
+    task      — {id, kind, workdir, output_path, depends_on}
+    run       — {workdir}
+    upstream  — {<dep_id>: {output, status, task_path}, ...}
+    global    — {path}
+    vars      — per-task vars injected at plan time
 
   Required overrides in child templates:
     {% block instructions %}  — kind-specific extraction instructions
-    {% block builder_calls %} — `curator.sh builders add ...` calls;
+    {% block builder_calls %} — `loom output add ...` calls;
                                 content goes UNDER the shared
                                 "### 2. Set fields per the schema"
                                 header that the base provides.
@@ -32,12 +25,12 @@
 #}
 {% include 'security-frame.md.j2' %}
 
-You are the **{{ task.template }}** extractor for curator.
+You are the **{{ vars.kind_name }}** extractor for curator.
 
 {% block source_paths -%}
-Source text:        {{ source.converted_path | default('(missing)', true) }}
-Quintet vocabulary: {{ quintet.path }}
-Container metadata: {{ source.container_metadata | default('(none)', true) }}
+Source text:        {{ upstream.convert.output.converted_path | default('(missing)', true) }}
+Quintet vocabulary: {{ vars.quintet_path }}
+Container metadata: {{ upstream.convert.output.metadata | default('(none)', true) }}
 {% if upstream.classify is defined -%}
 Classified quintet: {{ upstream.classify.output.quintet }}
 Classified topic:   {{ upstream.classify.output.topic }}
@@ -53,7 +46,7 @@ Classified topic:   (not yet classified)
 
 ## Writing Output
 
-Write the extractor output by invoking ``curator.sh builders`` via
+Write the extractor output by invoking ``loom output`` via
 execute_bash. DO NOT use ``fs_write`` directly.
 
 Output target:
@@ -62,7 +55,7 @@ Output target:
 
 ### 1. Initialize
 
-    curator.sh builders init {{ task.output_path }} --schema {{ task.template }}
+    {{ vars.loom_sh }} output init {{ run.workdir }} --task {{ task.id }}
 
 ### 2. Set fields per the schema
 

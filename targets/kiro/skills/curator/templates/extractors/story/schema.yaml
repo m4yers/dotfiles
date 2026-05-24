@@ -1,7 +1,0 @@
-type: object
-required:
-- story
-properties:
-  story:
-    type: string
-    minLength: 50

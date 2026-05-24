@@ -1,18 +1,15 @@
 {#
   Base template for every judge under extractors/<kind>/judge.j2.
 
-  All variables come from the curator render-context schema
-  (templates/extractors/_meta/context-schema.yaml). The
-  judge sees the same context as the extractor — including
-  `task.output_path` (the extractor's output to verify) and
-  `task.judge_output_path` (where the judge writes its verdict).
+  All variables come from loom's default context bags:
+    task      — {id, kind, workdir, output_path, depends_on}
+    run       — {workdir}
+    upstream  — {<dep_id>: {output, status, task_path}, ...}
+    global    — {path}
+    vars      — per-task vars injected at plan time
 
-  Bags used here:
-    task                        — current task identity + paths
-    quintet                     — classify config (path)
-    source                      — fetched + converted artifacts
-                                   (only present once convert is done)
-    upstream.classify           — present iff classify is in deps
+  The judge reads the extractor's output via upstream. The extractor
+  is always the first (and usually only) entry in task.depends_on.
 
   Required overrides in child templates:
     {% block criteria %}      — numbered rubric criteria with bold headers
@@ -28,15 +25,17 @@
   All children get security-frame.md.j2 prepended automatically and
   the rubric-driven OUTPUT block appended.
 #}
+{% set extracted_id = task.depends_on[0] %}
+{% set extracted = upstream[extracted_id] %}
 {% include 'security-frame.md.j2' %}
 
-You are the **{{ task.template }} judge** for curator.
+You are the **{{ vars.kind_name }} judge** for curator.
 
 {% block source_paths -%}
-Source text:        {{ source.converted_path | default('(missing)', true) }}
-Extractor output:   {{ task.output_path | default('(missing)', true) }}
-Quintet vocabulary: {{ quintet.path }}
-Container metadata: {{ source.container_metadata | default('(none)', true) }}
+Source text:        {{ upstream.convert.output.converted_path | default('(missing)', true) }}
+Extractor output:   {{ extracted.task_path | default('(missing)', true) }}
+Quintet vocabulary: {{ vars.quintet_path }}
+Container metadata: {{ upstream.convert.output.metadata | default('(none)', true) }}
 {% if upstream.classify is defined -%}
 Classified quintet: {{ upstream.classify.output.quintet }}
 Classified topic:   {{ upstream.classify.output.topic }}
@@ -47,7 +46,7 @@ Classified topic:   (not yet classified)
 {%- endblock %}
 
 {% block intro -%}
-Read the source. Read the extractor output. Verify each {{ task.template }}
+Read the source. Read the extractor output. Verify each {{ vars.kind_name }}
 item against the rubric below.
 {% endblock %}
 
@@ -133,17 +132,17 @@ drives overall REJECT; remaining people ACCEPT."
 
 The verdict output target is:
 
-    {{ task.judge_output_path }}
+    {{ task.output_path }}
 
 The agent output you are judging lives at:
 
-    {{ task.output_path | default('(missing)', true) }}
+    {{ extracted.task_path | default('(missing)', true) }}
 
 DO NOT use ``fs_write`` to write the verdict file directly.
 
 #### 1. Initialize
 
-    curator.sh builders init {{ task.judge_output_path }} --schema judge
+    {{ vars.loom_sh }} output init {{ run.workdir }} --task {{ task.id }}
 
 #### 2. Set ALL required fields in a single ``add`` call
 
@@ -152,7 +151,7 @@ and `item_verdicts` (≥1 entry). Validation runs after each ``add``,
 so a partial add will be rejected. Bundle every rubric definition,
 the top-level fields, AND your item_verdicts into one ``add``:
 
-    curator.sh builders add {{ task.judge_output_path }} \
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
         --set _rubric.<dim_a>='<description>' \
         --set _rubric.<dim_b>='<description>' \
         --set _rubric.<dim_c>='<description>' \

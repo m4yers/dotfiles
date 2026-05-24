@@ -6,11 +6,16 @@
    out per media in the prose below. #}
 
 {% block source_paths -%}
-Source text:        {{ source.converted_path | default('(missing)', true) }}
-Container metadata: {{ source.container_metadata | default('(none)', true) }}
+Source text:        {{ upstream.convert.output.converted_path | default('(missing)', true) }}
+Container metadata: {{ upstream.convert.output.metadata | default('(none)', true) }}
 Quintet:            {{ upstream.classify.output.quintet }}
 Topic:              {{ upstream.classify.output.topic }}
 
+{% set peers = [] %}
+{% for tid, peer in upstream.items() if tid.startswith('extract-') and tid != task.id and peer.status == 'done' %}
+{% set judge_id = 'judge-' + tid[8:] %}
+{% set _ = peers.append({'task_id': tid, 'task_path': peer.task_path, 'verdict_path': upstream[judge_id].task_path if upstream[judge_id] is defined else None}) %}
+{% endfor %}
 You run AFTER {{ peers | length }} other extractors. Each peer's
 output and judge verdict are listed below — read the output and
 verdict for each peer before drafting.
@@ -73,7 +78,7 @@ provides them. Never invent statistics.
 
 {% block builder_calls %}
 
-    curator.sh builders add {{ task.output_path }} \
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
         --set summary='<200–300 words for article/paper, 350–500 for other media; multi-paragraph text>'
 
 The single field `summary` is required.

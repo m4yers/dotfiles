@@ -13,4 +13,13 @@
 4. **Reconciliation.** When the extractor sets `match_existing`, the
    referenced vault page must really cover the item; when it sets
    `match_existing: null`, no obvious vault page exists for it.
+5. **Empty-output validity.** An empty ``citations: []`` is the
+   correct output when the source mentions works only generically
+   (no titles, authors, years, or URLs in source prose). Score
+   PASS in that case — the extractor preferred dropping over
+   emitting near-empty stubs, which is the desired behavior.
+   Only score REVIEW or FAIL on completeness if the source
+   explicitly supplies bibliographic metadata that the extractor
+   ignored. Do NOT invoke training-data priors to claim a work
+   "should" have been captured.
 {% endblock %}

@@ -17,7 +17,7 @@ from loom import LoomPlan, tool, agent, human, make_plan
 from curator import discovery, predicates
 
 
-SKILL_ROOT = Path(__file__).resolve().parents[3]  # loom-curator/
+SKILL_ROOT = Path(__file__).resolve().parents[3]  # curator/
 TEMPLATES  = SKILL_ROOT / 'templates'
 SCHEMAS    = SKILL_ROOT / 'schemas'
 SCRIPTS    = SKILL_ROOT / 'scripts'
