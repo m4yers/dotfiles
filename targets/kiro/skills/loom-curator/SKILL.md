@@ -94,35 +94,30 @@ array with no `depends_on`.
 `gate` is a human kind task. Loom yields it without a prompt; the
 orchestrator drives review:
 
-```bash
-$TILING activity set "loom-curator($TARGET): Human gate"
-eval "$($TILING layout build)"
+1. Set tiling activity and ensure layout:
+   ```bash
+   $TILING activity set "loom-curator($TARGET): Human gate"
+   eval "$($TILING layout build)"
+   ```
+2. Show review targets in the editor. `$CURATOR gate-list "$WD"` emits
+   tab-separated records (one per file). For each line:
+   - `report\t<path>` → `$EDITOR show file <path>`
+   - `manifest-modify\t<vault>\t<replica>` → `$EDITOR show diff <vault> <replica>`
+   - `synthesis-modify\t<vault>\t<replica>` → `$EDITOR show diff <vault> <replica>`
+   - `*-create` → skip (surfaced in the report)
 
-$EDITOR reset
-$CURATOR gate-list "$WD" \
-    | while IFS=$'\t' read -r kind a b; do
-        case "$kind" in
-            report)   $EDITOR show file "$a" ;;
-            *-modify) $EDITOR show diff "$a" "$b" ;;
-            # *-create entries surface in the report; not opened individually
-        esac
-    done
-```
+3. STOP and wait for the user. They may edit or `rm` files in
+   `<workdir>/global/vault-replica/`; replica state at apply time is the
+   authoritative decision.
 
-STOP and wait for the user. They may edit or `rm` files in
-`<workdir>/global/vault-replica/`; replica state at apply time is the
-authoritative decision.
+4. When the user signals proceed/abort:
+   ```bash
+   echo "proceed: true" > "$WD/tasks/56-gate/output.yaml"  # or false
+   $CURATOR complete "$WD" gate
+   ```
 
-When the user signals proceed/abort, write the gate's output and
-complete:
-
-```bash
-echo "proceed: true"  > "$WD/tasks/56-gate/output.yaml"  # or false
-$CURATOR complete "$WD" gate
-```
-
-`strip-dead-links` and `apply-replica` are gated on
-`proceed == true` via loom's `when:` predicates — `false` skips both.
+`strip-dead-links` and `apply-replica` are gated on `proceed == true`
+via loom's `when:` predicates — `false` skips both.
 
 ## Rules
 
