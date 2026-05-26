@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 skill-lint.py — Automated convention checker for Kiro skills.
 
@@ -1430,36 +1429,3 @@ def lint_skill(skill_dir: Path) -> List[Finding]:
     # Sort by filename then line number for readable output.
     findings.sort(key=lambda f: (f[1], f[2]))
     return findings
-
-
-def main():
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <skill-dir>", file=sys.stderr)
-        sys.exit(2)
-
-    skill_dir = Path(sys.argv[1]).resolve()
-    if not skill_dir.is_dir():
-        print(f"ERROR: '{skill_dir}' is not a directory", file=sys.stderr)
-        sys.exit(2)
-
-    findings = lint_skill(skill_dir)
-
-    # Print findings grouped by severity.
-    counts = {ERROR: 0, WARN: 0, SKIP: 0, INFO: 0}
-    for severity, filename, lineno, message in findings:
-        counts[severity] = counts.get(severity, 0) + 1
-        loc = f"{filename}:{lineno}" if lineno > 0 else filename
-        print(f"  {severity:5s}  {loc:30s}  {message}")
-
-    # Summary.
-    print()
-    print(
-        f"Summary: {counts[ERROR]} errors, {counts[WARN]} warnings, "
-        f"{counts[SKIP]} skipped (manual), {counts[INFO]} info"
-    )
-
-    sys.exit(1 if counts[ERROR] > 0 else 0)
-
-
-if __name__ == "__main__":
-    main()

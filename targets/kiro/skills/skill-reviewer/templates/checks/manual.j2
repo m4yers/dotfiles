@@ -1,0 +1,140 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/` — the target skill being reviewed.
+- `~/.kiro/skills/**/SKILL.md` — every other skill on disk, for
+  cross-skill comparison. Walk the tree following symlinks.
+{% endblock %}
+
+{% block rules %}
+This is the cross-skill review. The rules below cannot be
+delegated to single-file checks because they require comparing
+the target skill against every other skill in the tree.
+
+For each rule, decide whether the target skill violates it. Use
+the index of skills available via:
+
+    ls ~/.kiro/skills/*/
+
+and fs_read each skill's SKILL.md frontmatter for trigger /
+description data.
+
+### 1. Trigger phrase uniqueness
+
+The skill's description triggers must not overlap with any other
+skill. Two skills sharing a trigger phrase will fight for
+routing and confuse the dispatcher. Flag any phrase that appears
+verbatim in another skill's description.
+
+### 2. Functionality uniqueness
+
+If another skill performs the same operation, output, or tool
+call, only one should exist. Flag overlap and propose
+consolidation or a clear separation rule.
+
+### 3. Negative trigger phrases
+
+If the skill's scope overlaps with sibling skills, the
+description should include `Do NOT use for X — use Y instead`
+clauses to prevent misrouting. Missing negative triggers when
+overlap exists is a finding.
+
+### 4. Reference file focus
+
+Each `references/*.md` file should cover a single topic. Flag
+files mixing two unrelated topic groups.
+
+### 5. Repeatable actions
+
+Repeatable deterministic actions MUST be scripts, not prose
+instructions the agent re-interprets each time. If the action
+does not require LLM reasoning, it MUST be a script.
+
+### 6. Missing oracles
+
+Steps with verifiable outcomes have automated oracle sub-steps.
+If the outcome can be checked without LLM reasoning (JSON valid,
+tests pass, lint clean), it MUST have an oracle — not LLM
+eyeballing. Exclude file/dir creation by scripts: the script's
+non-zero exit already enforces it.
+
+### 7. Positive framing
+
+Constraints prefer positive wording over negative phrasing where
+possible. Flag `MUST NOT do X` that could be `MUST do Y`
+instead.
+
+### 8. Magic constants in scripts
+
+Hardcoded values have justifying comments explaining why that
+value was chosen. Flag uncommented numeric thresholds, timeouts,
+or retry counts.
+
+### 9. Gameable success criteria
+
+Success criteria that reference measurable outcomes (test count,
+coverage, lint clean) have anti-gaming guards preventing the LLM
+from trivially satisfying them (e.g. deleting tests, writing
+no-op tests, hard-coding expected values).
+
+### 10. Reinvention in scripts
+
+Scripts MUST NOT reimplement functionality available in Python
+stdlib modules (pathlib, shutil, textwrap, json, argparse) or
+standard Linux programs (find, grep, sort, jq, sed). Flag and
+suggest the existing tool.
+
+### 11. Pipeline handoff schemas
+
+When one script's output file is consumed by another script
+(data pipeline), the producer's schema MUST match the consumer's
+expected input. Mismatches force the agent to write ad-hoc glue
+scripts at runtime. Check: for each workflow step that invokes
+script A producing a file and a later step invokes script B
+reading that file, verify B's argparse/input schema accepts A's
+output shape with no remap, rename, or projection. Flag if the
+SKILL.md requires the agent to transform between steps.
+
+### 12. Env var propagation
+
+Scripts that set env vars in the caller's shell MUST print shell
+assignments to stdout and be invoked via `eval "$(script)"`,
+because subprocesses cannot mutate the parent environment. Check
+each script invoked via `eval` in SKILL.md has a docstring or
+`--help` enumerating every VAR it prints. Flag scripts that use
+`export VAR=...` internally expecting the caller to inherit it,
+or scripts that print JSON while being consumed via `eval`.
+
+### 13. Script re-narration
+
+Sub-step prose MUST NOT restate what a script does internally
+(algorithm, edge cases, return values). A one-line purpose is
+fine; detailed re-explanation is not. The agent reads the script
+directly when it needs more than the result. Flag prose
+paragraphs that duplicate information available from the
+script's `--help` / docstring or describe internal behaviour the
+caller does not act on.
+
+### 14. Prose script invocations
+
+Script invocations MUST appear as actual commands in fenced bash
+blocks, not as prose like `run reporter.sh strikeout and reload
+diffs`. Prose invocations hide arguments, force the agent to
+synthesise the command each run, and drift from the real CLI.
+Flag any sentence referencing a script by name (`tool.py ...`,
+`foo.sh ...`) outside a code block. Exception: sibling skills
+named by skill name (e.g. `build with <build-skill>`) where the
+command lives in that skill's SKILL.md.
+
+### 15. Template rendering
+
+Any text produced from a parameterised template (sub-agent
+prompts, config files, generated markdown, report fragments)
+MUST be rendered via the `template` skill's `render.sh` or via
+loom's built-in Jinja support. Flag skills that vendor jinja2,
+import jinja2 directly from a per-skill script, use
+`str.format`/`%s`/f-string on read template files, or pipe
+through `sed`/`envsubst` for substitution. Templates belong
+under `<skill>/templates/<name>.j2` and callers invoke
+`render.sh` with `--var k=v` (or `--json-vars`).
+{% endblock %}

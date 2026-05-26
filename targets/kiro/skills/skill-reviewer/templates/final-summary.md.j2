@@ -1,0 +1,12 @@
+{# Reserved for future use — finalize currently emits its summary
+   directly as YAML via cli_finalize. Kept as a placeholder so
+   the plan can route a markdown render through it later. #}
+# Skill review complete
+
+Report: {{ upstream.assemble.output.report_path }}
+
+| Severity | Count |
+|----------|-------|
+| Errors   | {{ upstream.assemble.output.errors }} |
+| Warnings | {{ upstream.assemble.output.warnings }} |
+| Info     | {{ upstream.assemble.output.infos }} |

@@ -1,0 +1,29 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/SKILL.md` — `## Workflow`, every
+  `### Step N` section, and the `## Completion` table.
+{% endblock %}
+
+{% block rules %}
+Read the workflow conventions at `{{ vars.reference_path }}`.
+
+This skill is `type: workflow`. Verify each step:
+
+- Begins by setting tiling activity with a target in parens
+  (e.g. `"skill-name(<target>): <step name>"`).
+- Has at most 5 numbered sub-steps. If more, the step is doing
+  too much and should split.
+- Has an oracle for any verifiable outcome (script exit code,
+  schema validation, file presence) — not LLM eyeballing.
+- Ends with a clear "On completion → next step" cue.
+
+Cross-step:
+
+- Activity labels share the skill name + parameterised target.
+- The Completion table covers all four standard statuses.
+- No step combines repeatable mechanical work with LLM reasoning
+  — the mechanical work belongs in a script.
+
+Findings should target step structure, not formatting.
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/SKILL.md` (full prose)
+- All `{{ vars.skill_dir }}/references/*.md` files
+{% endblock %}
+
+{% block rules %}
+Read the model-aware authoring guidance at
+`{{ vars.reference_path }}`.
+
+Audit the skill from the perspective of a future LLM that has
+not seen this conversation. For each rule in the reference, ask:
+
+- Would a future LLM misread the prose and produce wrong
+  behaviour? (e.g. ambiguous pronouns, missing context cues,
+  overloaded terminology)
+- Does the framing rely on training-data familiarity that may
+  drift over time?
+- Are negative constraints accompanied by the reasoning the
+  model needs to internalise them?
+- Are imperative sentences phrased so a lesser model still
+  treats them as imperatives?
+
+Findings here are about **interpretation risk**, not surface
+formatting (formatting is conventions.j2's domain).
+{% endblock %}

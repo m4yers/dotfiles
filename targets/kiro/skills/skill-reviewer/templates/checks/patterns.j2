@@ -1,0 +1,24 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/SKILL.md` (workflow steps + scripts)
+- `{{ vars.skill_dir }}/scripts/` directory listing and contents
+{% endblock %}
+
+{% block rules %}
+Read the patterns catalog at `{{ vars.reference_path }}`.
+
+For each pattern in the catalog:
+
+1. Determine whether this skill uses the pattern.
+2. If it does, verify the implementation matches the catalog
+   entry (parameters, structure, completion semantics).
+3. If a similar-looking pattern is used but deviates, flag the
+   deviation and explain why the catalog version would be
+   better — unless the deviation is clearly justified.
+
+Also flag opportunities where adopting a catalog pattern would
+simplify the skill (e.g. ad-hoc retry loop where a documented
+pattern exists). Findings are about pattern fit, not surface
+formatting.
+{% endblock %}

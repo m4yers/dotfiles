@@ -1,0 +1,30 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/SKILL.md` — verify it does NOT contain
+  procedure / API / invocation sections.
+- All `{{ vars.skill_dir }}/references/*.md` files (if any).
+{% endblock %}
+
+{% block rules %}
+Read the reference conventions at `{{ vars.reference_path }}`.
+
+This skill is `type: reference`. References are passive rule
+sets — they should not contain workflow steps, API tables, or
+commands.
+
+Verify:
+
+- Each `references/*.md` file covers exactly one topic. If a
+  file mixes two unrelated topic groups, flag it for splitting.
+- Files over 100 lines have a table of contents within the
+  first 30 lines.
+- Files over 300 lines warrant splitting (warning).
+- Every `references/*.md` is reachable from SKILL.md via the
+  markdown link graph (chains allowed).
+- No `## Steps`, `## API`, `## Commands`, `## Invocation`, or
+  `## Workflow` sections appear in SKILL.md.
+
+Findings should target structure and reachability, not
+formatting.
+{% endblock %}

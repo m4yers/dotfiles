@@ -188,7 +188,7 @@ def cmd_build(args):
         │ 50%       │ 50%       │
         └───────────┴───────────┘
 
-    Output: KIRO=%id EDITOR=%id for eval.
+    Output: KIRO=%id EDITOR_PANE=%id for eval.
     """
     target = current_pane_id()
     s = server()
@@ -201,7 +201,7 @@ def cmd_build(args):
         other = [p for p in panes if p.pane_id != target][0]
         if int(other.pane_left) < kiro_left:
             print(f"KIRO={target}")
-            print(f"EDITOR={other.pane_id}")
+            print(f"EDITOR_PANE={other.pane_id}")
             return
 
     # Kill stale panes before building
@@ -220,7 +220,7 @@ def cmd_build(args):
         print(r1.stderr.strip(), file=sys.stderr)
         sys.exit(1)
     print(f"KIRO={target}")
-    print(f"EDITOR={r1.stdout.strip()}")
+    print(f"EDITOR_PANE={r1.stdout.strip()}")
 
 
 def cmd_check(args):
@@ -229,7 +229,7 @@ def cmd_check(args):
     Verifies 2 panes exist and identifies EDITOR to the
     left of KIRO.
 
-    Output: KIRO=%id EDITOR=%id for eval,
+    Output: KIRO=%id EDITOR_PANE=%id for eval,
     or error message and exit 1.
     """
     target = current_pane_id()
@@ -245,7 +245,7 @@ def cmd_check(args):
               file=sys.stderr)
         sys.exit(1)
     print(f"KIRO={target}")
-    print(f"EDITOR={other.pane_id}")
+    print(f"EDITOR_PANE={other.pane_id}")
 
 
 def cmd_reset(args):
@@ -276,13 +276,13 @@ def main():
     bu = layout_sub.add_parser(
         "build", help="Build standard 2-pane layout",
         description="Build the standard 2-pane layout (EDITOR | KIRO).",
-        epilog="Outputs (for eval): KIRO=%id  EDITOR=%id")
+        epilog="Outputs (for eval): KIRO=%id  EDITOR_PANE=%id")
 
     ch = layout_sub.add_parser(
         "check", help="Check standard layout exists",
         description="Verify the standard 2-pane layout (EDITOR | KIRO) is "
                     "intact.",
-        epilog="Outputs (for eval): KIRO=%id  EDITOR=%id. "
+        epilog="Outputs (for eval): KIRO=%id  EDITOR_PANE=%id. "
                "Exits 1 if layout is wrong.")
 
     layout_sub.add_parser(

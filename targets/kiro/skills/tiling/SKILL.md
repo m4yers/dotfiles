@@ -27,8 +27,8 @@ The standard layout defines two named panes:
 
 | Command | Args   | Output                                |
 |---------|--------|---------------------------------------|
-| `build` | (none) | `KIRO=%id` `EDITOR=%id`               |
-| `check` | (none) | `KIRO=%id` `EDITOR=%id` or exit 1     |
+| `build` | (none) | `KIRO=%id` `EDITOR_PANE=%id`          |
+| `check` | (none) | `KIRO=%id` `EDITOR_PANE=%id` or exit 1|
 | `reset` | (none) | `KIRO=%id` (kills all other panes)    |
 
 ### pane
@@ -56,7 +56,7 @@ Create the standard 2-pane layout.
 
 ```bash
 eval "$(~/.kiro/skills/home/tiling/scripts/run-ttm.sh layout build)"
-# → KIRO=%42  EDITOR=%44
+# → KIRO=%42  EDITOR_PANE=%44
 ```
 
 ```
@@ -72,7 +72,7 @@ Verify the standard 2-pane layout exists.
 
 ```bash
 eval "$(~/.kiro/skills/home/tiling/scripts/run-ttm.sh layout check)"
-# → KIRO=%42  EDITOR=%44
+# → KIRO=%42  EDITOR_PANE=%44
 ```
 
 Exits 0 with pane IDs if intact. Exits 1 with error
@@ -108,8 +108,8 @@ Prints the new pane's ID to stdout.
 Send keystrokes to a pane. Appends Enter by default.
 
 ```bash
-~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane write -t $EDITOR 'ls -la'
-~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane write -t $EDITOR -n 'partial input'
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane write -t $EDITOR_PANE 'ls -la'
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane write -t $EDITOR_PANE -n 'partial input'
 ```
 
 - `-t PANE` — target pane (required)
@@ -121,8 +121,8 @@ Send keystrokes to a pane. Appends Enter by default.
 Read the visible content of a pane.
 
 ```bash
-~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane read -t $EDITOR
-~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane read -t $EDITOR -n 30
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane read -t $EDITOR_PANE
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane read -t $EDITOR_PANE -n 30
 ```
 
 - `-t PANE` — target pane (required)
@@ -153,7 +153,7 @@ Destroy a pane.
 Resize a pane by pushing its edge in a direction.
 
 ```bash
-~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane resize -t $EDITOR -d left -s 10
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane resize -t $EDITOR_PANE -d left -s 10
 ```
 
 - `-t PANE` — pane to resize (required)

@@ -1,0 +1,12 @@
+type: object
+required: [skill_dir, name, category, type]
+properties:
+  skill_dir:
+    type: string
+  name:
+    type: string
+  category:
+    type: string
+  type:
+    type: string
+    enum: [interface, tool, workflow, reference]

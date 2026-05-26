@@ -1,0 +1,23 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/SKILL.md` — `## API`, `## Commands`,
+  and any invocation tables.
+{% endblock %}
+
+{% block rules %}
+Read the interface conventions at `{{ vars.reference_path }}`.
+
+This skill is `type: interface`. Verify:
+
+- Every command in the API table has a matching `## Commands`
+  detail section with arguments and example.
+- Argument shapes are consistent across commands (same flag
+  names mean the same thing).
+- The Invocation block shows how callers wire the skill into
+  their own workflows.
+- No procedural steps appear — interface skills declare
+  capabilities, they do not run multi-step workflows.
+
+Findings should target API contract gaps, not formatting.
+{% endblock %}

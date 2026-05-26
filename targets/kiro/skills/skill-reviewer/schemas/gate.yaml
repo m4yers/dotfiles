@@ -1,0 +1,17 @@
+type: object
+required: [decisions]
+properties:
+  decisions:
+    type: array
+    items:
+      type: object
+      required: [finding_id, action]
+      properties:
+        finding_id:
+          type: integer
+          minimum: 1
+        action:
+          type: string
+          enum: [accept, decline]
+        reason:
+          type: string
