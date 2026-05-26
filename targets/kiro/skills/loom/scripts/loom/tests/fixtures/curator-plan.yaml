@@ -1,0 +1,3651 @@
+tasks:
+- id: fetch
+  kind: tool
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/fetch.yaml
+  cmd:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator.sh
+  - source
+  - fetch
+  - https://www.youtube.com/watch?v=k1njvbBmfsw
+  status: done
+- id: convert
+  kind: tool
+  depends_on:
+  - fetch
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/convert.yaml
+  cmd:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator.sh
+  - source
+  - convert
+  - ${task:fetch:path}
+  - --task-workdir
+  - ${task_workdir}
+  status: done
+- id: security_scan
+  kind: tool
+  depends_on:
+  - convert
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/security_scan.yaml
+  cmd:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/scripts/security-scan.sh
+  - ${task:convert:converted_path}
+  status: done
+- id: classify
+  kind: agent
+  depends_on:
+  - convert
+  - security_scan
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/classify.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/classify/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: classify
+  status: done
+- id: judge-classify
+  kind: agent
+  depends_on:
+  - classify
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/classify/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: classify
+  status: done
+- id: extract-abstract
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: task."classify".quintet.media == 'paper'
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/abstract.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/abstract/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: abstract
+  status: skipped
+- id: judge-abstract
+  kind: agent
+  depends_on:
+  - extract-abstract
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/abstract/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: abstract
+  status: skipped
+- id: extract-authors
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: task."classify".quintet.media == 'book' || task."classify".quintet.media ==
+    'paper'
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/authors.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/authors/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: authors
+  status: skipped
+- id: judge-authors
+  kind: agent
+  depends_on:
+  - extract-authors
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/authors/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: authors
+  status: skipped
+- id: extract-chapters
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: (task."classify".quintet.media == 'book' && task."classify".quintet.form ==
+    'textbook')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/chapters.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/chapters/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: chapters
+  status: skipped
+- id: judge-chapters
+  kind: agent
+  depends_on:
+  - extract-chapters
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/chapters/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: chapters
+  status: skipped
+- id: extract-characters
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: task."classify".quintet.register == 'fiction'
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/characters.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/characters/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: characters
+  status: skipped
+- id: judge-characters
+  kind: agent
+  depends_on:
+  - extract-characters
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/characters/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: characters
+  status: skipped
+- id: extract-citations
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: task."classify".quintet.media == 'paper' || task."classify".quintet.audience
+    == 'academic'
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/citations.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/citations/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: citations
+  status: done
+- id: judge-citations
+  kind: agent
+  depends_on:
+  - extract-citations
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/citations/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: citations
+  status: done
+- id: extract-code_examples
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: (task."classify".quintet.media == 'article' && task."classify".quintet.form
+    == 'tutorial' && task."classify".quintet.discipline == 'cs')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/code_examples.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/code_examples/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: code_examples
+  status: skipped
+- id: judge-code_examples
+  kind: agent
+  depends_on:
+  - extract-code_examples
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/code_examples/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: code_examples
+  status: skipped
+- id: extract-contributions
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: (task."classify".quintet.media == 'book' && task."classify".quintet.form ==
+    'monograph') || (task."classify".quintet.media == 'paper' && task."classify".quintet.form
+    == 'research') || (task."classify".quintet.media == 'paper' && task."classify".quintet.form
+    == 'review')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/contributions.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/contributions/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: contributions
+  status: skipped
+- id: judge-contributions
+  kind: agent
+  depends_on:
+  - extract-contributions
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/contributions/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: contributions
+  status: skipped
+- id: extract-exercises
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: (task."classify".quintet.media == 'book' && task."classify".quintet.form ==
+    'textbook')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/exercises.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/exercises/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: exercises
+  status: skipped
+- id: judge-exercises
+  kind: agent
+  depends_on:
+  - extract-exercises
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/exercises/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: exercises
+  status: skipped
+- id: extract-guests
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: (task."classify".quintet.media == 'audio' && task."classify".quintet.form
+    == 'interview') || (task."classify".quintet.media == 'audio' && task."classify".quintet.form
+    == 'roundtable')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/guests.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/guests/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: guests
+  status: skipped
+- id: judge-guests
+  kind: agent
+  depends_on:
+  - extract-guests
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/guests/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: guests
+  status: skipped
+- id: extract-key_points
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: (task."classify".quintet.media == 'video' && task."classify".quintet.form
+    == 'lecture') || (task."classify".quintet.media == 'video' && task."classify".quintet.form
+    == 'keynote') || (task."classify".quintet.media == 'video' && task."classify".quintet.form
+    == 'talk')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/key_points.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/key_points/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: key_points
+  status: done
+- id: judge-key_points
+  kind: agent
+  depends_on:
+  - extract-key_points
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/key_points/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: key_points
+  status: done
+- id: extract-keywords
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/keywords.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/keywords/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: keywords
+  status: done
+- id: judge-keywords
+  kind: agent
+  depends_on:
+  - extract-keywords
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/keywords/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: keywords
+  status: done
+- id: extract-methods
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: (task."classify".quintet.media == 'paper' && task."classify".quintet.form
+    == 'research')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/methods.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/methods/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: methods
+  status: skipped
+- id: judge-methods
+  kind: agent
+  depends_on:
+  - extract-methods
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/methods/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: methods
+  status: skipped
+- id: extract-models
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: task."classify".quintet.register == 'non_fiction' || (task."classify".quintet.media
+    == 'book' && task."classify".quintet.form == 'pop_science')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/models.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/models/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: models
+  status: done
+- id: judge-models
+  kind: agent
+  depends_on:
+  - extract-models
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/models/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: models
+  status: done
+- id: extract-people
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: task."classify".quintet.media == 'article'
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/people.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/people/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: people
+  status: skipped
+- id: judge-people
+  kind: agent
+  depends_on:
+  - extract-people
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/people/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: people
+  status: skipped
+- id: extract-quotes
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: (task."classify".quintet.media == 'audio' && task."classify".quintet.form
+    == 'interview') || (task."classify".quintet.media == 'audio' && task."classify".quintet.form
+    == 'roundtable') || (task."classify".quintet.media == 'article' && task."classify".quintet.form
+    == 'news')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/quotes.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/quotes/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: quotes
+  status: skipped
+- id: judge-quotes
+  kind: agent
+  depends_on:
+  - extract-quotes
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/quotes/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: quotes
+  status: skipped
+- id: extract-results
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: (task."classify".quintet.media == 'paper' && task."classify".quintet.form
+    == 'research')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/results.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/results/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: results
+  status: skipped
+- id: judge-results
+  kind: agent
+  depends_on:
+  - extract-results
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/results/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: results
+  status: skipped
+- id: extract-setting
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: (task."classify".quintet.media == 'book' && task."classify".quintet.form ==
+    'novel')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/setting.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/setting/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: setting
+  status: skipped
+- id: judge-setting
+  kind: agent
+  depends_on:
+  - extract-setting
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/setting/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: setting
+  status: skipped
+- id: extract-speaker
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: (task."classify".quintet.media == 'video' && task."classify".quintet.form
+    == 'keynote') || (task."classify".quintet.media == 'video' && task."classify".quintet.form
+    == 'talk')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/speaker.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/speaker/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: speaker
+  status: skipped
+- id: judge-speaker
+  kind: agent
+  depends_on:
+  - extract-speaker
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/speaker/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: speaker
+  status: skipped
+- id: extract-story
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: (task."classify".quintet.media == 'book' && task."classify".quintet.form ==
+    'novel')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/story.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/story/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: story
+  status: skipped
+- id: judge-story
+  kind: agent
+  depends_on:
+  - extract-story
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/story/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: story
+  status: skipped
+- id: extract-themes
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: task."classify".quintet.register == 'fiction' || (task."classify".quintet.media
+    == 'book' && task."classify".quintet.form == 'pop_science')
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/themes.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/themes/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: themes
+  status: skipped
+- id: judge-themes
+  kind: agent
+  depends_on:
+  - extract-themes
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/themes/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: themes
+  status: skipped
+- id: extract-topics
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  when: task."classify".quintet.register == 'non_fiction'
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/topics.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/topics/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: topics
+  status: done
+- id: judge-topics
+  kind: agent
+  depends_on:
+  - extract-topics
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/topics/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: topics
+  status: done
+- id: extract-summary
+  kind: agent
+  depends_on:
+  - classify
+  - convert
+  - extract-abstract
+  - extract-authors
+  - extract-chapters
+  - extract-characters
+  - extract-citations
+  - extract-code_examples
+  - extract-contributions
+  - extract-exercises
+  - extract-guests
+  - extract-key_points
+  - extract-keywords
+  - extract-methods
+  - extract-models
+  - extract-people
+  - extract-quotes
+  - extract-results
+  - extract-setting
+  - extract-speaker
+  - extract-story
+  - extract-themes
+  - extract-topics
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/summary.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/summary/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: summary
+  status: done
+- id: judge-summary
+  kind: agent
+  depends_on:
+  - extract-summary
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/summary/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: summary
+  status: done
+- id: vault-match
+  kind: tool
+  depends_on:
+  - judge-keywords
+  - judge-people
+  - judge-models
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/vault-match.yaml
+  cmd:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator.sh
+  - vault
+  - match
+  - --keywords
+  - ${task_path:extract-keywords}
+  - --people
+  - ${task_path:extract-people}
+  - --models
+  - ${task_path:extract-models}
+  status: done
+- id: build-replica
+  kind: tool
+  depends_on:
+  - judge-abstract
+  - judge-authors
+  - judge-chapters
+  - judge-characters
+  - judge-citations
+  - judge-code_examples
+  - judge-contributions
+  - judge-exercises
+  - judge-guests
+  - judge-key_points
+  - judge-keywords
+  - judge-methods
+  - judge-models
+  - judge-people
+  - judge-quotes
+  - judge-results
+  - judge-setting
+  - judge-speaker
+  - judge-story
+  - judge-themes
+  - judge-topics
+  - judge-summary
+  - judge-classify
+  - vault-match
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/build-replica.yaml
+  cmd:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator.sh
+  - vault
+  - replica
+  - build
+  - ${workdir}
+  status: done
+- id: synthesis
+  kind: agent
+  depends_on:
+  - build-replica
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/extractors/synthesis.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/synthesis/extractor.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: synthesis
+  status: done
+- id: judge-synthesis
+  kind: agent
+  depends_on:
+  - synthesis
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/judge-verdict.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/synthesis/judge.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+    kind_name: synthesis
+  status: done
+- id: prune-replica
+  kind: tool
+  depends_on:
+  - judge-synthesis
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/prune-replica.yaml
+  cmd:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator.sh
+  - vault
+  - replica
+  - prune
+  - ${workdir}
+  status: done
+- id: report
+  kind: tool
+  depends_on:
+  - prune-replica
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/report.yaml
+  cmd:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator.sh
+  - vault
+  - report
+  - ${workdir}
+  status: done
+- id: gate
+  kind: human
+  depends_on:
+  - report
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/gate.yaml
+  template: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/report.md.j2
+  template_search_paths:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/extractors/_meta
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/secure-llm/templates
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator
+  vars:
+    quintet_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator/curator/quintet.yaml
+    wiki_template_path: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault/wiki.j2
+    vault_templates_dir: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/templates/vault
+    destinations:
+      keywords:
+        mode: artifact
+        folder: 12 KEYWORDS
+      models:
+        mode: artifact
+        folder: 14 MODELS
+      people:
+        mode: artifact
+        folder: 13 PEOPLE
+      authors:
+        mode: artifact
+        folder: 13 PEOPLE
+      guests:
+        mode: artifact
+        folder: 13 PEOPLE
+      speaker:
+        mode: artifact
+        folder: 13 PEOPLE
+      citations:
+        mode: artifact
+        folder: 10 SOURCES
+      quotes:
+        mode: artifact
+        folder: 11 QUOTES
+      topics:
+        mode: synthesis
+      themes:
+        mode: synthesis
+      characters:
+        mode: synthesis
+      setting:
+        mode: synthesis
+      story:
+        mode: synthesis
+      chapters:
+        mode: synthesis
+      abstract:
+        mode: synthesis
+      contributions:
+        mode: synthesis
+      methods:
+        mode: synthesis
+      results:
+        mode: synthesis
+      key_points:
+        mode: synthesis
+      exercises:
+        mode: synthesis
+      code_examples:
+        mode: synthesis
+    replica_root: ${global:vault-replica}
+    loom_sh: /local/home/artyomgo/dotfiles/targets/kiro/skills/loom/scripts/loom.sh
+  status: running
+- id: strip-dead-links
+  kind: tool
+  depends_on:
+  - gate
+  when: task."gate".proceed == `true`
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/strip-dead-links.yaml
+  cmd:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator.sh
+  - vault
+  - replica
+  - strip-dead-links
+  - ${workdir}
+  status: pending
+- id: apply-replica
+  kind: tool
+  depends_on:
+  - strip-dead-links
+  when: task."gate".proceed == `true`
+  output_schema: /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/schemas/pipeline/apply-replica.yaml
+  cmd:
+  - /local/home/artyomgo/dotfiles/targets/kiro/skills/curator/scripts/curator.sh
+  - vault
+  - replica
+  - apply
+  - ${workdir}
+  status: pending

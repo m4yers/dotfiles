@@ -40,11 +40,16 @@ def _load_destinations() -> dict:
     return data.get('destinations', {})
 
 
+# Read once. Synthesis tasks need this dict; no other template does.
+# Injecting it into every task's vars would duplicate ~50 lines per task
+# in plan.yaml; the synthesis tasks pull it explicitly instead.
+_DESTINATIONS = _load_destinations()
+
+
 _VARS = {
     'quintet_path':        str(QUINTET),
     'wiki_template_path':  str(TEMPLATES / 'vault' / 'wiki.j2'),
     'vault_templates_dir': str(TEMPLATES / 'vault'),
-    'destinations':        _load_destinations(),
     'replica_root':        '${global:vault-replica}',
     'loom_sh':             str(LOOM_SH),
 }
@@ -207,13 +212,15 @@ def _pipeline_tail(parallel: list[str]) -> list:
               template=str(TEMPLATES / 'extractors' / 'synthesis' / 'extractor.j2'),
               depends_on=['build-replica'],
               output_schema=_schema_extractor('synthesis'),
-              vars={**_VARS, 'kind_name': 'synthesis'},
+              vars={**_VARS, 'kind_name': 'synthesis',
+                    'destinations': _DESTINATIONS},
               template_search_paths=_SEARCH_PATHS),
         agent('judge-synthesis',
               template=str(TEMPLATES / 'extractors' / 'synthesis' / 'judge.j2'),
               depends_on=['synthesis'],
               output_schema=_schema_pipeline('judge-verdict'),
-              vars={**_VARS, 'kind_name': 'synthesis'},
+              vars={**_VARS, 'kind_name': 'synthesis',
+                    'destinations': _DESTINATIONS},
               template_search_paths=_SEARCH_PATHS),
         tool('prune-replica',
              cmd=[str(CURATOR_SH), 'vault', 'replica', 'prune', '${workdir}'],

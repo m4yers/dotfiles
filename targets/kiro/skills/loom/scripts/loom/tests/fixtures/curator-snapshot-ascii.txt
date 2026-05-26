@@ -1,0 +1,119 @@
+                            +------------------------------------------+
+                            |  PLAN  youtube-k1njvbbmfsw               |
+                            |  + 23 done | * 1 running | o 2 pending   |
+                            |  - 32 skipped | 58 total                 |
+                            +------------------------------------------+
+
+                            +------------------------------------------+
+                            | + 01  fetch                      [tool ] |
+                            +--------------------+---------------------+
+                                                 |
+                                                 v
+                            +------------------------------------------+
+                            | + 02  convert                    [tool ] |
+                            +--------------------+---------------------+
+                                                 |
+                                                 v
+                            +------------------------------------------+
+                            | + 03  security_scan              [tool ] |
+                            +--------------------+---------------------+
+                                                 |
+                                                 v
+                            +------------------------------------------+
+                            | + 04  classify                   [agent] |
+                            +--------------------+---------------------+
+                                                 |
+                                                 v
+              +----------------------------------------------------------------------+
+              |  EXTRACT   fan-out | branch on classify.quintet | 22 tasks (6/16)    |
+              +----------------------------------+-----------------------------------+
+              |  +  judge-classify               |  -  extract-abstract              |
+              |  +  extract-citations            |  -  extract-authors               |
+              |  +  extract-key_points           |  -  extract-chapters              |
+              |  +  extract-keywords             |  -  extract-characters            |
+              |  +  extract-models               |  -  extract-code_examples         |
+              |  +  extract-topics               |  -  extract-contributions         |
+              |                                  |  -  extract-exercises             |
+              |                                  |  -  extract-guests                |
+              |                                  |  -  extract-methods               |
+              |                                  |  -  extract-people                |
+              |                                  |  -  extract-quotes                |
+              |                                  |  -  extract-results               |
+              |                                  |  -  extract-setting               |
+              |                                  |  -  extract-speaker               |
+              |                                  |  -  extract-story                 |
+              |                                  |  -  extract-themes                |
+              +----------------------------------+-----------------------------------+
+                                                 |
+                                                 v
+              +----------------------------------------------------------------------+
+              |  JUDGE   fan-out | 22 tasks (6/16)                                   |
+              +----------------------------------+-----------------------------------+
+              |  +  judge-citations              |  -  judge-abstract                |
+              |  +  judge-key_points             |  -  judge-authors                 |
+              |  +  judge-keywords               |  -  judge-chapters                |
+              |  +  judge-models                 |  -  judge-characters              |
+              |  +  judge-topics                 |  -  judge-code_examples           |
+              |  +  extract-summary  * fan-in 23 |  -  judge-contributions           |
+              |                                  |  -  judge-exercises               |
+              |                                  |  -  judge-guests                  |
+              |                                  |  -  judge-methods                 |
+              |                                  |  -  judge-people                  |
+              |                                  |  -  judge-quotes                  |
+              |                                  |  -  judge-results                 |
+              |                                  |  -  judge-setting                 |
+              |                                  |  -  judge-speaker                 |
+              |                                  |  -  judge-story                   |
+              |                                  |  -  judge-themes                  |
+              +----------------------------------+-----------------------------------+
+                                                 |
+                                                 v
+                            +------------------------------------------+
+                            | + 49  judge-summary              [agent] |
+                            | + 50  vault-match                [tool ] |
+                            +--------------------+---------------------+
+                                                 |
+                                                 v
+                            +------------------------------------------+
+                            | + 51  build-replica              [tool ] |
+                            |       * fan-in 23 judges + vault-match   |
+                            +--------------------+---------------------+
+                                                 |
+                                                 v
+                            +------------------------------------------+
+                            | + 52  synthesis                  [agent] |
+                            +--------------------+---------------------+
+                                                 |
+                                                 v
+                            +------------------------------------------+
+                            | + 53  judge-synthesis            [agent] |
+                            +--------------------+---------------------+
+                                                 |
+                                                 v
+                            +------------------------------------------+
+                            | + 54  prune-replica              [tool ] |
+                            +--------------------+---------------------+
+                                                 |
+                                                 v
+                            +------------------------------------------+
+                            | + 55  report                     [tool ] |
+                            +--------------------+---------------------+
+                                                 |
+                                                 v
+                            +------------------------------------------+
+                            | * 56  gate                       [human] |  <- current
+                            +--------------------+---------------------+
+                                                 |
+                                                 v
+                            +------------------------------------------+
+                            | o 57  strip-dead-links           [tool ] |
+                            |       when: task."gate".proceed == `true`|
+                            +--------------------+---------------------+
+                                                 |
+                                                 v
+                            +------------------------------------------+
+                            | o 58  apply-replica              [tool ] |
+                            |       when: task."gate".proceed == `true`|
+                            +--------------------+---------------------+
+
+Legend: o pending | > ready | * running | + done | x failed | - skipped

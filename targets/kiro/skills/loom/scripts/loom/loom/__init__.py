@@ -11,6 +11,9 @@ from loom.engine.models import LoomPlan, Task, ActionSpec
 # Plan builder factories
 from loom.plan import tool, agent, human, make_plan
 
+# Visualisation
+from loom.visualise import visualise, visualise_workdir
+
 # Errors
 from loom.errors import (
     LoomPlanError, DAGError, SchemaError,
@@ -29,6 +32,8 @@ __all__ = [
     'LoomRuntime', 'LoomPlan', 'Task', 'ActionSpec',
     # Plan builder
     'tool', 'agent', 'human', 'make_plan',
+    # Visualisation
+    'visualise', 'visualise_workdir',
     # Errors
     'LoomPlanError', 'DAGError', 'SchemaError',
     'ReferenceError', 'TypeMismatchError',
