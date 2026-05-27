@@ -77,6 +77,7 @@ with `role:` picked by id prefix:
 |------------------|--------------------|
 | `classify`       | `curator-extractor` |
 | `extract-<kind>` | `curator-extractor` |
+| `merge-<kind>`   | `curator-extractor` |
 | `judge-<kind>`   | `curator-judge`     |
 | `synthesis`      | `curator-composer`  |
 | `judge-synthesis`| `curator-judge`     |

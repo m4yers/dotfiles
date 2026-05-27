@@ -31,7 +31,11 @@ properties:
     type: array
     items:
       type: object
+      required: [vault_path, kind, name, rationale, existing_summary, new_info_present]
       properties:
-        vault_path: {type: string}
-        kind: {type: string}
-        name: {type: string}
+        vault_path:       {type: string}
+        kind:             {type: string}
+        name:             {type: string}
+        rationale:        {type: string}
+        existing_summary: {type: string}
+        new_info_present: {type: boolean}

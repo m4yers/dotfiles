@@ -117,6 +117,27 @@ def cli_replica_build(
             if isinstance(loaded, dict):
                 vault_matches = loaded
 
+    # Merge outputs are optional too. Each ``merge-<kind>`` task
+    # writes ``{merges: [...]}`` reconciling matched extractor
+    # items with their existing vault pages. Skipped tasks have
+    # no output file; we just read what is present and let
+    # build_replica fall back to the raw extractor item for any
+    # name that is not in a merge record.
+    merges: dict[str, list[dict]] = {}
+    for task in plan.tasks:
+        if not task.id.startswith("merge-"):
+            continue
+        kind = task.id[len("merge-"):]
+        m_path = store.task_output_path(wd, plan, task.id)
+        if not m_path.exists():
+            continue
+        loaded = _yaml.safe_load(m_path.read_text(encoding="utf-8"))
+        if not isinstance(loaded, dict):
+            continue
+        items = loaded.get("merges")
+        if isinstance(items, list):
+            merges[kind] = items
+
     # Source basename for the replica's source-tracking — the
     # build only uses it to derive a default filename slug for
     # any kind that ever needs source attribution.
@@ -133,7 +154,8 @@ def cli_replica_build(
 
     try:
         result = build_replica(
-            wd, extractions, destinations, vault_matches, basename)
+            wd, extractions, destinations, vault_matches, basename,
+            merges=merges or None)
     except Exception as e:
         fail(f"build-replica failed: {e}")
     emit(result)

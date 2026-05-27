@@ -1,0 +1,57 @@
+type: object
+required: [merges]
+additionalProperties: false
+properties:
+  merges:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - vault_path
+        - merged_item
+        - rationale
+        - existing_summary
+        - new_info_present
+      properties:
+        # Identity of the matched item. Must equal the
+        # corresponding ``name`` in the kind's extractor output;
+        # build-replica uses this to look up the merge result.
+        name:             {type: string}
+
+        # Vault-relative path of the existing page being merged
+        # against. Equals the ``match`` field in vault-match's
+        # output for this name.
+        vault_path:       {type: string}
+
+        # The post-merge item dict. Shape mirrors the kind's
+        # extractor item (e.g. keyword: name + definition;
+        # model: name + definition + applicability) so the
+        # kind's vault template renders it without changes.
+        # Schema-permissive on purpose — provenance fields like
+        # ``definition_source: merged`` are allowed.
+        merged_item:
+          type: object
+          additionalProperties: true
+          required: [name]
+          properties:
+            name: {type: string}
+
+        # 1-3 sentences describing what new info this run
+        # contributes vs. the existing page. Surfaced in the
+        # gate report so the operator can decide whether the
+        # rewrite is worth applying.
+        rationale:        {type: string, minLength: 10}
+
+        # 1-line summary of the existing page's prior content,
+        # so the operator does not have to read the diff to
+        # know what was there before.
+        existing_summary: {type: string, minLength: 5}
+
+        # False when this run adds nothing beyond what the
+        # existing page already says. Build-replica still
+        # writes the merged page (which equals the existing
+        # page in that case), but the report can fold the
+        # entry into a quieter "no change" group.
+        new_info_present: {type: boolean}

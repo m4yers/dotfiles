@@ -15,6 +15,7 @@ import yaml
 from loom import LoomPlan, tool, agent, human, make_plan
 
 from curator import discovery, predicates
+from curator.vault.config import VAULT_ROOT
 
 
 SKILL_ROOT = Path(__file__).resolve().parents[3]  # curator/
@@ -26,6 +27,12 @@ SECURITY_SCAN_SH = Path(__file__).resolve().parents[4] / 'secure-llm' / 'scripts
 SECURE_LLM_TEMPLATES = Path(__file__).resolve().parents[4] / 'secure-llm' / 'templates'
 LOOM_SH = Path(__file__).resolve().parents[4] / 'loom' / 'scripts' / 'loom.sh'
 QUINTET    = SKILL_ROOT / 'scripts' / 'curator' / 'curator' / 'quintet.yaml'
+
+# Kinds whose extractor outputs are reconciled against existing
+# vault pages. Each matchable kind that participates in a run also
+# gets a merge-<kind> agent task between vault-match and
+# build-replica. Keep in sync with vault.match._KIND_TO_FOLDER.
+_MATCHABLE_KINDS = ('keywords', 'people', 'models')
 
 _SEARCH_PATHS = [
     str(TEMPLATES),
@@ -190,8 +197,46 @@ def _summary_extractor(parallel: list[str]) -> list:
     ]
 
 
+def _merge_tasks(matchable: list[str]) -> list:
+    """One ``merge-<kind>`` agent per matchable kind that ran.
+
+    Each task reconciles this run's extractor output for that kind
+    against existing vault pages whose stems matched in
+    vault-match. Output is consumed by build-replica, which
+    prefers ``merged_item`` over the raw extractor item when both
+    exist. Cascade-skipped via ``judge-<kind>`` when its extractor
+    was skipped; ``when:`` predicate skips it when no items
+    matched the vault.
+    """
+    out = []
+    for kind in matchable:
+        merge_id = f'merge-{kind}'
+        # JMESPath predicate: skip if the kind has zero matches.
+        # The ``|| `[]```` guard handles the case where vault-match
+        # did not include this kind at all (e.g. extractor was
+        # skipped via its own when-predicate before vault-match
+        # ran). In that case the projection result is null;
+        # ``null || `[]```` collapses to an empty list and
+        # ``length([]) > 0`` is false, so merge is skipped.
+        when = (
+            f'length(task."vault-match"."{kind}"[?match != `null`] '
+            f'|| `[]`) > `0`'
+        )
+        out.append(agent(
+            merge_id,
+            template=str(TEMPLATES / 'merge' / f'{kind}.j2'),
+            depends_on=[f'judge-{kind}', 'vault-match'],
+            when=when,
+            output_schema=_schema_pipeline('merge'),
+            vars={**_VARS, 'kind_name': kind,
+                  'vault_root': str(VAULT_ROOT)},
+            template_search_paths=_SEARCH_PATHS,
+        ))
+    return out
+
+
 def _pipeline_tail(parallel: list[str]) -> list:
-    matchable = [k for k in ('keywords', 'people', 'models') if k in parallel]
+    matchable = [k for k in _MATCHABLE_KINDS if k in parallel]
     match_args = [str(CURATOR_SH), 'vault', 'match']
     for k in matchable:
         match_args += [f'--{k}', f'${{task_path:extract-{k}}}']
@@ -199,14 +244,17 @@ def _pipeline_tail(parallel: list[str]) -> list:
     all_judges = ([f'judge-{k}' for k in parallel]
                   + ['judge-summary', 'judge-classify'])
 
+    merge_ids = [f'merge-{k}' for k in matchable]
+
     return [
         tool('vault-match',
              cmd=match_args,
              depends_on=[f'judge-{k}' for k in matchable],
              output_schema=_schema_pipeline('vault-match')),
+        *_merge_tasks(matchable),
         tool('build-replica',
              cmd=[str(CURATOR_SH), 'vault', 'replica', 'build', '${workdir}'],
-             depends_on=all_judges + ['vault-match'],
+             depends_on=all_judges + ['vault-match'] + merge_ids,
              output_schema=_schema_pipeline('build-replica')),
         agent('synthesis',
               template=str(TEMPLATES / 'extractors' / 'synthesis' / 'extractor.j2'),

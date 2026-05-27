@@ -65,7 +65,9 @@ class TestDerivePlan:
         assert isinstance(plan, LoomPlan)
 
     def test_task_count(self, plan):
-        assert len(plan.tasks) == 58
+        # 58 base pipeline tasks + 3 merge agents (one per
+        # matchable kind: keywords, people, models).
+        assert len(plan.tasks) == 61
 
     def test_unique_ids(self, plan):
         ids = [t.id for t in plan.tasks]
@@ -83,6 +85,40 @@ class TestDerivePlan:
         # judge-synthesis is consumed by prune-replica
         # judge-classify is consumed by build-replica
         assert not orphans, f'orphan judges: {orphans}'
+
+    def test_merge_tasks_exist_per_matchable_kind(self, plan):
+        '''One merge-<kind> agent per matchable kind, sitting
+        between vault-match and build-replica.'''
+        merge_ids = {t.id for t in plan.tasks
+                     if t.id.startswith('merge-')}
+        assert merge_ids == {'merge-keywords', 'merge-models',
+                             'merge-people'}
+
+    def test_merge_tasks_depend_on_judge_and_vault_match(self, plan):
+        '''Merge agents depend on the kind's judge and vault-match
+        so cascade-skip applies when the extractor was skipped.'''
+        for kind in ('keywords', 'models', 'people'):
+            t = plan.get(f'merge-{kind}')
+            assert f'judge-{kind}' in t.depends_on
+            assert 'vault-match' in t.depends_on
+
+    def test_build_replica_depends_on_merges(self, plan):
+        '''build-replica must wait for every merge-<kind> so its
+        cli step can read the merge outputs.'''
+        br = plan.get('build-replica')
+        for kind in ('keywords', 'models', 'people'):
+            assert f'merge-{kind}' in br.depends_on
+
+    def test_merge_when_predicate_skips_empty(self, plan):
+        '''merge-<kind> when-predicate must skip when no items in
+        that kind matched the vault.'''
+        for kind in ('keywords', 'models', 'people'):
+            t = plan.get(f'merge-{kind}')
+            assert t.when is not None
+            # Predicate filters vault-match output for the kind
+            # and checks the matched count.
+            assert f'"{kind}"' in t.when
+            assert 'match != `null`' in t.when
 
     def test_validate_plan_passes(self, plan):
         validate_plan(plan)

@@ -129,6 +129,7 @@ def build_replica(
     destinations: dict,
     vault_matches: dict[str, dict[str, str | None]] | None,
     source_basename: str,
+    merges: dict[str, list[dict]] | None = None,
 ) -> dict:
     """Populate ``<workdir>/vault-replica/`` with atomic pages
     from the per-kind extractor outputs.
@@ -148,6 +149,13 @@ def build_replica(
     - ``source_basename`` — the source's basename, used by templates
       that emit source-attribution metadata (today: none of the
       atomic templates use it; kept for future kinds).
+    - ``merges`` — optional ``{kind: [merges]}`` payload from each
+      ``merge-<kind>/output.yaml``. When the same item name
+      appears here AND in ``extractions``, the merge-agent's
+      ``merged_item`` replaces the raw extractor item before
+      template rendering, and the manifest entry carries the
+      ``rationale`` / ``existing_summary`` / ``new_info_present``
+      fields the report surfaces to the gate operator.
 
     Returns ``{replica_root, manifest_path, entries}``.
     """
@@ -191,6 +199,24 @@ def build_replica(
         if sub:
             vm_index[kind] = sub
 
+    # Build a per-kind name → merge-record index. The merge agent
+    # processed every vault-match hit for its kind; here we look
+    # up by normalized name to find the merged_item + rationale
+    # for the item the build loop is about to render.
+    merge_index: dict[str, dict[str, dict]] = {}
+    for kind, items in (merges or {}).items():
+        if not isinstance(items, list):
+            continue
+        sub: dict[str, dict] = {}
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            name = it.get("name")
+            if isinstance(name, str):
+                sub[_normalize(name)] = it
+        if sub:
+            merge_index[kind] = sub
+
     for kind, items in extractions.items():
         dest = destinations.get(kind) or {}
         if dest.get("mode") != "artifact":
@@ -203,7 +229,8 @@ def build_replica(
         for item in items:
             entry = _build_atomic_page(
                 rr, kind, item, folder, source_basename,
-                vm_index.get(kind, {}))
+                vm_index.get(kind, {}),
+                merge_index.get(kind, {}))
             if entry is not None:
                 entries.append(entry)
 
@@ -369,6 +396,7 @@ def _build_atomic_page(
     folder: str,
     source_basename: str,
     name_to_existing_path: dict[str, str],
+    name_to_merge: dict[str, dict] | None = None,
 ) -> dict | None:
     """Build one atomic page (keyword/person/model/etc.) into the
     replica using the kind's vault-type template.
@@ -377,6 +405,12 @@ def _build_atomic_page(
     overwrite the replica path. The ``op`` distinction (create
     vs modified) is informational — it tells the gate operator
     whether a vault original exists to diff against.
+
+    When ``name_to_merge`` carries a record for this item, the
+    record's ``merged_item`` replaces the raw extractor item
+    before template rendering, and the manifest entry is
+    annotated with the merge agent's ``rationale`` /
+    ``existing_summary`` / ``new_info_present``.
 
     Returns the manifest entry, or None if the item lacks a
     display label or the kind has no vault-type template.
@@ -401,18 +435,38 @@ def _build_atomic_page(
     replica_file = rr / vault_path
     replica_file.parent.mkdir(parents=True, exist_ok=True)
 
-    rendered = _render_page_via_template(kind, item)
+    # If the merge agent produced a merged item for this name,
+    # render the template against the merged_item — its shape
+    # mirrors the kind's extractor item, so the template is
+    # untouched. ``rationale`` / ``existing_summary`` /
+    # ``new_info_present`` ride along to the manifest.
+    merge_record: dict | None = None
+    if name_to_merge:
+        merge_record = name_to_merge.get(_normalize(name))
+
+    if merge_record and isinstance(merge_record.get("merged_item"), dict):
+        render_item = merge_record["merged_item"]
+    else:
+        render_item = item
+
+    rendered = _render_page_via_template(kind, render_item)
     replica_file.write_text(rendered, encoding="utf-8")
 
     existing_abs = abs_path(vault_path)
     if existing_abs.exists():
-        return {
+        entry = {
             "vault_path":     vault_path,
             "op":             "modified",
             "kind":           kind,
             "name":           name,
             "original_path":  str(existing_abs),
         }
+        if merge_record:
+            entry["rationale"]        = merge_record.get("rationale", "")
+            entry["existing_summary"] = merge_record.get("existing_summary", "")
+            entry["new_info_present"] = bool(
+                merge_record.get("new_info_present", True))
+        return entry
     return {
         "vault_path": vault_path,
         "op":         "create",
@@ -1066,6 +1120,13 @@ def build_report(workdir: Path) -> dict:
     # enumerates both so the gate operator sees every overwrite up
     # front (the editor only opens these as diffs; new pages are
     # listed but not opened).
+    #
+    # Modified entries also carry ``rationale`` /
+    # ``existing_summary`` / ``new_info_present`` when a merge
+    # agent processed the item. Defaults are conservative: missing
+    # rationale/summary render as empty strings; missing
+    # new_info_present defaults to True so unprocessed entries are
+    # not silently demoted.
     manifest_modifications: list[dict] = []
     for entry in manifest_entries:
         if entry.get("op") != "modified":
@@ -1074,9 +1135,13 @@ def build_report(workdir: Path) -> dict:
         if not isinstance(vp, str):
             continue
         manifest_modifications.append({
-            "vault_path": vp,
-            "kind":       entry.get("kind") or "",
-            "name":       entry.get("name") or vp,
+            "vault_path":       vp,
+            "kind":             entry.get("kind") or "",
+            "name":             entry.get("name") or vp,
+            "rationale":        entry.get("rationale") or "",
+            "existing_summary": entry.get("existing_summary") or "",
+            "new_info_present": bool(
+                entry.get("new_info_present", True)),
         })
 
     return {

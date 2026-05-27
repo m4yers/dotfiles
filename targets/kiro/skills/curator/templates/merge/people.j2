@@ -1,0 +1,114 @@
+{# templates/merge/people.j2 — merge agent prompt for people.
+
+   People items carry ``name``, ``role``, ``definition``, optional
+   ``source_quote``, optional ``affiliation`` / ``bio``. Merge
+   integrates definition + bio; affiliation gets updated only
+   when the existing page omits it.
+#}
+{% include 'security-frame.md.j2' %}
+
+You are the **{{ vars.kind_name }} merge** agent for curator.
+
+Source text:        {{ upstream.convert.output.converted_path | default('(missing)', true) }}
+Vault root:         {{ vars.vault_root }}
+Quintet vocabulary: {{ vars.quintet_path }}
+Classified quintet: {{ upstream.classify.output.quintet }}
+Classified topic:   {{ upstream.classify.output.topic }}
+
+This run's people extractor output:
+{{ upstream['extract-people'].task_path }}
+
+Vault-match output:
+{{ upstream['vault-match'].task_path }}
+
+## Your job
+
+For each person item where vault-match produced a hit
+(``match != null``), read the existing vault page in full
+(frontmatter + body) and write a **merged item** whose
+``definition`` (and ``bio`` if used) integrates the existing
+page's content with the new info this run extracted.
+
+You MUST:
+
+- **Preserve** the existing page's biographical claims and
+  affiliations unless this run's source explicitly contradicts
+  them. The existing page may carry hand-authored notes the
+  user values; do not strip them.
+- Produce a ``rationale`` (1-3 sentences) describing what new
+  facts this run contributes (e.g. an additional role, a new
+  affiliation period, a new domain of work). If none, set
+  ``new_info_present: false`` and say so plainly.
+- Produce an ``existing_summary`` (1 line) describing what the
+  existing page said before merging.
+- Treat name collisions carefully — two people share names. If
+  the existing page's role/affiliation/domain clearly identifies
+  a different person, set ``new_info_present: true`` and produce
+  a ``merged_item`` matching this run's extracted item verbatim,
+  with a rationale flagging the collision so the operator can
+  rename one of the pages.
+
+## Items to process
+
+{% set extractor_items = upstream['extract-people'].output.people %}
+{% set matches = upstream['vault-match'].output.people | default([], true) %}
+{% set matched_names = [] %}
+{% for m in matches if m.match %}
+{% set _ = matched_names.append(m.name) %}
+{% endfor %}
+
+{% if not matched_names %}
+**No matches.** Emit ``merges: []`` and finish.
+{% else %}
+{% for m in matches if m.match %}
+{% set item = (extractor_items | selectattr('name', 'equalto', m.name) | list | first) %}
+### {{ m.name }}
+
+- Existing vault page: ``{{ vars.vault_root }}/{{ m.match }}``
+  (fs_read this path to see the current page, frontmatter + body).
+- This run's extracted item:
+  - ``role``: {{ item.role }}
+  - ``definition``: {{ item.definition | replace('\n', ' ') }}
+{%- if item.source_quote %}
+  - ``source_quote``: {{ item.source_quote | replace('\n', ' ') }}
+{%- endif %}
+
+{% endfor %}
+{% endif %}
+
+---
+
+## Writing Output
+
+Write the merge output by invoking ``loom output`` via
+execute_bash. DO NOT use ``fs_write`` directly.
+
+Output target:
+
+    {{ task.output_path }}
+
+### 1. Initialize
+
+    {{ vars.loom_sh }} output init {{ run.workdir }} --task {{ task.id }}
+
+### 2. Emit one ``merges`` entry per matched item
+
+For each matched person above (skip none — every match must
+appear in ``merges``):
+
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
+        --set merges.<i>.name='<person name>' \
+        --set merges.<i>.vault_path='<relative vault path from match>' \
+        --set merges.<i>.merged_item.name='<person name>' \
+        --set merges.<i>.merged_item.role='<role>' \
+        --set merges.<i>.merged_item.definition='<integrated definition>' \
+        --set merges.<i>.merged_item.source_quote='<this run source_quote or empty>' \
+        --set merges.<i>.rationale='<1-3 sentences: what new info this run contributes>' \
+        --set merges.<i>.existing_summary='<1-line summary of prior page>' \
+        --set merges.<i>.new_info_present=<true|false>
+
+Increment ``<i>`` per merged item (0, 1, 2, ...).
+
+If no items matched (``merges`` is empty), seed the array:
+
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} --set merges='[]'

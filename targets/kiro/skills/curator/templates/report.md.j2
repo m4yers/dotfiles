@@ -43,15 +43,23 @@
 _None — every replica page is a new file._
 {%- else -%}
 The following replica files would overwrite existing vault pages on
-apply. The gate driver opens each of these as a diff against the
-vault original; new pages are listed under their kind below.
+apply. Each entry shows what the existing page already says and
+why this run rewrites it. The gate driver opens each as a diff
+against the vault original; new pages are listed under their kind
+below.
 
-{% if r.manifest_modifications -%}
-**Atomic pages** ({{ r.manifest_modifications | length }}):
 {% for m in r.manifest_modifications %}
-- `{{ m.vault_path }}` — {{ m.kind }}: {{ m.name }}
-{%- endfor %}
-{% endif -%}
+### `{{ m.vault_path }}` — {{ m.kind }}: {{ m.name }}
+
+**Existing page.** {{ m.existing_summary or '_(no summary recorded)_' }}
+
+{% if m.new_info_present -%}
+**Why rewrite.** {{ m.rationale or '_(no rationale recorded)_' }}
+{%- else -%}
+**Why rewrite.** _No new info._ {{ m.rationale or 'This run repeats the existing definition; the merge keeps the page as-is.' }}
+{%- endif %}
+
+{% endfor %}
 {%- endif %}
 
 {% for kind in r.extractions | dictsort -%}
