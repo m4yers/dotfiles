@@ -1,10 +1,49 @@
 '''Plan builder API. Skills construct LoomPlans via these factories.'''
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import Any
 
 from loom.engine.models import Task, LoomPlan
+
+
+_DEPRECATION_MSG = (
+    'task {id!r}: depends_on= is deprecated and will be removed in a '
+    'future release. Use depends_on_all= for the current "wait for all" '
+    'semantics, or depends_on_any= for "wait for any one". '
+    'depends_on= currently maps to depends_on_all=.'
+)
+
+
+def _migrate_depends_on(
+    id: str,
+    depends_on: list[str] | None,
+    depends_on_all: list[str] | None,
+    depends_on_any: list[str] | None,
+) -> tuple[list[str], list[str]]:
+    '''Resolve the three dep-list kwargs into ``(all, any)``.
+
+    Emits a FutureWarning when the legacy ``depends_on`` is used.
+    Raises ValueError when ``depends_on`` is mixed with the new
+    ``depends_on_all`` (ambiguous — caller must pick one).
+    The warning's stacklevel is 3 so the message points at the
+    factory's caller (``tool('x', depends_on=...)``), not at
+    this helper.
+    '''
+    if depends_on is not None:
+        if depends_on_all is not None:
+            raise ValueError(
+                f'task {id!r}: depends_on (deprecated) cannot coexist '
+                f'with depends_on_all; pick one'
+            )
+        warnings.warn(
+            _DEPRECATION_MSG.format(id=id),
+            FutureWarning,
+            stacklevel=3,
+        )
+        depends_on_all = depends_on
+    return list(depends_on_all or []), list(depends_on_any or [])
 
 
 def tool(
@@ -13,19 +52,30 @@ def tool(
     cmd: list[str],
     output_schema: str | Path,
     depends_on: list[str] | None = None,
+    depends_on_all: list[str] | None = None,
+    depends_on_any: list[str] | None = None,
     when: str | None = None,
 ) -> Task:
-    '''Build a tool kind Task.'''
+    '''Build a tool kind Task.
+
+    Use ``depends_on_all=`` for "wait for every listed task to reach
+    a terminal status" (the default semantics; this is what the old
+    ``depends_on=`` did). Use ``depends_on_any=`` for "wait for at
+    least one listed task to reach a terminal status". Both lists
+    can be combined on a single task.
+    '''
     if cmd is None or len(cmd) == 0:
         raise ValueError(f'tool task {id!r}: cmd is required and must be non-empty')
     if output_schema is None:
         raise ValueError(f'tool task {id!r}: output_schema is required')
+    da, dy = _migrate_depends_on(id, depends_on, depends_on_all, depends_on_any)
     return Task(
         id=id,
         kind='tool',
         cmd=list(cmd),
         output_schema=str(output_schema),
-        depends_on=list(depends_on or []),
+        depends_on_all=da,
+        depends_on_any=dy,
         when=when,
     )
 
@@ -36,16 +86,22 @@ def agent(
     template: str | Path,
     output_schema: str | Path,
     depends_on: list[str] | None = None,
+    depends_on_all: list[str] | None = None,
+    depends_on_any: list[str] | None = None,
     when: str | None = None,
     vars: dict[str, Any] | None = None,
     agent: str | None = None,
     template_search_paths: list[str | Path] | None = None,
 ) -> Task:
-    '''Build an agent kind Task.'''
+    '''Build an agent kind Task.
+
+    See ``tool`` for dependency semantics.
+    '''
     if template is None:
         raise ValueError(f'agent task {id!r}: template is required')
     if output_schema is None:
         raise ValueError(f'agent task {id!r}: output_schema is required')
+    da, dy = _migrate_depends_on(id, depends_on, depends_on_all, depends_on_any)
     return Task(
         id=id,
         kind='agent',
@@ -53,7 +109,8 @@ def agent(
         output_schema=str(output_schema),
         agent=agent,
         vars=dict(vars or {}),
-        depends_on=list(depends_on or []),
+        depends_on_all=da,
+        depends_on_any=dy,
         when=when,
         template_search_paths=(
             [str(p) for p in template_search_paths]
@@ -68,18 +125,25 @@ def human(
     template: str | Path | None = None,
     output_schema: str | Path | None = None,
     depends_on: list[str] | None = None,
+    depends_on_all: list[str] | None = None,
+    depends_on_any: list[str] | None = None,
     when: str | None = None,
     vars: dict[str, Any] | None = None,
     template_search_paths: list[str | Path] | None = None,
 ) -> Task:
-    '''Build a human kind Task.'''
+    '''Build a human kind Task.
+
+    See ``tool`` for dependency semantics.
+    '''
+    da, dy = _migrate_depends_on(id, depends_on, depends_on_all, depends_on_any)
     return Task(
         id=id,
         kind='human',
         template=str(template) if template is not None else None,
         output_schema=str(output_schema) if output_schema is not None else None,
         vars=dict(vars or {}),
-        depends_on=list(depends_on or []),
+        depends_on_all=da,
+        depends_on_any=dy,
         when=when,
         template_search_paths=(
             [str(p) for p in template_search_paths]

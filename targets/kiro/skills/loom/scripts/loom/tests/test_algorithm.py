@@ -219,10 +219,10 @@ class TestCascadeSkip:
     @pytest.mark.parametrize('scenario,dep_statuses,expected_runnable,expected_reason', [
         # Mixed deps: A done, B skipped → C runnable
         ('mixed_deps', {'a': 'done', 'b': 'skipped'}, True, None),
-        # All deps skipped → cascade skip
-        ('all_skipped_2', {'a': 'skipped', 'b': 'skipped'}, False, 'cascade: all 2 deps skipped'),
-        # Single dep skipped → cascade skip
-        ('single_skipped', {'a': 'skipped'}, False, 'cascade: all 1 deps skipped'),
+        # All deps skipped → cascade skip (all-list)
+        ('all_skipped_2', {'a': 'skipped', 'b': 'skipped'}, False, 'cascade: all 2 all-deps skipped'),
+        # Single dep skipped → cascade skip (all-list)
+        ('single_skipped', {'a': 'skipped'}, False, 'cascade: all 1 all-deps skipped'),
     ])
     def test_cascade_parametrized(self, tmp_path, scenario, dep_statuses, expected_runnable, expected_reason):
         tasks = []

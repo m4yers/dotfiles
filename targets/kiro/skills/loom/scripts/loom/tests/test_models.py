@@ -57,12 +57,17 @@ class TestTask:
         assert 'vars' not in d
 
     def test_to_dict_preserves_values(self):
+        # Legacy depends_on= still accepted on direct construction;
+        # silently migrated to depends_on_all by __post_init__.
+        # to_dict drops the deprecated field and emits the new
+        # canonical name.
         t = Task(id='x', kind='tool', cmd=['echo'], output_schema='/s.yaml',
                  depends_on=['a'])
         d = t.to_dict()
         assert d['id'] == 'x'
         assert d['cmd'] == ['echo']
-        assert d['depends_on'] == ['a']
+        assert d['depends_on_all'] == ['a']
+        assert 'depends_on' not in d
 
     def test_from_dict_roundtrip(self):
         t = Task(id='x', kind='agent', template='/t.j2',

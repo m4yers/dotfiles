@@ -84,6 +84,58 @@ pending  →  ready  →  running  →  done | failed | skipped
   after `when:` evaluation: an explicit `when: false` always wins.
 - Render failure transitions `ready → failed` (skipping `running`).
 
+## Dependency lists
+
+Each task carries two dependency lists; both are optional and may
+be combined on the same task.
+
+- **`depends_on_all`** — the task becomes ready when **every** id
+  in the list is in a terminal status (`done`, `failed`, or
+  `skipped`). This is the legacy "wait for all" semantics.
+- **`depends_on_any`** — the task becomes ready when **at least
+  one** id in the list is in a terminal status. Use this for
+  alternative-path joins where any one upstream's output is
+  enough to proceed.
+
+When both lists are present, **both** conditions must hold.
+
+### Cascade-skip
+
+Cascade-skip applies independently to each list. A task is
+auto-skipped when:
+
+- `depends_on_all` is non-empty and every id in it is `skipped`, OR
+- `depends_on_any` is non-empty and every id in it is `skipped`.
+
+Either condition by itself triggers cascade — a task whose
+all-list is satisfied but whose entire any-list was skipped has
+no upstream output to consume and is skipped.
+
+### Legacy `depends_on` (deprecated)
+
+The pre-1.0 `depends_on` field is deprecated. It is silently
+migrated to `depends_on_all` on construction and on YAML load,
+preserving the historical "wait for all" semantics. The plan
+factories (`tool` / `agent` / `human`) emit a `FutureWarning`
+when called with `depends_on=`. Mixing `depends_on=` with the
+new `depends_on_all=` raises immediately.
+
+```python
+# old (deprecated; emits FutureWarning)
+tool('build', cmd=[...], output_schema=s, depends_on=['compile'])
+
+# new — same semantics
+tool('build', cmd=[...], output_schema=s, depends_on_all=['compile'])
+
+# new — wait-for-any
+tool('build', cmd=[...], output_schema=s, depends_on_any=['ci-x86', 'ci-arm'])
+```
+
+The `Task.depends_on` attribute stays populated as the order-
+preserving union of the two canonical lists, so consumers that
+just want "every upstream id" (template context, viz layout)
+keep working.
+
 ## Workdir layout
 
 Caller supplies the workdir path. Loom creates:
