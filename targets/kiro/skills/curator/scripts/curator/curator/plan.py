@@ -180,11 +180,17 @@ def _extractors(parallel: list[str], preds: dict[str, str | None]) -> list:
 
 
 def _summary_extractor(parallel: list[str]) -> list:
-    deps = ['classify', 'convert'] + [f'extract-{k}' for k in parallel]
+    # Summary needs classify+convert (always present) AND at
+    # least one extract output to summarise. Under loom's
+    # done-only semantics, listing every extract in
+    # depends_on_all would cascade-skip summary whenever a kind
+    # was when-skipped (the common case). Use depends_on_any so
+    # summary fires as soon as any extract finishes.
     return [
         agent('extract-summary',
               template=_template('summary'),
-              depends_on=deps,
+              depends_on_all=['classify', 'convert'],
+              depends_on_any=[f'extract-{k}' for k in parallel],
               output_schema=_schema_extractor('summary'),
               vars={**_VARS, 'kind_name': 'summary'},
               template_search_paths=_SEARCH_PATHS),

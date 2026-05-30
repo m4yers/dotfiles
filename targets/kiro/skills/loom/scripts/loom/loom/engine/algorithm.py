@@ -34,42 +34,21 @@ def desugar_predicate(expr: str) -> str:
 
 
 def all_deps_terminal(task: Task, plan: LoomPlan) -> bool:
-    '''True when the task's dependency conditions are satisfied.
+    '''True when every referenced dep has reached a terminal status.
 
-    Conditions:
-      - Every id in ``depends_on_all`` is in a terminal status, AND
-      - if ``depends_on_any`` is non-empty, at least one of its
-        ids is in a terminal status.
-
-    Missing ids count as not-terminal — a dangling reference
-    blocks readiness rather than crashing the scheduler. Static
-    validation in ``loom.init`` catches missing ids before any
-    plan reaches this function in normal use.
-
-    The function name is preserved for back-compat with callers
-    that imported it; the body now spans both dep lists.
+    Predicate evaluation (and the failure-cascade decision) is
+    deferred until ALL deps in either list are terminal. A
+    missing id counts as undecided so the scheduler waits rather
+    than crashes; static validation in ``loom.init`` catches
+    truly dangling references before any plan reaches this
+    function.
     '''
     by_id = {t.id: t for t in plan.tasks}
-
-    # All-list: every dep must be terminal.
-    for dep in task.depends_on_all:
+    for dep in list(task.depends_on_all) + list(task.depends_on_any):
         if dep not in by_id:
             return False
         if by_id[dep].status not in TERMINAL_STATUSES:
             return False
-
-    # Any-list (when present): at least one dep must be terminal.
-    if task.depends_on_any:
-        any_ok = False
-        for dep in task.depends_on_any:
-            if dep not in by_id:
-                continue
-            if by_id[dep].status in TERMINAL_STATUSES:
-                any_ok = True
-                break
-        if not any_ok:
-            return False
-
     return True
 
 
@@ -141,40 +120,68 @@ def partition_ready(
     candidates: list[Task],
     plan: LoomPlan,
     workdir: Path,
-) -> tuple[list[Task], list[tuple[Task, str]]]:
-    '''Split candidates by predicate evaluation and cascade-skip.'''
+) -> tuple[list[Task], list[tuple[Task, str]], list[tuple[Task, str]]]:
+    '''Split candidates by failure cascade and predicate evaluation.
+
+    Returns three buckets:
+
+    * ``runnable`` — task can be dispatched.
+    * ``skipped``  — task's ``when:`` predicate evaluated false;
+      this is a successful terminal (the task simply doesn't
+      apply).
+    * ``failed``   — at least one upstream cascaded a failure;
+      the task itself fails immediately.
+
+    Resolution order, per task:
+
+    1. Cascade-fail check. ``depends_on_all`` cascades on any
+       failed dep; ``depends_on_any`` cascades only when every
+       dep failed (a single failure is tolerable when there are
+       alternatives).
+    2. Predicate (``when:``). If false, mark skipped.
+    3. Otherwise, runnable.
+
+    Skipped (``when:``-false) deps do NOT cascade — they count
+    as a non-failure terminal, equivalent to ``done`` for
+    predicate purposes. Failure is the only contagious status.
+    '''
     by_id = {t.id: t for t in plan.tasks}
     runnable: list[Task] = []
     skipped: list[tuple[Task, str]] = []
+    failed: list[tuple[Task, str]] = []
     for t in candidates:
+        fail_reason = _cascade_fail_reason(t, by_id)
+        if fail_reason is not None:
+            failed.append((t, fail_reason))
+            continue
         ok, reason = eval_predicate(t.when, plan, workdir)
         if not ok:
             skipped.append((t, reason or 'when-false'))
             continue
-        # Cascade skip — the task has nothing to consume because
-        # an entire dep list was skipped:
-        #   - depends_on_all all skipped → no "all" upstream output.
-        #   - depends_on_any all skipped → no "any" upstream output.
-        # Either condition independently triggers cascade. The
-        # all-list rule is identical to pre-fork loom behavior.
-        cascade_reason = _cascade_reason(t, by_id)
-        if cascade_reason is not None:
-            skipped.append((t, cascade_reason))
-            continue
         runnable.append(t)
-    return runnable, skipped
+    return runnable, skipped, failed
 
 
-def _cascade_reason(task: Task, by_id: dict[str, Task]) -> str | None:
-    '''Return a human-readable cascade reason if the task should
-    be auto-skipped because an entire dep list was skipped, else
-    None.'''
+def _cascade_fail_reason(task: Task, by_id: dict[str, Task]) -> str | None:
+    '''Return a human-readable cascade-fail reason if upstream
+    failures should propagate as a failure of this task, else
+    None.
+
+    Rules:
+      - ``depends_on_all``: any dep is ``failed`` → fail.
+      - ``depends_on_any``: every present dep is ``failed`` →
+        fail (no alternative path remains).
+    Skipped deps are non-failures and do not contribute.
+    '''
     da = [d for d in task.depends_on_all if d in by_id]
-    if da and all(by_id[d].status == STATUS_SKIPPED for d in da):
-        return f'cascade: all {len(da)} all-deps skipped'
+    bad_all = [d for d in da if by_id[d].status == STATUS_FAILED]
+    if bad_all:
+        first = bad_all[0]
+        return (f'cascade-fail: {len(bad_all)}/{len(da)} all-deps failed '
+                f'(first: {first})')
     dy = [d for d in task.depends_on_any if d in by_id]
-    if dy and all(by_id[d].status == STATUS_SKIPPED for d in dy):
-        return f'cascade: all {len(dy)} any-deps skipped'
+    if dy and all(by_id[d].status == STATUS_FAILED for d in dy):
+        return f'cascade-fail: all {len(dy)} any-deps failed'
     return None
 
 

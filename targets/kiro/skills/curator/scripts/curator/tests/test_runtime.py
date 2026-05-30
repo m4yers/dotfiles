@@ -67,7 +67,7 @@ def _drive_all(rt, gate_proceed=True):
         candidates = algorithm.compute_ready_set(plan)
         if not candidates:
             break
-        runnable, skipped = algorithm.partition_ready(
+        runnable, skipped, failed = algorithm.partition_ready(
             candidates, plan, rt.workdir)
         for t, reason in skipped:
             task = plan.get(t.id)

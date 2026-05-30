@@ -26,15 +26,23 @@ class Task:
 
     Dependency semantics
     --------------------
-    A task becomes ready when:
-      - every id listed in ``depends_on_all`` is in a terminal status
-        (done, failed, or skipped), AND
-      - if ``depends_on_any`` is non-empty, at least one of its ids
-        is in a terminal status.
+    Resolution waits until every id in ``depends_on_all`` and
+    ``depends_on_any`` is in a terminal status (done, failed, or
+    skipped). The task is then resolved as follows:
 
-    Cascade-skip applies when either list is non-empty and EVERY id
-    in that list has status ``skipped`` — there is no upstream
-    output for the task to consume.
+      1. Cascade-fail. The task is marked ``failed`` if either:
+         - ``depends_on_all`` contains a dep in status ``failed``;
+         - ``depends_on_any`` is non-empty and every dep is in
+           status ``failed``.
+      2. Predicate. ``when:`` is evaluated; false → ``skipped``.
+      3. Otherwise the task is dispatched.
+
+    ``done`` and ``skipped`` are equivalent for the cascade-fail
+    check; only ``failed`` propagates.
+
+    Tasks that need to run on failure (compensating cleanup, etc.)
+    are not currently supported — when needed, surface a separate
+    trigger-rule mechanism.
 
     Legacy ``depends_on``
     --------------------

@@ -37,9 +37,6 @@ import yaml
 from loom.engine import store
 
 
-_SCHEMA_FIELD = '_schema'
-
-
 # ── helpers ──────────────────────────────────────────────────────
 
 
@@ -240,15 +237,14 @@ def cmd_init(workdir: Path, task_id: str) -> None:
     '''``loom output init <workdir> --task <id>``.
 
     Resolves the task's output_schema from plan.yaml, ensures the
-    task dir exists, embeds the schema path in ``_schema``, and
-    writes top-level array/object containers from the schema.
+    task dir exists, and writes top-level array/object containers
+    from the schema.
     '''
     spath = _task_schema_path(workdir, task_id)
     sch = _load_schema_at(spath)
     _ensure_task_dir(workdir, task_id)
     out_path = _task_output_path(workdir, task_id)
-    data: dict = {_SCHEMA_FIELD: str(spath)}
-    data.update(_initial_data(sch))
+    data: dict = _initial_data(sch)
     _atomic_save(out_path, data)
     _emit({'ok': True, 'path': str(out_path), 'schema': str(spath),
            'task': task_id})
@@ -262,14 +258,7 @@ def cmd_add(workdir: Path, task_id: str, set_pairs: list[str]) -> None:
     '''
     out_path = _task_output_path(workdir, task_id)
     data = _load_output(out_path)
-    schema_ref = data.get(_SCHEMA_FIELD)
-    if not schema_ref:
-        _fail(f'output {out_path} has no embedded _schema reference; '
-              f'call ``loom output init`` first')
-    schema = _load_schema_at(Path(schema_ref))
-
-    def _data_view(d: dict) -> dict:
-        return {k: v for k, v in d.items() if k != _SCHEMA_FIELD}
+    schema = _load_schema_at(_task_schema_path(workdir, task_id))
 
     applied: list[dict] = []
     for pair in set_pairs:
@@ -283,7 +272,7 @@ def cmd_add(workdir: Path, task_id: str, set_pairs: list[str]) -> None:
                         'type': leaf.get('type') if leaf else '?'})
 
     try:
-        jsonschema.validate(instance=_data_view(data), schema=schema)
+        jsonschema.validate(instance=data, schema=schema)
     except jsonschema.ValidationError as e:
         _fail(f'schema violation at {list(e.absolute_path)}: {e.message}',
               applied=applied)

@@ -49,14 +49,19 @@ class LoomRuntime:
             if not candidates:
                 return None
 
-            runnable, skipped = algorithm.partition_ready(
+            runnable, skipped, failed = algorithm.partition_ready(
                 candidates, plan, self.workdir)
 
             for t, reason in skipped:
                 t.status = STATUS_SKIPPED
                 td = store.ensure_task_dir(self.workdir, plan, t.id)
                 (td / 'skip-reason.log').write_text(reason, encoding='utf-8')
-            if skipped:
+            for t, reason in failed:
+                t.status = STATUS_FAILED
+                td = store.ensure_task_dir(self.workdir, plan, t.id)
+                (td / 'cascade-fail-reason.log').write_text(
+                    reason, encoding='utf-8')
+            if skipped or failed:
                 store.save_plan(self.workdir, plan)
 
             internal = [t for t in runnable if t.kind == 'tool']
@@ -226,7 +231,8 @@ class LoomRuntime:
         td = store.ensure_task_dir(self.workdir, plan, task_id)
         for fname in ('output.yaml', 'prompt.md',
                       'render-error.log', 'schema-error.log',
-                      'stderr.log', 'skip-reason.log'):
+                      'stderr.log', 'skip-reason.log',
+                      'cascade-fail-reason.log'):
             f = td / fname
             if f.exists():
                 f.unlink()
