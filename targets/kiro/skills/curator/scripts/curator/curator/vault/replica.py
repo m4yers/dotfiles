@@ -767,8 +767,32 @@ def _name_matches_any_vault_page(name: str) -> bool:
       organized one level deep by source kind (``Articles``,
       ``Books``, ``Papers``, ``Videos``), so recurse one level
       there. The other artifact folders are flat.
+
+    Also handles two non-wikilink shapes that surface from
+    frontmatter ``sources:``-style lists, where the value is a
+    YAML scalar rather than a ``[[...]]`` link:
+
+    - **Absolute vault path** — e.g.
+      ``/home/user/Obsidian/MahVault/10 SOURCES/Articles/Foo.md``.
+      Strip the ``VAULT_ROOT/`` prefix and treat the remainder
+      like a path-style target.
+    - **Trailing ``.md``** — e.g. ``10 SOURCES/Articles/Foo.md``.
+      Drop the suffix before composing ``<...>.md`` so we don't
+      probe ``Foo.md.md``.
     """
     from curator.vault.config import VAULT_ROOT
+
+    # Normalize: strip absolute VAULT_ROOT prefix when the caller
+    # passed a full filesystem path (e.g. from frontmatter
+    # ``sources:`` written as a YAML string rather than [[...]]).
+    vault_prefix = f"{VAULT_ROOT}/"
+    if name.startswith(vault_prefix):
+        name = name[len(vault_prefix):]
+
+    # Normalize: drop a trailing ``.md`` so we don't probe
+    # ``<name>.md.md`` when the caller already named the file.
+    if name.endswith(".md"):
+        name = name[:-3]
 
     # Path-style wikilink — exact path lookup, no slug mangling.
     if "/" in name:
