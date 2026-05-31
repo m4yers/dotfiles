@@ -1,1 +1,11 @@
 type: object
+required: [replica_root, manifest_path, entries]
+properties:
+  replica_root:
+    type: string
+  manifest_path:
+    type: string
+  entries:
+    type: array
+    items:
+      type: object

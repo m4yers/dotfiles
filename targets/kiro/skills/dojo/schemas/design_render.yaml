@@ -1,0 +1,13 @@
+# Output of `render-design` tool task. Records the path of
+# the human-readable markdown rendered from the design YAML.
+type: object
+required: [ok, report_path]
+additionalProperties: false
+properties:
+  ok:
+    type: boolean
+  report_path:
+    type: string
+    description: |
+      Absolute path to the rendered design.md inside the
+      render-design task workdir.

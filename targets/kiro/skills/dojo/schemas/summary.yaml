@@ -1,0 +1,15 @@
+# Output of `summary` tool task. Final report of what was
+# written and the terminal status.
+type: object
+required: [status, files_written]
+additionalProperties: false
+properties:
+  status:
+    type: string
+    enum: [DONE, DONE_WITH_CONCERNS, BLOCKED, NEEDS_CONTEXT]
+  files_written:
+    type: array
+    items:
+      type: string
+  notes:
+    type: string

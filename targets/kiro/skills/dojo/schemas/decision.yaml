@@ -1,0 +1,12 @@
+# Output of `final-review` and `user-review` human tasks.
+# User accepts or declines the final state.
+type: object
+required: [status]
+additionalProperties: false
+properties:
+  status:
+    type: string
+    enum: [accept, decline]
+  notes:
+    type: string
+    description: optional user remarks

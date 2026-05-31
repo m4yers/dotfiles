@@ -1,0 +1,21 @@
+# Output of `gather` human task.
+type: object
+required: [name, location, type, description, purpose]
+additionalProperties: false
+properties:
+  name:
+    type: string
+    description: kebab-case skill name
+  location:
+    type: string
+    description: namespace path under ~/.kiro/skills/, e.g. "home" or "aws/util"
+  type:
+    type: string
+    enum: [interface, tool, workflow, reference]
+  description:
+    type: string
+    description: SKILL.md frontmatter description (max 1024 chars)
+    maxLength: 1024
+  purpose:
+    type: string
+    description: free-form what the skill does and when to use it

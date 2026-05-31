@@ -1,0 +1,57 @@
+{# Answer agent prompt. One of three independent fan-outs.
+   Inputs:
+     - vars.question  — the user's question
+     - vars.answer_id — answer-1 / answer-2 / answer-3
+   No upstream task is exposed here intentionally: the
+   sibling `rubric` task is OUT of this agent's reach so the
+   answer cannot be tailored to the rubric's weights.
+#}
+# Answer the question (independent run {{ vars.answer_id }})
+
+## Inputs
+
+- Question: `{{ vars.question }}`
+
+## Task
+
+Produce a complete, well-reasoned answer. Do not consult
+the rubric — it lives in a sibling task this run cannot
+read. Answering against the rubric defeats the
+independence the workflow is built on.
+
+Required artifacts:
+
+- `headline` — one-sentence summary, ≤ 200 chars.
+- `body` — full markdown answer with the reasoning the
+  reader needs to act on the result.
+- `key_claims` — at least one load-bearing claim, each
+  with concrete cited evidence. Compare agents quote
+  these directly into their `evidence_a` / `evidence_b`
+  fields when judging dimensions, so vague evidence here
+  causes downstream judgments to be rejected by the rank
+  tool. Make every `evidence` value a concrete citation:
+  a quote, a file path, a measurement, a derivation, a
+  named source. "It is well known that…" is not evidence.
+- `assumptions` — unverified inputs you treated as true.
+
+An answer with no `key_claims`, or any `key_claims`
+entry whose `claim` or `evidence` is empty, is rejected
+at task completion.
+
+## Output
+
+```bash
+LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
+WD={{ run.workdir }}
+
+$LOOM output init "$WD" --task {{ vars.answer_id }}
+
+$LOOM output add "$WD" --task {{ vars.answer_id }} \
+    --set 'headline=...' \
+    --set 'body=...' \
+    --set 'key_claims.0.claim=<a load-bearing claim>' \
+    --set 'key_claims.0.evidence=<concrete cited evidence>' \
+    --set 'key_claims.1.claim=...' \
+    --set 'key_claims.1.evidence=...' \
+    --set 'assumptions.0=...'
+```

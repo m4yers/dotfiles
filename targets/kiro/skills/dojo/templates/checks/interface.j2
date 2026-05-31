@@ -1,0 +1,15 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/SKILL.md` — `## API`, `## Commands`,
+  and any invocation tables.
+{% endblock %}
+
+{% block rules %}
+This skill is `type: interface`. Apply each rule from the
+inlined interface conventions to the skill.
+
+## Interface conventions
+
+{% include 'interface-conventions.md' %}
+{% endblock %}

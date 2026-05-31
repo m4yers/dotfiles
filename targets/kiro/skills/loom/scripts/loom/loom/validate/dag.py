@@ -41,7 +41,15 @@ def validate_dag(plan: LoomPlan) -> None:
 
 
 def validate_kind_fields(plan: LoomPlan) -> None:
-    '''Check that each task's per-kind fields are consistent.'''
+    '''Check that each task's per-kind fields are consistent.
+
+    Empty dependency lists are NOT validated here — the
+    ``Task`` dataclass defaults both ``depends_on_all`` and
+    ``depends_on_any`` to ``[]``, making "absent" and "explicitly
+    empty" indistinguishable at this point. Empty-list rejection
+    is the responsibility of the factory functions in
+    ``loom.plan``, where the caller's intent is observable.
+    '''
     for t in plan.tasks:
         if t.kind == 'tool':
             if not t.cmd:

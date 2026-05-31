@@ -1,0 +1,17 @@
+# Output of `check-overlaps` tool task.
+type: object
+required: [has_overlaps, overlaps]
+additionalProperties: false
+properties:
+  has_overlaps:
+    type: boolean
+  overlaps:
+    type: array
+    items:
+      type: object
+      required: [skill, reason]
+      properties:
+        skill:
+          type: string
+        reason:
+          type: string

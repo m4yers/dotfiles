@@ -88,6 +88,73 @@ class TestFail:
         assert 'some error' in (td / 'stderr.log').read_text()
 
 
+class TestRunAborted:
+    '''A task in ``failed`` status causes the next call to
+    ``runtime.next()`` to raise ``RunAborted``. Failure halts
+    the whole run; downstream tasks are NOT cascade-failed
+    individually (they remain in their pre-existing state).'''
+
+    def test_failed_task_raises_run_aborted(self, runtime_with_agent):
+        from loom.errors import RunAborted
+        rt = runtime_with_agent
+        rt.commit_running(['a1'])
+        rt.fail('a1', 'timeout')
+        with pytest.raises(RunAborted) as exc_info:
+            rt.next()
+        assert exc_info.value.failed_task_ids == ['a1']
+        assert exc_info.value.task_id == 'a1'
+        assert "'a1'" in str(exc_info.value)
+
+    def test_run_aborted_exposes_all_failed_ids(self, tmp_path):
+        '''Multiple failures in one run are all surfaced.'''
+        from loom.errors import RunAborted
+        s = write_schema(tmp_path / 's.yaml',
+                         {'type': 'object',
+                          'properties': {'v': {'type': 'integer'}},
+                          'required': ['v']})
+        tpl = write_template(tmp_path / 't.j2', 'p')
+        plan = make_plan(
+            agent('a', template=tpl, output_schema=s),
+            agent('b', template=tpl, output_schema=s),
+        )
+        rt = loom.init(workdir=tmp_path / 'wd', plan=plan)
+        spec = rt.next()
+        ids = [t['id'] for t in spec.tasks]
+        assert sorted(ids) == ['a', 'b']
+        rt.commit_running(ids)
+        rt.fail('a', 'oops a')
+        rt.fail('b', 'oops b')
+        with pytest.raises(RunAborted) as exc_info:
+            rt.next()
+        assert sorted(exc_info.value.failed_task_ids) == ['a', 'b']
+
+    def test_in_flight_completion_still_works(self, tmp_path):
+        '''Q1=(a) semantics: a task that completes after another
+        fails is still recorded; the run-aborted flag fires only
+        when next() is called.'''
+        from loom.errors import RunAborted
+        s = write_schema(tmp_path / 's.yaml',
+                         {'type': 'object',
+                          'properties': {'v': {'type': 'integer'}},
+                          'required': ['v']})
+        tpl = write_template(tmp_path / 't.j2', 'p')
+        plan = make_plan(
+            agent('a', template=tpl, output_schema=s),
+            agent('b', template=tpl, output_schema=s),
+        )
+        rt = loom.init(workdir=tmp_path / 'wd', plan=plan)
+        spec = rt.next()
+        rt.commit_running([t['id'] for t in spec.tasks])
+        # A fails first, B finishes after.
+        rt.fail('a', 'fail-a')
+        rt.complete('b', output={'v': 7})
+        # b's terminal state is preserved.
+        assert rt.plan().get('b').status == 'done'
+        # next() now reports the run aborted.
+        with pytest.raises(RunAborted):
+            rt.next()
+
+
 class TestReset:
     def test_resets_to_pending(self, runtime_with_agent):
         rt = runtime_with_agent

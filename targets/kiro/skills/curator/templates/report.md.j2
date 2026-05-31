@@ -2,6 +2,7 @@
 
    Rendered by loom as the gate task's prompt. Context bags:
      upstream.report.output  — the report tool's rich output dict
+     task                    — current task ({id, output_path, ...})
      vars                    — pipeline vars (destinations, etc.)
 
    Fields from upstream.report.output:
@@ -101,3 +102,12 @@ remove or fix them.
 - `[[{{ t }}]]`
 {%- endfor %}
 {% endif %}
+
+## Output
+
+Write to `{{ task.output_path }}` against
+`schemas/pipeline/gate.yaml`:
+
+```yaml
+proceed: true   # or: false
+```

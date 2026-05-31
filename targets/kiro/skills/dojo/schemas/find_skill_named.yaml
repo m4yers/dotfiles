@@ -1,0 +1,14 @@
+# Output of `find-skill --name N` tool task. Single-entry
+# resolution used by the review pipeline.
+type: object
+required: [name, namespace, path, type]
+additionalProperties: false
+properties:
+  name:
+    type: string
+  namespace:
+    type: string
+  path:
+    type: string
+  type:
+    type: string

@@ -1,0 +1,25 @@
+# Output of `find-skill` tool task (landscape mode). Walks
+# ~/.kiro/skills/ and includes the type per skill so downstream
+# tasks can dispatch on it without re-reading SKILL.md.
+type: object
+required: [namespaces, skills]
+additionalProperties: false
+properties:
+  namespaces:
+    type: array
+    items:
+      type: string
+  skills:
+    type: array
+    items:
+      type: object
+      required: [name, namespace, path, type]
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        path:
+          type: string
+        type:
+          type: string

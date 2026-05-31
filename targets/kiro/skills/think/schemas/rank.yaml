@@ -1,0 +1,159 @@
+# Output of the `rank` tool task. Aggregates the three
+# pair-wise compares into a weighted ranking — see
+# scripts/think/think/rank.py for the formula.
+#
+# Scoring (feature-make adopted, no human gates):
+#   averaged[c][d] = mean(a_score/b_score for c across pairs c is in)
+#   total[c]       = sum(weight[d] * averaged[c][d] for d in dims)
+#   ranking        = sort(totals, desc)
+#
+# Informational signals (NOT gates):
+#   - `intransitivity_cycles` — count of directed 3-cycles in
+#     the pair-win graph (A>B, B>C, C>A). >0 hints the
+#     compares disagree about who is best; the ranking is
+#     still emitted for the user to interpret.
+#   - `confidence_gap` — (top_score - runner_up_score) /
+#     max_possible_weighted_score, in [0, 1]. Higher = more
+#     decisive. Surfaced in the report; never used to block.
+#   - `rejected_judgments` — compare outputs excluded from
+#     aggregation due to missing evidence. Defense in depth
+#     on top of the compare schema's evidence enforcement.
+type: object
+required:
+  - ranking
+  - dimension_scores
+  - confidence_gap
+  - intransitivity_cycles
+  - rejected_judgments
+  - summary
+additionalProperties: false
+properties:
+  ranking:
+    type: array
+    minItems: 3
+    maxItems: 3
+    description: |
+      Sorted by `score` descending. One entry per answer
+      agent; three because the workflow always fans out to
+      exactly three answers.
+    items:
+      type: object
+      required:
+        - answer_id
+        - score
+        - link
+        - headline
+      additionalProperties: false
+      properties:
+        answer_id:
+          type: string
+        score:
+          type: number
+          description: |
+            Weighted total: sum over dimensions of
+            weight * averaged_1_to_5_score. Max possible is
+            5 * sum(weights).
+        link:
+          type: string
+          description: absolute path to the answer's output.yaml
+        headline:
+          type: string
+  dimension_scores:
+    type: array
+    description: |
+      Per-rubric-dimension breakdown. Lets the user see why
+      the ranking came out the way it did and audit any
+      surprising verdict.
+    items:
+      type: object
+      required:
+        - dimension
+        - weight
+        - per_answer_averaged
+        - per_answer_weighted
+        - winners_per_pair
+      additionalProperties: false
+      properties:
+        dimension:
+          type: string
+        weight:
+          type: number
+        per_answer_averaged:
+          type: object
+          description: |
+            Averaged 1-5 score for this dimension per
+            answer. `null` if the answer never received a
+            score for this dimension across its pairs.
+          required: [answer-1, answer-2, answer-3]
+          additionalProperties: false
+          properties:
+            answer-1: {type: [number, "null"]}
+            answer-2: {type: [number, "null"]}
+            answer-3: {type: [number, "null"]}
+        per_answer_weighted:
+          type: object
+          description: |
+            weight * averaged_score per answer for this
+            dimension. Sums (across all dimensions) equal
+            the corresponding ranking entry's `score`. 0
+            when the averaged score is null.
+          required: [answer-1, answer-2, answer-3]
+          additionalProperties: false
+          properties:
+            answer-1: {type: number}
+            answer-2: {type: number}
+            answer-3: {type: number}
+        winners_per_pair:
+          type: array
+          minItems: 3
+          maxItems: 3
+          description: |
+            Per-pair `winner` field, kept for transparency
+            and used internally for cycle detection.
+          items:
+            type: object
+            required: [pair, winner]
+            additionalProperties: false
+            properties:
+              pair:
+                type: string
+                description: compare task id (e.g. compare-1v2)
+              winner:
+                type: string
+                description: a, b, tie, or empty when missing
+  confidence_gap:
+    type: number
+    minimum: 0
+    maximum: 1
+    description: |
+      (top_score - runner_up_score) / max_possible_weighted_score.
+      Informational only — surfaced in the report, never used
+      to gate.
+  intransitivity_cycles:
+    type: integer
+    minimum: 0
+    description: |
+      Count of directed 3-cycles in the pair-win graph
+      derived from majority-of-dimension wins per pair.
+      Informational only.
+  rejected_judgments:
+    type: array
+    description: |
+      Compare outputs excluded from aggregation. Each entry
+      records the compare id and the reason. Empty when no
+      judgments were rejected.
+    items:
+      type: object
+      required: [compare_id, reason]
+      additionalProperties: false
+      properties:
+        compare_id:
+          type: string
+        reason:
+          type: string
+  summary:
+    type: string
+    description: |
+      Free-form markdown overview embedded by the report
+      template. Describes the winner, the gap to second
+      place, and the informational signals.

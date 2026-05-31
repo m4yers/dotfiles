@@ -1,0 +1,30 @@
+{# Suggested heading for the host SKILL.md:
+   ### Step 2: Drive the loop
+
+   Place under the `## Workflow` section, immediately after
+   the per-skill Step 1 (Ingest).
+
+   Variables (must be passed by the includer):
+     prefix     — uppercase shell-variable prefix, e.g. "SB"
+     shim       — uppercase wrapper-script variable, e.g. "BUILDER"
+     skill_name — kebab-case skill name shown in tiling labels
+     target     — placeholder for the primary parameter, e.g. "<op>"
+#}
+1. Set tiling activity:
+   ```bash
+   ${{ prefix }}_TILING activity set "{{ skill_name }}({{ target }}): Drive the loop"
+   ```
+2. Loop until done:
+   - Run `${{ prefix }}_{{ shim }} next "${{ prefix }}_WD"`.
+     Parse the YAML response.
+   - If `done: true` → break.
+   - If `stuck: true` → BLOCKED.
+   - Otherwise, for each `ready[].id`:
+     - If `kind == human` → drive the human gate (see helper).
+     - If `kind == agent` → dispatch the sub-agent (see helper).
+     - Then `${{ prefix }}_{{ shim }} complete "${{ prefix }}_WD" <id>`.
+   - Independent ids in one batch can be dispatched in parallel.
+3. Set tiling activity to Done:
+   ```bash
+   ${{ prefix }}_TILING activity set "{{ skill_name }}({{ target }}): Done"
+   ```

@@ -1,0 +1,99 @@
+{# Complete SKILL.md template for a `type: workflow` skill.
+
+   Composes:
+   - Skill-specific frontmatter, intro, Step 1 (Ingest), Rules,
+     and Completion table — supplied as Jinja variables.
+   - Loom-owned Step 2 + helpers — pulled in via {% include %}
+     from the loom templates folder.
+
+   The Jinja environment used to render this template MUST add
+   `~/.kiro/skills/home/loom/templates/` to its
+   FileSystemLoader search paths so the three includes resolve.
+
+   Caller variables:
+     name           — kebab-case skill name (also frontmatter name)
+     description    — frontmatter description WITH trigger keywords
+     title          — pretty title shown as the H1, e.g. "Skill Builder"
+     intro          — short prose paragraph (1-3 sentences)
+     prefix         — uppercase shell prefix, e.g. "SB"
+     shim           — uppercase wrapper-script base, e.g. "BUILDER"
+     skill_name     — kebab-case for tiling labels (usually == name)
+     target         — placeholder for tiling label, e.g. "<op>"
+     dependencies   — markdown bullet list (each line "- `<dep>` — note")
+     parameters     — markdown bullet list of inputs
+     ingest_args    — argv tail for the ingest call (without prefix),
+                      e.g. "--op <create|update>" or "<name>"
+     rules          — markdown numbered list of cross-step rules
+     completion     — markdown table body rows (no header), one per
+                      status row, e.g.:
+                        | `DONE`     | criteria... |
+                        | `BLOCKED`  | criteria... |
+     final_notes    — optional closing prose (may be empty)
+#}
+---
+name: {{ name }}
+type: workflow
+description: {{ description }}
+---
+
+# {{ title }}
+
+{{ intro }}
+
+## Dependencies
+
+{{ dependencies }}
+
+## Parameters
+
+{{ parameters }}
+
+## Workflow
+
+### Step 1: Ingest
+
+1. Set up tooling aliases:
+   ```bash
+   {{ prefix }}_SKILLS=~/.kiro/skills
+   {{ prefix }}_{{ shim }}=${{ prefix }}_SKILLS/home/{{ skill_name }}/scripts/{{ skill_name }}.sh
+   {{ prefix }}_TILING=${{ prefix }}_SKILLS/home/tiling/scripts/run-ttm.sh
+   {{ prefix }}_EDITOR=${{ prefix }}_SKILLS/home/editor/scripts/run-editor.sh
+   {{ prefix }}_ANALYTICS=${{ prefix }}_SKILLS/home/skill-analytics/scripts/add-invocation.sh
+   ```
+2. Set tiling activity, record invocation, build layout:
+   ```bash
+   ${{ prefix }}_TILING activity set "{{ skill_name }}({{ target }}): Ingest"
+   ${{ prefix }}_ANALYTICS {{ skill_name }} TRIGGER_TYPE:TRIGGER_NAME
+   eval "$(${{ prefix }}_TILING layout build)"
+   ```
+3. Ingest:
+   ```bash
+   {{ prefix }}_WD=$(${{ prefix }}_{{ shim }} ingest {{ ingest_args }})
+   ```
+4. If `ingest` fails: NEEDS_CONTEXT.
+
+### Step 2: Drive the loop
+
+{% include 'step-drive-loop.md.j2' %}
+
+## Helper: Dispatch agent task
+
+{% include 'helper-dispatch-agent.md.j2' %}
+
+## Helper: Drive human gate
+
+{% include 'helper-drive-human-gate.md.j2' %}
+
+## Rules
+
+{{ rules }}
+
+## Completion
+
+| Status               | Criteria                                |
+|----------------------|-----------------------------------------|
+{{ completion }}
+{% if final_notes %}
+
+{{ final_notes }}
+{% endif %}

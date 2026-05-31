@@ -1,0 +1,63 @@
+{# Per-type design body — inlined by templates/prompts/design.md.j2
+   when frontmatter.type == 'workflow'. #}
+## Workflow conventions
+
+{% include 'workflow-conventions.md' %}
+
+## What to populate
+
+The workflow skill template handles SKILL.md structure, so
+the four design fields that matter are:
+
+- `files` — every artifact materialize writes (loom shim,
+  Python package, schemas, prompt templates, references).
+- `cli_surface` — subcommands the main shim exposes
+  (typically `ingest`, `next`, `complete`, plus any
+  `pipeline <name>` helpers that tool tasks invoke).
+- `tasks` — every loom task in dispatch order. Keystone
+  tasks (the algorithmic core) get 3-5 sentence descriptions
+  covering inputs, outputs, schema, and downstream
+  consumption. Boilerplate tasks (parallel fan-outs,
+  near-identical comparators) get 1-2 sentences.
+- `rationale` — tradeoffs you considered and rejected
+  (DAG shape, fan-out factor, determinism, package layout).
+
+`sections` may stay empty — the workflow skill template
+supplies standard SKILL.md sections.
+
+## Output construction
+
+Construct `output.yaml` with loom's schema-driven writer.
+The writer validates after every assignment.
+
+```bash
+LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
+WD={{ run.workdir }}
+
+$LOOM output init "$WD" --task design
+
+$LOOM output add "$WD" --task design \
+    --set frontmatter.name=demo \
+    --set frontmatter.type=workflow \
+    --set 'frontmatter.description=...' \
+    --set 'files[].path=scripts/demo.sh' \
+    --set 'files[-1].purpose=Loom shim.' \
+    --set 'files[-1].content_outline=...' \
+    --set 'cli_surface[].command=ingest' \
+    --set 'cli_surface[-1].args=<args>' \
+    --set 'cli_surface[-1].description=Initialise the loom workdir.' \
+    --set 'cli_surface[].command=next' \
+    --set 'cli_surface[-1].args=<workdir>' \
+    --set 'cli_surface[-1].description=Emit ready tasks.' \
+    --set 'tasks[].id=entry' --set 'tasks[-1].kind=agent' \
+    --set 'tasks[-1].depends_on=[]' \
+    --set 'tasks[-1].description=Keystone — reads ... produces ...' \
+    --set 'tasks[].id=fan-out-a' --set 'tasks[-1].kind=agent' \
+    --set 'tasks[-1].depends_on=[entry]' \
+    --set 'tasks[-1].description=...' \
+    --set rationale='DAG shape and fan-out tradeoffs...'
+```
+
+Syntax: `[]` appends, `[-1]` targets the last appended entry,
+`.` nests. Schema violations exit non-zero with the
+violating path.

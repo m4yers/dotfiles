@@ -1,0 +1,37 @@
+{# Per-type design body — inlined by templates/prompts/design.md.j2
+   when frontmatter.type == 'reference'. #}
+## Reference conventions
+
+{% include 'reference-conventions.md' %}
+
+## What to populate
+
+- `sections` — per reference-conventions.md. Each section is
+  a rule category or band of guidance.
+- `files` — usually empty (rules live in SKILL.md). Append
+  only when a rule body is too long for SKILL.md or has
+  independent reuse value.
+- `rationale` — rule scope, what to include vs exclude, how
+  prescriptive the language is.
+
+## Output construction
+
+```bash
+LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
+WD={{ run.workdir }}
+
+$LOOM output init "$WD" --task design
+
+$LOOM output add "$WD" --task design \
+    --set frontmatter.name=demo \
+    --set frontmatter.type=reference \
+    --set 'frontmatter.description=...' \
+    --set 'sections[].heading=Required Behaviour' \
+    --set 'sections[-1].outline=...' \
+    --set 'sections[].heading=Forbidden Without Proof' \
+    --set 'sections[-1].outline=...' \
+    --set rationale='Rule scope and prescriptiveness tradeoffs...'
+```
+
+Syntax: `[]` appends, `[-1]` targets the last appended entry,
+`.` nests.

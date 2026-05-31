@@ -1,0 +1,16 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/SKILL.md` — verify it does NOT contain
+  procedure / API / invocation sections.
+- All `{{ vars.skill_dir }}/references/*.md` files (if any).
+{% endblock %}
+
+{% block rules %}
+This skill is `type: reference`. Apply each rule from the
+inlined reference conventions to the skill.
+
+## Reference conventions
+
+{% include 'reference-conventions.md' %}
+{% endblock %}

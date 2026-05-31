@@ -17,9 +17,16 @@ from loom.engine.models import (
     TERMINAL_STATUSES,
 )
 
-# Matches ${task:<id>:<path>} or ${task:<id>}
+# Matches ${task:<id>:<path>} or ${task:<id>}.
+# The (?<!\$) negative lookbehind mirrors _PLACEHOLDER_RE in
+# loom/engine/resolve.py: a leading $$ escapes the placeholder
+# so it is not seen as a reference. Without this, validators
+# that share this regex would reject literal $${task:...}
+# strings in user-supplied vars even though the resolver
+# correctly turns them into a literal ${task:...} at render
+# time.
 _TASK_REF_RE = re.compile(
-    r'\$\{task:([A-Za-z0-9_\-]+)(?::([^}]+))?\}')
+    r'(?<!\$)\$\{task:([A-Za-z0-9_\-]+)(?::([^}]+))?\}')
 
 
 def desugar_predicate(expr: str) -> str:
@@ -121,68 +128,87 @@ def partition_ready(
     plan: LoomPlan,
     workdir: Path,
 ) -> tuple[list[Task], list[tuple[Task, str]], list[tuple[Task, str]]]:
-    '''Split candidates by failure cascade and predicate evaluation.
+    '''Split candidates into runnable and skipped buckets.
 
-    Returns three buckets:
+    Returns three buckets for backward-compatibility with callers
+    that destructure as ``runnable, skipped, failed``:
 
     * ``runnable`` — task can be dispatched.
-    * ``skipped``  — task's ``when:`` predicate evaluated false;
-      this is a successful terminal (the task simply doesn't
-      apply).
-    * ``failed``   — at least one upstream cascaded a failure;
-      the task itself fails immediately.
+    * ``skipped``  — task is skipped; reason is one of:
+
+      - cascade-skip: an upstream dep in ``depends_on_all`` is
+        ``skipped`` (AND with False is False); or every dep in a
+        non-empty ``depends_on_any`` is ``skipped`` (OR with all
+        Falses is False);
+      - when-false: the task's own ``when:`` predicate evaluated
+        false.
+
+    * ``failed``   — always empty. Failure is no longer cascaded
+      through the DAG; ``failed`` deps abort the entire run via
+      ``LoomRuntime.next()`` raising ``RunAborted``. The third
+      return value is preserved as ``[]`` so existing callers
+      continue to work.
 
     Resolution order, per task:
 
-    1. Cascade-fail check. ``depends_on_all`` cascades on any
-       failed dep; ``depends_on_any`` cascades only when every
-       dep failed (a single failure is tolerable when there are
-       alternatives).
+    1. Cascade-skip check. ``depends_on_all`` skips on any
+       skipped dep (AND); ``depends_on_any`` skips when every
+       present dep is skipped (OR).
     2. Predicate (``when:``). If false, mark skipped.
     3. Otherwise, runnable.
 
-    Skipped (``when:``-false) deps do NOT cascade — they count
-    as a non-failure terminal, equivalent to ``done`` for
-    predicate purposes. Failure is the only contagious status.
+    Logical model: ``done`` ≡ True, ``skipped`` ≡ False,
+    ``depends_on_all`` ≡ AND, ``depends_on_any`` ≡ OR. Failure
+    is not a logical state — it is an exceptional condition that
+    aborts the run; this function never sees a ``failed`` dep
+    because the runner intercepts failures before scheduling
+    resumes.
     '''
     by_id = {t.id: t for t in plan.tasks}
     runnable: list[Task] = []
     skipped: list[tuple[Task, str]] = []
-    failed: list[tuple[Task, str]] = []
     for t in candidates:
-        fail_reason = _cascade_fail_reason(t, by_id)
-        if fail_reason is not None:
-            failed.append((t, fail_reason))
+        skip_reason = _cascade_skip_reason(t, by_id)
+        if skip_reason is not None:
+            skipped.append((t, skip_reason))
             continue
         ok, reason = eval_predicate(t.when, plan, workdir)
         if not ok:
             skipped.append((t, reason or 'when-false'))
             continue
         runnable.append(t)
-    return runnable, skipped, failed
+    return runnable, skipped, []
 
 
-def _cascade_fail_reason(task: Task, by_id: dict[str, Task]) -> str | None:
-    '''Return a human-readable cascade-fail reason if upstream
-    failures should propagate as a failure of this task, else
-    None.
+def _cascade_skip_reason(task: Task, by_id: dict[str, Task]) -> str | None:
+    '''Return a human-readable cascade-skip reason if upstream
+    skips should propagate as a skip of this task, else None.
 
-    Rules:
-      - ``depends_on_all``: any dep is ``failed`` → fail.
-      - ``depends_on_any``: every present dep is ``failed`` →
-        fail (no alternative path remains).
-    Skipped deps are non-failures and do not contribute.
+    Rules (logical model: skipped = False, done = True):
+      - ``depends_on_all`` is AND: any dep is ``skipped`` → skip
+        (False makes the conjunction False).
+      - ``depends_on_any`` is OR: every dep is ``skipped`` → skip
+        (all Falses make the disjunction False).
     '''
     da = [d for d in task.depends_on_all if d in by_id]
-    bad_all = [d for d in da if by_id[d].status == STATUS_FAILED]
-    if bad_all:
-        first = bad_all[0]
-        return (f'cascade-fail: {len(bad_all)}/{len(da)} all-deps failed '
-                f'(first: {first})')
+    skipped_in_all = [d for d in da if by_id[d].status == STATUS_SKIPPED]
+    if skipped_in_all:
+        first = skipped_in_all[0]
+        return (f'cascade-skip: {len(skipped_in_all)}/{len(da)} all-deps '
+                f'skipped (first: {first})')
     dy = [d for d in task.depends_on_any if d in by_id]
-    if dy and all(by_id[d].status == STATUS_FAILED for d in dy):
-        return f'cascade-fail: all {len(dy)} any-deps failed'
+    if dy and all(by_id[d].status == STATUS_SKIPPED for d in dy):
+        return f'cascade-skip: all {len(dy)} any-deps skipped'
     return None
+
+
+def find_failed_tasks(plan: LoomPlan) -> list[str]:
+    '''Return ids of tasks in ``failed`` status, in plan order.
+
+    Used by ``LoomRuntime.next()`` to decide whether the run
+    has been aborted by a prior failure.
+    '''
+    return [t.id for t in plan.tasks if t.status == STATUS_FAILED]
 
 
 def mark_status(task: Task, new: str) -> None:

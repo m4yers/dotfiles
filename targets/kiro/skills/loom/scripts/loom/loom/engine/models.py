@@ -27,22 +27,34 @@ class Task:
     Dependency semantics
     --------------------
     Resolution waits until every id in ``depends_on_all`` and
-    ``depends_on_any`` is in a terminal status (done, failed, or
-    skipped). The task is then resolved as follows:
+    ``depends_on_any`` is in a terminal status (``done``,
+    ``failed``, or ``skipped``).
 
-      1. Cascade-fail. The task is marked ``failed`` if either:
-         - ``depends_on_all`` contains a dep in status ``failed``;
-         - ``depends_on_any`` is non-empty and every dep is in
-           status ``failed``.
+    Logical model: ``done`` ≡ True, ``skipped`` ≡ False,
+    ``depends_on_all`` ≡ AND, ``depends_on_any`` ≡ OR. The task
+    is then resolved as follows:
+
+      1. Cascade-skip. The task is marked ``skipped`` if either:
+         - any dep in ``depends_on_all`` is ``skipped``
+           (False makes the conjunction False);
+         - every dep in a non-empty ``depends_on_any`` is
+           ``skipped`` (all Falses make the disjunction False).
       2. Predicate. ``when:`` is evaluated; false → ``skipped``.
       3. Otherwise the task is dispatched.
 
-    ``done`` and ``skipped`` are equivalent for the cascade-fail
-    check; only ``failed`` propagates.
+    Failure is exceptional. A single ``failed`` dep does NOT
+    cascade through the DAG; instead, ``LoomRuntime.next()``
+    raises ``RunAborted`` and the orchestrator surfaces the
+    failure to the user. In-flight tasks finish naturally
+    (their outputs are persisted) but no new tasks dispatch.
 
-    Tasks that need to run on failure (compensating cleanup, etc.)
-    are not currently supported — when needed, surface a separate
-    trigger-rule mechanism.
+    Empty dependency lists
+    ----------------------
+    A task may omit both ``depends_on_all`` and ``depends_on_any``
+    (root task with no upstream). When either field is supplied,
+    it must be non-empty — empty lists are rejected by the
+    factory functions in ``loom.plan`` and by static validation
+    on plan construction.
 
     Legacy ``depends_on``
     --------------------

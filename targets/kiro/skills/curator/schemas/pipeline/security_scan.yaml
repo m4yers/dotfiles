@@ -1,1 +1,26 @@
 type: object
+required: [verdict, ok, checks, findings, summary]
+properties:
+  verdict:
+    type: string
+    enum: [PASS, FAIL]
+  ok:
+    type: boolean
+  checks:
+    type: array
+    items:
+      type: object
+  checks_passed:
+    type: integer
+  checks_failed:
+    type: integer
+  findings:
+    type: array
+    items:
+      type: object
+  summary:
+    type: object
+  scanned:
+    type: string
+  file_size:
+    type: integer

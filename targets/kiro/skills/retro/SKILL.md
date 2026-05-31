@@ -129,7 +129,7 @@ mapping):**
   `str_replace` or `append`.
 - skill/new: Run the Namespace Decision flow, then create
   `~/.kiro/skills/{location}/{name}/SKILL.md` following the conventions in
-  `~/.kiro/skills/home/skill-builder/references/conventions.md` (frontmatter,
+  `~/.kiro/skills/home/dojo/references/conventions.md` (frontmatter,
   trigger phrases, completion status section).
 - steering/update: Read the target, apply with `fs_write`.
 - steering/new: Run the Namespace Decision flow, then create
@@ -148,7 +148,7 @@ infers the target namespace from the finding's content.
 
 1. Enumerate installed namespaces:
    ```bash
-   ~/.kiro/skills/home/skill-builder/scripts/list-namespaces.sh
+   ~/.kiro/skills/home/dojo/scripts/list-namespaces.sh
    ```
 2. Show the user the list and ask: "Where should this <area> live?
    (e.g. `home` for a home-flat entry, `aws/util` for a categorised

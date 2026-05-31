@@ -1,0 +1,62 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/` — the materialized skill being audited.
+- `{{ vars.design_path }}` — the design output approved at the
+  `design-review` human gate.
+{% endblock %}
+
+{% block rules %}
+This check is exclusive to the `create` pipeline. The materialize
+agent had a design specification to follow; this check verifies
+that every design point is reflected in the produced skill.
+
+Read the design at `{{ vars.design_path }}`. The schema
+(`schemas/design.yaml`) documents the field meanings. Compare the
+materialized skill at `{{ vars.skill_dir }}` against the design
+point by point.
+
+Flag any of the following as findings:
+
+### 1. Missing scope coverage
+
+A capability listed in `design.scope` (interface, command,
+operation, or behaviour) does not appear in the materialized
+skill. The agent dropped or forgot a point.
+
+### 2. Out-of-scope additions
+
+The materialized skill exposes a command, file, or behaviour
+that has no corresponding design entry. Materialize is not
+authoring — surfaces should match the design exactly.
+
+### 3. Type drift
+
+The skill's `type:` frontmatter differs from the design's
+declared type. The plan's type-specific check ran against the
+materialized type; if it differs from design, the wrong
+conventions were enforced.
+
+### 4. Trigger drift
+
+The SKILL.md description's trigger phrases do not match the
+design's intended triggers. Triggers shape skill discovery —
+silent rewrites change routing.
+
+### 5. Reference / script drift
+
+A reference file or script the design called out is missing
+from the materialized skill, or an extra one was added that the
+design did not specify. Cite the design line and the present
+(or missing) file.
+
+### 6. Workflow shape mismatch (workflow type only)
+
+For workflow skills, the steps in the design's `workflow`
+section MUST appear in the same order in SKILL.md, with the
+same step names and the same outputs. Any reordering, rename,
+or skipped step is a finding.
+
+For each finding, point at both the design line (`design_path:N`)
+and the skill file (`SKILL.md:M` or `references/X.md:M`).
+{% endblock %}

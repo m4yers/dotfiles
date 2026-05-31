@@ -1,1 +1,20 @@
 type: object
+required: [ok, results]
+properties:
+  ok:
+    type: boolean
+  results:
+    type: array
+    items:
+      type: object
+      required: [vault_path]
+      properties:
+        vault_path: {type: string}
+        ok:         {type: boolean}
+        skipped:    {type: boolean}
+        reason:     {type: string}
+        op:         {type: string}
+        kind:       {type: string}
+        error:      {type: string}
+  error:
+    type: string

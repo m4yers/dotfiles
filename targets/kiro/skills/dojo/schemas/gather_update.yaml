@@ -1,0 +1,20 @@
+# Output of `gather-update` human task.
+type: object
+required: [name, namespace, path, type, description]
+additionalProperties: false
+properties:
+  name:
+    type: string
+    description: kebab-case skill name (picked from find-skill.skills)
+  namespace:
+    type: string
+    description: namespace where the skill lives
+  path:
+    type: string
+    description: absolute path to the skill directory
+  type:
+    type: string
+    description: skill type forwarded from find-skill (interface, tool, workflow, reference)
+  description:
+    type: string
+    description: free-form description of the changes the user wants

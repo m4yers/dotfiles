@@ -1,7 +1,7 @@
 ---
 name: skill-analytics
 type: interface
-description: Skill usage analytics — format, storage, and querying. Use when the user says "skill analytics", "skill usage", "which skills", "prune skills", or wants to see how skills are used. Do NOT use for creating or reviewing skills — use skill-builder or skill-reviewer instead.
+description: Skill usage analytics — format, storage, and querying. Use when the user says "skill analytics", "skill usage", "which skills", "prune skills", or wants to see how skills are used. Do NOT use for creating or reviewing skills — use dojo instead.
 ---
 
 # Skill Analytics

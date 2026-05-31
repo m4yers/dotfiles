@@ -1,1 +1,33 @@
 type: object
+required: [kept_linked, kept_modified, pruned, orphan_links, manifest_path]
+properties:
+  kept_linked:
+    type: array
+    items:
+      type: object
+      properties:
+        vault_path: {type: string}
+        kind:       {type: string}
+        name:       {type: string}
+  kept_modified:
+    type: array
+    items:
+      type: object
+      properties:
+        vault_path: {type: string}
+        kind:       {type: string}
+        name:       {type: string}
+  pruned:
+    type: array
+    items:
+      type: object
+      properties:
+        vault_path: {type: string}
+        kind:       {type: string}
+        name:       {type: string}
+  orphan_links:
+    type: array
+    items:
+      type: string
+  manifest_path:
+    type: string

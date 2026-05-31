@@ -75,6 +75,17 @@ timestamped JSON file with this schema:
 - Routine task completion
 - Things already in skills/steering
 - Transient details (ticket IDs, cluster names)
+- Issues you discovered AND fixed AND verified in the same session — the
+  fix already lives in the codebase, so no future encoding is needed.
+  Exceptions:
+  - The fix exposed a missing safety net or process gap. Retro the gap
+    (e.g. "no automated check for X"), not the bug itself.
+  - The lesson is behavioral / a process rule that outlives the specific
+    fix. Retro the lesson.
+- If you created a retro item and the issue was then fixed immediately
+  in the same session, that retro item can be deleted from
+  `~/.kiro/retro/pending/`. The file count in the `[RETRO]` line should
+  reflect the deletion.
 
 ## Behavior
 
@@ -98,7 +109,7 @@ The user can say "retro" at any time to review and act on learnings.
 ## Formatting
 
 When retro items modify skill files (SKILL.md or references/), you MUST follow
-the conventions in `~/.kiro/skills/home/skill-builder/references/conventions.md`
+the conventions in `~/.kiro/skills/home/dojo/references/conventions.md`
 (80-char prose, aligned tables, single-line frontmatter).
 
 

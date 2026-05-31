@@ -17,7 +17,47 @@ internal `tool` tasks inline, renders prompts for external `agent` and
 every state transition atomically.
 
 Loom never imports skill code, never auto-triggers anything on completion,
-and never owns workdir paths.
+and never owns the workdir root path.
+
+## Workdir layout
+
+Loom owns *everything inside* the workdir, but the *workdir root path*
+is the caller's choice. Skills decide where to put their workdirs and
+what to name them; loom only decides the layout underneath.
+
+```
+<workdir>/                       ← caller chooses this path
+├── plan.yaml                    ← loom: lowered DAG with statuses
+├── global/                      ← loom: cross-task shared bag
+└── tasks/                       ← loom: per-task state
+    └── <NN-task_id>/            ← loom: NN = 1-based plan order
+        ├── prompt.md            ← rendered for agent/human tasks
+        ├── output.yaml          ← task output (schema-validated)
+        └── stderr.log           ← tool subprocess stderr
+```
+
+Two-digit prefix `NN` comes from `_numbered_name(index, task_id)` in
+`loom.engine.store`. Index is the task's 1-based position in the plan's
+declaration order, NOT the topological order.
+
+A skill that wraps loom (e.g. `dojo`,
+`curator`) typically defines its own `WORKDIR_ROOT` constant and
+constructs the workdir from a name plus optional timestamp:
+
+```python
+WORKDIR_ROOT = Path("/tmp/dojo")
+wd = WORKDIR_ROOT / name        # → /tmp/dojo/<name>/
+runtime = loom.init(workdir=wd, plan=...)
+```
+
+Loom does NOT provide a default workdir, an environment variable, or a
+CLI flag for choosing the root. That is each wrapping skill's
+responsibility.
+
+Intermediate files a tool or agent task produces (temp JSON, vars files,
+generated artifacts) belong inside that task's `<workdir>/tasks/<NN-id>/`
+sub-directory — see the `task.workdir` template variable. Avoid scattering
+them across `/tmp/`; co-locating with the task makes failures inspectable.
 
 ## Task primitive
 
@@ -53,24 +93,42 @@ transition is an atomic `plan.yaml` write.
 
 `next()` resolves a task once every id in `depends_on_all` and
 `depends_on_any` is in a terminal status (`done`, `failed`, or
-`skipped`). Resolution applies these checks in order:
+`skipped`). The semantics are logical:
 
-1. Cascade-fail. Mark `failed` and write `cascade-fail-reason.log` if
-   either:
-   - `depends_on_all` contains a dep with status `failed`.
-   - `depends_on_any` is non-empty and every dep has status `failed`.
+- `done` ≡ True
+- `skipped` ≡ False
+- `depends_on_all` ≡ AND
+- `depends_on_any` ≡ OR
+
+Resolution applies these checks in order:
+
+1. Cascade-skip. Mark `skipped` and write `skip-reason.log` if either:
+   - any dep in `depends_on_all` has status `skipped` (False makes
+     the AND False);
+   - every dep in a non-empty `depends_on_any` has status `skipped`
+     (all Falses make the OR False).
 1. Predicate. Evaluate `when:`. If it returns false, mark `skipped`
    and write `skip-reason.log`.
 1. Otherwise mark `ready` and dispatch.
 
-`done` and `skipped` are equivalent for the cascade-fail check;
-`depends_on_all=[done, skipped]` does not cascade.
+Failure is exceptional, not logical. A single `failed` task halts
+the entire run: the next call to `runtime.next()` raises
+`RunAborted` carrying the failed task ids. In-flight tasks finish
+naturally (their outputs are persisted) but no new tasks are
+dispatched. Orchestrators surface the abort to the user.
 
 Body failures transition the task to `failed`:
 
 - `tool` subprocess exited non-zero.
 - `agent` `output.yaml` failed schema validation.
 - Jinja render error (`ready → failed`).
+
+### Empty dependency lists
+
+A task may omit both `depends_on_all` and `depends_on_any` to be a
+root task. When either field is supplied, it must be non-empty —
+empty lists are rejected by the factory functions in `loom.plan`
+with a clear error.
 
 ## Public API
 
@@ -140,12 +198,15 @@ plan = make_plan(
         depends_on_all=["classify"],
         when="${task:classify:quintet.form == 'video'}",
     ),
-    # Fan-in across the optional branches.
+    # Fan-in across the optional branches. Use depends_on_any
+    # because exactly one of the two extracts will run; the
+    # other is skipped. AND would propagate False; OR is True
+    # as long as at least one branch produced output.
     tool(
         "aggregate",
         cmd=["python", AGG_SCRIPT, "--workdir", "${workdir}"],
         output_schema=agg_schema,
-        depends_on_all=["extract-paper", "extract-video"],
+        depends_on_any=["extract-paper", "extract-video"],
     ),
 )
 ```
@@ -154,16 +215,15 @@ Trace for a paper source:
 
 1. `fetch` → `done`.
 1. `classify` → `done` with `{quintet: {form: 'paper'}}`.
-1. `extract-paper`: no failed deps, `when:` true → `done`.
-1. `extract-video`: no failed deps, `when:` false → `skipped`.
-1. `aggregate`: deps `[done, skipped]` → no cascade-fail, no `when:` →
-   `done`.
+1. `extract-paper`: `when:` true → `done`.
+1. `extract-video`: `when:` false → `skipped`.
+1. `aggregate`: `depends_on_any=[done, skipped]` → OR is True → `done`.
 
 Trace if `extract-paper` fails:
 
-1. `aggregate`: `depends_on_all` has a `failed` dep → `failed`.
-   `cascade-fail-reason.log` records
-   `cascade-fail: 1/2 all-deps failed (first: extract-paper)`.
+1. The next call to `runtime.next()` raises `RunAborted` carrying
+   `failed_task_ids=['extract-paper']`. The orchestrator surfaces
+   this as a run-level error; `aggregate` is never scheduled.
 
 ## Reference grammar
 
@@ -193,8 +253,7 @@ against a virtual document of all task outputs.
 │   ├── stderr.log        # tool subprocess stderr
 │   ├── render-error.log  # jinja error, if any
 │   ├── schema-error.log  # output_schema mismatch, if any
-│   ├── skip-reason.log   # when:-false reason, if any
-│   └── cascade-fail-reason.log  # upstream-failure cascade reason
+│   └── skip-reason.log   # cascade-skip or when:-false reason
 └── global/               # cross-task shared state, skill-owned
 ```
 

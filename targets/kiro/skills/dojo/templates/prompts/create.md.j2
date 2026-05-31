@@ -1,0 +1,110 @@
+{# Agent task: materialize the approved design to disk. #}
+# Materialize the skill
+
+Approved design: `{{ upstream['design-review'].task_path }}`.
+Gather output: `{{ upstream['gather'].task_path }}` (provides
+`name` and `location`).
+
+## Task
+
+For each entry in `design.files`, `fs_write` the file at
+`~/.kiro/skills/<location>/<name>/<file.path>`. Generate
+content per `content_outline`, applying the type-specific
+conventions you read during design.
+
+For SKILL.md, generate frontmatter + sections per
+`design.frontmatter` and `design.sections`. Section bodies
+follow the type-specific convention file (workflow type uses
+the unified template — see below).
+
+## Output
+
+Construct `output.yaml` (matching `schemas/files.yaml`) via
+loom's schema-driven writer. `fs_write` is for the skill
+files; the task output goes through `loom output`.
+
+```bash
+LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
+WD={{ run.workdir }}
+
+$LOOM output init "$WD" --task materialize
+
+$LOOM output add "$WD" --task materialize \
+    --set 'files[].path=/abs/path/to/SKILL.md' \
+    --set 'files[-1].action=created' \
+    --set 'files[].path=/abs/path/to/scripts/foo.sh' \
+    --set 'files[-1].action=created'
+```
+
+Syntax: `[]` appends, `[-1]` targets the last appended entry.
+
+Limit skill-file writes to
+`~/.kiro/skills/<location>/<name>/`.
+
+## Workflow type — render the unified template
+
+For workflow-type designs, do NOT hand-compose SKILL.md.
+Render `~/.kiro/skills/home/dojo/templates/skill/workflow.md.j2`
+via the `template` skill's `render.sh`.
+
+```bash
+SKILLS=~/.kiro/skills
+VARS={{ task.workdir }}/vars.json
+
+cat > "$VARS" <<'EOF'
+{
+  "name": "...",
+  "description": "...",
+  "title": "...",
+  "intro": "...",
+  "prefix": "...",
+  "shim": "...",
+  "skill_name": "...",
+  "target": "<...>",
+  "dependencies": "- `loom` — ...\n- `tiling` — ...",
+  "parameters": "- **...** (required): ...",
+  "ingest_args": "--op <create|update>",
+  "rules": "1. ...\n2. ...",
+  "completion": "| `DONE` | ... |\n| `BLOCKED` | ... |",
+  "final_notes": ""
+}
+EOF
+
+$SKILLS/home/skill-analytics/scripts/add-invocation.sh \
+    template skill:dojo
+
+$SKILLS/home/template/scripts/render.sh \
+    --template $SKILLS/home/dojo/templates/skill/workflow.md.j2 \
+    --include-dir $SKILLS/home/dojo/templates/skill \
+    --include-dir $SKILLS/home/loom/templates \
+    --json-vars "$VARS" \
+    > ~/.kiro/skills/<location>/<name>/SKILL.md
+```
+
+The two `--include-dir` flags register the workflow
+template's folder and loom's templates so the partial
+{% raw %}`{% include %}`{% endraw %} directives resolve.
+
+### Variable derivation
+
+| Variable        | Source / how to derive                                          |
+|-----------------|-----------------------------------------------------------------|
+| `name`          | `gather.name`                                                   |
+| `description`  | `gather.description` (refined by your design pass if needed)    |
+| `title`         | Pretty H1 form, e.g. `gather.name` with `-` → space, title-cased|
+| `intro`         | 1–3 sentences explaining what the skill does                    |
+| `prefix`        | Uppercase shell prefix from name initials (`SB`, `SR`, …)       |
+| `shim`          | Uppercase wrapper-script base name (`BUILDER`, `REVIEWER`, …)   |
+| `skill_name`    | Equals `gather.name` for the tiling activity label              |
+| `target`        | Placeholder for primary parameter, e.g. `<op>` or `<name>`      |
+| `dependencies`  | Markdown bullet list (each item: `` - `<dep>` — note ``)        |
+| `parameters`    | Markdown bullet list describing the skill's inputs              |
+| `ingest_args`   | Argv tail for the `ingest` call, e.g. `--op <create|update>`    |
+| `rules`         | Markdown numbered list of cross-step rules                      |
+| `completion`    | Markdown table body rows (no header), one per status            |
+| `final_notes`   | Optional trailing prose (empty string if none)                  |
+
+Pick `prefix` and `shim` per workflow-conventions's "Shell
+Variable Prefixing" rule. The partial bodies are loom's
+source of truth — leave them unmodified; changes belong in
+loom.

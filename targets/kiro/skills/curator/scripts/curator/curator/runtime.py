@@ -9,7 +9,7 @@ from slugify import slugify
 
 import loom
 from loom.errors import (
-    LoomPlanError, RunFailed, RenderFailed, OutputSchemaError,
+    LoomPlanError, RunFailed, RenderFailed, OutputSchemaError, RunAborted,
 )
 
 from curator.config import WORKDIR_ROOT, derive_basename
@@ -55,6 +55,9 @@ def cli_next(workdir: str) -> None:
         fail(str(e))
     try:
         action = runtime.next()
+    except RunAborted as e:
+        fail(f'run aborted; failed tasks: {", ".join(e.failed_task_ids)}',
+             failed_task_ids=e.failed_task_ids)
     except RunFailed as e:
         fail(f'tool task failed: {e.task_id}',
              task_id=e.task_id, detail=e.message)

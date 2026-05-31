@@ -1,0 +1,53 @@
+{# Human task: user reviews the final skill. Shared by the
+   create and update pipelines, which have different upstream
+   shapes — branch on what's actually in `upstream`. #}
+# Final review
+
+You are driving a `final-review` human gate. The skill has
+been created (or updated), audited, and (if needed) fixed.
+Show the user the final state and let them accept or decline.
+
+## Inputs
+
+{% if 'design-review' in upstream -%}
+- Design (create pipeline): `{{ upstream['design-review'].task_path }}`
+{% endif -%}
+{% if 'materialize' in upstream -%}
+- Materialized files: `{{ upstream['materialize'].task_path }}`
+{% endif -%}
+{% if 'gather-update' in upstream -%}
+- Update intent: `{{ upstream['gather-update'].task_path }}`
+{% endif -%}
+{% if 'modify-changes' in upstream -%}
+- Initial change pass: `{{ upstream['modify-changes'].task_path }}`
+{% endif -%}
+{% if 'assemble' in upstream -%}
+- Audit report: `{{ upstream['assemble'].output.report_path }}`
+- Audit summary: errors={{ upstream['assemble'].output.errors }},
+  warnings={{ upstream['assemble'].output.warnings }},
+  infos={{ upstream['assemble'].output.infos }}
+{% endif -%}
+{% if 'modify' in upstream -%}
+- Fix pass output: `{{ upstream['modify'].task_path }}`
+{% endif %}
+
+## Driving the gate
+
+1. Show the user a summary:
+   - Skill location and files written/modified.
+   - Findings counts from the audit and whether the fix pass
+     applied them.
+2. Open the new (or updated) skill's SKILL.md in the editor
+   for inspection.
+3. STOP and wait for the user. They accept → DONE; decline →
+   BLOCKED with their reason.
+
+## Output
+
+Write to `{{ task.output_path }}`
+matching `schemas/decision.yaml`:
+
+```yaml
+status: accept    # or: decline
+notes: ""         # optional user remarks
+```

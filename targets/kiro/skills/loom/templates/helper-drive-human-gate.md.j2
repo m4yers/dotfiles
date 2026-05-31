@@ -1,0 +1,24 @@
+{# Suggested heading for the host SKILL.md:
+   ## Helper: Drive human gate
+
+   Place at top level, after the `## Workflow` section and
+   before `## Rules` / `## Completion`.
+
+   Variables (must be passed by the includer):
+     prefix — uppercase shell-variable prefix, e.g. "SB"
+     shim   — uppercase wrapper-script variable, e.g. "BUILDER"
+#}
+Human tasks are conversational. Read the rendered prompt at
+`prompt_path`, follow its instructions, and write structured
+YAML to `output_path` against the schema. Then call
+`${{ prefix }}_{{ shim }} complete "${{ prefix }}_WD" "<id>"`.
+
+For gates that show files, use the editor:
+
+```bash
+${{ prefix }}_EDITOR show file <path>
+```
+
+STOP and wait for the user. The user can accept, edit, or
+decline. Capture their decision and any edits in the output
+file before completing the task.

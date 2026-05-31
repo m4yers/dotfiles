@@ -1,0 +1,11 @@
+# Generic ok/error envelope used by check_name, check_location.
+# When ok=false the producing tool MUST exit non-zero so loom
+# marks the task `failed` and downstream cascades.
+type: object
+required: [ok]
+additionalProperties: false
+properties:
+  ok:
+    type: boolean
+  error:
+    type: string

@@ -1,0 +1,18 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/scripts/**/pyproject.toml` — Python
+  packaging files for scripts.
+- `{{ vars.skill_dir }}/scripts/**/*.sh` — shim scripts.
+- `{{ vars.skill_dir }}/scripts/**/*.py` — Python sources
+  (sample only — focus on imports and dependency declarations).
+{% endblock %}
+
+{% block rules %}
+Apply each rule from the inlined script conventions to every
+script under the skill.
+
+## Script conventions
+
+{% include 'script-conventions.md' %}
+{% endblock %}

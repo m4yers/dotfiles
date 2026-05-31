@@ -1,7 +1,7 @@
 ---
 name: dotfiles
 type: interface
-description: Manage dotfiles across ~/dotfiles (main) and ~/dotfiles-* (extensions). Use when the user says "dotfiles", "create target", "install target", "dotfiles status", "dotfiles commit", "review target", or wants to manage dotfile targets and profiles. Do NOT use for Kiro skill management — use skill-builder instead.
+description: Manage dotfiles across ~/dotfiles (main) and ~/dotfiles-* (extensions). Use when the user says "dotfiles", "create target", "install target", "dotfiles status", "dotfiles commit", "review target", or wants to manage dotfile targets and profiles. Do NOT use for Kiro skill management — use dojo instead.
 ---
 
 # Dotfiles

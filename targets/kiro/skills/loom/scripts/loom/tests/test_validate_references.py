@@ -57,6 +57,34 @@ class TestReferenceResolution:
         with pytest.raises(LoomReferenceError, match='unknown task id'):
             validate_references(plan, cache)
 
+    def test_escaped_ref_in_vars_not_flagged(self, tmp_path):
+        # $${task:...} is the escape syntax for a literal
+        # ${task:...} in the rendered output. The validator
+        # must mirror the resolver and skip escaped forms,
+        # otherwise user-supplied vars (e.g. documentation
+        # text describing loom's own placeholder grammar)
+        # cannot contain literal placeholder examples.
+        s = write_schema(tmp_path / 's.yaml', {'type': 'object'})
+        plan = LoomPlan(tasks=[
+            Task(id='a', kind='agent', template='/t.j2',
+                 output_schema=str(s),
+                 vars={'doc': 'see $${task:other:field} for syntax'}),
+        ])
+        cache = SchemaCache()
+        cache.load(s)
+        validate_references(plan, cache)  # no exception
+
+    def test_escaped_ref_in_cmd_not_flagged(self, tmp_path):
+        s = write_schema(tmp_path / 's.yaml', {'type': 'object'})
+        plan = LoomPlan(tasks=[
+            Task(id='a', kind='tool',
+                 cmd=['echo', '$${task:ghost:value}'],
+                 output_schema=str(s)),
+        ])
+        cache = SchemaCache()
+        cache.load(s)
+        validate_references(plan, cache)  # no exception
+
 
 class TestJMESPathTracing:
     def test_field_in_schema_passes(self, tmp_path):

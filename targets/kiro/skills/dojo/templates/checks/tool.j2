@@ -1,0 +1,17 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/SKILL.md` — `## Parameters`, `## Steps`,
+  and `## Completion`.
+- `{{ vars.skill_dir }}/scripts/` — contracts of any tool
+  scripts the skill exposes.
+{% endblock %}
+
+{% block rules %}
+This skill is `type: tool`. Apply each rule from the inlined
+tool conventions to the skill.
+
+## Tool conventions
+
+{% include 'tool-conventions.md' %}
+{% endblock %}

@@ -1,0 +1,46 @@
+{# Rubric agent prompt. Inputs come via the vars bag:
+   - vars.question — the user's question
+   - vars.context  — orchestrator-supplied session summary
+                     (may be empty)
+#}
+# Build a scoring rubric
+
+## Inputs
+
+- Question: `{{ vars.question }}`
+- Session context: {% if vars.context %}`{{ vars.context }}`{% else %}_(none provided)_{% endif %}
+
+## Task
+
+Produce 3-8 weighted scoring dimensions for THIS question.
+Use the session context to bias weights toward what
+actually matters here — not a generic checklist.
+
+For each dimension supply: `name`, `description`, `weight`
+(1-10 scalar), `what_better_means`, `what_worse_means`.
+Restate the question in `question_restated` and explain
+your weighting choices in `weighting_rationale`.
+
+## Output
+
+```bash
+LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
+WD={{ run.workdir }}
+
+$LOOM output init "$WD" --task rubric
+
+$LOOM output add "$WD" --task rubric \
+    --set 'question_restated=...' \
+    --set 'dimensions.0.name=correctness' \
+    --set 'dimensions.0.description=...' \
+    --set 'dimensions.0.weight=4' \
+    --set 'dimensions.0.what_better_means=...' \
+    --set 'dimensions.0.what_worse_means=...' \
+    --set 'dimensions.1.name=...' \
+    ...
+    --set 'weighting_rationale=...'
+```
+
+Path syntax: dotted paths only. `dimensions.0.name` sets
+the first array entry's `name`; `dimensions.1.name`
+appends another. Numeric segments index into arrays.

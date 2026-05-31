@@ -1,0 +1,41 @@
+{# Agent task: design a new skill from gather output. Dispatches
+   to a per-type body under templates/design/. #}
+# Design a new skill
+
+Read gather output at `{{ upstream['gather'].task_path }}` for
+`name`, `location`, `type`, `description`, `purpose`. Apply the
+conventions below, then construct `output.yaml` via `loom output`.
+
+## General conventions
+
+{% include 'conventions.md' %}
+
+## Script conventions
+
+{% include 'script-conventions.md' %}
+
+## Type-specific guidance
+
+{% set skill_type = upstream['gather'].output.type
+                    if upstream['gather'].output
+                    and upstream['gather'].output.type else None %}
+{% if skill_type == 'interface' -%}
+{% include 'design/interface.md.j2' %}
+{%- elif skill_type == 'tool' -%}
+{% include 'design/tool.md.j2' %}
+{%- elif skill_type == 'workflow' -%}
+{% include 'design/workflow.md.j2' %}
+{%- elif skill_type == 'reference' -%}
+{% include 'design/reference.md.j2' %}
+{%- else -%}
+**ERROR:** gather.type is missing or invalid: `{{ skill_type }}`.
+Stop and report the gather output as malformed.
+{%- endif %}
+
+## Output
+
+Each type-specific section above ends with a `loom output`
+construction example tailored to that type's required and
+optional fields. Follow it.
+
+Write only inside the task workdir.

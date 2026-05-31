@@ -1,0 +1,97 @@
+{# Pair-wise compare agent prompt. Inputs via vars:
+   - vars.pair_name      — compare-1v2 / 1v3 / 2v3
+   - vars.a, vars.b      — answer ids in the pair
+   - vars.rubric_path    — path to rubric output.yaml
+   - vars.answer_a_path  — path to answer-A output.yaml
+   - vars.answer_b_path  — path to answer-B output.yaml
+#}
+# Compare {{ vars.a }} vs {{ vars.b }}
+
+## Inputs
+
+- Rubric: `{{ vars.rubric_path }}`
+- {{ vars.a }}: `{{ vars.answer_a_path }}`
+- {{ vars.b }}: `{{ vars.answer_b_path }}`
+
+## Task
+
+For every dimension in the rubric, assign each side a 1-5
+score AND record the pair-wise winner. Cite verbatim
+excerpts from each answer to anchor the verdict — bare
+assertions without citations let the model rationalise
+either way.
+
+### Scoring anchors
+
+Use the same anchors for `a_score` and `b_score`:
+
+- **5** — clearly better. The answer demonstrably nails
+  this dimension; cited evidence makes the case directly.
+- **4** — better than acceptable; minor gaps only.
+- **3** — acceptable. Meets the dimension's bar without
+  excelling; cited evidence supports the claim but leaves
+  room for improvement.
+- **2** — worse than acceptable; meaningful gaps cited.
+- **1** — clearly worse. The answer fails the dimension
+  per the rubric's `what_worse_means` definition.
+
+After scoring, set `winner` to:
+
+- `a` if `a_score > b_score`
+- `b` if `b_score > a_score`
+- `tie` if `a_score == b_score`
+
+`winner` is informational — the rank tool uses numeric
+scores for ranking and uses `winner` only to detect
+intransitive pair-win cycles.
+
+### Required fields per dimension
+
+- `dimension` — matches the rubric dimension's `name`.
+- `a_score` — integer 1-5 for {{ vars.a }}.
+- `b_score` — integer 1-5 for {{ vars.b }}.
+- `winner` — `a` / `b` / `tie`, derived from the scores.
+- `evidence_a` — verbatim cited excerpt from {{ vars.a }}
+  supporting its score. Must be non-empty and concrete; a
+  vague paraphrase is rejected by the rank tool.
+- `evidence_b` — verbatim cited excerpt from {{ vars.b }}
+  supporting its score. Same requirement.
+- `reasoning` — short justification explaining how the
+  evidence maps to the scores under this dimension's
+  anchors.
+
+The rank tool requires every rubric dimension to appear
+in `dimension_verdicts`. Missing dimensions contribute no
+scores and surface as gaps in the ranking breakdown.
+
+Also produce:
+
+- `pair` — `{a: {{ vars.a }}, b: {{ vars.b }}}`.
+- `overall_winner` — `a`, `b`, or `tie` summarising the
+  pair across all dimensions.
+- `overall_rationale` — short explanation; not used by
+  the rank tool but read when the user audits.
+
+## Output
+
+```bash
+LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
+WD={{ run.workdir }}
+
+$LOOM output init "$WD" --task {{ vars.pair_name }}
+
+$LOOM output add "$WD" --task {{ vars.pair_name }} \
+    --set 'pair.a={{ vars.a }}' \
+    --set 'pair.b={{ vars.b }}' \
+    --set 'dimension_verdicts.0.dimension=correctness' \
+    --set 'dimension_verdicts.0.a_score=4' \
+    --set 'dimension_verdicts.0.b_score=3' \
+    --set 'dimension_verdicts.0.winner=a' \
+    --set 'dimension_verdicts.0.evidence_a=<verbatim excerpt from A>' \
+    --set 'dimension_verdicts.0.evidence_b=<verbatim excerpt from B>' \
+    --set 'dimension_verdicts.0.reasoning=...' \
+    --set 'dimension_verdicts.1.dimension=...' \
+    ...
+    --set 'overall_winner=a' \
+    --set 'overall_rationale=...'
+```

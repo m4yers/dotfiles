@@ -59,27 +59,14 @@ class TestReadinessAllList:
 
 
 class TestCascadeAllList:
-    '''Failure-only cascade for depends_on_all. A failed dep
-    fails the downstream; a skipped (when:false) dep is a
-    non-failure terminal that does NOT cascade.'''
+    '''Cascade-skip for depends_on_all (logical AND). Any
+    ``skipped`` dep propagates skip downstream because
+    ``False ∧ x = False``. Failed deps abort the run via
+    ``RunAborted`` and never reach partition_ready (covered
+    in test_runtime).'''
 
-    def test_failed_all_dep_cascades(self, tmp_path):
-        plan = LoomPlan(tasks=[
-            Task(id='a', kind='tool', cmd=['x'], status='failed'),
-            Task(id='b', kind='tool', cmd=['x'], status='done'),
-            Task(id='c', kind='tool', cmd=['x'],
-                 depends_on_all=['a', 'b']),
-        ])
-        runnable, skipped, failed = partition_ready(
-            [plan.get('c')], plan, tmp_path)
-        assert runnable == []
-        assert skipped == []
-        assert len(failed) == 1
-        assert 'cascade-fail' in failed[0][1]
-        assert 'all-deps failed' in failed[0][1]
-
-    def test_skipped_all_dep_does_not_cascade(self, tmp_path):
-        '''Skipped deps are non-failures; downstream still runs.'''
+    def test_skipped_all_dep_cascades_skip(self, tmp_path):
+        '''Skipped dep propagates skip via AND.'''
         plan = LoomPlan(tasks=[
             Task(id='a', kind='tool', cmd=['x'], status='skipped'),
             Task(id='b', kind='tool', cmd=['x'], status='done'),
@@ -88,9 +75,11 @@ class TestCascadeAllList:
         ])
         runnable, skipped, failed = partition_ready(
             [plan.get('c')], plan, tmp_path)
-        assert len(runnable) == 1 and runnable[0].id == 'c'
-        assert skipped == []
+        assert runnable == []
         assert failed == []
+        assert len(skipped) == 1
+        assert 'cascade-skip' in skipped[0][1]
+        assert 'all-deps skipped' in skipped[0][1]
 
     def test_all_done_runs(self, tmp_path):
         plan = LoomPlan(tasks=[
@@ -147,9 +136,9 @@ class TestReadinessAnyList:
         assert not all_deps_terminal(plan.get('c'), plan)
 
     def test_all_skipped_decides_terminal_check(self):
-        # All any-deps terminal (all skipped, no failures) →
-        # decided. Cascade-fail does not trigger because no
-        # failures occurred; partition_ready then runs the task.
+        # All any-deps terminal (all skipped) → decided.
+        # all_deps_terminal returns True; the resolution decision
+        # (skip vs run) belongs to partition_ready.
         plan = LoomPlan(tasks=[
             Task(id='a', kind='tool', cmd=['x'], status='skipped'),
             Task(id='b', kind='tool', cmd=['x'], status='skipped'),
@@ -158,7 +147,8 @@ class TestReadinessAnyList:
         assert all_deps_terminal(plan.get('c'), plan)
 
     def test_all_failed_decides_terminal_check(self):
-        # All failed → decided; cascade-fail will then trigger.
+        # All failed → decided. The runner picks this up and
+        # raises RunAborted before partition_ready ever sees it.
         plan = LoomPlan(tasks=[
             Task(id='a', kind='tool', cmd=['x'], status='failed'),
             Task(id='b', kind='tool', cmd=['x'], status='failed'),
@@ -202,15 +192,13 @@ class TestReadinessBothLists:
 
 
 class TestCascadeAnyList:
-    '''Cascade rules for depends_on_any:
-       - All deps failed → cascade-fail (no alternative path).
-       - Mixed failures + skipped → not all failed; runnable
-         (skipped any-dep is a non-failure terminal).
-       - All deps skipped → no failures; runnable.
-       - At least one done → runnable.'''
+    '''Cascade-skip for depends_on_any (logical OR). All deps
+    ``skipped`` → skip downstream because ``False ∨ False = False``.
+    At least one ``done`` → runnable. Failed deps abort the run
+    via ``RunAborted`` and never reach partition_ready.'''
 
-    def test_all_any_skipped_does_not_cascade(self, tmp_path):
-        '''All deps skipped (no failures) → runnable.'''
+    def test_all_any_skipped_cascades_skip(self, tmp_path):
+        '''All deps skipped → cascade-skip downstream (OR of all False).'''
         plan = LoomPlan(tasks=[
             Task(id='a', kind='tool', cmd=['x'], status='skipped'),
             Task(id='b', kind='tool', cmd=['x'], status='skipped'),
@@ -218,42 +206,14 @@ class TestCascadeAnyList:
         ])
         runnable, skipped, failed = partition_ready(
             [plan.get('c')], plan, tmp_path)
-        assert len(runnable) == 1 and runnable[0].id == 'c'
-        assert skipped == []
-        assert failed == []
-
-    def test_all_any_failed_cascades(self, tmp_path):
-        '''All any-deps failed → cascade-fail downstream.'''
-        plan = LoomPlan(tasks=[
-            Task(id='a', kind='tool', cmd=['x'], status='failed'),
-            Task(id='b', kind='tool', cmd=['x'], status='failed'),
-            Task(id='c', kind='tool', cmd=['x'], depends_on_any=['a', 'b']),
-        ])
-        runnable, skipped, failed = partition_ready(
-            [plan.get('c')], plan, tmp_path)
         assert runnable == []
-        assert skipped == []
-        assert len(failed) == 1
-        assert 'cascade-fail' in failed[0][1]
-        assert 'any-deps failed' in failed[0][1]
-
-    def test_mixed_failed_and_skipped_runs(self, tmp_path):
-        '''A failure plus a skipped is not "all failed" → no
-        cascade-fail. The skipped path is a benign non-failure
-        terminal that satisfies depends_on_any.'''
-        plan = LoomPlan(tasks=[
-            Task(id='a', kind='tool', cmd=['x'], status='failed'),
-            Task(id='b', kind='tool', cmd=['x'], status='skipped'),
-            Task(id='c', kind='tool', cmd=['x'], depends_on_any=['a', 'b']),
-        ])
-        runnable, skipped, failed = partition_ready(
-            [plan.get('c')], plan, tmp_path)
-        assert len(runnable) == 1 and runnable[0].id == 'c'
-        assert skipped == []
         assert failed == []
+        assert len(skipped) == 1
+        assert 'cascade-skip' in skipped[0][1]
+        assert 'any-deps skipped' in skipped[0][1]
 
     def test_any_partial_skipped_runs(self, tmp_path):
-        # One skipped, one done — task runs.
+        # One skipped, one done — OR is True → runs.
         plan = LoomPlan(tasks=[
             Task(id='a', kind='tool', cmd=['x'], status='skipped'),
             Task(id='b', kind='tool', cmd=['x'], status='done'),
@@ -265,9 +225,10 @@ class TestCascadeAnyList:
         assert skipped == []
         assert failed == []
 
-    def test_all_list_alive_but_any_all_skipped_runs(self, tmp_path):
-        '''depends_on_all satisfied (a done) and depends_on_any
-        is all skipped (no failures) → runnable.'''
+    def test_all_list_alive_but_any_all_skipped_cascades_skip(self, tmp_path):
+        '''AND list satisfied (a done) but OR list all skipped →
+        the conjunction (all-list True) ∧ (any-list False) is False →
+        cascade-skip.'''
         plan = LoomPlan(tasks=[
             Task(id='a', kind='tool', cmd=['x'], status='done'),
             Task(id='b', kind='tool', cmd=['x'], status='skipped'),
@@ -277,9 +238,11 @@ class TestCascadeAnyList:
         ])
         runnable, skipped, failed = partition_ready(
             [plan.get('x')], plan, tmp_path)
-        assert len(runnable) == 1 and runnable[0].id == 'x'
-        assert skipped == []
+        assert runnable == []
         assert failed == []
+        assert len(skipped) == 1
+        assert 'cascade-skip' in skipped[0][1]
+        assert 'any-deps skipped' in skipped[0][1]
 
 
 # ---- factory deprecation ----
@@ -351,6 +314,50 @@ class TestFactoryConflict:
         with pytest.raises(ValueError, match='cannot coexist'):
             agent('x', template='/t.j2', output_schema='/s.yaml',
                   depends_on=['a'], depends_on_all=['b'])
+
+
+class TestEmptyDepsListRejected:
+    '''Empty dep lists are forbidden at the factory boundary.
+    Root tasks (no upstream at all) must omit the field; passing
+    ``[]`` is the user signaling intent that we reject early.
+
+    Scope:
+      - tool/agent/human factories all reject empty lists.
+      - Both ``depends_on_all=`` and ``depends_on_any=`` are checked.
+      - Legacy ``depends_on=[]`` also rejected (it migrates into
+        ``depends_on_all=[]``).
+      - Tasks with neither field supplied remain valid (root tasks).
+    '''
+
+    @pytest.mark.parametrize('factory,kwargs', [
+        ('tool',  {'cmd': ['echo'], 'output_schema': '/s.yaml'}),
+        ('agent', {'template': '/t.j2', 'output_schema': '/s.yaml'}),
+        ('human', {}),
+    ])
+    @pytest.mark.parametrize('field', ['depends_on_all', 'depends_on_any'])
+    def test_empty_list_rejected(self, factory, kwargs, field):
+        fns = {'tool': tool, 'agent': agent, 'human': human}
+        fn = fns[factory]
+        with pytest.raises(ValueError, match=r'must be non-empty when supplied'):
+            fn('x', **kwargs, **{field: []})
+
+    def test_root_task_omits_field(self):
+        '''Omitting both fields constructs a valid root task.'''
+        t = tool('root', cmd=['echo'], output_schema='/s.yaml')
+        assert t.depends_on_all == []
+        assert t.depends_on_any == []
+        a = agent('root-a', template='/t.j2', output_schema='/s.yaml')
+        assert a.depends_on_all == []
+        h = human('root-h')
+        assert h.depends_on_all == []
+
+    def test_legacy_empty_depends_on_rejected(self):
+        '''depends_on=[] migrates to depends_on_all=[] and is rejected.'''
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', FutureWarning)
+            with pytest.raises(ValueError, match=r'must be non-empty when supplied'):
+                tool('x', cmd=['echo'], output_schema='/s.yaml',
+                     depends_on=[])
 
 
 # ---- Task constructor + (de)serialization ----

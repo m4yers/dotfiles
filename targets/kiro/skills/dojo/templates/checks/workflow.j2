@@ -1,0 +1,18 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/SKILL.md` — `## Workflow`, every
+  `### Step N` section, and the `## Completion` table.
+- `{{ vars.skill_dir }}/scripts/` — for evidence the workflow
+  is driven by loom (wrapper shim or inline `loom.init` /
+  `loom.resume`).
+{% endblock %}
+
+{% block rules %}
+This skill is `type: workflow`. Apply each rule from the
+inlined workflow conventions to the skill.
+
+## Workflow conventions
+
+{% include 'workflow-conventions.md' %}
+{% endblock %}

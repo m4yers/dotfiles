@@ -25,7 +25,7 @@ from loom.engine.models import (
     TERMINAL_STATUSES,
 )
 from loom.engine.resolve import resolve_value
-from loom.errors import OutputSchemaError, RunFailed, RenderFailed
+from loom.errors import OutputSchemaError, RunFailed, RenderFailed, RunAborted
 from loom.render import render_task
 
 
@@ -38,9 +38,19 @@ class LoomRuntime:
 
     def next(self) -> ActionSpec | None:
         '''Compute ready set, run tool tasks inline, render external tasks,
-        return ActionSpec for external batch (or None if done/stuck).'''
+        return ActionSpec for external batch (or None if done/stuck).
+
+        Raises ``RunAborted`` if any task in the plan is already in
+        ``failed`` status. Failure halts the whole run; in-flight
+        tasks finish naturally (their outputs are persisted) but
+        no new tasks are dispatched.
+        '''
         while True:
             plan = store.load_plan(self.workdir)
+
+            failed_ids = algorithm.find_failed_tasks(plan)
+            if failed_ids:
+                raise RunAborted(failed_ids)
 
             if algorithm.is_done(plan):
                 return None
@@ -49,19 +59,14 @@ class LoomRuntime:
             if not candidates:
                 return None
 
-            runnable, skipped, failed = algorithm.partition_ready(
+            runnable, skipped, _ = algorithm.partition_ready(
                 candidates, plan, self.workdir)
 
             for t, reason in skipped:
                 t.status = STATUS_SKIPPED
                 td = store.ensure_task_dir(self.workdir, plan, t.id)
                 (td / 'skip-reason.log').write_text(reason, encoding='utf-8')
-            for t, reason in failed:
-                t.status = STATUS_FAILED
-                td = store.ensure_task_dir(self.workdir, plan, t.id)
-                (td / 'cascade-fail-reason.log').write_text(
-                    reason, encoding='utf-8')
-            if skipped or failed:
+            if skipped:
                 store.save_plan(self.workdir, plan)
 
             internal = [t for t in runnable if t.kind == 'tool']
@@ -231,8 +236,7 @@ class LoomRuntime:
         td = store.ensure_task_dir(self.workdir, plan, task_id)
         for fname in ('output.yaml', 'prompt.md',
                       'render-error.log', 'schema-error.log',
-                      'stderr.log', 'skip-reason.log',
-                      'cascade-fail-reason.log'):
+                      'stderr.log', 'skip-reason.log'):
             f = td / fname
             if f.exists():
                 f.unlink()

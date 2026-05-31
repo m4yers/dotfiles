@@ -1,0 +1,48 @@
+{# Agent task: apply audit findings to a skill. #}
+# Apply audit findings
+
+Audit report: `{{ vars.report_path }}` (markdown listing
+findings with severity, location, description, fix; ordered
+Errors → Warnings → Info).
+Skill directory: `{{ vars.skill_dir }}`.
+
+## Task
+
+For each finding:
+
+1. Read `Location` (file:line) and `Fix`. Apply the fix
+   exactly as described.
+2. When two findings touch the same line, apply in severity
+   order and re-read the file between fixes.
+3. When a fix is ambiguous, infer the intent from the
+   finding's description and surrounding linter output —
+   apply only fixes the report asks for.
+4. When a fix cannot be applied (file moved, line gone,
+   conflict with another fix), record this in the file's
+   `notes` field and skip.
+
+Stay strictly within scope. Refactoring unrelated code or
+renaming files outside the report introduces uncommanded
+change.
+
+## Output
+
+Construct `output.yaml` (matching `schemas/files.yaml`) via
+loom's schema-driven writer. `fs_write` is for the edited
+skill files; the task output goes through `loom output`.
+
+```bash
+LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
+WD={{ run.workdir }}
+
+$LOOM output init "$WD" --task modify
+
+$LOOM output add "$WD" --task modify \
+    --set 'files[].path=/abs/path/to/edited.md' \
+    --set 'files[-1].action=modified' \
+    --set 'files[].path=/abs/path/to/new.md' \
+    --set 'files[-1].action=created' \
+    --set 'files[-1].notes=skipped finding #4 — line gone'
+```
+
+Syntax: `[]` appends, `[-1]` targets the last appended entry.

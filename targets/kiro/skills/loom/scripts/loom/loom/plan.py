@@ -27,6 +27,8 @@ def _migrate_depends_on(
     Emits a FutureWarning when the legacy ``depends_on`` is used.
     Raises ValueError when ``depends_on`` is mixed with the new
     ``depends_on_all`` (ambiguous — caller must pick one).
+    Raises ValueError when either dependency list is supplied but
+    empty (root tasks must omit the field, not pass ``[]``).
     The warning's stacklevel is 3 so the message points at the
     factory's caller (``tool('x', depends_on=...)``), not at
     this helper.
@@ -43,6 +45,16 @@ def _migrate_depends_on(
             stacklevel=3,
         )
         depends_on_all = depends_on
+    if depends_on_all is not None and len(depends_on_all) == 0:
+        raise ValueError(
+            f'task {id!r}: depends_on_all must be non-empty when '
+            f'supplied; omit the field for a root task'
+        )
+    if depends_on_any is not None and len(depends_on_any) == 0:
+        raise ValueError(
+            f'task {id!r}: depends_on_any must be non-empty when '
+            f'supplied; omit the field for a root task'
+        )
     return list(depends_on_all or []), list(depends_on_any or [])
 
 

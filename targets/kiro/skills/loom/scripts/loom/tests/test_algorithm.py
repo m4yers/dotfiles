@@ -150,6 +150,14 @@ class TestDesugarPredicate:
         expr = "${workdir}/foo"
         assert desugar_predicate(expr) == expr
 
+    def test_escaped_task_ref_left_as_is(self):
+        # $${task:...} is the literal-placeholder escape from
+        # the resolver. desugar_predicate must mirror it so a
+        # predicate that documents placeholder syntax inside a
+        # string is not corrupted into a JMESPath subexpression.
+        expr = "doc == '$${task:other:field}'"
+        assert desugar_predicate(expr) == expr
+
 
 class TestEvalPredicate:
     def test_true_predicate(self, tmp_path):
@@ -218,80 +226,130 @@ class TestPartitionReady:
 
 
 class TestCascadeSkip:
-    '''Cascade rules under failure-only propagation:
-       - skipped deps are non-failures and do NOT cascade.
-       - failed deps cascade as failures (depends_on_all: any failed;
-         depends_on_any: every dep failed).'''
+    '''Cascade rules under logical-AND/OR semantics:
 
-    @pytest.mark.parametrize('scenario,dep_statuses,expected_outcome,expected_reason', [
-        # Mixed deps: A done, B skipped → C runnable (skipped is benign).
-        ('mixed_done_skipped', {'a': 'done', 'b': 'skipped'}, 'runnable', None),
-        # All deps skipped (no failures) → C runnable.
-        ('all_skipped_2', {'a': 'skipped', 'b': 'skipped'}, 'runnable', None),
-        # Single skipped dep → C runnable.
-        ('single_skipped', {'a': 'skipped'}, 'runnable', None),
-        # Failed dep → C cascade-fails.
-        ('failed_dep', {'a': 'failed'}, 'failed',
-         'cascade-fail: 1/1 all-deps failed (first: a)'),
-        # Both done → runnable.
-        ('both_done', {'a': 'done', 'b': 'done'}, 'runnable', None),
+      - ``done`` ≡ True, ``skipped`` ≡ False.
+      - ``depends_on_all`` ≡ AND: any ``skipped`` → skip downstream.
+      - ``depends_on_any`` ≡ OR: every dep ``skipped`` → skip downstream.
+      - ``failed`` is exceptional and never reaches partition_ready
+        (the runner raises ``RunAborted`` first); cascade tests for
+        failure live in ``test_runtime``.'''
+
+    @pytest.mark.parametrize('scenario,dep_statuses,expected_outcome,expected_reason_marker', [
+        # All AND: any skipped propagates skip (False ∧ True = False).
+        ('all_done', {'a': 'done', 'b': 'done'}, 'runnable', None),
+        ('all_done_skipped', {'a': 'done', 'b': 'skipped'}, 'skipped',
+         'cascade-skip: 1/2 all-deps skipped'),
+        ('all_two_skipped', {'a': 'skipped', 'b': 'skipped'}, 'skipped',
+         'cascade-skip: 2/2 all-deps skipped'),
+        ('all_single_skipped', {'a': 'skipped'}, 'skipped',
+         'cascade-skip: 1/1 all-deps skipped'),
     ])
-    def test_cascade_parametrized(self, tmp_path, scenario, dep_statuses, expected_outcome, expected_reason):
+    def test_cascade_all_parametrized(
+        self, tmp_path, scenario, dep_statuses,
+        expected_outcome, expected_reason_marker,
+    ):
         tasks = []
         dep_ids = []
         for tid, status in dep_statuses.items():
             tasks.append(Task(id=tid, kind='tool', cmd=['echo'], status=status))
             dep_ids.append(tid)
         tasks.append(Task(id='c', kind='agent', template='/t.j2',
-                          depends_on=dep_ids))
+                          depends_on_all=dep_ids))
         plan = LoomPlan(tasks=tasks)
-        runnable, skipped, failed = partition_ready([plan.get('c')], plan, tmp_path)
+        runnable, skipped, failed = partition_ready(
+            [plan.get('c')], plan, tmp_path)
+        assert failed == []
         if expected_outcome == 'runnable':
             assert len(runnable) == 1 and runnable[0].id == 'c'
             assert skipped == []
-            assert failed == []
-        elif expected_outcome == 'failed':
+        elif expected_outcome == 'skipped':
             assert runnable == []
+            assert len(skipped) == 1
+            assert expected_reason_marker in skipped[0][1]
+        else:
+            raise AssertionError(f'unknown outcome {expected_outcome!r}')
+
+    @pytest.mark.parametrize('scenario,dep_statuses,expected_outcome,expected_reason_marker', [
+        # OR: at least one done → runnable.
+        ('any_done_skipped', {'a': 'done', 'b': 'skipped'}, 'runnable', None),
+        # OR: all skipped → skip (False ∨ False = False).
+        ('any_all_skipped', {'a': 'skipped', 'b': 'skipped'}, 'skipped',
+         'cascade-skip: all 2 any-deps skipped'),
+        # OR: single skipped dep → skip.
+        ('any_single_skipped', {'a': 'skipped'}, 'skipped',
+         'cascade-skip: all 1 any-deps skipped'),
+    ])
+    def test_cascade_any_parametrized(
+        self, tmp_path, scenario, dep_statuses,
+        expected_outcome, expected_reason_marker,
+    ):
+        tasks = []
+        dep_ids = []
+        for tid, status in dep_statuses.items():
+            tasks.append(Task(id=tid, kind='tool', cmd=['echo'], status=status))
+            dep_ids.append(tid)
+        tasks.append(Task(id='c', kind='agent', template='/t.j2',
+                          depends_on_any=dep_ids))
+        plan = LoomPlan(tasks=tasks)
+        runnable, skipped, failed = partition_ready(
+            [plan.get('c')], plan, tmp_path)
+        assert failed == []
+        if expected_outcome == 'runnable':
+            assert len(runnable) == 1 and runnable[0].id == 'c'
             assert skipped == []
-            assert len(failed) == 1
-            assert failed[0][1] == expected_reason
+        elif expected_outcome == 'skipped':
+            assert runnable == []
+            assert len(skipped) == 1
+            assert expected_reason_marker in skipped[0][1]
         else:
             raise AssertionError(f'unknown outcome {expected_outcome!r}')
 
     def test_no_deps_always_runnable(self, tmp_path):
-        '''Task with no depends_on is never cascade-skipped.'''
+        '''Root task (no depends_on*) is never cascade-skipped.'''
         plan = LoomPlan(tasks=[
             Task(id='x', kind='tool', cmd=['echo']),
         ])
-        runnable, skipped, failed = partition_ready([plan.get('x')], plan, tmp_path)
+        runnable, skipped, failed = partition_ready(
+            [plan.get('x')], plan, tmp_path)
         assert len(runnable) == 1
         assert skipped == []
         assert failed == []
 
-    def test_failed_dep_cascade_outranks_when_check(self, tmp_path):
-        '''Failure cascade is checked before predicate, so failed
-        upstream produces a cascade-failed task even if when:false
-        would otherwise have skipped it.'''
-        plan = LoomPlan(tasks=[
-            Task(id='a', kind='tool', cmd=['echo'], status='failed'),
-            Task(id='b', kind='agent', template='/t.j2',
-                 depends_on=['a'], when="task.a.form == 'paper'"),
-        ])
-        runnable, skipped, failed = partition_ready([plan.get('b')], plan, tmp_path)
-        assert runnable == []
-        assert skipped == []
-        assert len(failed) == 1
-        assert 'cascade-fail' in failed[0][1]
-
-    def test_when_false_with_skipped_dep_is_skipped(self, tmp_path):
-        '''Skipped deps don't fail; when:false then makes the task
-        skipped rather than runnable.'''
+    def test_skipped_dep_cascades_outranks_when_check(self, tmp_path):
+        '''Cascade-skip is checked before the predicate, so a
+        skipped upstream produces a cascade-skip downstream
+        regardless of what ``when:`` would have decided.'''
         plan = LoomPlan(tasks=[
             Task(id='a', kind='tool', cmd=['echo'], status='skipped'),
             Task(id='b', kind='agent', template='/t.j2',
-                 depends_on=['a'], when="task.a.form == 'paper'"),
+                 depends_on_all=['a'], when="task.a.form == 'paper'"),
         ])
-        runnable, skipped, failed = partition_ready([plan.get('b')], plan, tmp_path)
+        runnable, skipped, failed = partition_ready(
+            [plan.get('b')], plan, tmp_path)
+        assert runnable == []
+        assert failed == []
+        assert len(skipped) == 1
+        assert 'cascade-skip' in skipped[0][1]
+
+    def test_when_false_with_done_dep_is_when_skipped(self, tmp_path):
+        '''A done dep does not propagate skip; the predicate then
+        runs and ``when:false`` gives a when-false skip reason.'''
+        from tests.helpers import write_schema
+        s = write_schema(tmp_path / 's.yaml',
+                         {'type': 'object',
+                          'properties': {'form': {'type': 'string'}},
+                          'required': ['form']})
+        # Need a real output for predicate evaluation.
+        plan = LoomPlan(tasks=[
+            Task(id='a', kind='tool', cmd=['echo'],
+                 output_schema=s, status='done'),
+            Task(id='b', kind='agent', template='/t.j2',
+                 depends_on_all=['a'], when="task.a.form == 'paper'"),
+        ])
+        # No output written → predicate evaluates against None.
+        runnable, skipped, failed = partition_ready(
+            [plan.get('b')], plan, tmp_path)
         assert runnable == []
         assert failed == []
         assert len(skipped) == 1

@@ -1,0 +1,57 @@
+# Output of the `rubric` agent task. The 1-10 weighted
+# rubric tailored to THIS question, derived from the
+# session-context summary the orchestrator passed in.
+type: object
+required:
+  - question_restated
+  - dimensions
+  - weighting_rationale
+additionalProperties: false
+properties:
+  question_restated:
+    type: string
+    description: |
+      The agent's own restatement of what is being scored.
+      Forces the rubric agent to acknowledge the question
+      before composing weights — eliminates "answered the
+      wrong question" rubrics.
+  dimensions:
+    type: array
+    minItems: 3
+    maxItems: 8
+    description: |
+      3-8 weighted scoring dimensions. Weights are 1-10
+      scalars; the rank tool task awards `weight` points
+      to the winner of each pair-wise dimension verdict.
+    items:
+      type: object
+      required:
+        - name
+        - description
+        - weight
+        - what_better_means
+        - what_worse_means
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: short identifier referenced by compares
+        description:
+          type: string
+          description: 1-2 sentence definition of what this measures
+        weight:
+          type: number
+          minimum: 1
+          maximum: 10
+        what_better_means:
+          type: string
+          description: concrete criteria for a higher score
+        what_worse_means:
+          type: string
+          description: concrete criteria for a lower score
+  weighting_rationale:
+    type: string
+    description: |
+      Why these weights, given the session context. The
+      rubric agent should explain which context signals
+      shifted weight toward / away from each dimension.

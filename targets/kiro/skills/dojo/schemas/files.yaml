@@ -1,0 +1,21 @@
+# Output of `create` and `create-fix` agent tasks. A flat
+# manifest of the files written to disk during the agent's run.
+type: object
+required: [files]
+additionalProperties: false
+properties:
+  files:
+    type: array
+    items:
+      type: object
+      required: [path, action]
+      properties:
+        path:
+          type: string
+          description: absolute path on disk
+        action:
+          type: string
+          enum: [created, modified, unchanged]
+        notes:
+          type: string
+          description: optional per-file notes

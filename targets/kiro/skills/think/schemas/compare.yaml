@@ -1,0 +1,108 @@
+# Output of each `compare-*` agent task. Pair-wise verdict
+# of two answers against the rubric, dimension by dimension.
+#
+# Scoring shape (feature-make adopted):
+#   - Each dimension carries numeric `a_score` and `b_score`
+#     in 1-5 with explicit anchors (1=clearly worse,
+#     3=acceptable, 5=clearly better). The rank tool task
+#     averages these per answer across pairs and applies
+#     rubric weights to produce a weighted total.
+#   - `winner` (a/b/tie) stays as an informational field
+#     derived from a_score vs b_score by the agent. The
+#     rank tool uses it ONLY for cycle detection — never
+#     for promotion gating.
+#   - `evidence_a` and `evidence_b` are required non-empty
+#     verbatim excerpts cited from each answer. Anchors the
+#     judgement so it cannot be hand-waved. The rank tool
+#     additionally rejects any judgment whose dimensions
+#     lack non-empty evidence (defense in depth on top of
+#     the schema check).
+type: object
+required:
+  - pair
+  - dimension_verdicts
+  - overall_winner
+  - overall_rationale
+additionalProperties: false
+properties:
+  pair:
+    type: object
+    required: [a, b]
+    additionalProperties: false
+    properties:
+      a:
+        type: string
+        description: id of the first answer in the pair (e.g. answer-1)
+      b:
+        type: string
+        description: id of the second answer in the pair (e.g. answer-2)
+  dimension_verdicts:
+    type: array
+    minItems: 1
+    description: |
+      One entry per rubric dimension. The rank tool task
+      requires every rubric dimension to appear here; missing
+      dimensions contribute no scores and surface as gaps in
+      the ranking breakdown.
+    items:
+      type: object
+      required:
+        - dimension
+        - a_score
+        - b_score
+        - winner
+        - evidence_a
+        - evidence_b
+        - reasoning
+      additionalProperties: false
+      properties:
+        dimension:
+          type: string
+          minLength: 1
+          description: matches the rubric dimension's `name`
+        a_score:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: |
+            1-5 score for answer A on this dimension. Anchors:
+            1=clearly worse, 3=acceptable, 5=clearly better.
+        b_score:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: 1-5 score for answer B on this dimension.
+        winner:
+          type: string
+          enum: [a, b, tie]
+          description: |
+            Informational: derived from a_score vs b_score.
+            Used only for pair-win cycle detection in the
+            rank tool — never for promotion gating.
+        evidence_a:
+          type: string
+          minLength: 1
+          description: |
+            Verbatim excerpt cited from answer A that supports
+            its score. Required non-empty — bare assertions
+            without citations let the model rationalise either
+            way.
+        evidence_b:
+          type: string
+          minLength: 1
+          description: |
+            Verbatim excerpt cited from answer B that supports
+            its score. Required non-empty.
+        reasoning:
+          type: string
+          minLength: 1
+          description: short justification of the scores
+  overall_winner:
+    type: string
+    enum: [a, b, tie]
+  overall_rationale:
+    type: string
+    description: |
+      Summary across dimensions explaining the overall pick.
+      Not used by the rank tool (it averages per-dimension
+      scores), but read by the user when auditing.

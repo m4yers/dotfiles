@@ -1,1 +1,17 @@
 type: object
+required: [files_edited, stripped_total, kept_total]
+properties:
+  files_edited:
+    type: array
+    items:
+      type: object
+      required: [path, stripped]
+      properties:
+        path:
+          type: string
+        stripped:
+          type: array
+  stripped_total:
+    type: integer
+  kept_total:
+    type: integer

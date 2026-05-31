@@ -1,0 +1,26 @@
+{# Human task: pick a skill to update from find-skill output. #}
+# Pick a skill to update
+
+You are driving a `gather-update` human task. The
+`find-skill` task has already discovered all installed skills.
+
+Read `{{ upstream['find-skill'].task_path }}` to see the
+list. Show the user the available skills (name + namespace),
+ask which one to update, and ask what changes they want to
+make.
+
+## Output
+
+Write a YAML file matching `schemas/gather_update.yaml`:
+
+```yaml
+name: editor
+namespace: home
+path: /home/x/.kiro/skills/home/editor
+type: interface
+description: |
+  Free-form description of the changes the user wants.
+```
+
+The `path` and `type` fields MUST come from `find-skill.skills[]`
+for the chosen skill — do not synthesize them.

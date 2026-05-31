@@ -1,0 +1,59 @@
+# Think — final report
+
+## Question
+
+{{ question }}
+
+## Final ranking
+
+| Rank | Answer | Score | Link | Headline |
+|------|--------|-------|------|----------|
+{{ ranking_rows }}
+
+## Per-dimension scores
+
+| Dimension | Weight | Averaged 1-5 per answer | Weighted contribution |
+|-----------|--------|-------------------------|-----------------------|
+{{ dimension_rows }}
+
+## Confidence signals
+
+These are informational. The ranking above is always emitted;
+treat the signals as inputs when deciding how much to trust it.
+
+- **Confidence gap**: {{ confidence_gap }} of max — gap between the
+  top answer and the runner-up as a fraction of the maximum
+  possible weighted score. Higher is more decisive.
+- **Intransitivity cycles**: {{ intransitivity_cycles }} — directed
+  3-cycles in the pair-win graph (e.g. A>B, B>C, C>A). >0 means
+  the compares disagree about a strict order; the ranking falls
+  back to averaged scores so it is still well-defined, but the
+  reader should weigh the cycle when reading the verdict.
+- **Rejected judgments**: {{ rejected_judgments_count }} — compare
+  outputs excluded from aggregation due to missing evidence on
+  one or more dimensions. Defense in depth on top of the
+  compare schema's evidence enforcement.
+
+{{ rejected_judgments_section }}
+
+## Summary
+
+{{ summary }}
+
+## How to read this
+
+The ranking aggregates three pair-wise comparisons against a
+session-aware rubric. Compare agents assign each side a 1-5
+score per dimension (1 = clearly worse, 3 = acceptable, 5 =
+clearly better). For each answer, scores are averaged across
+the pairs the answer appears in, then weighted by the rubric's
+per-dimension weight. The sum across dimensions is the answer's
+final score. The pair-wise `winner` field is informational and
+used only for cycle detection — never for promotion gating.
+
+Drill into the source artifacts to audit any verdict:
+
+- Rubric: [`{{ rubric_path }}`]({{ rubric_path }})
+- Answers:
+
+{{ answer_links }}

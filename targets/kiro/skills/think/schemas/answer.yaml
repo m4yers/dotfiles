@@ -1,0 +1,61 @@
+# Output of each `answer-{1,2,3}` agent task. Schema is
+# intentionally agnostic to the rubric — answer agents do
+# not see the rubric and cannot tailor their output to it.
+type: object
+required:
+  - headline
+  - body
+  - key_claims
+  - assumptions
+additionalProperties: false
+properties:
+  headline:
+    type: string
+    minLength: 1
+    maxLength: 200
+    description: |
+      One-sentence summary of the answer. Embedded by the
+      report next to the answer's score and link.
+  body:
+    type: string
+    minLength: 1
+    description: |
+      Full markdown report. The reader's primary artifact;
+      the headline and key_claims are derived from it.
+  key_claims:
+    type: array
+    minItems: 1
+    description: |
+      The load-bearing claims the answer makes, each with
+      its supporting evidence. Compare agents cite from
+      these when judging dimensions, so an answer with no
+      key_claims is unrankable. minItems: 1 enforces at
+      least one cited claim. Each claim's `evidence` must
+      be a concrete excerpt or citation, not a vague
+      gesture — the compare schema's `evidence_a/b`
+      requirement draws directly from this field.
+    items:
+      type: object
+      required:
+        - claim
+        - evidence
+      additionalProperties: false
+      properties:
+        claim:
+          type: string
+          minLength: 1
+        evidence:
+          type: string
+          minLength: 1
+          description: |
+            Concrete, citable evidence — a quote, a
+            reference, a source path, or a derivation.
+            Vague gestures fail downstream evidence
+            enforcement on compares.
+  assumptions:
+    type: array
+    description: |
+      Unverified inputs the answer treats as true. Compares
+      surface assumption deltas as a dimension verdict signal.
+    items:
+      type: string
