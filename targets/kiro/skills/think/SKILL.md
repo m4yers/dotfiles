@@ -36,7 +36,10 @@ trade latency and tokens for it.
 
 1. Bind aliases and parameters, set tiling activity, record
    invocation, and build layout. Replace `user:think_hard`
-   with the concrete trigger that activated this skill:
+   with the concrete trigger that activated this skill.
+   `TH_LABEL` MUST be a 2-3 word summary of the question
+   (e.g. "MV refresh stall", "fasma fetcher choice") so the
+   tiling activity stays short and scannable:
    ```bash
    SKILLS=~/.kiro/skills
    THINK=$SKILLS/home/think/scripts/think.sh
@@ -44,7 +47,8 @@ trade latency and tokens for it.
    ANALYTICS=$SKILLS/home/skill-analytics/scripts/add-invocation.sh
    TH_QUESTION="<the question parameter>"
    TH_CONTEXT="<the context parameter, or empty>"
-   $TILING activity set "think($TH_QUESTION): Ingest"
+   TH_LABEL="<2-3 word summary of the question>"
+   $TILING activity set "think($TH_LABEL): Ingest"
    $ANALYTICS think user:think_hard
    eval "$($TILING layout build)"
    ```
@@ -60,7 +64,7 @@ trade latency and tokens for it.
 
 1. Set tiling activity:
    ```bash
-   $TILING activity set "think($TH_QUESTION): Drive the loop"
+   $TILING activity set "think($TH_LABEL): Drive the loop"
    ```
 2. Loop until done:
    - Run `$THINK next "$TH_WD"`. Parse the YAML response.
@@ -72,7 +76,7 @@ trade latency and tokens for it.
 3. Render the user-facing report and surface it inline:
    ```bash
    $THINK report "$TH_WD"
-   $TILING activity set "think($TH_QUESTION): Done"
+   $TILING activity set "think($TH_LABEL): Done"
    ```
    The `report` command writes `$TH_WD/report.md` and prints
    the path. Read the file and present its contents in the
