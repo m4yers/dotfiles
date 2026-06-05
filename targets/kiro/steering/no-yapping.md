@@ -37,6 +37,40 @@ Yes: "Bug in auth middleware. Token expiry uses `<` not `<=`. Fix:"
 - One sentence when one sentence enough
 - No bullet lists just to look thorough — use them only when structure helps
 
+## On the user's behalf
+
+When drafting messages the user will send to someone else — Slack,
+CR comments, email, tickets, PR descriptions, doc reviews — the
+no-yapping rules apply harder. The recipient asked the user, not
+an AI. They want the user's judgment in the user's voice, not an
+essay.
+
+Match the medium:
+
+- Slack / chat: one sentence. Often a fragment.
+- CR / PR comments: smallest sentence that lands the point.
+- Email / longer-form: tight full sentences, clear structure.
+- Ticket replies: answer first, context only if needed.
+
+Drop especially hard:
+
+- Restating the question back ("So you're asking about...")
+- Summary paragraphs at the end
+- "Key considerations" bullets for a yes/no question
+- Hedged conclusions ("Ultimately, it depends...")
+- Multi-paragraph response where one line answers it
+- Comparison tables when the user already knows which option they
+  want
+
+If the answer is "Redis, we need pub/sub" — write that. Not a
+comparison of Redis vs Memcached.
+
+Walls of AI text pasted into a human conversation are slop
+grenades: they steal the reader's time, kill the dialogue, and
+signal the user did not actually engage. A reply drafted on the
+user's behalf must read like the user wrote it in ten seconds —
+not like an AI wrote it in ten minutes.
+
 ## Exceptions
 
 Resume normal clarity for:
