@@ -3,12 +3,16 @@ from __future__ import annotations
 
 from typing import Any
 
+import re
 import jmespath
 
 from loom.engine.models import LoomPlan, Task
+from loom.engine import loops
 from loom.engine.algorithm import desugar_predicate, _TASK_REF_RE
 from loom.errors import ReferenceError as LoomReferenceError, TypeMismatchError, LoomPlanError
 from loom.validate.schemas import SchemaCache
+
+_TASK_PATH_RE = re.compile(r'(?<!\$)\$\{task_path:([A-Za-z0-9_\-]+)')
 
 
 def validate_references(plan: LoomPlan, schemas: SchemaCache) -> None:
@@ -16,6 +20,7 @@ def validate_references(plan: LoomPlan, schemas: SchemaCache) -> None:
     type compatibility for predicate comparators.
     '''
     by_id = {t.id: t for t in plan.tasks}
+    loop_members = loops.region_members(plan)
     for t in plan.tasks:
         contexts: list[tuple[str, str, bool]] = []
         if t.cmd:
@@ -27,6 +32,8 @@ def validate_references(plan: LoomPlan, schemas: SchemaCache) -> None:
                     contexts.append((v, f'task {t.id!r} vars[{k!r}]', False))
         if t.when:
             contexts.append((t.when, f'task {t.id!r} when', True))
+        if t.latch and t.latch.get('while'):
+            contexts.append((t.latch['while'], f'task {t.id!r} latch.while', True))
 
         for s, where, is_predicate in contexts:
             for m in _TASK_REF_RE.finditer(s):
@@ -34,12 +41,35 @@ def validate_references(plan: LoomPlan, schemas: SchemaCache) -> None:
                 if ref_tid not in by_id:
                     raise LoomReferenceError(
                         f'{where}: ${{task:{ref_tid}:...}} references unknown task id')
-                ref_path = m.group(2)
+                # group(2) is the optional iteration selector (@sel).
+                sel = m.group(2)
+                if sel is not None:
+                    if sel != 'prev' and not sel.isdigit():
+                        raise LoomReferenceError(
+                            f'{where}: invalid iteration selector @{sel} '
+                            f'(must be a round index or "prev")')
+                    if ref_tid not in loop_members:
+                        raise LoomReferenceError(
+                            f'{where}: iteration selector @{sel} targets '
+                            f'{ref_tid!r}, which is not a loop body task')
+                # The output_schema is the same for every iteration, so the
+                # path (group(3)) is traced the same way regardless.
+                ref_path = m.group(3)
                 if ref_path:
                     _trace_path(by_id[ref_tid], ref_path, schemas, where)
+            # ${task_path:id} references must also target a real task.
+            for m in _TASK_PATH_RE.finditer(s):
+                ref_tid = m.group(1)
+                if ref_tid not in by_id:
+                    raise LoomReferenceError(
+                        f'{where}: ${{task_path:{ref_tid}}} references unknown '
+                        f'task id')
 
         if t.when:
-            _validate_when_types(t, by_id, schemas)
+            _validate_when_types(t, t.when, by_id, schemas, f'task {t.id!r} when')
+        if t.latch and t.latch.get('while'):
+            _validate_when_types(
+                t, t.latch['while'], by_id, schemas, f'task {t.id!r} latch.while')
 
 
 def _trace_path(
@@ -114,17 +144,19 @@ _PY_TO_JSONSCHEMA = {
 }
 
 
-def _validate_when_types(t: Task, by_id: dict, schemas: SchemaCache) -> None:
-    '''For comparators in t.when, check literal type vs field schema type.'''
-    if not t.when:
+def _validate_when_types(
+    t: Task, expr: str, by_id: dict, schemas: SchemaCache, where: str,
+) -> None:
+    '''For comparators in a predicate, check literal type vs field type.'''
+    if not expr:
         return
-    desugared = desugar_predicate(t.when)
+    desugared = desugar_predicate(expr)
     try:
         parsed = jmespath.compile(desugared).parsed
     except Exception as e:
         raise LoomPlanError(
-            f'task {t.id!r} when: predicate fails to parse: {e}')
-    _walk_comparators(parsed, by_id, schemas, f'task {t.id!r} when', desugared)
+            f'{where}: predicate fails to parse: {e}')
+    _walk_comparators(parsed, by_id, schemas, where, desugared)
 
 
 def _walk_comparators(

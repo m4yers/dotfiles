@@ -58,6 +58,30 @@ def _migrate_depends_on(
     return list(depends_on_all or []), list(depends_on_any or [])
 
 
+def latch(
+    header: str,
+    *,
+    fuel: int | None = None,
+    while_: str | None = None,
+) -> dict:
+    '''Build a `latch:` block for a loop task.
+
+    `header` is the back-edge target — the loop entry. For a self-loop
+    it equals the task's own id. At least one exit control must be given:
+    `fuel` (a positive integer countdown, decremented each round, exit at
+    0) and/or `while_` (a predicate string; the loop exits when it is
+    false). Both may be combined — the loop stops as soon as either fires.
+
+    Pass the result as the `latch=` kwarg of `tool`/`agent`/`human`.
+    '''
+    block: dict[str, Any] = {'header': header}
+    if fuel is not None:
+        block['fuel'] = fuel
+    if while_ is not None:
+        block['while'] = while_
+    return block
+
+
 def tool(
     id: str,
     *,
@@ -67,6 +91,7 @@ def tool(
     depends_on_all: list[str] | None = None,
     depends_on_any: list[str] | None = None,
     when: str | None = None,
+    latch: dict | None = None,
 ) -> Task:
     '''Build a tool kind Task.
 
@@ -89,6 +114,7 @@ def tool(
         depends_on_all=da,
         depends_on_any=dy,
         when=when,
+        latch=dict(latch) if latch else None,
     )
 
 
@@ -104,6 +130,7 @@ def agent(
     vars: dict[str, Any] | None = None,
     agent: str | None = None,
     template_search_paths: list[str | Path] | None = None,
+    latch: dict | None = None,
 ) -> Task:
     '''Build an agent kind Task.
 
@@ -128,6 +155,7 @@ def agent(
             [str(p) for p in template_search_paths]
             if template_search_paths is not None else None
         ),
+        latch=dict(latch) if latch else None,
     )
 
 
@@ -142,6 +170,7 @@ def human(
     when: str | None = None,
     vars: dict[str, Any] | None = None,
     template_search_paths: list[str | Path] | None = None,
+    latch: dict | None = None,
 ) -> Task:
     '''Build a human kind Task.
 
@@ -161,6 +190,7 @@ def human(
             [str(p) for p in template_search_paths]
             if template_search_paths is not None else None
         ),
+        latch=dict(latch) if latch else None,
     )
 
 

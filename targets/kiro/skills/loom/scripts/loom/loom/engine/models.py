@@ -86,6 +86,14 @@ class Task:
     when: str | None = None
     output_schema: str | None = None
 
+    # loop control: when set, this task is a loop latch. The block carries
+    # `header` (back-edge target; equals this task's id for a self-loop),
+    # optional `fuel` (countdown, decremented each round, exit at 0), and
+    # optional `while` (predicate; exit when false). At least one of
+    # fuel/while is required (validated in loom.validate.loops). A task
+    # without a latch behaves exactly as before — no loop semantics apply.
+    latch: dict[str, Any] | None = None
+
     # tool kind
     cmd: list[str] | None = None
 

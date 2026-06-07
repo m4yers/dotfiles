@@ -26,17 +26,33 @@ from loom.engine.models import (
 # correctly turns them into a literal ${task:...} at render
 # time.
 _TASK_REF_RE = re.compile(
-    r'(?<!\$)\$\{task:([A-Za-z0-9_\-]+)(?::([^}]+))?\}')
+    r'(?<!\$)\$\{task:([A-Za-z0-9_\-]+)(?:@([A-Za-z0-9]+))?(?::([^}]+))?\}')
 
 
 def desugar_predicate(expr: str) -> str:
-    '''Convert ${task:id:path} sugar to JMESPath: task."id".path'''
+    '''Convert ${task:id:path} sugar to JMESPath: task."id".path
+
+    An iteration selector ${task:id@sel:path} desugars to
+    task_iter."id"."sel".path, resolved against the per-iteration
+    document built in build_predicate_context. ``sel`` is an absolute
+    round index or ``prev``.
+    '''
     def repl(m: re.Match) -> str:
         tid = m.group(1)
-        path = m.group(2)
+        sel = m.group(2)
+        path = m.group(3)
+        if sel is not None:
+            # Normalize a numeric selector to its canonical form so it
+            # matches the str(int) keys in build_predicate_context's
+            # task_iter document (e.g. @05 -> "5").
+            if sel.isdigit():
+                sel = str(int(sel))
+            base = f'task_iter."{tid}"."{sel}"'
+        else:
+            base = f'task."{tid}"'
         if path:
-            return f'task."{tid}".{path}'
-        return f'task."{tid}"'
+            return f'{base}.{path}'
+        return base
     return _TASK_REF_RE.sub(repl, expr)
 
 
@@ -90,8 +106,16 @@ def is_stuck(plan: LoomPlan) -> bool:
 # ---- predicate evaluation ----
 
 def build_predicate_context(plan: LoomPlan, workdir: Path) -> dict:
-    '''Virtual document {task: {<id>: <output_or_none>, ...}} for predicate eval.'''
+    '''Virtual document for predicate eval.
+
+    ``task`` maps each id to its latest-completed output (or None).
+    ``task_iter`` maps each loop-body id to a dict keyed by iteration
+    index (as a string) and ``prev`` (the iteration before the latest
+    completed), enabling ${task:id@sel:path} references in predicates.
+    '''
     from loom.engine import store
+    import yaml as _yaml
+
     task_outputs = {}
     for t in plan.tasks:
         try:
@@ -105,7 +129,26 @@ def build_predicate_context(plan: LoomPlan, workdir: Path) -> dict:
                 task_outputs[t.id] = None
         else:
             task_outputs[t.id] = None
-    return {'task': task_outputs}
+
+    task_iter: dict = {}
+    for t in plan.tasks:
+        if not store._is_loop_body(plan, t.id):
+            continue
+        td = store.task_dir(workdir, plan, t.id)
+        completed = store._completed_iter_indices(td)
+        per: dict = {}
+        for i in completed:
+            p = td / f'iter-{i:02d}' / 'output.yaml'
+            try:
+                per[str(i)] = _yaml.safe_load(p.read_text(encoding='utf-8'))
+            except Exception:
+                per[str(i)] = None
+        if len(completed) >= 2:
+            per['prev'] = per.get(str(completed[-2]))
+        if per:
+            task_iter[t.id] = per
+
+    return {'task': task_outputs, 'task_iter': task_iter}
 
 
 def eval_predicate(when_expr: str, plan: LoomPlan, workdir: Path) -> tuple[bool, str | None]:
@@ -213,3 +256,47 @@ def find_failed_tasks(plan: LoomPlan) -> list[str]:
 
 def mark_status(task: Task, new: str) -> None:
     task.status = new
+
+
+# ---- loops ----
+
+def loop_body_ids(plan: LoomPlan, latch_task: Task) -> list[str]:
+    '''Ids of the tasks reset together for the next loop round — the
+    natural loop of the back-edge ``latch -> header``. For a self-loop
+    this is just the latch task.'''
+    from loom.engine import loops
+    header = (latch_task.latch or {}).get('header', latch_task.id)
+    return sorted(loops.natural_loop(plan, header, latch_task.id))
+
+
+def latch_continue(
+    latch_task: Task,
+    plan: LoomPlan,
+    workdir: Path,
+) -> tuple[bool, int | None]:
+    '''Decide whether a just-completed loop should run another round.
+
+    Returns ``(should_continue, new_fuel)``. The loop continues iff
+    ``(fuel absent or fuel-1 > 0) and (while absent or while is true)`` —
+    it stops as soon as either control fires. ``new_fuel`` is the
+    decremented fuel (or ``None`` when no fuel is configured); the caller
+    persists it on the latch. Pure: mutates nothing.
+
+    ``while`` is evaluated against the latest completed outputs (the
+    round that just finished), reusing the existing predicate machinery.
+    '''
+    latch = latch_task.latch or {}
+    fuel = latch.get('fuel')
+    while_expr = latch.get('while')
+
+    while_ok = True
+    if while_expr:
+        while_ok, _ = eval_predicate(while_expr, plan, workdir)
+
+    new_fuel = fuel
+    fuel_ok = True
+    if fuel is not None:
+        new_fuel = fuel - 1
+        fuel_ok = new_fuel > 0
+
+    return (while_ok and fuel_ok), new_fuel

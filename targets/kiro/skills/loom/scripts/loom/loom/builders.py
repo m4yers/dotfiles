@@ -76,7 +76,7 @@ def _task_output_path(workdir: Path, task_id: str) -> Path:
     by_id = {t.id: t for t in plan.tasks}
     if task_id not in by_id:
         _fail(f'task {task_id!r} not in plan')
-    return store.task_output_path(workdir, plan, task_id)
+    return store.task_output_write_path(workdir, plan, task_id)
 
 
 def _ensure_task_dir(workdir: Path, task_id: str) -> None:

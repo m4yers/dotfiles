@@ -35,6 +35,41 @@ class TypeMismatchError(LoomPlanError):
     field's declared type.'''
 
 
+# ---- loop-admission errors ----
+
+class LoopError(LoomPlanError):
+    '''Base for loop-admission failures at loom.init / loom.extend.'''
+
+
+class NoExitConditionError(LoopError):
+    '''A `latch:` block declares neither `fuel` nor `while`, so the loop
+    has no declared way out. This is the only exit-related check loom
+    enforces; it is deliberately not a termination proof (a huge `fuel`
+    still "terminates" but never ends in practice).'''
+    def __init__(self, task_id: str):
+        super().__init__(
+            f'loop latch {task_id!r}: declare at least one of '
+            f'`fuel` / `while`')
+        self.task_id = task_id
+
+
+class IrreducibleLoopError(LoopError):
+    '''A back-edge `n -> h` whose target `h` does not dominate `n`, or a
+    header with more than one back-edge. Only reducible (natural) loops
+    are admitted.'''
+
+
+class LoopEscapeError(LoopError):
+    '''An edge crosses a loop region's boundary other than entering through
+    the header or leaving through the latch (the hammock / single-entry
+    single-exit property).'''
+
+
+class LoopNestingError(LoopError):
+    '''Two loop regions overlap without one being wholly nested inside the
+    other's body.'''
+
+
 # ---- workdir errors ----
 
 class WorkdirExistsError(ValueError):

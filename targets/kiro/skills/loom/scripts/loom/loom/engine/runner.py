@@ -84,12 +84,14 @@ class LoomRuntime:
             for t in external:
                 if t.status == STATUS_PENDING:
                     t.status = STATUS_READY
+                    if store._is_loop_body(plan, t.id):
+                        store.begin_round(self.workdir, plan, t.id)
             store.save_plan(self.workdir, plan)
 
             spec_tasks: list[dict] = []
             for t in external:
                 td = store.ensure_task_dir(self.workdir, plan, t.id)
-                op = store.task_output_path(self.workdir, plan, t.id)
+                op = store.task_output_write_path(self.workdir, plan, t.id)
                 prompt_path = None
                 if t.template:
                     try:
@@ -123,7 +125,10 @@ class LoomRuntime:
             store.save_plan(self.workdir, plan)
 
         td = store.ensure_task_dir(self.workdir, plan, task.id)
-        op = store.task_output_path(self.workdir, plan, task.id)
+        if store._is_loop_body(plan, task.id):
+            store.begin_round(self.workdir, plan, task.id)
+        op = store.task_output_write_path(self.workdir, plan, task.id)
+        op.parent.mkdir(parents=True, exist_ok=True)
         stderr_path = td / 'stderr.log'
 
         env = os.environ.copy()
@@ -165,6 +170,33 @@ class LoomRuntime:
 
         task.status = STATUS_DONE
         store.save_plan(self.workdir, plan)
+        self._maybe_loop(task.id)
+
+    # ---- loop control ----
+
+    def _maybe_loop(self, task_id: str) -> None:
+        '''If ``task_id`` is a loop latch that just reached ``done``,
+        decide whether to run another round.
+
+        On continue: decrement ``fuel`` (if any) and reset the loop body
+        to ``pending`` so the scheduler re-dispatches it; prior round
+        outputs are preserved under their ``iter-NN/`` dirs. On stop:
+        persist the decremented fuel and leave the latch ``done`` so the
+        region's single exit edge releases downstream tasks.
+
+        No-op for tasks without a ``latch``.
+        '''
+        plan = store.load_plan(self.workdir)
+        t = plan.get(task_id)
+        if not getattr(t, 'latch', None):
+            return
+        cont, new_fuel = algorithm.latch_continue(t, plan, self.workdir)
+        if t.latch.get('fuel') is not None:
+            t.latch['fuel'] = new_fuel
+        if cont:
+            for bid in algorithm.loop_body_ids(plan, t):
+                plan.get(bid).status = STATUS_PENDING
+        store.save_plan(self.workdir, plan)
 
     # ---- state-changing methods ----
 
@@ -184,9 +216,10 @@ class LoomRuntime:
         plan = store.load_plan(self.workdir)
         t = plan.get(task_id)
         td = store.ensure_task_dir(self.workdir, plan, task_id)
-        op = store.task_output_path(self.workdir, plan, task_id)
+        op = store.task_output_write_path(self.workdir, plan, task_id)
 
         if output is not None:
+            op.parent.mkdir(parents=True, exist_ok=True)
             op.write_text(
                 yaml.safe_dump(output, sort_keys=False, allow_unicode=True,
                                default_flow_style=False),
@@ -217,6 +250,7 @@ class LoomRuntime:
 
         t.status = STATUS_DONE
         store.save_plan(self.workdir, plan)
+        self._maybe_loop(task_id)
 
     def fail(self, task_id: str, error: str | dict) -> None:
         '''Mark a task failed.'''
@@ -230,17 +264,29 @@ class LoomRuntime:
         store.save_plan(self.workdir, plan)
 
     def reset(self, task_id: str) -> None:
-        '''Flip a task back to pending. Removes artifacts.'''
+        '''Flip a task back to pending and remove its artifacts.
+
+        For a loop-body task the whole region is reset together and every
+        round's ``iter-NN/`` dir is removed, so round indexing restarts at
+        ``iter-00`` (a partial reset would corrupt ``@k`` addressing and
+        the round counter). Note: a latch's ``fuel`` is not restored — it
+        reflects rounds already consumed.
+        '''
+        from loom.engine import loops
         plan = store.load_plan(self.workdir)
-        t = plan.get(task_id)
-        td = store.ensure_task_dir(self.workdir, plan, task_id)
-        for fname in ('output.yaml', 'prompt.md',
-                      'render-error.log', 'schema-error.log',
-                      'stderr.log', 'skip-reason.log'):
-            f = td / fname
-            if f.exists():
-                f.unlink()
-        t.status = STATUS_PENDING
+        region = loops.region_containing(plan, task_id)
+        targets = sorted(region) if region else [task_id]
+        for tid in targets:
+            t = plan.get(tid)
+            td = store.ensure_task_dir(self.workdir, plan, tid)
+            for fname in ('output.yaml', 'prompt.md',
+                          'render-error.log', 'schema-error.log',
+                          'stderr.log', 'skip-reason.log'):
+                f = td / fname
+                if f.exists():
+                    f.unlink()
+            store.clear_iterations(self.workdir, plan, tid)
+            t.status = STATUS_PENDING
         store.save_plan(self.workdir, plan)
 
     # ---- read-only queries ----

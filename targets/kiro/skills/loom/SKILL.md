@@ -62,7 +62,7 @@ them across `/tmp/`; co-locating with the task makes failures inspectable.
 ## Task primitive
 
 A task has fields
-`(id, kind, output_schema, depends_on_all, depends_on_any, when, kind-specific fields)`:
+`(id, kind, output_schema, depends_on_all, depends_on_any, when, latch, kind-specific fields)`:
 
 - `id` — unique within the plan; used for refs and paths.
 - `kind` — `tool`, `agent`, or `human`.
@@ -71,6 +71,8 @@ A task has fields
 - `depends_on_all` — list of upstream ids. Optional.
 - `depends_on_any` — list of upstream ids. Optional.
 - `when` — predicate string. Optional; defaults to true.
+- `latch` — loop block. Optional; when set the task is a loop latch (see
+  [Loops](#loops)).
 - `cmd` — argv for `tool`.
 - `template` — Jinja template path for `agent` and `human`.
 
@@ -134,7 +136,7 @@ with a clear error.
 
 ```python
 import loom
-from loom import tool, agent, human, make_plan
+from loom import tool, agent, human, make_plan, latch
 
 plan = make_plan(
     tool("fetch", cmd=[...], output_schema="/abs/fetch.yaml"),
@@ -225,6 +227,79 @@ Trace if `extract-paper` fails:
    `failed_task_ids=['extract-paper']`. The orchestrator surfaces
    this as a run-level error; `aggregate` is never scheduled.
 
+## Loops
+
+A `latch` block turns a task into a **loop latch**. The back-edge is
+`latch -> header`; the loop **body** is the natural loop of that back-edge —
+derived from the graph, never hand-declared. Build the block with the
+`latch()` helper and pass it as `latch=`:
+
+```python
+from loom import tool, agent, make_plan, latch
+
+plan = make_plan(
+    tool('fetch', cmd=[...], output_schema=fetch_schema),
+    agent('fix', template=fix_j2, output_schema=fix_schema,
+          depends_on_all=['fetch']),
+    # review loops back to fix until approved or fuel runs out:
+    agent('review', template=review_j2, output_schema=review_schema,
+          depends_on_all=['fix'],
+          latch=latch('fix', fuel=5,
+                      while_="${task:review:verdict != 'approved'}")),
+    tool('publish', cmd=[...], output_schema=pub_schema,
+         depends_on_all=['review']),
+)
+```
+
+### Shapes
+
+- **Self-loop** — `header` equals the task's own id. Body is just that task.
+  Use for retry / refine: `latch=latch('refine', fuel=3)`.
+- **Natural loop** — `header` is an upstream task (e.g. `fix`). Body is every
+  node on the paths `header .. latch` (here `{fix, review}`).
+
+### Exit controls (`fuel` / `while`)
+
+`fuel` and `while` are alternative exit controls; declare **at least one**
+(either alone, or both). The latch continues iff
+`(fuel absent or fuel-1 > 0) and (while absent or while is true)` — it stops
+as soon as either fires. `fuel` is a positive integer countdown, decremented
+each round and persisted on the latch.
+
+A bound is **not** a real termination guarantee — `fuel: 1_000_000_000`
+"terminates" but never ends in practice. Keep `fuel` sane, prefer a `while`
+convergence test, and rely on an operational wall-clock / cost budget in the
+orchestrator for true runaway protection.
+
+### Per-iteration outputs
+
+Body tasks write each round under `tasks/<NN-id>/iter-NN/output.yaml`
+(non-loop tasks stay flat). References resolve as:
+
+- `${task:id}` / `${task:id:path}` — the **latest completed** round.
+- `${task:id@k}` — round `k` (absolute index).
+- `${task:id@prev}` — the round before the latest completed (use in a
+  `while` to detect convergence, e.g.
+  `while_="${task:id:val} != ${task:id@prev:val}"`).
+
+A consumer downstream of the loop fires once, after the final round, and
+reads the last round's output.
+
+### Constraints
+
+Loops must be **reducible** and form a **hammock** (single entry through the
+header, single exit through the latch). `loom.init` / `loom.extend` reject:
+
+- a loop with no exit control (`NoExitConditionError`);
+- a header that does not dominate the latch, or two latches sharing a header
+  (`IrreducibleLoopError`);
+- an edge crossing the region boundary other than into the header or out of
+  the latch (`LoopEscapeError`);
+- overlapping or nested regions — not yet supported; bodies must be
+  pairwise disjoint (`LoopNestingError`).
+
+`loom visualise` shows a latch as `↻ loop → <header> · fuel N · while …`.
+
 ## Reference grammar
 
 | Placeholder                     | Resolves to                         |
@@ -233,6 +308,8 @@ Trace if `extract-paper` fails:
 | `${task_workdir}`               | absolute path to current task dir   |
 | `${task:<id>}`                  | upstream task's full output         |
 | `${task:<id>:<jmespath>}`       | JMESPath query result               |
+| `${task:<id>@<k>}`              | loop body: round `k`'s output       |
+| `${task:<id>@prev}`             | loop body: round before the latest  |
 | `${task_path:<id>}`             | absolute path to upstream output    |
 | `${global}` / `${global:<rel>}` | absolute path to `<workdir>/global` |
 
@@ -328,6 +405,10 @@ Any failure raises a `LoomPlanError` subclass; no disk state is created.
 | `SchemaError`          | schema file missing or invalid JSON Schema |
 | `ReferenceError`       | bad `${task:id:...}` reference             |
 | `TypeMismatchError`    | comparator literal vs. declared field type |
+| `NoExitConditionError` | loop latch with neither `fuel` nor `while` |
+| `IrreducibleLoopError` | header not dominating latch / shared header |
+| `LoopEscapeError`      | edge crosses a loop region boundary illegally |
+| `LoopNestingError`     | loop regions overlap without proper nesting |
 | `WorkdirExistsError`   | `loom.init` on workdir with `plan.yaml`    |
 | `WorkdirNotEmptyError` | `loom.init` on dirty workdir               |
 | `RunFailed`            | tool subprocess exited non-zero            |
@@ -363,9 +444,11 @@ callers that just want "every upstream id".
 - `loom/validate/dag.py` — DAG + kind-field checks
 - `loom/validate/schemas.py` — `SchemaCache`
 - `loom/validate/references.py` — reference + JMESPath + type checks
+- `loom/validate/loops.py` — loop admission (reducibility + hammock + nesting)
+- `loom/engine/loops.py` — dominators, natural-loop / region computation
 - `loom/builders.py` — `output init` / `output add` write path
 - `loom/__main__.py` — argparse CLI
 - `scripts/loom.sh` — uv wrapper for the CLI
 - `loom/errors.py` — exception hierarchy
 
-Tests at `scripts/loom/tests/` — 315 cases.
+Tests at `scripts/loom/tests/` — 346 cases.

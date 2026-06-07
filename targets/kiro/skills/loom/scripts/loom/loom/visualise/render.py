@@ -371,6 +371,9 @@ def _render_linear_box(
             wlines = _format_when_lines(t.when, inner - 7)
             for wl in wlines:
                 rows.append((_pad('       ' + wl, inner), False))
+        if getattr(t, 'latch', None):
+            ll = _format_loop_line(t.latch, inner - 7, ascii_only)
+            rows.append((_pad('       ' + ll, inner), False))
 
     out: list[str] = []
     out.append(pad + chars.tl + chars.h * inner + chars.tr)
@@ -418,6 +421,18 @@ def _linear_subline(t: Task, plan: LoomPlan, ascii_only: bool) -> str | None:
     if summary:
         return f'{_fan_in_marker(ascii_only)} {summary}'
     return None
+
+
+def _format_loop_line(latch: dict, max_width: int, ascii_only: bool) -> str:
+    '''One-line loop annotation for a latch box: back-edge target plus
+    the active exit controls (fuel / while).'''
+    arrow = '~ loop -> ' if ascii_only else '↻ loop → '
+    bits = [f'{arrow}{latch.get("header", "?")}']
+    if latch.get('fuel') is not None:
+        bits.append(f'fuel {latch["fuel"]}')
+    if latch.get('while'):
+        bits.append('while …' if not ascii_only else 'while ...')
+    return _truncate(_sep(ascii_only).join(bits), max_width)
 
 
 def _format_when_lines(when_expr: str, max_width: int) -> list[str]:

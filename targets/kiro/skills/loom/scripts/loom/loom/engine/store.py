@@ -71,7 +71,135 @@ def ensure_task_dir(workdir: Path, plan: LoomPlan, task_id: str) -> Path:
 
 
 def task_output_path(workdir: Path, plan: LoomPlan, task_id: str) -> Path:
-    return task_dir(workdir, plan, task_id) / 'output.yaml'
+    '''READ path: the output.yaml a consumer should read.
+
+    For a non-loop task this is the flat ``<task_dir>/output.yaml``.
+    For a loop-body task it is the latest *completed* round's output —
+    the highest ``iter-NN/`` dir that contains an ``output.yaml`` (or
+    ``iter-00`` before the first round completes, which resolves to a
+    not-yet-existing file and is handled as "no output" by callers).
+    '''
+    td = task_dir(workdir, plan, task_id)
+    if not _is_loop_body(plan, task_id):
+        return td / 'output.yaml'
+    completed = [d for d in _iter_dirs(td) if (d / 'output.yaml').exists()]
+    if completed:
+        return completed[-1] / 'output.yaml'
+    return td / 'iter-00' / 'output.yaml'
+
+
+def task_output_write_path(workdir: Path, plan: LoomPlan, task_id: str) -> Path:
+    '''WRITE path: where the current round's output.yaml is written.
+
+    For a non-loop task this equals ``task_output_path``. For a loop-body
+    task it is the highest ``iter-NN/`` dir that does **not** yet contain an
+    ``output.yaml`` (the round in progress, normally created by
+    ``begin_round``); if every existing round is already written it falls
+    back to a fresh next index. This makes the path stable within a round
+    and guarantees a completed round is never overwritten even if
+    ``complete`` is reached without a preceding ``begin_round``.
+    '''
+    td = task_dir(workdir, plan, task_id)
+    if not _is_loop_body(plan, task_id):
+        return td / 'output.yaml'
+    existing = _iter_dirs(td)
+    empty = [d for d in existing if not (d / 'output.yaml').exists()]
+    if empty:
+        return empty[-1] / 'output.yaml'
+    nxt = (int(existing[-1].name[len('iter-'):]) + 1) if existing else 0
+    return td / f'iter-{nxt:02d}' / 'output.yaml'
+
+
+def _is_loop_body(plan: LoomPlan, task_id: str) -> bool:
+    '''True if the task participates in any loop region.
+
+    A self-loop's body is its latch; a multi-node loop's body is the
+    natural loop of the back-edge. Computed from the plan's latch blocks.
+    '''
+    from loom.engine import loops
+    return task_id in loops.region_members(plan)
+
+
+def _iter_dirs(task_dir_path: Path) -> list[Path]:
+    '''Sorted list of existing ``iter-NN`` subdirs of a task dir.'''
+    if not task_dir_path.exists():
+        return []
+    out = []
+    for d in task_dir_path.iterdir():
+        if d.is_dir() and d.name.startswith('iter-'):
+            suffix = d.name[len('iter-'):]
+            if suffix.isdigit():
+                out.append(d)
+    return sorted(out, key=lambda p: int(p.name[len('iter-'):]))
+
+
+def begin_round(workdir: Path, plan: LoomPlan, task_id: str) -> Path:
+    '''Create and return the iter dir for a fresh loop round.
+
+    Called once per round when a loop-body task is activated
+    (pending -> ready/running). The new index is one past the highest
+    existing iter dir, so each activation gets its own round directory.
+    Idempotent only across distinct rounds — call exactly once per
+    activation.
+    '''
+    td = ensure_task_dir(workdir, plan, task_id)
+    existing = _iter_dirs(td)
+    nxt = (int(existing[-1].name[len('iter-'):]) + 1) if existing else 0
+    d = td / f'iter-{nxt:02d}'
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+def clear_iterations(workdir: Path, plan: LoomPlan, task_id: str) -> None:
+    '''Remove all iter-NN/ round dirs of a loop-body task so round
+    indexing restarts at iter-00. No-op for missing dirs.'''
+    import shutil
+    td = task_dir(workdir, plan, task_id)
+    for d in _iter_dirs(td):
+        shutil.rmtree(d, ignore_errors=True)
+
+
+
+def _completed_iter_indices(task_dir_path: Path) -> list[int]:
+    '''Sorted indices of iter dirs that contain an output.yaml.'''
+    return sorted(
+        int(d.name[len('iter-'):])
+        for d in _iter_dirs(task_dir_path)
+        if (d / 'output.yaml').exists()
+    )
+
+
+def iteration_output_path(
+    workdir: Path, plan: LoomPlan, task_id: str, selector: str | int,
+) -> Path | None:
+    '''Resolve a specific iteration's output.yaml for a loop-body task.
+
+    ``selector`` is an absolute round index (int / digit string) or the
+    literal ``'prev'`` — the iteration immediately before the latest
+    *completed* one (i.e. ``completed[-2]``). Returns ``None`` when the
+    requested iteration does not exist (e.g. ``prev`` with fewer than two
+    completed rounds, or an out-of-range index), which callers treat as a
+    missing value.
+
+    ``prev`` is defined relative to the latest completed round, so it is
+    meant for post-round contexts such as a ``while`` predicate. During a
+    round's own execution the latest completed output already *is* the
+    previous round, reachable with a plain ``${task:id}`` reference.
+    '''
+    td = task_dir(workdir, plan, task_id)
+    completed = _completed_iter_indices(td)
+    if selector == 'prev':
+        if len(completed) >= 2:
+            idx = completed[-2]
+        else:
+            return None
+    else:
+        try:
+            idx = int(selector)
+        except (TypeError, ValueError):
+            return None
+        if idx not in completed:
+            return None
+    return td / f'iter-{idx:02d}' / 'output.yaml'
 
 
 def load_task_output(workdir: Path, plan: LoomPlan, task_id: str) -> dict:

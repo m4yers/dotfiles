@@ -85,13 +85,26 @@ def _resolve_spec(
     return '${' + spec + '}'
 
 
+_TASK_SPEC_RE = re.compile(
+    r'^([A-Za-z0-9_\-]+)(?:@([A-Za-z0-9]+))?(?::(.+))?$', re.DOTALL)
+
+
 def _resolve_task_ref(spec: str, workdir: Path, plan: LoomPlan) -> Any:
     rest = spec[len('task:'):]
-    if ':' in rest:
-        tid, _, expr = rest.partition(':')
+    m = _TASK_SPEC_RE.match(rest)
+    if not m:
+        return None
+    tid, sel, expr = m.group(1), m.group(2), m.group(3)
+    if sel is not None:
+        p = store.iteration_output_path(workdir, plan, tid, sel)
+        output = None
+        if p is not None and p.exists():
+            try:
+                output = yaml.safe_load(p.read_text(encoding='utf-8'))
+            except Exception:
+                output = None
     else:
-        tid, expr = rest, ''
-    output = _load_output_or_none(workdir, plan, tid)
+        output = _load_output_or_none(workdir, plan, tid)
     if output is None:
         return None
     if not expr:
