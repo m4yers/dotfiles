@@ -3,9 +3,7 @@
 Subcommands:
   output init <workdir> --task <id>
   output add  <workdir> --task <id> --set path=value [--set ...]
-  visualise <workdir>            [--no-status] [--no-when] [--no-kind]
-                                 [--hide STATUS]... [--ascii-only]
-                                 [--width N] [-o FILE]
+  visualise <workdir>            [--no-when] [--no-loops] [--ascii-only] [-o FILE]
   visualise --plan <plan.yaml>   ... same flags
 '''
 from __future__ import annotations
@@ -47,27 +45,18 @@ def _parser() -> argparse.ArgumentParser:
     # ---- visualise ----
     p_viz = sub.add_parser(
         'visualise',
-        help='render a plan as a box-style ASCII pipeline')
+        help='render a plan as a dependents-first ASCII rail')
     src = p_viz.add_mutually_exclusive_group(required=True)
     src.add_argument('workdir', nargs='?', type=Path,
                      help='loom workdir containing plan.yaml')
     src.add_argument('--plan', type=Path,
                      help='path to a plan.yaml file directly')
-    p_viz.add_argument('--no-status', action='store_true',
-                       help='omit status histogram from header')
     p_viz.add_argument('--no-when', action='store_true',
-                       help='omit when: predicate sub-lines')
-    p_viz.add_argument('--no-kind', action='store_true',
-                       help='omit [tool ]/[agent]/[human] tags')
-    p_viz.add_argument('--hide', action='append', default=[],
-                       metavar='STATUS', choices=[
-                           'pending', 'ready', 'running',
-                           'done', 'failed', 'skipped'],
-                       help='hide tasks in this status (repeatable)')
+                       help='omit when: predicate annotations')
+    p_viz.add_argument('--no-loops', action='store_true',
+                       help='omit loop-latch annotations')
     p_viz.add_argument('--ascii-only', action='store_true',
                        help='strict 7-bit ASCII output')
-    p_viz.add_argument('--width', type=int, default=None,
-                       help='target output width in columns')
     p_viz.add_argument('-o', '--output', type=Path, default=None,
                        help='write to file instead of stdout')
 
@@ -98,11 +87,8 @@ def main(argv: list[str] | None = None) -> int:
 
 def _run_visualise(args) -> str:
     kwargs = dict(
-        show_status=not args.no_status,
         show_when=not args.no_when,
-        show_kind=not args.no_kind,
-        hide=args.hide,
-        width=args.width,
+        show_loops=not args.no_loops,
         ascii_only=args.ascii_only,
     )
     if args.workdir:

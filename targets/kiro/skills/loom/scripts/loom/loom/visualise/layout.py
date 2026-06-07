@@ -1,47 +1,57 @@
-'''Topological layering for plan visualisation.
+'''Render ordering for the rail visualisation.
 
-Assigns each task a layer index = longest path from any root.
-Tasks with no deps are layer 0; otherwise 1 + max(deps).
-Stable order within a layer: preserves plan-author order.
+renderdag draws rows top-to-bottom; a node's parents (dependencies) must
+appear *below* it. We therefore emit tasks in **dependents-first** order
+(reverse topological).
+
+To keep dependency chains contiguous — so a task sits directly above the
+dependency it consumes rather than interleaved with a sibling branch — we
+use a depth-first (LIFO) topological sort rather than breadth-first. BFS
+groups by depth and interleaves parallel branches; DFS walks one branch to
+the bottom before starting the next.
 '''
 from __future__ import annotations
 
-from loom.engine.models import LoomPlan, Task
+from collections import defaultdict, deque
+
+from loom.engine.models import LoomPlan
 
 
-def layer_of(task: Task, plan: LoomPlan,
-             memo: dict[str, int] | None = None) -> int:
-    '''Return longest-path depth of task in plan.'''
-    if memo is None:
-        memo = {}
-    if task.id in memo:
-        return memo[task.id]
-    if not task.depends_on:
-        memo[task.id] = 0
-        return 0
-    by_id = {t.id: t for t in plan.tasks}
-    depths = []
-    for dep_id in task.depends_on:
-        if dep_id not in by_id:
-            # Should be caught by validation, but be permissive at viz time.
-            continue
-        depths.append(layer_of(by_id[dep_id], plan, memo))
-    d = 1 + max(depths) if depths else 0
-    memo[task.id] = d
-    return d
+def render_order(plan: LoomPlan) -> list[str]:
+    '''Return task ids in dependents-first (reverse-topological) order.
 
-
-def layer_of_all(plan: LoomPlan) -> list[list[Task]]:
-    '''Return tasks grouped by depth. layers[i] contains tasks at depth i,
-    in plan-author order.
+    Dependency edges are the union of ``depends_on_all`` and
+    ``depends_on_any`` (via ``Task.all_deps``). Edges to ids not present
+    in the plan are ignored. Any tasks not reachable by the topological
+    walk (e.g. a malformed cycle) are appended in plan order so the
+    renderer never silently drops a node.
     '''
-    if not plan.tasks:
-        return []
-    memo: dict[str, int] = {}
-    for t in plan.tasks:
-        layer_of(t, plan, memo)
-    max_depth = max(memo.values())
-    layers: list[list[Task]] = [[] for _ in range(max_depth + 1)]
-    for t in plan.tasks:
-        layers[memo[t.id]].append(t)
-    return layers
+    ids = [t.id for t in plan.tasks]
+    id_set = set(ids)
+    deps = {t.id: [d for d in t.all_deps() if d in id_set]
+            for t in plan.tasks}
+
+    indeg = {n: 0 for n in ids}
+    children: dict[str, list[str]] = defaultdict(list)
+    for n in ids:
+        for d in deps[n]:
+            children[d].append(n)
+            indeg[n] += 1
+
+    # LIFO Kahn: seed with roots in plan order; pop from the right so the
+    # walk dives depth-first down one branch before the next.
+    stack = deque(n for n in ids if indeg[n] == 0)
+    topo: list[str] = []
+    while stack:
+        n = stack.pop()
+        topo.append(n)
+        for c in children[n]:
+            indeg[c] -= 1
+            if indeg[c] == 0:
+                stack.append(c)
+
+    if len(topo) < len(ids):
+        seen = set(topo)
+        topo.extend(n for n in ids if n not in seen)
+
+    return list(reversed(topo))

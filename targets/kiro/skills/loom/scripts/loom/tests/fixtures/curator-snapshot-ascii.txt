@@ -1,119 +1,108 @@
-                            +------------------------------------------+
-                            |  PLAN  youtube-k1njvbbmfsw               |
-                            |  + 23 done | * 1 running | o 2 pending   |
-                            |  - 32 skipped | 58 total                 |
-                            +------------------------------------------+
+PLAN  youtube-k1njvbbmfsw  -  58 tasks
 
-                            +------------------------------------------+
-                            | + 01  fetch                      [tool ] |
-                            +--------------------+---------------------+
-                                                 |
-                                                 v
-                            +------------------------------------------+
-                            | + 02  convert                    [tool ] |
-                            +--------------------+---------------------+
-                                                 |
-                                                 v
-                            +------------------------------------------+
-                            | + 03  security_scan              [tool ] |
-                            +--------------------+---------------------+
-                                                 |
-                                                 v
-                            +------------------------------------------+
-                            | + 04  classify                   [agent] |
-                            +--------------------+---------------------+
-                                                 |
-                                                 v
-              +----------------------------------------------------------------------+
-              |  EXTRACT   fan-out | branch on classify.quintet | 22 tasks (6/16)    |
-              +----------------------------------+-----------------------------------+
-              |  +  judge-classify               |  -  extract-abstract              |
-              |  +  extract-citations            |  -  extract-authors               |
-              |  +  extract-key_points           |  -  extract-chapters              |
-              |  +  extract-keywords             |  -  extract-characters            |
-              |  +  extract-models               |  -  extract-code_examples         |
-              |  +  extract-topics               |  -  extract-contributions         |
-              |                                  |  -  extract-exercises             |
-              |                                  |  -  extract-guests                |
-              |                                  |  -  extract-methods               |
-              |                                  |  -  extract-people                |
-              |                                  |  -  extract-quotes                |
-              |                                  |  -  extract-results               |
-              |                                  |  -  extract-setting               |
-              |                                  |  -  extract-speaker               |
-              |                                  |  -  extract-story                 |
-              |                                  |  -  extract-themes                |
-              +----------------------------------+-----------------------------------+
-                                                 |
-                                                 v
-              +----------------------------------------------------------------------+
-              |  JUDGE   fan-out | 22 tasks (6/16)                                   |
-              +----------------------------------+-----------------------------------+
-              |  +  judge-citations              |  -  judge-abstract                |
-              |  +  judge-key_points             |  -  judge-authors                 |
-              |  +  judge-keywords               |  -  judge-chapters                |
-              |  +  judge-models                 |  -  judge-characters              |
-              |  +  judge-topics                 |  -  judge-code_examples           |
-              |  +  extract-summary  * fan-in 23 |  -  judge-contributions           |
-              |                                  |  -  judge-exercises               |
-              |                                  |  -  judge-guests                  |
-              |                                  |  -  judge-methods                 |
-              |                                  |  -  judge-people                  |
-              |                                  |  -  judge-quotes                  |
-              |                                  |  -  judge-results                 |
-              |                                  |  -  judge-setting                 |
-              |                                  |  -  judge-speaker                 |
-              |                                  |  -  judge-story                   |
-              |                                  |  -  judge-themes                  |
-              +----------------------------------+-----------------------------------+
-                                                 |
-                                                 v
-                            +------------------------------------------+
-                            | + 49  judge-summary              [agent] |
-                            | + 50  vault-match                [tool ] |
-                            +--------------------+---------------------+
-                                                 |
-                                                 v
-                            +------------------------------------------+
-                            | + 51  build-replica              [tool ] |
-                            |       * fan-in 23 judges + vault-match   |
-                            +--------------------+---------------------+
-                                                 |
-                                                 v
-                            +------------------------------------------+
-                            | + 52  synthesis                  [agent] |
-                            +--------------------+---------------------+
-                                                 |
-                                                 v
-                            +------------------------------------------+
-                            | + 53  judge-synthesis            [agent] |
-                            +--------------------+---------------------+
-                                                 |
-                                                 v
-                            +------------------------------------------+
-                            | + 54  prune-replica              [tool ] |
-                            +--------------------+---------------------+
-                                                 |
-                                                 v
-                            +------------------------------------------+
-                            | + 55  report                     [tool ] |
-                            +--------------------+---------------------+
-                                                 |
-                                                 v
-                            +------------------------------------------+
-                            | * 56  gate                       [human] |  <- current
-                            +--------------------+---------------------+
-                                                 |
-                                                 v
-                            +------------------------------------------+
-                            | o 57  strip-dead-links           [tool ] |
-                            |       when: task."gate".proceed == `true`|
-                            +--------------------+---------------------+
-                                                 |
-                                                 v
-                            +------------------------------------------+
-                            | o 58  apply-replica              [tool ] |
-                            |       when: task."gate".proceed == `true`|
-                            +--------------------+---------------------+
+o  58 apply-replica   when: task."gate".proceed == `true`
+o  57 strip-dead-links   when: task."gate".proceed == `true`
+#  56 gate
+o  55 report
+o  54 prune-replica
+*  53 judge-synthesis
+*  52 synthesis
+o                                                51 build-replica
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-.
+| | | | | | | | | | | | | | | | | | | | | | * |  05 judge-classify
+* | | | | | | | | | | | | | | | | | | | | | | |  07 judge-abstract
+| | | | | | | | | | | | | | | | | | | | | * | |  49 judge-summary
+| | | | | | | | | | | | | | | | | | | | | * | |                                          48 extract-summary
++-----------------------------------------+-+---+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-.
+* | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |  06 extract-abstract   when: task."classify".quintet.media == 'paper'
+'-----------------------------------------+-+ | | | | | | | | | | | | | | | | | | | | |
+  * | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |  09 judge-authors
+  +---------------------------------------------' | | | | | | | | | | | | | | | | | | |
+  * | | | | | | | | | | | | | | | | | | | | | |   | | | | | | | | | | | | | | | | | | |  08 extract-authors   when: task."classify".quintet.media == 'book' || task."classify".quintet.media == 'paper'
+  '---------------------------------------+-+ |   | | | | | | | | | | | | | | | | | | |
+    * | | | | | | | | | | | | | | | | | | | | |   | | | | | | | | | | | | | | | | | | |  11 judge-chapters
+    +---------------------------------------------' | | | | | | | | | | | | | | | | | |
+    * | | | | | | | | | | | | | | | | | | | | |     | | | | | | | | | | | | | | | | | |  10 extract-chapters   when: (task."classify".quintet.media == 'book' && task."classify".quintet.form == 'textbook')
+    '-------------------------------------+-+ |     | | | | | | | | | | | | | | | | | |
+      * | | | | | | | | | | | | | | | | | | | |     | | | | | | | | | | | | | | | | | |  13 judge-characters
+      +---------------------------------------------' | | | | | | | | | | | | | | | | |
+      * | | | | | | | | | | | | | | | | | | | |       | | | | | | | | | | | | | | | | |  12 extract-characters   when: task."classify".quintet.register == 'fiction'
+      '-----------------------------------+-+ |       | | | | | | | | | | | | | | | | |
+        * | | | | | | | | | | | | | | | | | | |       | | | | | | | | | | | | | | | | |  15 judge-citations
+        +---------------------------------------------' | | | | | | | | | | | | | | | |
+        * | | | | | | | | | | | | | | | | | | |         | | | | | | | | | | | | | | | |  14 extract-citations   when: task."classify".quintet.media == 'paper' || task."classify".quintet.audience == 'academic'
+        '---------------------------------+-+ |         | | | | | | | | | | | | | | | |
+          * | | | | | | | | | | | | | | | | | |         | | | | | | | | | | | | | | | |  17 judge-code_examples
+          +---------------------------------------------' | | | | | | | | | | | | | | |
+          * | | | | | | | | | | | | | | | | | |           | | | | | | | | | | | | | | |  16 extract-code_examples   when: (task."classify".quintet.media == 'article' && task."classify".quintet.form == 'tutorial' && task."classify".quintet.discipline == 'cs')
+          '-------------------------------+-+ |           | | | | | | | | | | | | | | |
+            * | | | | | | | | | | | | | | | | |           | | | | | | | | | | | | | | |  19 judge-contributions
+            +---------------------------------------------' | | | | | | | | | | | | | |
+            * | | | | | | | | | | | | | | | | |             | | | | | | | | | | | | | |  18 extract-contributions   when: (task."classify".quintet.media == 'book' && task."classify".quintet.form == 'monograph') || (task."classify".quintet.media == 'paper' && task."classify".quintet.form == 'research') || (task."classify".quintet.media == 'paper' && task."classify".quintet.form == 'review')
+            '-----------------------------+-+ |             | | | | | | | | | | | | | |
+              * | | | | | | | | | | | | | | | |             | | | | | | | | | | | | | |  21 judge-exercises
+              +---------------------------------------------' | | | | | | | | | | | | |
+              * | | | | | | | | | | | | | | | |               | | | | | | | | | | | | |  20 extract-exercises   when: (task."classify".quintet.media == 'book' && task."classify".quintet.form == 'textbook')
+              '---------------------------+-+ |               | | | | | | | | | | | | |
+                * | | | | | | | | | | | | | | |               | | | | | | | | | | | | |  23 judge-guests
+                +---------------------------------------------' | | | | | | | | | | | |
+                * | | | | | | | | | | | | | | |                 | | | | | | | | | | | |  22 extract-guests   when: (task."classify".quintet.media == 'audio' && task."classify".quintet.form == 'interview') || (task."classify".quintet.media == 'audio' && task."classify".quintet.form == 'roundtable')
+                '-------------------------+-+ |                 | | | | | | | | | | | |
+                  * | | | | | | | | | | | | | |                 | | | | | | | | | | | |  25 judge-key_points
+                  +---------------------------------------------' | | | | | | | | | | |
+                  * | | | | | | | | | | | | | |                   | | | | | | | | | | |  24 extract-key_points   when: (task."classify".quintet.media == 'video' && task."classify".quintet.form == 'lecture') || (task."classify".quintet.media == 'video' && task."classify".quintet.form == 'keynote') || (task."classify".quintet.media == 'video' && task."classify".quintet.form == 'talk')
+                  '-----------------------+-+ |                   | | | | | | | | | | |
+                    | | | | | | | | | | | | | o                   | | | | | | | | | | |  50 vault-match
+                    +---+-+-------------------'                   | | | | | | | | | | |
+                    * | | | | | | | | | | | |                     | | | | | | | | | | |  27 judge-keywords
+                    +---------------------------------------------' | | | | | | | | | |
+                    * | | | | | | | | | | | |                       | | | | | | | | | |  26 extract-keywords
+                    '---------------------+-+                       | | | | | | | | | |
+                      * | | | | | | | | | | |                       | | | | | | | | | |  29 judge-methods
+                      +---------------------------------------------' | | | | | | | | |
+                      * | | | | | | | | | | |                         | | | | | | | | |  28 extract-methods   when: (task."classify".quintet.media == 'paper' && task."classify".quintet.form == 'research')
+                      '-------------------+-+                         | | | | | | | | |
+                        * | | | | | | | | | |                         | | | | | | | | |  31 judge-models
+                        +---------------------------------------------' | | | | | | | |
+                        * | | | | | | | | | |                           | | | | | | | |  30 extract-models   when: task."classify".quintet.register == 'non_fiction' || (task."classify".quintet.media == 'book' && task."classify".quintet.form == 'pop_science')
+                        '-----------------+-+                           | | | | | | | |
+                          * | | | | | | | | |                           | | | | | | | |  33 judge-people
+                          +---------------------------------------------' | | | | | | |
+                          * | | | | | | | | |                             | | | | | | |  32 extract-people   when: task."classify".quintet.media == 'article'
+                          '---------------+-+                             | | | | | | |
+                            * | | | | | | | |                             | | | | | | |  35 judge-quotes
+                            +---------------------------------------------' | | | | | |
+                            * | | | | | | | |                               | | | | | |  34 extract-quotes   when: (task."classify".quintet.media == 'audio' && task."classify".quintet.form == 'interview') || (task."classify".quintet.media == 'audio' && task."classify".quintet.form == 'roundtable') || (task."classify".quintet.media == 'article' && task."classify".quintet.form == 'news')
+                            '-------------+-+                               | | | | | |
+                              * | | | | | | |                               | | | | | |  37 judge-results
+                              +---------------------------------------------' | | | | |
+                              * | | | | | | |                                 | | | | |  36 extract-results   when: (task."classify".quintet.media == 'paper' && task."classify".quintet.form == 'research')
+                              '-----------+-+                                 | | | | |
+                                * | | | | | |                                 | | | | |  39 judge-setting
+                                +---------------------------------------------' | | | |
+                                * | | | | | |                                   | | | |  38 extract-setting   when: (task."classify".quintet.media == 'book' && task."classify".quintet.form == 'novel')
+                                '---------+-+                                   | | | |
+                                  * | | | | |                                   | | | |  41 judge-speaker
+                                  +---------------------------------------------' | | |
+                                  * | | | | |                                     | | |  40 extract-speaker   when: (task."classify".quintet.media == 'video' && task."classify".quintet.form == 'keynote') || (task."classify".quintet.media == 'video' && task."classify".quintet.form == 'talk')
+                                  '-------+-+                                     | | |
+                                    * | | | |                                     | | |  43 judge-story
+                                    +---------------------------------------------' | |
+                                    * | | | |                                       | |  42 extract-story   when: (task."classify".quintet.media == 'book' && task."classify".quintet.form == 'novel')
+                                    '-----+-+                                       | |
+                                      * | | |                                       | |  45 judge-themes
+                                      +---------------------------------------------' |
+                                      * | | |                                         |  44 extract-themes   when: task."classify".quintet.register == 'fiction' || (task."classify".quintet.media == 'book' && task."classify".quintet.form == 'pop_science')
+                                      '---+-+                                         |
+                                        * | |                                         |  47 judge-topics
+                                        +---------------------------------------------'
+                                        * | |  46 extract-topics   when: task."classify".quintet.register == 'non_fiction'
+                                        '-+-+
+                                          | *  04 classify
+                                          |/|
+                                          | o  03 security_scan
+                                          |/
+                                          o  02 convert
+                                          o  01 fetch
 
-Legend: o pending | > ready | * running | + done | x failed | - skipped
+legend: o tool * agent # human @ loop   | all-dep : any-dep   when:/loop inline

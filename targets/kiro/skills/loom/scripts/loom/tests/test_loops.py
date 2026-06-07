@@ -384,7 +384,7 @@ def test_visualise_shows_loop_annotation(tmp_path):
     assert 'fuel 3' in out
 
     out_ascii = loom.visualise(plan, ascii_only=True)
-    assert '~ loop -> loop' in out_ascii
+    assert 'loop -> loop' in out_ascii
     assert 'fuel 3' in out_ascii
 
 

@@ -1,114 +1,72 @@
-'''Glyph and box-drawing character tables.
+'''Glyphs and inline annotations for the rail renderer.
 
-Two modes:
-  - unicode (default): pretty status glyphs and box-drawing chars
-  - ascii_only: strict 7-bit fallback for logs / plaintext export
+The node glyph encodes task *kind* only (tool / agent / human), with a
+loop latch taking precedence. Status is not encoded in the glyph — the
+rail view is a structural map, not a live status dashboard.
 
-Tables here are the only place glyph choices live; the renderer never
-hardcodes a character.
+Edge style (solid vs dotted) is owned by renderdag: ``depends_on_all``
+edges are drawn as direct parents (solid ``│``) and ``depends_on_any``
+edges as indirect ancestors (dotted ``╷``). See ``render.py``.
 '''
 from __future__ import annotations
 
-from dataclasses import dataclass
+from loom.engine.models import Task
 
-# Status glyphs.
-STATUS_GLYPHS_UNICODE = {
-    'pending': '◇',
-    'ready':   '▶',
-    'running': '◐',
-    'done':    '●',
-    'failed':  '✗',
-    'skipped': '⊘',
-}
+# Node glyphs (unicode). Loop latch overrides kind.
+KIND_GLYPHS = {'tool': '○', 'agent': '◆', 'human': '▣'}
+LATCH_GLYPH = '↻'
 
-STATUS_GLYPHS_ASCII = {
-    'pending': 'o',
-    'ready':   '>',
-    'running': '*',
-    'done':    '+',
-    'failed':  'x',
-    'skipped': '-',
-}
-
-UNKNOWN_GLYPH_UNICODE = '?'
-UNKNOWN_GLYPH_ASCII = '?'
-
-# Kind tags. Always 7 chars wide, left-aligned, square-bracketed.
-KIND_TAGS = {
-    'tool':  '[tool ]',
-    'agent': '[agent]',
-    'human': '[human]',
-}
-UNKNOWN_KIND_TAG = '[?    ]'
+# 7-bit ASCII fallbacks.
+KIND_GLYPHS_ASCII = {'tool': 'o', 'agent': '*', 'human': '#'}
+LATCH_GLYPH_ASCII = '@'
 
 
-@dataclass(frozen=True)
-class BoxChars:
-    '''Box-drawing character set for a single weight (single, double, ascii).'''
-    tl: str   # top-left corner
-    tr: str   # top-right corner
-    bl: str   # bottom-left corner
-    br: str   # bottom-right corner
-    h:  str   # horizontal
-    v:  str   # vertical
-    # Tees — used by fan-out group's column divider.
-    tee_top:    str   # top tee (vertical drops down)
-    tee_bottom: str   # bottom tee (vertical comes up)
-    tee_left:   str   # left tee (horizontal extends right)
-    tee_right:  str   # right tee (horizontal extends left)
+def node_glyph(task: Task, *, ascii_only: bool = False) -> str:
+    '''Return the single-character node glyph for a task.
 
-
-SINGLE = BoxChars(
-    tl='┌', tr='┐', bl='└', br='┘', h='─', v='│',
-    tee_top='┬', tee_bottom='┴', tee_left='├', tee_right='┤',
-)
-
-DOUBLE = BoxChars(
-    tl='╔', tr='╗', bl='╚', br='╝', h='═', v='║',
-    tee_top='╦', tee_bottom='╩', tee_left='╠', tee_right='╣',
-)
-
-# ASCII fallback uses a single set of characters for both weights;
-# differentiation between "weight" is impossible without unicode.
-ASCII_BOX = BoxChars(
-    tl='+', tr='+', bl='+', br='+', h='-', v='|',
-    tee_top='+', tee_bottom='+', tee_left='+', tee_right='+',
-)
-
-# Edge glyphs between boxes.
-EDGE_VERTICAL_UNICODE = '│'
-EDGE_ARROW_UNICODE = '▼'
-EDGE_VERTICAL_ASCII = '|'
-EDGE_ARROW_ASCII = 'v'
-
-
-def status_glyph(status: str, ascii_only: bool = False) -> str:
-    table = STATUS_GLYPHS_ASCII if ascii_only else STATUS_GLYPHS_UNICODE
-    unknown = UNKNOWN_GLYPH_ASCII if ascii_only else UNKNOWN_GLYPH_UNICODE
-    return table.get(status, unknown)
-
-
-def kind_tag(kind: str) -> str:
-    return KIND_TAGS.get(kind, UNKNOWN_KIND_TAG)
-
-
-def box_chars(weight: str, ascii_only: bool = False) -> BoxChars:
-    '''Return BoxChars for the given weight: 'single' or 'double'.
-
-    In ascii_only mode the weight is ignored and ASCII_BOX is returned
-    for both — there's no way to differentiate weights in 7-bit ASCII.
+    Loop latches render as ``↻`` (``@`` in ascii); otherwise the glyph
+    reflects the task kind.
     '''
-    if ascii_only:
-        return ASCII_BOX
-    if weight == 'single':
-        return SINGLE
-    if weight == 'double':
-        return DOUBLE
-    raise ValueError(f'unknown box weight: {weight!r}')
+    if task.latch:
+        return LATCH_GLYPH_ASCII if ascii_only else LATCH_GLYPH
+    table = KIND_GLYPHS_ASCII if ascii_only else KIND_GLYPHS
+    default = 'o' if ascii_only else '○'
+    return table.get(task.kind, default)
 
 
-def edge_chars(ascii_only: bool = False) -> tuple[str, str]:
-    '''Return (vertical, arrowhead) glyphs for inter-box edges.'''
-    if ascii_only:
-        return EDGE_VERTICAL_ASCII, EDGE_ARROW_ASCII
-    return EDGE_VERTICAL_UNICODE, EDGE_ARROW_UNICODE
+def annotation(
+    task: Task,
+    *,
+    show_when: bool = True,
+    show_loops: bool = True,
+    ascii_only: bool = False,
+) -> str:
+    '''Return the inline annotation appended to a task's node row.
+
+    Combines an optional loop-latch descriptor and an optional ``when:``
+    predicate. Returns an empty string when there is nothing to annotate;
+    otherwise the result is prefixed with separating whitespace so it can
+    be concatenated directly onto the node label.
+    '''
+    sep = ' | ' if ascii_only else ' · '
+    arrow = '->' if ascii_only else '→'
+    ellipsis = '...' if ascii_only else '…'
+    loop_mark = 'loop' if ascii_only else '↻ loop'
+
+    parts: list[str] = []
+
+    if show_loops and task.latch:
+        latch = task.latch
+        bits = [f'{loop_mark} {arrow} {latch.get("header", "?")}']
+        if latch.get('fuel') is not None:
+            bits.append(f'fuel {latch["fuel"]}')
+        if latch.get('while'):
+            bits.append(f'while {ellipsis}')
+        parts.append(sep.join(bits))
+
+    if show_when and task.when:
+        parts.append(f'when: {task.when}')
+
+    if not parts:
+        return ''
+    return '   ' + '   '.join(parts)
