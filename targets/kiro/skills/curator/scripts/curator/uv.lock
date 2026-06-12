@@ -425,6 +425,7 @@ dependencies = [
     { name = "jmespath" },
     { name = "jsonschema" },
     { name = "pyyaml" },
+    { name = "renderdag" },
 ]
 
 [package.metadata]
@@ -434,6 +435,7 @@ requires-dist = [
     { name = "jsonschema", specifier = ">=4.23" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "renderdag", specifier = ">=0.1.1" },
 ]
 provides-extras = ["test"]
 
@@ -916,6 +918,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d5/fe/1b3113817447a1d4155e4ac76d2e072f42c0bcba2f43fa8a0e756ea2cd91/regex-2026.5.9-cp314-cp314t-win32.whl", hash = "sha256:3ddd90103f9e5c471c49c7852ecc1fe27c7e45eb99e977aefe7caa4e779f4f58", size = 275746, upload-time = "2026-05-09T23:15:12.609Z" },
     { url = "https://files.pythonhosted.org/packages/92/73/93d42045302636c91f2e5ef588b65b84b01428f28ec77de256b1dfdfbe5c/regex-2026.5.9-cp314-cp314t-win_amd64.whl", hash = "sha256:ca518ed29c46eecba6010b15f1b9a479314d2de409536e71b6a13aa04e3b8a77", size = 285685, upload-time = "2026-05-09T23:15:15.086Z" },
     { url = "https://files.pythonhosted.org/packages/da/80/35b4c33c804a165a7f55289afda3ea9e3eb6d15800341a2d66455c0f1f30/regex-2026.5.9-cp314-cp314t-win_arm64.whl", hash = "sha256:5e41809d2683fcde7d5a8c87a6567ba1fb1ce0de9f31bff578de00a4b2d76daa", size = 275713, upload-time = "2026-05-09T23:15:16.98Z" },
+]
+
+[[package]]
+name = "renderdag"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/36/80/6d8316097b96553402943adc0dc2c32f23ed1c2ea435431cafd98de648e4/renderdag-0.1.1.tar.gz", hash = "sha256:bc474583ab450c155c788d07bd6e5400c81105a787e13f720d42496b90fe8f5b", size = 8412, upload-time = "2026-02-13T20:37:17.431Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/64/29/3ac771a191bd0509d988941ac21e77752e27e05309a0927c4e0b5e510dd9/renderdag-0.1.1-py3-none-any.whl", hash = "sha256:89f67da5e045e42a08b7e7c4024a4601467ae68b4280d5187bdbc7f04084c95a", size = 12418, upload-time = "2026-02-13T20:37:16.688Z" },
 ]
 
 [[package]]
