@@ -90,18 +90,21 @@ def _render(design: dict) -> str:
     lines.append("")
 
     # CLI surface — workflow-type skills typically declare one;
-    # also rendered for non-workflow types when present.
+    # also rendered for non-workflow types when present. Rendered
+    # as a wrapping bullet list (not a table) so it reflows to the
+    # mdformat wrap width instead of forcing a wide aligned table.
     cli = design.get("cli_surface") or []
     if cli:
         lines.append("## CLI surface")
         lines.append("")
-        lines.append("| Command | Args | Description |")
-        lines.append("|---|---|---|")
         for entry in cli:
             cmd = (entry.get("command") or "").strip()
-            args = (entry.get("args") or "").strip() or "—"
+            args = (entry.get("args") or "").strip()
             desc = _first_paragraph((entry.get("description") or "").strip())
-            lines.append(f"| `{cmd}` | `{args}` | {desc} |")
+            head = f"`{cmd}`"
+            if args:
+                head += f" `{args}`"
+            lines.append(f"- {head} — {desc}")
         lines.append("")
 
     # Sections — for workflow skills, render only when explicitly
@@ -218,6 +221,8 @@ def _visualise_tasks(plan_name: str, tasks: list[dict]) -> str:
                     "kind":           (t.get("kind") or "agent").strip(),
                     "depends_on_all": list(t.get("depends_on") or []),
                     "status":         "pending",
+                    **({"when": t["when"]} if t.get("when") else {}),
+                    **({"latch": t["latch"]} if t.get("latch") else {}),
                 }
                 for t in tasks
                 if (t.get("id") or "").strip()
@@ -228,9 +233,7 @@ def _visualise_tasks(plan_name: str, tasks: list[dict]) -> str:
         loom_plan = LoomPlan.from_dict(plan_dict)
         return visualise(
             loom_plan,
-            show_status=False,
-            show_when=False,
-            show_kind=True,
+            show_when=True,
             ascii_only=False,
             workdir_basename=plan_name,
         )
@@ -333,6 +336,8 @@ def cli_render(
         out = Path(td_env) / "design.md"
 
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(_render(payload), encoding="utf-8")
+    import mdformat
+    rendered = mdformat.text(_render(payload), options={"wrap": 80})
+    out.write_text(rendered, encoding="utf-8")
 
     emit({"ok": True, "report_path": str(out.resolve())})

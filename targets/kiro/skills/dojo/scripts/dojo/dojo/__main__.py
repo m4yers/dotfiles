@@ -8,6 +8,7 @@ from dojo.tasks import (
     check_overlaps as _check_overlaps,
     check_name as _check_name,
     check_location as _check_location,
+    check_naming as _check_naming,
     find_skill as _find_skill,
     render_design as _render_design,
     summary as _summary,
@@ -41,6 +42,7 @@ check_app = typer.Typer(
 )
 check_app.command("name")(_check_name.cli_check)
 check_app.command("location")(_check_location.cli_check)
+check_app.command("naming")(_check_naming.cli_check)
 check_app.command("overlaps")(_check_overlaps.cli_check)
 check_app.command("prompts")(_check_prompts.cli_check)
 app.add_typer(check_app, name="check")

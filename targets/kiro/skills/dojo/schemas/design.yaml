@@ -70,6 +70,29 @@ properties:
           type: array
           items: {type: string}
           description: task ids this task depends on (empty for entry tasks)
+        when:
+          type: string
+          description: |
+            loom when-predicate; the task is skipped when it
+            evaluates false (e.g. "${task:cherry-pick:num_conflicts} > 0").
+        latch:
+          type: object
+          description: |
+            loom loop latch. When present, the task is a loop latch;
+            the back-edge runs from this task to `header`. At least
+            one of fuel/while is required by loom (not enforced here).
+          required: [header]
+          additionalProperties: false
+          properties:
+            header:
+              type: string
+              description: back-edge target task id (the loop header)
+            fuel:
+              type: integer
+              description: max iterations; countdown decremented each round
+            while:
+              type: string
+              description: loom predicate; the loop continues while it is true
   cli_surface:
     description: |
       Optional. For tool/workflow skills with a main shim

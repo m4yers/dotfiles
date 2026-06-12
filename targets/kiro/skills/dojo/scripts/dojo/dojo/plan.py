@@ -28,7 +28,7 @@ from pathlib import Path
 from loom import LoomPlan, agent, human, make_plan, tool
 
 from dojo.tasks import (
-    check_overlaps, check_name, check_location,
+    check_overlaps, check_name, check_location, check_naming,
     find_skill, render_design, summary,
 )
 
@@ -174,16 +174,16 @@ def _audit_tasks(skill_dir_ref: str, skill_name_ref: str,
                     base_vars),
         _check_task("check-interface",    "interface.j2",
                     base_vars,
-                    when="vars.skill_type == 'interface'"),
+                    when=f"{skill_type_ref} == 'interface'"),
         _check_task("check-tool",         "tool.j2",
                     base_vars,
-                    when="vars.skill_type == 'tool'"),
+                    when=f"{skill_type_ref} == 'tool'"),
         _check_task("check-workflow",     "workflow.j2",
                     base_vars,
-                    when="vars.skill_type == 'workflow'"),
+                    when=f"{skill_type_ref} == 'workflow'"),
         _check_task("check-reference",    "reference.j2",
                     base_vars,
-                    when="vars.skill_type == 'reference'"),
+                    when=f"{skill_type_ref} == 'reference'"),
     ]
     return [lint_task] + checks, base_vars
 
@@ -217,7 +217,8 @@ def _assemble_task(check_ids: list[str], locate_ref: str | None):
     return tool(
         "assemble",
         cmd=cmd,
-        depends_on_all=["lint"] + check_ids,
+        depends_on_all=["lint"],
+        depends_on_any=check_ids,
         output_schema=str(SCHEMAS / "assemble.yaml"),
     )
 
@@ -311,8 +312,14 @@ def build_create_plan(workdir: Path, name: str) -> LoomPlan:
         # design-review gate. Tool task — no LLM. Output schema
         # exposes report_path that the gate template consumes.
         render_design.task(depends_on_all=["design"]),
+        # 3c. Deterministic naming check — task/schema/prompt
+        # names must be domain-prefixed. Create-only (like
+        # check-design); gates design-review so bad names abort
+        # before the human reviews and before materialization.
+        check_naming.task(depends_on_all=["design"]),
         _human("design-review", "design_review.md.j2",
-               "design.yaml", deps=["design", "render-design"]),
+               "design.yaml",
+               deps=["design", "render-design", "check-naming"]),
 
         # 4. Materialize — write SKILL.md + refs + scripts.
         _agent("materialize", "create.md.j2", "files.yaml",

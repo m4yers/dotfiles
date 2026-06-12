@@ -7,6 +7,7 @@ supplement the general conventions in `conventions.md`.
 
 - [What a Workflow Skill Is](#what-a-workflow-skill-is)
 - [Execution Driver: Loom](#execution-driver-loom)
+- [Task & File Naming](#task--file-naming)
 - [Constructing Task Output](#constructing-task-output)
 - [Prompt Templates](#prompt-templates)
 - [Shell Variable Prefixing](#shell-variable-prefixing)
@@ -64,6 +65,36 @@ loom contract and breaks resumability.
 See `~/.kiro/skills/home/cr-review/SKILL.md` for an example
 workflow that uses loom via a wrapper script
 (`scripts/cr-review.sh`).
+
+## Task & File Naming
+
+Task ids, schema filenames, and prompt filenames MUST be
+**domain-prefixed kebab-case** — `<domain>-<name>` — so related
+tasks group visibly. Pick a small domain vocabulary for the
+workflow and prefix every name with it. Examples from a rebase
+workflow: `cr-info`, `cr-push` (Gerrit I/O); `rebase-cherry-pick`,
+`rebase-verify` (git mechanics); `conflict-resolve`,
+`conflict-collect` (conflict handling); `review-conflict`,
+`review-interdiff` (human review). Avoid bare single-word ids
+like `build` or `lint` — prefix them (`build-compile`,
+`build-test`).
+
+Rules:
+
+- Every task id matches `^[a-z][a-z0-9]*(-[a-z0-9{}]+)+$` (at
+  least one hyphen → a domain prefix).
+- Each task's `output_schema` is `schemas/<name>.yaml` and each
+  agent/human prompt is `templates/prompts/<name>.md.j2`, named
+  after the task. A schema or prompt shared by several tasks
+  takes the shared domain prefix (e.g. `schemas/ws-clean.yaml`
+  for `ws-clean-pre` / `ws-clean-post`).
+- Schema and prompt filename prefixes MUST be drawn from the task
+  domain vocabulary — no orphan prefixes.
+
+dojo enforces this at design time: the `check-naming` task
+validates the design's task/schema/prompt names and aborts the
+run (before materialization) on any non-domain-prefixed or
+orphan-prefixed name.
 
 ## Constructing Task Output
 
@@ -330,6 +361,7 @@ steps.
   ### Step N: ...
 ## <helper sections> (optional)
 ## Rules            (optional)
+## Plan visualisation (optional; the loom task DAG)
 ## Completion
 ```
 

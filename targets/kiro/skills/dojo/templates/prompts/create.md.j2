@@ -66,6 +66,7 @@ cat > "$VARS" <<'EOF'
   "ingest_args": "--op <create|update>",
   "rules": "1. ...\n2. ...",
   "completion": "| `DONE` | ... |\n| `BLOCKED` | ... |",
+  "plan_visualisation": "<loom visualise rail of this skill's plan; \\n-joined>",
   "final_notes": ""
 }
 EOF
@@ -102,6 +103,7 @@ template's folder and loom's templates so the partial
 | `ingest_args`   | Argv tail for the `ingest` call, e.g. `--op <create|update>`    |
 | `rules`         | Markdown numbered list of cross-step rules                      |
 | `completion`    | Markdown table body rows (no header), one per status            |
+| `plan_visualisation` | Build the skill's loom plan (call its plan builder, e.g. `derive_static_plan`, with placeholder CR/arg values) and capture `loom.visualise(plan)` — the very plan you `loom.init`-verify. This populates the `## Plan visualisation` section with the task DAG. Empty string if the skill has no static plan to show. |
 | `final_notes`   | Optional trailing prose (empty string if none)                  |
 
 Pick `prefix` and `shim` per workflow-conventions's "Shell

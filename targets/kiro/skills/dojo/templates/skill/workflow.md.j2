@@ -88,6 +88,14 @@ description: {{ description }}
 
 {{ rules }}
 
+## Plan visualisation
+{% if plan_visualisation is defined and plan_visualisation %}
+
+```
+{{ plan_visualisation }}
+```
+{% endif %}
+
 ## Completion
 
 | Status               | Criteria                                |
