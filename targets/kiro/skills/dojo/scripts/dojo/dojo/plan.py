@@ -1,20 +1,30 @@
 """Build the loom plan for a dojo run.
 
 Three pipelines, each declared as a flat task list. The audit
-core (lint → check-* → assemble → modify) is duplicated between
-create and update by design — every check task is named
-explicitly per pipeline so review-only or create-only checks
-stay surface-visible.
+core (check-autochecks → check-* → checks-report → skill-modify) is
+duplicated between create and update by design — every check
+task is named explicitly per pipeline so review-only or
+create-only checks stay surface-visible.
 
 Pipelines:
 
 - `create` — gather → check-name/location/overlaps → design →
-  design-review → materialize → audit-core → final-review →
-  summary. Includes the create-only `check-design` task.
-- `update` — find-skill → gather-update → modify-changes →
-  audit-core → final-review → summary.
+  design-review (loop) → skill-materialize → find-skill →
+  audit-core → skill-modify → final-review → summary. Includes
+  the create-only `check-design` task. The `design-review` gate
+  is a while-loop latch back to `design`: a `revise` verdict
+  re-runs the design with the gate's feedback; `accept` exits.
+- `update` — find-skill (landscape) → gather-update →
+  modify-changes → audit-core → skill-modify → final-review →
+  summary.
 - `review` — find-skill (--name) → audit-core (no modify) →
   gate → finalize.
+
+Locate shape: every pipeline feeds `checks-report` a
+locate-shaped `{skill_dir, name, category, type}` source —
+`find-skill --name` for create/review, `gather-update` for
+update (its picked-skill fields). There is no separate
+`synth-locate` adapter.
 
 Maintenance contract: when a new check is added to one
 pipeline, it MUST be added to the others as well unless the
@@ -25,7 +35,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from loom import LoomPlan, agent, human, make_plan, tool
+from loom import LoomPlan, agent, human, latch, make_plan, tool
 
 from dojo.tasks import (
     check_overlaps, check_name, check_location, check_naming,
@@ -59,6 +69,7 @@ SECURE_LLM_TEMPLATES = (
 # `<type>-conventions.md` work without manual fs_read.
 SEARCH_PATHS = [
     str(TEMPLATES),
+    str(PROMPTS),
     str(CHECKS),
     str(CHECKS / "_meta"),
     str(REFERENCES),
@@ -74,7 +85,8 @@ def _agent(id_: str, template: str, schema: str,
            deps: list[str] | None = None,
            when: str | None = None,
            vars_: dict | None = None,
-           prompts_dir: Path = PROMPTS):
+           prompts_dir: Path = PROMPTS,
+           latch_: dict | None = None):
     return agent(
         id_,
         template=str(prompts_dir / template),
@@ -83,13 +95,15 @@ def _agent(id_: str, template: str, schema: str,
         when=when,
         vars=vars_ or {},
         template_search_paths=SEARCH_PATHS,
+        latch=latch_,
     )
 
 
 def _human(id_: str, template: str, schema: str,
            deps: list[str] | None = None,
            vars_: dict | None = None,
-           prompts_dir: Path = PROMPTS):
+           prompts_dir: Path = PROMPTS,
+           latch_: dict | None = None):
     return human(
         id_,
         template=str(prompts_dir / template),
@@ -97,21 +111,22 @@ def _human(id_: str, template: str, schema: str,
         depends_on_all=list(deps) if deps else None,
         vars=vars_ or {},
         template_search_paths=SEARCH_PATHS,
+        latch=latch_,
     )
 
 
 # ---------------------------------------------------------------------------
-# Audit core — lint + check-* + assemble.
+# Audit core — check-autochecks + check-* + checks-report.
 #
 # The vars dict tells each check task where the skill being
 # audited lives. Different pipelines source these vars from
-# different upstream tasks:
+# different upstream tasks (all locate-shaped):
 #
-#   create  → ${task:materialize:skill_dir} / ${task:gather:name} / ${task:gather:type}
-#   update  → ${task:gather-update:path}    / ${task:gather-update:name} / ${task:gather-update:type}
-#   review  → ${task:find-skill:path}       / ${task:find-skill:name}    / ${task:find-skill:type}
+#   create  → ${task:find-skill:skill_dir|name|type}
+#   update  → ${task:gather-update:skill_dir|name|type}
+#   review  → ${task:find-skill:skill_dir|name|type}
 #
-# Every check task depends_on lint so the lint output is
+# Every check task depends_on check-autochecks so the lint output is
 # available as `lint_false_positives` (the agent skips items
 # the linter already flagged).
 # ---------------------------------------------------------------------------
@@ -122,14 +137,14 @@ def _check_vars(skill_dir_ref: str, skill_name_ref: str,
         "skill_dir":            skill_dir_ref,
         "skill_name":           skill_name_ref,
         "skill_type":           skill_type_ref,
-        "lint_false_positives": "${task_path:lint}",
+        "lint_false_positives": "${task_path:check-autochecks}",
         "loom_sh":              str(LOOM_SH),
     }
 
 
 def _check_task(task_id: str, template_name: str,
                 base_vars: dict,
-                lint_dep: str = "lint",
+                lint_dep: str = "check-autochecks",
                 extra_deps: list[str] | None = None,
                 when: str | None = None):
     """Build a check-* agent task with shared base vars."""
@@ -147,28 +162,26 @@ def _check_task(task_id: str, template_name: str,
 
 def _audit_tasks(skill_dir_ref: str, skill_name_ref: str,
                  skill_type_ref: str, lint_dep_extras: list[str]):
-    """Lint + every check-* task. Caller appends assemble.
+    """check-autochecks + every check-* task. Caller appends checks-report.
 
-    `lint_dep_extras` are tasks the lint task itself depends on
-    (e.g. `materialize` for create, `gather-update` for update,
-    `find-skill` for review).
+    `lint_dep_extras` are tasks the check-autochecks task itself
+    depends on (e.g. `skill-materialize`/`find-skill` for create,
+    `modify-changes` for update, `find-skill` for review).
     """
     base_vars = _check_vars(
         skill_dir_ref, skill_name_ref, skill_type_ref)
 
     lint_task = tool(
-        "lint",
-        cmd=[str(DOJO_SH), "pipeline", "lint", skill_dir_ref],
+        "check-autochecks",
+        cmd=[str(DOJO_SH), "pipeline", "autochecks", skill_dir_ref],
         depends_on_all=lint_dep_extras,
         output_schema=str(SCHEMAS / "findings.yaml"),
     )
 
     checks = [
-        _check_task("check-conventions",  "conventions.j2",
+        _check_task("check-authoring",    "authoring.j2",
                     base_vars),
-        _check_task("check-model-aware",  "model-aware.j2",
-                    base_vars),
-        _check_task("check-patterns",     "patterns.j2",
+        _check_task("check-model-awareness", "model-awareness.j2",
                     base_vars),
         _check_task("check-scripts",      "scripts.j2",
                     base_vars),
@@ -190,76 +203,36 @@ def _audit_tasks(skill_dir_ref: str, skill_name_ref: str,
 
 def _all_check_ids(extra: list[str] | None = None) -> list[str]:
     base = [
-        "check-conventions", "check-model-aware",
-        "check-patterns", "check-scripts",
+        "check-authoring",
+        "check-model-awareness", "check-scripts",
         "check-interface", "check-tool",
         "check-workflow", "check-reference",
     ]
     return base + list(extra or [])
 
 
-def _assemble_task(check_ids: list[str], locate_ref: str | None):
-    """Assemble task. `locate_ref` is a path to a YAML file
+def _assemble_task(check_ids: list[str], locate_ref: str):
+    """checks-report task. `locate_ref` is a path to a YAML file
     with the locate-shaped fields {skill_dir, name, category,
-    type}. Pipelines that don't have a real `locate` task
-    write a synthetic one as a tool task that emits the same
-    shape from their upstream metadata.
+    type}. Every pipeline points this at a task that already
+    emits that shape (find-skill or gather-update); there is no
+    separate synth-locate adapter.
     """
     cmd = [
         str(DOJO_SH), "pipeline", "assemble",
         "--workdir", "${workdir}",
         "--locate",  locate_ref,
-        "--lint",    "${task_path:lint}",
+        "--autochecks",    "${task_path:check-autochecks}",
     ]
     for cid in check_ids:
         cmd += ["--check", "${task_path:" + cid + "}"]
 
     return tool(
-        "assemble",
+        "checks-report",
         cmd=cmd,
-        depends_on_all=["lint"],
+        depends_on_all=["check-autochecks"],
         depends_on_any=check_ids,
-        output_schema=str(SCHEMAS / "assemble.yaml"),
-    )
-
-
-# ---------------------------------------------------------------------------
-# Synthetic locate emitters — assemble needs locate.yaml-shaped
-# input. Create/update pipelines don't have a `locate` task so
-# we construct one from upstream task data.
-# ---------------------------------------------------------------------------
-
-def _emit_locate_tool(task_id: str,
-                      *,
-                      name_ref: str,
-                      type_ref: str,
-                      depends_on: list[str],
-                      skill_dir_ref: str | None = None,
-                      location_ref: str | None = None):
-    """Tool task that writes a locate.yaml-shaped file from
-    upstream refs. Pass either `skill_dir_ref` (path) OR
-    `location_ref` (namespace; combined with `name_ref` to
-    derive the path).
-    """
-    if (skill_dir_ref is None) == (location_ref is None):
-        raise ValueError(
-            "exactly one of skill_dir_ref or location_ref required")
-
-    cmd = [
-        str(DOJO_SH), "pipeline", "synth-locate",
-        "--name", name_ref,
-        "--type", type_ref,
-    ]
-    if skill_dir_ref:
-        cmd += ["--skill-dir", skill_dir_ref]
-    else:
-        cmd += ["--location", location_ref]
-
-    return tool(
-        task_id,
-        cmd=cmd,
-        depends_on_all=depends_on,
-        output_schema=str(SCHEMAS / "locate.yaml"),
+        output_schema=str(SCHEMAS / "checks_report.yaml"),
     )
 
 
@@ -268,20 +241,21 @@ def _emit_locate_tool(task_id: str,
 # ---------------------------------------------------------------------------
 
 def build_create_plan(workdir: Path, name: str) -> LoomPlan:
-    """Create pipeline: design-led skill authoring."""
-    # skill_dir is computed by synth-locate from gather.location +
-    # gather.name; downstream check tasks read the assembled
-    # locate.yaml shape via task refs on synth-locate.
-    skill_dir_ref = "${task:synth-locate:skill_dir}"
-    name_ref      = "${task:gather:name}"
-    type_ref      = "${task:gather:type}"
-    location_ref  = "${task:gather:location}"
+    """Create pipeline: design-led skill authoring.
+
+    `find-skill --name` runs after `skill-materialize` (the
+    skill now exists on disk) to produce the locate shape that
+    `check-autochecks`, the checks, and `checks-report` consume.
+    """
+    skill_dir_ref = "${task:find-skill:skill_dir}"
+    name_ref      = "${task:find-skill:name}"
+    type_ref      = "${task:find-skill:type}"
 
     base_vars = _check_vars(skill_dir_ref, name_ref, type_ref)
 
     audit_tasks, _ = _audit_tasks(
         skill_dir_ref, name_ref, type_ref,
-        lint_dep_extras=["synth-locate"],
+        lint_dep_extras=["find-skill"],
     )
 
     # check-design is exclusive to create — verifies each design
@@ -290,7 +264,7 @@ def build_create_plan(workdir: Path, name: str) -> LoomPlan:
         "check-design", "design.j2",
         {**base_vars,
          "design_path": "${task_path:design-review}"},
-        lint_dep="lint",
+        lint_dep="check-autochecks",
     )
 
     check_ids = _all_check_ids(extra=["check-design"])
@@ -304,53 +278,56 @@ def build_create_plan(workdir: Path, name: str) -> LoomPlan:
         check_location.task(workdir, depends_on_all=["gather"]),
         check_overlaps.task(workdir, depends_on_all=["gather"]),
 
-        # 3. Design phase.
+        # 3. Design phase. On a design-review `revise` verdict the
+        # latch re-runs this task; it reads the gate's feedback
+        # from the bare (latest-completed) revise_reason ref.
         _agent("design", "design.md.j2", "design.yaml",
                deps=["check-name", "check-location",
-                     "check-overlaps"]),
+                     "check-overlaps"],
+               vars_={"revise_reason":
+                      "${task:design-review:revise_reason}"}),
         # 3b. Render design YAML as readable markdown for the
-        # design-review gate. Tool task — no LLM. Output schema
-        # exposes report_path that the gate template consumes.
+        # design-review gate (tool task `design-render`).
         render_design.task(depends_on_all=["design"]),
-        # 3c. Deterministic naming check — task/schema/prompt
-        # names must be domain-prefixed. Create-only (like
-        # check-design); gates design-review so bad names abort
-        # before the human reviews and before materialization.
+        # 3c. Deterministic naming check `design-checks` — gates
+        # design-review so bad names abort before the human
+        # reviews and before materialization.
         check_naming.task(depends_on_all=["design"]),
+        # 3d. Human gate with a while-loop latch back to `design`:
+        # `revise` loops, `accept` exits.
         _human("design-review", "design_review.md.j2",
                "design.yaml",
-               deps=["design", "render-design", "check-naming"]),
+               deps=["design", "design-render", "design-checks"],
+               latch_=latch(
+                   "design",
+                   while_="${task:design-review:decision} == 'revise'")),
 
         # 4. Materialize — write SKILL.md + refs + scripts.
-        _agent("materialize", "create.md.j2", "files.yaml",
+        _agent("skill-materialize", "skill_materialize.md.j2", "files.yaml",
                deps=["design-review"]),
 
-        # 5. Synth-locate so assemble has uniform input. Skill
-        # dir derives from gather.location + gather.name.
-        _emit_locate_tool(
-            "synth-locate",
-            location_ref=location_ref,
-            name_ref=name_ref,
-            type_ref=type_ref,
-            depends_on=["materialize"],
-        ),
+        # 5. Locate the just-created skill on disk (canonical
+        # locate shape for audit core).
+        find_skill.task_named(
+            workdir, name, depends_on_all=["skill-materialize"]),
 
-        # 6. Audit core (lint + checks + design check).
+        # 6. Audit core (check-autochecks + checks + design check).
         *audit_tasks,
         design_check,
 
         # 7. Assemble report.
-        _assemble_task(check_ids, "${task_path:synth-locate}"),
+        _assemble_task(check_ids, "${task_path:find-skill}"),
 
         # 8. Apply findings.
-        _agent("modify", "modify.md.j2", "files.yaml",
-               deps=["assemble"],
-               vars_={"report_path": "${task:assemble:report_path}",
+        _agent("skill-modify", "skill_modify.md.j2", "files.yaml",
+               deps=["checks-report"],
+               vars_={"report_path":
+                      "${task:checks-report:report_path}",
                       "skill_dir":   skill_dir_ref}),
 
         # 9. Final human gate.
         _human("final-review", "final_review.md.j2",
-               "decision.yaml", deps=["modify"]),
+               "decision.yaml", deps=["skill-modify"]),
 
         # 10. Summary.
         summary.task(workdir, depends_on_all=["final-review"]),
@@ -359,20 +336,25 @@ def build_create_plan(workdir: Path, name: str) -> LoomPlan:
 
 def build_update_plan(workdir: Path, name: str) -> LoomPlan:
     """Update pipeline: pick a skill, apply user-described
-    change, then audit-core."""
-    skill_dir_ref = "${task:gather-update:path}"
+    change, then audit-core.
+
+    The locate shape comes from `gather-update`, whose picked
+    skill carries `{skill_dir, name, category, type}` straight
+    from the find-skill landscape — no separate locate task.
+    """
+    skill_dir_ref = "${task:gather-update:skill_dir}"
     name_ref      = "${task:gather-update:name}"
     type_ref      = "${task:gather-update:type}"
 
     audit_tasks, _ = _audit_tasks(
         skill_dir_ref, name_ref, type_ref,
-        lint_dep_extras=["synth-locate"],
+        lint_dep_extras=["modify-changes"],
     )
 
     check_ids = _all_check_ids()
 
     return make_plan(
-        # 1. Discover landscape.
+        # 1. Discover landscape (lister for the picker).
         find_skill.task(workdir),
 
         # 2. User picks a skill + describes change.
@@ -387,41 +369,38 @@ def build_update_plan(workdir: Path, name: str) -> LoomPlan:
                vars_={"skill_dir":   skill_dir_ref,
                       "description": "${task:gather-update:description}"}),
 
-        # 4. Synth-locate for audit core.
-        _emit_locate_tool(
-            "synth-locate",
-            skill_dir_ref=skill_dir_ref,
-            name_ref=name_ref,
-            type_ref=type_ref,
-            depends_on=["modify-changes"],
-        ),
-
-        # 5. Audit core.
+        # 4. Audit core.
         *audit_tasks,
 
-        # 6. Assemble.
-        _assemble_task(check_ids, "${task_path:synth-locate}"),
+        # 5. Assemble.
+        _assemble_task(check_ids, "${task_path:gather-update}"),
 
-        # 7. Modify based on findings.
-        _agent("modify", "modify.md.j2", "files.yaml",
-               deps=["assemble"],
-               vars_={"report_path": "${task:assemble:report_path}",
+        # 6. Modify based on findings.
+        _agent("skill-modify", "skill_modify.md.j2", "files.yaml",
+               deps=["checks-report"],
+               vars_={"report_path":
+                      "${task:checks-report:report_path}",
                       "skill_dir":   skill_dir_ref}),
 
-        # 8. Final human gate.
+        # 7. Final human gate.
         _human("final-review", "final_review.md.j2",
-               "decision.yaml", deps=["modify"]),
+               "decision.yaml", deps=["skill-modify"]),
 
-        # 9. Summary.
+        # 8. Summary.
         summary.task(workdir, depends_on_all=["final-review"]),
     )
 
 
 def build_review_plan(workdir: Path, name: str) -> LoomPlan:
     """Review pipeline: audit an existing skill, terminate at
-    the interactive findings gate. No `modify` task — the gate
-    dispatches accept/decline fixes one finding at a time."""
-    skill_dir_ref = "${task:find-skill:path}"
+    the interactive findings gate. No `skill-modify` task — the
+    gate dispatches accept/decline fixes one finding at a time.
+
+    `find-skill --name N` emits the locate shape
+    `{skill_dir, name, category, type}` consumed directly by the
+    audit core and `checks-report`.
+    """
+    skill_dir_ref = "${task:find-skill:skill_dir}"
     name_ref      = "${task:find-skill:name}"
     type_ref      = "${task:find-skill:type}"
 
@@ -432,40 +411,46 @@ def build_review_plan(workdir: Path, name: str) -> LoomPlan:
 
     check_ids = _all_check_ids()
 
-    # find-skill --name N produces shape {name, namespace, path,
-    # type} which is the locate.yaml shape minus skill_dir/category;
-    # synth-locate maps it.
     return make_plan(
         find_skill.task_named(workdir, name),
 
-        _emit_locate_tool(
-            "synth-locate",
-            skill_dir_ref=skill_dir_ref,
-            name_ref=name_ref,
-            type_ref=type_ref,
-            depends_on=["find-skill"],
-        ),
-
         *audit_tasks,
 
-        _assemble_task(check_ids, "${task_path:synth-locate}"),
+        _assemble_task(check_ids, "${task_path:find-skill}"),
 
-        # Interactive gate — user accepts/declines findings via
-        # report file edits; gate-decisions parses them.
-        human(
-            "gate",
-            template=str(TEMPLATES / "report.md.j2"),
-            template_search_paths=SEARCH_PATHS,
-            depends_on_all=["assemble"],
-            output_schema=str(SCHEMAS / "gate.yaml"),
-            vars={"report_path": "${task:assemble:report_path}"},
-        ),
+        # Fix loop: re-show the report, let the user pick fixes,
+        # apply them, and loop while findings remain open. The
+        # audit core above runs once; only this tail iterates.
+        tool("show-report",
+             cmd=[str(DOJO_SH), "pipeline", "show-report",
+                  "--workdir", "${workdir}",
+                  "--skill-dir", skill_dir_ref],
+             depends_on_all=["checks-report"],
+             output_schema=str(SCHEMAS / "show_report.yaml")),
+
+        _human("skill-fix-review", "skill_fix_review.md.j2",
+               "skill_fix_review.yaml",
+               deps=["show-report"],
+               vars_={"report_path":
+                      "${task:show-report:report_path}"}),
+
+        _agent("skill-fix-apply", "skill_fix_apply.md.j2",
+               "skill_fix_apply.yaml",
+               deps=["skill-fix-review"],
+               vars_={"report_path":
+                      "${task:show-report:report_path}",
+                      "skill_dir": "${task:show-report:skill_dir}",
+                      "dojo_sh":   str(DOJO_SH),
+                      "loom_sh":   str(LOOM_SH)},
+               latch_=latch(
+                   "show-report",
+                   while_="${task:skill-fix-apply:open_items} > `0`")),
 
         tool("finalize",
              cmd=[str(DOJO_SH), "pipeline", "finalize",
                   "--workdir", "${workdir}"],
-             depends_on_all=["gate"],
-             output_schema=str(SCHEMAS / "assemble.yaml")),
+             depends_on_all=["skill-fix-apply"],
+             output_schema=str(SCHEMAS / "checks_report.yaml")),
     )
 
 

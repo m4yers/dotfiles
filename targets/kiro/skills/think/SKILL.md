@@ -17,7 +17,6 @@ trade latency and tokens for it.
 
 - `loom` — DAG execution library
 - `tiling` — pane layout and activity tracking
-- `skill-analytics` — activation logging
 - `template` — renders the user-facing report from rank output
 
 ## Parameters
@@ -34,22 +33,18 @@ trade latency and tokens for it.
 
 ### Step 1: Ingest
 
-1. Bind aliases and parameters, set tiling activity, record
-   invocation, and build layout. Replace `user:think_hard`
-   with the concrete trigger that activated this skill.
-   `TH_LABEL` MUST be a 2-3 word summary of the question
+1. Bind aliases and parameters, set tiling activity and build
+   layout. `TH_LABEL` MUST be a 2-3 word summary of the question
    (e.g. "MV refresh stall", "fasma fetcher choice") so the
    tiling activity stays short and scannable:
    ```bash
    SKILLS=~/.kiro/skills
    THINK=$SKILLS/home/think/scripts/think.sh
    TILING=$SKILLS/home/tiling/scripts/run-ttm.sh
-   ANALYTICS=$SKILLS/home/skill-analytics/scripts/add-invocation.sh
    TH_QUESTION="<the question parameter>"
    TH_CONTEXT="<the context parameter, or empty>"
    TH_LABEL="<2-3 word summary of the question>"
    $TILING activity set "think($TH_LABEL): Ingest"
-   $ANALYTICS think user:think_hard
    eval "$($TILING layout build)"
    ```
 2. Ingest. Add `--context "$TH_CONTEXT"` only when the

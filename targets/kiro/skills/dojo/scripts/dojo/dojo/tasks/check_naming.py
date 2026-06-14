@@ -22,7 +22,7 @@ from loom import tool
 
 from dojo.utils import emit, fail
 
-ID = "check-naming"
+ID = "design-checks"
 
 # Domain-prefixed kebab: starts with a letter, then one or more
 # "-segment" groups (so at least one hyphen → a domain prefix).

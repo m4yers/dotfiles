@@ -117,3 +117,18 @@ properties:
   rationale:
     type: string
     description: why this design fits the skill's purpose
+  decision:
+    type: string
+    enum: [accept, revise]
+    description: |
+      Set only by the `design-review` human gate (the `design`
+      agent omits it). 'revise' latches back to `design` with
+      revise_reason; 'accept' exits the loop to skill-materialize.
+      Optional so the same schema validates both the design
+      agent output and the gate output.
+  revise_reason:
+    type: string
+    description: |
+      Set by the gate alongside decision == 'revise': free-text
+      feedback the design agent consumes on the next iteration
+      via the bare ${task:design-review:revise_reason} ref.

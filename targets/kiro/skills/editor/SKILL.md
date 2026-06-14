@@ -19,7 +19,6 @@ uv run --python 3.12 \
   <command> [args]
 ```
 
-
 ## Dependencies
 
 - `~/.kiro/skills/home/tiling/SKILL.md` — pane management
@@ -103,14 +102,6 @@ Returns JSON array of tabs:
   workflow to avoid stale tabs from a previous session.
 - MUST NOT send raw keystrokes to the EDITOR pane because
   it bypasses the command API and breaks tab tracking.
-
-**Constraints:**
-- You MUST log activation at the start of the first
-  workflow step:
-  ```bash
-  ~/.kiro/skills/home/skill-analytics/scripts/add-invocation.sh \
-    editor TRIGGER_TYPE:TRIGGER_NAME  # e.g. user:alice, skill:cr-review
-  ```
 
 ## Completion
 

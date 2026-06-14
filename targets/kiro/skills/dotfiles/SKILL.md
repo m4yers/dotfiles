@@ -37,13 +37,6 @@ See `references/shared-api.md` for the full shared.sh
 helper API. See `references/templates.md` for target
 scaffolding templates.
 
-## Activation
-
-```bash
-~/.kiro/skills/home/skill-analytics/scripts/add-invocation.sh \
-  dotfiles TRIGGER_TYPE:TRIGGER_NAME
-```
-
 ## Invocation
 
 ```bash

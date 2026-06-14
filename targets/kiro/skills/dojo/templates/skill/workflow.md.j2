@@ -58,12 +58,10 @@ description: {{ description }}
    {{ prefix }}_{{ shim }}=${{ prefix }}_SKILLS/home/{{ skill_name }}/scripts/{{ skill_name }}.sh
    {{ prefix }}_TILING=${{ prefix }}_SKILLS/home/tiling/scripts/run-ttm.sh
    {{ prefix }}_EDITOR=${{ prefix }}_SKILLS/home/editor/scripts/run-editor.sh
-   {{ prefix }}_ANALYTICS=${{ prefix }}_SKILLS/home/skill-analytics/scripts/add-invocation.sh
    ```
-2. Set tiling activity, record invocation, build layout:
+2. Set tiling activity and build layout:
    ```bash
    ${{ prefix }}_TILING activity set "{{ skill_name }}({{ target }}): Ingest"
-   ${{ prefix }}_ANALYTICS {{ skill_name }} TRIGGER_TYPE:TRIGGER_NAME
    eval "$(${{ prefix }}_TILING layout build)"
    ```
 3. Ingest:

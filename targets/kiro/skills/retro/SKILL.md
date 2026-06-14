@@ -29,12 +29,7 @@ an explicit folder is provided.
    ~/.kiro/skills/home/tiling/scripts/run-ttm.sh \
        activity set "retro(<target>): Load Learnings"
    ```
-2. Log activation:
-   ```bash
-   ~/.kiro/skills/home/skill-analytics/scripts/add-invocation.sh \
-       retro TRIGGER_TYPE:TRIGGER_NAME
-   ```
-3. Read all JSON files from `~/.kiro/retro/pending/`.
+2. Read all JSON files from `~/.kiro/retro/pending/`.
 
 On completion: proceed to Step 2.
 
@@ -148,7 +143,7 @@ infers the target namespace from the finding's content.
 
 1. Enumerate installed namespaces:
    ```bash
-   ~/.kiro/skills/home/dojo/scripts/list-namespaces.sh
+   ~/.kiro/skills/home/retro/scripts/list-namespaces.sh
    ```
 2. Show the user the list and ask: "Where should this <area> live?
    (e.g. `home` for a home-flat entry, `aws/util` for a categorised

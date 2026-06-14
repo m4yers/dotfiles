@@ -23,3 +23,15 @@ properties:
           enum: [Error, Warning, Info]
         source:
           type: string
+        rule_fun:
+          type: string
+          description: |
+            Check function that produced the finding (e.g.
+            'rule_2_2_activity_pattern'). Empty for advisory
+            findings without a backing rule function.
+        rule_ref:
+          type: string
+          description: |
+            Vim-friendly path:line link to the rule's source in
+            the references markdown (e.g.
+            'references/workflow-conventions.md:31').

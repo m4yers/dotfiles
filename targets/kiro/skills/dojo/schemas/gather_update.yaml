@@ -1,6 +1,9 @@
-# Output of `gather-update` human task.
+# Output of `gather-update` human task. Carries the picked
+# skill's canonical locate shape (skill_dir + category, copied
+# from the find-skill landscape entry) so the audit core and
+# checks-report read it directly — no separate locate task.
 type: object
-required: [name, namespace, path, type, description]
+required: [name, namespace, path, type, skill_dir, category, description]
 additionalProperties: false
 properties:
   name:
@@ -15,6 +18,12 @@ properties:
   type:
     type: string
     description: skill type forwarded from find-skill (interface, tool, workflow, reference)
+  skill_dir:
+    type: string
+    description: skill directory (== path); locate-shape field for the audit core
+  category:
+    type: string
+    description: first namespace component (e.g. home, aws); locate-shape field
   description:
     type: string
     description: free-form description of the changes the user wants

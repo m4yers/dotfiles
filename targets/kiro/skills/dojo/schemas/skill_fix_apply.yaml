@@ -1,0 +1,18 @@
+# Output of the `skill-fix-apply` agent task (review fix loop).
+# The agent applies each skill-fix-review item to the skill, marks
+# fixed (✅) and dismissed (⏩) findings done in report.md, and
+# reports how many findings remain open. The latch loops back to
+# `show-report` while open_items > 0.
+type: object
+required: [open_items, files]
+additionalProperties: false
+properties:
+  open_items:
+    type: integer
+    minimum: 0
+    description: findings still not closed (no ✅/⏩) after this pass
+  files:
+    description: skill files modified this pass
+    type: array
+    items:
+      type: string

@@ -13,7 +13,7 @@ from dojo.tasks import (
     render_design as _render_design,
     summary as _summary,
 )
-from dojo.checks import check_prompts as _check_prompts
+from dojo.validators import validate as _validate
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
 
@@ -44,7 +44,7 @@ check_app.command("name")(_check_name.cli_check)
 check_app.command("location")(_check_location.cli_check)
 check_app.command("naming")(_check_naming.cli_check)
 check_app.command("overlaps")(_check_overlaps.cli_check)
-check_app.command("prompts")(_check_prompts.cli_check)
+check_app.command("prompts")(_validate.cli_check)
 app.add_typer(check_app, name="check")
 
 
@@ -55,12 +55,10 @@ pipeline_app = typer.Typer(
 )
 pipeline_app.command("summary")(_summary.cli_summary)
 pipeline_app.command("render-design")(_render_design.cli_render)
-pipeline_app.command("locate")(pipeline.cli_locate)
-pipeline_app.command("synth-locate")(pipeline.cli_synth_locate)
-pipeline_app.command("lint")(pipeline.cli_lint)
+pipeline_app.command("autochecks")(pipeline.cli_autochecks)
 pipeline_app.command("assemble")(pipeline.cli_assemble)
+pipeline_app.command("show-report")(pipeline.cli_show_report)
 pipeline_app.command("finalize")(pipeline.cli_finalize)
-pipeline_app.command("gate-decisions")(pipeline.cli_gate_decisions)
 app.add_typer(pipeline_app, name="pipeline")
 
 
@@ -71,6 +69,7 @@ report_app = typer.Typer(
 )
 report_app.command("accept")(report.cli_accept)
 report_app.command("decline")(report.cli_decline)
+report_app.command("open-count")(report.cli_open_count)
 app.add_typer(report_app, name="report")
 
 

@@ -1,105 +1,90 @@
 # Workflow Skill Conventions
 
-Conventions specific to skills with `type: workflow`. These
-supplement the general conventions in `conventions.md`.
+Conventions specific to skills with `type: workflow`. These supplement the
+general authoring rules in `authoring.md`.
 
 ## Contents
 
-- [What a Workflow Skill Is](#what-a-workflow-skill-is)
-- [Execution Driver: Loom](#execution-driver-loom)
-- [Task & File Naming](#task--file-naming)
-- [Constructing Task Output](#constructing-task-output)
-- [Prompt Templates](#prompt-templates)
-- [Shell Variable Prefixing](#shell-variable-prefixing)
-- [Required Sections](#required-sections)
-- [Step Rules](#step-rules)
-- [Activity Tracking](#activity-tracking)
-- [User Interaction Points](#user-interaction-points)
-- [Optional Sections](#optional-sections)
-- [Section Order](#section-order)
-- [What Does NOT Belong](#what-does-not-belong)
-- [Principles](#principles)
+- [1. Definition](#1-definition)
+- [2. Structure](#2-structure)
+- [3. Execution Driver](#3-execution-driver)
+- [4. Task and File Naming](#4-task-and-file-naming)
+- [5. Constructing Task Output](#5-constructing-task-output)
+- [6. Prompt Templates](#6-prompt-templates)
+- [7. Shell Variable Prefixing](#7-shell-variable-prefixing)
+- [8. Step Rules](#8-step-rules)
+- [9. User Interaction Points](#9-user-interaction-points)
+- [10. Forbidden Shapes](#10-forbidden-shapes)
+- [11. Anti-Gaming Success Criteria](#11-anti-gaming-success-criteria)
 
-## What a Workflow Skill Is
+## 1. Definition
 
-A multi-step, often interactive skill. Steps contain multiple
-sub-steps and may loop or wait for user input. If the skill is a
-fixed sequence with no interaction, it is a `tool`, not a
-`workflow`.
+1. A workflow skill MUST be multi-step and often interactive, with steps
+   containing sub-steps that MAY loop or wait for user input.
+2. A fixed sequence with no interaction is a `tool`, not a `workflow`.
+3. Steps are the unit of progress; sub-steps are the unit of work, and each
+   sub-step MUST be a single indivisible action.
 
-## Execution Driver: Loom
+## 2. Structure
 
-Workflow skills MUST use `loom` (`~/.kiro/skills/home/loom/`) to
-drive execution. Loom provides DAG scheduling, predicate-gated
-skip logic, schema-validated outputs, Jinja prompt rendering, and
-crash-resumable workdir state — exactly the machinery a workflow
-needs. Prose-driven steps without a loom plan cannot reliably
-encode dependencies, validate outputs, or resume mid-run, so they
-fail silently when the workflow is interrupted or extended.
+1. New workflow skills MUST be generated from
+   `~/.kiro/skills/home/dojo/templates/skill/workflow.md.j2`, which encodes the
+   required section order, the Step 1 (Ingest) skeleton, the loom-driven Step 2
+   (Drive the loop), the dispatch-agent and human-gate helpers, and the
+   activity-tracking pattern.
 
-Two acceptable shapes:
+2. Hand-edited or pre-existing workflow SKILL.md files MUST conform to that
+   template's section order, required sections, and activity-tracking pattern.
+   (check: `autochecks/workflow_conventions.py:12`)
 
-1. **Wrapper-script driver.** The skill ships a Python module
-   that builds a loom plan via `loom.init` / `loom.resume`,
-   exposed through a `scripts/<name>.sh` shim with subcommands
-   like `ingest`, `next`, `complete`, `report`, `pipeline`. The
-   workflow steps in `SKILL.md` call the shim. The orchestrator
-   (the LLM) drives the `next → dispatch → complete` loop.
-2. **Inline loom driver.** For small workflows, the skill calls
-   loom directly from a `scripts/run.py`, and `SKILL.md` walks
-   the user through invoking it. Still requires a static plan
-   built with `make_plan`.
+3. Reviews of a workflow SKILL.md MUST diff its rendered structure against the
+   template, flagging any missing required section, divergent section order, or
+   absent activity tracking.
 
-The orchestrator's per-step responsibility is bounded:
+## 3. Execution Driver
 
-- Run `next` to obtain ready tasks.
-- Dispatch `agent` tasks via the `subagent` MCP tool.
-- Drive `human` gates conversationally.
-- Call `complete` when the task body finishes.
+1. Workflow skills MUST use `loom` to drive execution; see
+   `~/.kiro/skills/home/loom/SKILL.md` for its API and usage.
+2. The orchestrator's per-step responsibility is bounded to: running `next` to
+   obtain ready tasks, dispatching `agent` tasks via the `subagent` MCP tool,
+   driving `human` gates conversationally, and calling `complete` when each task
+   body finishes.
+3. Skills MUST NOT reimplement task ordering, predicate evaluation, schema
+   validation, or persistence in prose-driven steps, because every
+   reimplementation drifts from the loom contract and breaks resumability.
 
-Loom owns task ordering, predicate evaluation, schema validation,
-and persistence. The skill MUST NOT reimplement these in
-prose-driven steps because every reimplementation drifts from the
-loom contract and breaks resumability.
+## 4. Task and File Naming
 
-See `~/.kiro/skills/home/cr-review/SKILL.md` for an example
-workflow that uses loom via a wrapper script
-(`scripts/cr-review.sh`).
+1. A task and its bound resources MUST share the same base name. For task
+   `<name>`: the output schema MUST be `schemas/<name>.yaml`, the agent or human
+   prompt MUST be `templates/prompts/<name>.md.j2`, and any other per-task
+   artefact MUST follow the same `<name>` convention. Aligned names make the
+   task-resource graph visible by ls. (check:
+   `autochecks/workflow_conventions.py:100`)
+2. Task ids, schema filenames, and prompt filenames MUST be domain-prefixed
+   kebab-case (`<domain>-<action>`) so related tasks group visibly.
+3. Every task id MUST match `^[a-z][a-z0-9]*(-[a-z0-9{}]+)+$` (at least one
+   hyphen → a domain prefix); bare single-word ids (`build`, `lint`) MUST be
+   prefixed (`build-compile`, `build-test`).
+4. A schema or prompt shared by several tasks MUST take the shared domain prefix
+   (e.g., `schemas/ws-clean.yaml` for `ws-clean-pre` / `ws-clean-post`).
+5. Schema and prompt filename prefixes MUST be drawn from the task domain
+   vocabulary; orphan prefixes are rejected by `dojo.sh check naming` before
+   materialization.
 
-## Task & File Naming
+## 5. Constructing Task Output
 
-Task ids, schema filenames, and prompt filenames MUST be
-**domain-prefixed kebab-case** — `<domain>-<name>` — so related
-tasks group visibly. Pick a small domain vocabulary for the
-workflow and prefix every name with it. Examples from a rebase
-workflow: `cr-info`, `cr-push` (Gerrit I/O); `rebase-cherry-pick`,
-`rebase-verify` (git mechanics); `conflict-resolve`,
-`conflict-collect` (conflict handling); `review-conflict`,
-`review-interdiff` (human review). Avoid bare single-word ids
-like `build` or `lint` — prefix them (`build-compile`,
-`build-test`).
-
-Rules:
-
-- Every task id matches `^[a-z][a-z0-9]*(-[a-z0-9{}]+)+$` (at
-  least one hyphen → a domain prefix).
-- Each task's `output_schema` is `schemas/<name>.yaml` and each
-  agent/human prompt is `templates/prompts/<name>.md.j2`, named
-  after the task. A schema or prompt shared by several tasks
-  takes the shared domain prefix (e.g. `schemas/ws-clean.yaml`
-  for `ws-clean-pre` / `ws-clean-post`).
-- Schema and prompt filename prefixes MUST be drawn from the task
-  domain vocabulary — no orphan prefixes.
-
-dojo enforces this at design time: the `check-naming` task
-validates the design's task/schema/prompt names and aborts the
-run (before materialization) on any non-domain-prefixed or
-orphan-prefixed name.
-
-## Constructing Task Output
-
-Agent tasks in a workflow MUST construct their schema-bound
-`output.yaml` via loom's writer, not via free-form `fs_write`:
+1. Agent tasks MUST construct schema-bound `output.yaml` via loom's writer
+   (`loom output init` / `loom output add`), not via free-form `fs_write`,
+   because eager schema validation surfaces violations at construction time and
+   the writer normalises YAML shape.
+2. `loom output add` MUST use dotted-path assignments — `[]` to append to
+   arrays, `[-1]` to target the last appended entry, `.` for nested objects.
+3. The `output.yaml` rule applies only to the loom task's own output; agent
+   bodies MAY use `fs_write` for skill files (SKILL.md, scripts, schemas) they
+   are creating.
+4. Human gates that copy an upstream YAML verbatim MAY skip the writer, because
+   the copy is schema-equivalent to the upstream YAML.
 
 ```bash
 LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
@@ -112,294 +97,112 @@ $LOOM output add  "$WD" --task <task-id> \
     --set 'array_field[-1].sibling=value'
 ```
 
-`init` embeds the task's `output_schema` and seeds required
-arrays/objects. `add` applies dotted-path assignments and
-validates after every call, so a malformed value fails fast
-with the violating path. `[]` appends to an array; `[-1]`
-targets the last appended entry; nested objects use `.`.
+## 6. Prompt Templates
 
-Why this is required:
+1. Workflow skills with agent or human tasks MUST ship one Jinja prompt per task
+   at `templates/prompts/<task-id>.md.j2`.
+2. Each prompt MUST be terse, because fluff dilutes the agent's attention and
+   inflates the workdir transcript.
+3. Prompts MUST contain: a single H1 title naming the task, inputs (paths to
+   upstream task outputs) at the top, a `## Task` (or per-step) section with
+   imperative sentences, and a `## Output` section with the
+   `loom output init`/`output add` example tailored to the task's schema.
+4. Prompts MAY include type-specific or domain-specific guidance the agent
+   cannot infer from the schema or shared conventions.
+5. Prompts MUST NOT contain self-introductions ("You are the X agent…"), because
+   the agent knows its role from its dispatch context.
+6. Prompts MUST NOT restate field constraints already encoded in the JSON
+   schema, because the writer rejects violations.
+7. Prompts MUST NOT include meta-asides about why a thing is the way it is,
+   unless the reasoning changes what the agent should do, because background
+   context that does not alter the action is overhead.
+8. Prompts MUST NOT duplicate fields between an intro list and per-section
+   subsections, because duplication forces the agent to reconcile two sources of
+   truth.
 
-- Eager validation surfaces schema violations at construction
-  time rather than at `loom complete`, where the failure
-  message is more abstract.
-- The emitted YAML is normalized (key order, indentation, no
-  flow style), so downstream tasks and renderers see a
-  predictable shape.
-- Sub-agents dispatched via the `subagent` MCP tool can call
-  the writer through the loom shim and produce schema-valid
-  output.yaml without hand-writing YAML.
+## 7. Shell Variable Prefixing
 
-Exceptions:
-
-- Skill-file writes inside the agent's task body — `fs_write`
-  is correct for SKILL.md, scripts, schemas the agent is
-  *creating* under the skill directory. Only the loom task's
-  own `output.yaml` must go through `loom output`.
-- Human gates that copy an upstream YAML verbatim into the
-  gate's output (e.g. design-review). The copy semantics are
-  schema-equivalent to the upstream YAML; loom's writer is
-  unnecessary.
-
-## Prompt Templates
-
-Workflow skills with agent or human tasks ship one Jinja
-prompt per task under `templates/prompts/<task-id>.md.j2`.
-Each prompt MUST be terse — fluff dilutes the agent's
-attention and inflates the workdir transcript.
-
-Keep:
-
-- The single H1 title naming the task.
-- Inputs (paths to upstream task outputs) at the top.
-- A `## Task` (or per-step) section stating what to do, in
-  imperative sentences.
-- A `## Output` section with the loom `output init`/`output
-  add` example tailored to the task's `output_schema`.
-- Type-specific or domain-specific guidance the agent
-  cannot infer from the schema or shared conventions.
-
-Cut:
-
-- Self-introductions ("You are the X agent ..."). The agent
-  knows its role from its dispatch context.
-- Restating field constraints already encoded in the JSON
-  schema (the writer will reject violations).
-- Meta-asides about why a thing is the way it is, unless the
-  reasoning changes what the agent should do.
-- Numbered "produce a design covering" lists when the loom-
-  output bash example already shows the same fields.
-- Repetition between an intro list and per-section
-  subsections.
-- Pointers to ancillary documentation the agent does not
-  need to make a correct decision.
-
-Affirmative wording (see steering) and the verbatim
-guidance in `~/.kiro/skills/home/dojo/references/conventions.md`
-apply.
-
-## Shell Variable Prefixing
-
-Every shell variable defined in SKILL.md MUST use a
-skill-specific prefix derived from the skill name (typically
-the initials, e.g. `DOJO_` for `dojo`, `CR_` for
-`cr-review`). Both the assignment and every reference
-use the prefix.
-
-Why: SKILL.md snippets are often pasted into a single shell
-session. Without prefixes, two skills that both define
-`WD`, `SKILLS`, `EDITOR`, etc. clobber each other when the
-user follows their workflows back-to-back.
-
-Example:
+1. Caller-state variables (operation, name, tag, workdir, etc.) defined in
+   SKILL.md MUST use a skill-specific 2–4 character prefix derived from the
+   skill name (`dojo` → `DOJO_`, `cr-review` → `CR_`, `brazil-build` → `BB_`),
+   because unprefixed names like `WD` or `OP` clobber each other when the user
+   follows two skills' workflows back-to-back.
+2. When two skills would collide on initials, authors MUST append a
+   disambiguator (`swim-builder` → `SWB_`).
+3. Script aliases keep bare names matching the target skill (`$DOJO`,
+   `$TILING`); they never collide because each skill exposes a single shim under
+   its own name. (See `script-conventions.md` § Script Invocation Paths.)
+4. Reference files and scripts are exempt from the prefix rule, because they
+   execute in their own process namespace, not pasted into the user's shell.
 
 ```bash
-SB_SKILLS=~/.kiro/skills
-DOJO_SH=$DOJO_SKILLS/home/dojo/scripts/dojo.sh
-SB_TILING=$SB_SKILLS/home/tiling/scripts/run-ttm.sh
-SB_WD=$($SB_BUILDER ingest --op create)
-$SB_BUILDER next "$SB_WD"
+DOJO=~/.kiro/skills/home/dojo/scripts/dojo.sh
+TILING=~/.kiro/skills/home/tiling/scripts/run-ttm.sh
+
+DOJO_OP=create
+DOJO_NAME=my-skill
+DOJO_WD=$($DOJO ingest --op "$DOJO_OP" --name "$DOJO_NAME")
+
+$DOJO next "$DOJO_WD"
+$TILING activity set "dojo($DOJO_OP:$DOJO_NAME): ..."
 ```
 
-Choose a 2–4 character prefix:
+## 8. Step Rules
 
-- For most skills, the initials of the kebab-case name
-  (`dojo` → `DOJO_`, `cr-review` → `CR_`,
-  `brazil-build` → `BB_`).
-- If two skills would collide on initials, append a
-  disambiguator (`dojo` → `DOJO_`,
-  `swim-builder` → `SWB_`).
+1. Each step MUST have a descriptive name after the number (e.g., "Setup &
+   Checkout", not just "Setup"). (check:
+   `autochecks/workflow_conventions.py:136`)
 
-The prefix is documented implicitly by usage — every
-variable in the skill's SKILL.md uses it. Reference files
-and scripts are exempt because they execute in their own
-process namespace, not pasted into the user's shell.
+2. Each step MUST have at most 5 numbered sub-steps, because longer steps are
+   skipped or partially executed; split into more steps instead. (check:
+   `autochecks/workflow_conventions.py:59`)
 
-## Required Sections
+3. A step MAY loop (e.g., "Repeat from sub-step 2 until all comments are
+   addressed") or stop to wait for user input (e.g., "STOP and wait for user to
+   review the diffs").
 
-### 1. Workflow
+4. Transitions between steps MUST be explicit, stating what triggers moving to
+   the next step.
 
-A single `## Workflow` section containing numbered steps as
-`### Step N: Name` subsections. Each step contains numbered
-sub-steps.
+5. Sub-step prose MUST NOT restate what a script does internally (algorithm,
+   edge cases, return values), because duplicated prose rots when the script
+   changes and inflates SKILL.md.
 
-```markdown
-## Workflow
+6. Script invocations MUST appear as actual commands in fenced bash blocks, not
+   as prose describing the call, because prose invocations hide arguments and
+   drift from the real CLI. Exception: sibling skills referenced by name when
+   the full command is documented in the other skill's SKILL.md.
 
-### Step 1: Setup & Checkout
+## 9. User Interaction Points
 
-1. Set tiling activity:
-   \`\`\`bash
-   $SKILLS/home/tiling/scripts/run-ttm.sh \
-     activity set "skill-name(<target>): Setup & Checkout"
-   \`\`\`
-2. Detect workspace root.
-3. Fetch CR metadata.
+1. Workflow pauses for user input MUST be explicit; phrase them as "STOP and
+   wait for user", "Ask the user", or "On approval: proceed to Step N".
+2. Inputs gathered before Step 1 (from the user's invocation message) MUST NOT
+   be classified as interaction points, because they happen outside the numbered
+   workflow.
 
-### Step 2: Analysis
+## 10. Forbidden Shapes
 
-1. Set tiling activity:
-   \`\`\`bash
-   $SKILLS/home/tiling/scripts/run-ttm.sh \
-     activity set "skill-name(<target>): Analysis"
-   \`\`\`
-2. Spawn workers for each comment thread.
-3. Collect results and categorize.
-```
+1. Workflow skills MUST NOT be a single flat list of steps, because that is a
+   `tool`.
+2. Workflow skills MUST NOT contain API tables, because that is an `interface`.
+3. Workflow skills MUST NOT be a passive rule set, because that is a
+   `reference`.
 
-### 2. Parameters
+## 11. Anti-Gaming Success Criteria
 
-A `## Parameters` section listing the skill's inputs. Parameters
-are either provided in the user's invocation message or the skill
-MUST ask for them explicitly.
+1. Success criteria that reference measurable outcomes (test count, coverage
+   thresholds, lint clean, file presence) MUST include anti-gaming guards that
+   prevent the LLM from trivially satisfying them, because the model can satisfy
+   a criterion without satisfying its intent (deleting failing tests, writing
+   no-op assertions, hard-coding expected values, relaxing the threshold).
+2. Each measurable criterion MUST state what it checks (the surface measure) and
+   the underlying intent (what the criterion proxies for).
+3. Each measurable criterion MUST add a guard that closes the gap, e.g.:
 
-```markdown
-## Parameters
-
-- **name** (required): kebab-case skill name
-- **category** (optional): `dev`, `diagnostics`, or
-  `util` — searches all if not given
-```
-
-### 3. Dependencies (when needed)
-
-List skills or tools this workflow depends on, before the Workflow
-section.
-
-## Step Rules
-
-- Each step MUST start with setting tiling activity
-- Each step MUST have a descriptive name after the number (e.g.,
-  "Setup & Checkout", not just "Setup")
-- Each step MUST have at most 5 numbered sub-steps because longer
-  steps are skipped or partially executed — split into more steps
-  instead
-- Steps are numbered sequentially starting from 1
-- Sub-steps within a step are numbered sequentially
-- A step MAY loop (e.g., "Repeat from sub-step 2 until all
-  comments are addressed")
-- A step MAY stop and wait for user input (e.g., "STOP and wait
-  for user to review the diffs")
-- Transitions between steps MUST be explicit — state what triggers
-  moving to the next step
-- Sub-step prose MUST NOT restate what a script does internally.
-  The agent can read the script when details are needed. Prose is
-  for information the agent cannot derive from the script alone:
-  which parameter to use, what to do with the result, when to
-  STOP, which step to loop back to. A one-line purpose ("render
-  the report", "stage changes above the base commit") is fine;
-  re-explaining algorithm, edge cases, or return values is not.
-  Rationale: duplicated prose rots when the script changes and
-  inflates the SKILL.md without adding actionable information.
-- Script invocations MUST appear as actual commands in fenced
-  bash blocks, not as prose describing the call (e.g. "run
-  `reporter.sh strikeout` and reload"). Prose invocations hide
-  arguments, force the agent to synthesize the command each run,
-  and drift from the real CLI. Exception: sibling skills
-  referenced by name (e.g. "build with <build-skill>") where the
-  full command is documented in the other skill's SKILL.md.
-
-## Activity Tracking
-
-Every step MUST set tiling activity as its first sub-step. The
-label MUST include the skill's target in parentheses so the user
-can identify what is being worked on:
-
-```bash
-$SKILLS/home/tiling/scripts/run-ttm.sh \
-  activity set "<skill-name>(<target>): <Step Name>"
-```
-
-The target is the skill's primary parameter — e.g., the skill
-name being reviewed, the CR number, the cluster ID. Examples:
-- `dojo(<op>:<skill>): Load Skill`
-- `cr-review(<CR>): Post comments`
-- `rca(<cluster-id>): Gather Data`
-
-The final step MUST set activity to done when the workflow
-completes:
-
-```bash
-$SKILLS/home/tiling/scripts/run-ttm.sh \
-  activity set "<skill-name>(<target>): Done"
-```
-
-## User Interaction Points
-
-Workflows often pause for user input. These MUST be explicit:
-
-- Use "STOP and wait for user" when the workflow blocks until the
-  user responds
-- Use "Ask the user" when input is needed to proceed
-- Use "On approval: proceed to Step N" for gated transitions
-
-Inputs gathered before Step 1 (from the user's invocation message)
-do not count as interaction points.
-
-## Optional Sections
-
-| Section    | When to include                         |
-|------------|-----------------------------------------|
-| `Rules`    | Cross-step constraints                  |
-| Any helper | Reusable procedures referenced by       |
-|            | multiple steps (e.g., "Build & Test",   |
-|            | "Striking and Replying")                |
-
-Helper sections sit after the Workflow section and are referenced
-by name from within steps. They avoid duplicating sub-steps across
-steps.
-
-## Section Order
-
-```
-(description)
-## Dependencies     (optional)
-## Parameters
-## Workflow
-  ### Step 1: ...
-  ### Step 2: ...
-  ### Step N: ...
-## <helper sections> (optional)
-## Rules            (optional)
-## Plan visualisation (optional; the loom task DAG)
-## Completion
-```
-
-## What Does NOT Belong
-
-- A single flat list of steps — use `tool`
-- API tables — use `interface`
-- Passive rules — use `reference`
-
-## Anti-Gaming Success Criteria
-
-Success criteria that reference measurable outcomes (test count,
-coverage thresholds, lint clean, file presence) MUST include
-anti-gaming guards that prevent the LLM from trivially
-satisfying them. The model can satisfy a criterion without
-satisfying its intent — by deleting the failing tests, writing
-no-op assertions, hard-coding expected values, or relaxing the
-threshold.
-
-For each measurable criterion:
-
-- State what the criterion checks (the surface measure).
-- State the underlying intent (what the criterion is a proxy
-  for).
-- Add a guard that closes the gap. Examples:
-  - "tests pass" + "test count did not decrease versus base"
-  - "lint clean" + "lint config unchanged versus base"
-  - "expected output matches" + "expected file is the design's
-    fixture, not regenerated this run"
-
-A criterion without a guard is a degree of freedom for the
-agent to weaken its own oracle.
-
-## Principles
-
-- Steps are the unit of progress. The user should be able to tell
-  which step is active from the tiling activity label.
-- Sub-steps are the unit of work within a step. Each sub-step is
-  one indivisible action.
-- Explicit over implicit. Every transition, every stop point,
-  every loop condition is written out.
+| Surface measure         | Guard                                    |
+| ----------------------- | ---------------------------------------- |
+| tests pass              | test count did not decrease versus base  |
+| lint clean              | lint config unchanged versus base        |
+| expected output matches | expected file is the design fixture, not |
+|                         | regenerated this run                     |

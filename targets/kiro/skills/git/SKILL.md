@@ -85,11 +85,6 @@ Runs `git reset --soft <base>` then `git commit --amend -m <message>`.
   operating on a non-ancestor would silently rewrite unrelated history.
 - The invariant `len(base..HEAD) ∈ {0, 1}` is checked before every
   command. `stage` requires 0, `amend` and `squash` require exactly 1.
-- Callers MUST log this skill's activation once per workflow step:
-  ```bash
-  ~/.kiro/skills/home/skill-analytics/scripts/add-invocation.sh \
-    git TRIGGER_TYPE:TRIGGER_NAME  # e.g. user:alice, skill:cr-comments
-  ```
 
 ## Completion
 

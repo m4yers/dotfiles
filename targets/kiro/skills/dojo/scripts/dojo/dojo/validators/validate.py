@@ -1,5 +1,6 @@
-"""Tool task: validate that every prompt template in every dojo
-pipeline renders cleanly against a synthetic loom context.
+"""Pipeline-wide validator: render every prompt template in every
+dojo pipeline against a synthetic loom context and report any
+render failures.
 
 This catches the class of bugs we hit during dojo create think
 on 2026-05-30/31:
@@ -35,8 +36,6 @@ from dojo import plan as plan_mod
 from loom.engine import store
 from loom.errors import RenderFailed
 from loom.render import jinja as loom_jinja
-
-ID = "check-prompts"
 
 # ---------------------------------------------------------------------------
 # Synthetic output stub generator — derives a schema-shaped value from a
@@ -119,8 +118,13 @@ def _check_pipeline(pipeline_name: str, plan,
                 stub_type = stub.get("type")
                 if isinstance(stub_type, str):
                     stub["type"] = type_override
-            td = store.ensure_task_dir(workdir, plan, t.id)
-            (td / "output.yaml").write_text(
+            store.ensure_task_dir(workdir, plan, t.id)
+            # Write to loom's READ path: flat output.yaml for normal
+            # tasks, iter-00/output.yaml for loop-body tasks (so
+            # downstream refs to a loop-body task's output resolve).
+            out_path = store.task_output_path(workdir, plan, t.id)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(
                 yaml.safe_dump(stub, sort_keys=False),
                 encoding="utf-8",
             )

@@ -1,0 +1,19 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/SKILL.md` (workflow steps + scripts)
+- `{{ vars.skill_dir }}/references/` directory listing and contents
+- Steering files in `~/.kiro/steering/` if the skill proposes new ones
+{% endblock %}
+
+{% block rules %}
+The model-awareness rules are inlined below. For each rule, decide
+whether the skill follows it, whether deviations are justified, and
+where the skill could be tightened — especially around token cost
+placement (steering vs SKILL.md vs references) and patterns that
+provoke model overtriggering or unwanted sub-agent spawning.
+
+## Model-awareness rules
+
+{% include 'model-awareness.md' %}
+{% endblock %}

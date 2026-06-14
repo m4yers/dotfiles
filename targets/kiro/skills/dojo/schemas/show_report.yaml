@@ -1,0 +1,20 @@
+# Output of the `show-report` tool task (review fix loop header).
+# Carries report_path + skill_dir + counts so loop-body tasks
+# reference only this header (loom single-entry loop requirement).
+type: object
+required: [report_path, skill_dir, errors, warnings, infos]
+additionalProperties: false
+properties:
+  report_path:
+    type: string
+  skill_dir:
+    type: string
+  errors:
+    type: integer
+    minimum: 0
+  warnings:
+    type: integer
+    minimum: 0
+  infos:
+    type: integer
+    minimum: 0

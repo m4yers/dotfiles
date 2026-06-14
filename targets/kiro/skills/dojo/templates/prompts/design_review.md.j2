@@ -6,10 +6,10 @@ agent has produced a structured YAML at:
 
 `{{ upstream['design'].task_path }}` (canonical edit target)
 
-The `render-design` tool has rendered that YAML as a
+The `design-render` tool has rendered that YAML as a
 human-readable markdown report at:
 
-`{{ upstream['render-design'].output.report_path }}`
+`{{ upstream['design-render'].output.report_path }}`
 
 ## Driving the gate
 
@@ -18,24 +18,31 @@ human-readable markdown report at:
    Show the markdown — it is far easier to scan than the
    raw YAML.
 2. STOP and wait for the user. The user can:
-   - **Accept** — proceed to `create` with the design as-is.
-   - **Edit** — request changes (specific sections, files,
-     frontmatter, etc.). Apply edits to the upstream design
-     YAML (the canonical source); the rendered markdown is
-     read-only presentation. After editing the YAML, you
-     may re-render it (run
-     `dojo.sh pipeline render-design --design <yaml>
-     --out <md>`) to show updated prose, or proceed.
-   - **Decline** — major rework needed. Report BLOCKED.
-3. When the user signals proceed, copy the (possibly edited)
-   YAML design to `{{ task.output_path }}`.
+   - **Accept** — the design is good; proceed to
+     `skill-materialize`.
+   - **Revise** — request changes. Capture their feedback
+     verbatim. The gate latches back to `design`, which
+     re-runs and reads this feedback to produce a new design;
+     the gate then re-presents it. Iterate until accept.
+   - **Decline** — major rework needed, abandon the run.
+     Report BLOCKED.
 
 ## Output
 
-The output of `design-review` is the post-edit design YAML.
-It matches `schemas/design.yaml` exactly. The `create` agent
-reads `design-review.output.yaml`, NOT the upstream `design`
-output.
+The `design-review` output matches `schemas/design.yaml` (the
+same shape as the `design` agent) plus a `decision` field:
 
-If the user declines, write `{status: decline}` against the
-decision schema and stop the workflow.
+- **Accept:** copy the (possibly hand-tweaked) design YAML to
+  `{{ task.output_path }}` and set `decision: accept`. Leave
+  `revise_reason` unset.
+- **Revise:** copy the current design YAML to
+  `{{ task.output_path }}`, set `decision: revise`, and set
+  `revise_reason` to the user's feedback (free text). The
+  `while` latch (`decision == 'revise'`) loops back to
+  `design`, which reads `revise_reason` and regenerates.
+- **Decline:** report BLOCKED and stop the workflow.
+
+`decision` and `revise_reason` are optional in the schema (the
+`design` agent omits them); the gate always sets `decision`.
+The `skill-materialize` agent reads `design-review.output.yaml`,
+NOT the upstream `design` output.

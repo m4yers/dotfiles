@@ -1,0 +1,29 @@
+# Output of the `skill-fix-review` human task (review fix loop).
+# The user picks which open findings to fix (with per-finding
+# instructions) and which to dismiss. `skill-fix-apply` consumes
+# this, applies the fixes, and marks both fixed and dismissed
+# findings done in report.md.
+type: object
+required: [items, dismissed]
+additionalProperties: false
+properties:
+  items:
+    description: findings to fix this pass, with how-to guidance
+    type: array
+    items:
+      type: object
+      required: [finding_id, instruction]
+      additionalProperties: false
+      properties:
+        finding_id:
+          type: integer
+          minimum: 1
+        instruction:
+          type: string
+          description: how the user wants this finding fixed
+  dismissed:
+    description: finding ids the user will not fix (closed, no change)
+    type: array
+    items:
+      type: integer
+      minimum: 1

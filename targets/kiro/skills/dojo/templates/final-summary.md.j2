@@ -3,10 +3,10 @@
    the plan can route a markdown render through it later. #}
 # Skill review complete
 
-Report: {{ upstream.assemble.output.report_path }}
+Report: {{ upstream['checks-report'].output.report_path }}
 
 | Severity | Count |
 |----------|-------|
-| Errors   | {{ upstream.assemble.output.errors }} |
-| Warnings | {{ upstream.assemble.output.warnings }} |
-| Info     | {{ upstream.assemble.output.infos }} |
+| Errors   | {{ upstream['checks-report'].output.errors }} |
+| Warnings | {{ upstream['checks-report'].output.warnings }} |
+| Info     | {{ upstream['checks-report'].output.infos }} |

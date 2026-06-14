@@ -1,7 +1,9 @@
 # Output of `find-skill --name N` tool task. Single-entry
-# resolution used by the review pipeline.
+# resolution used by the create and review pipelines. Emits the
+# canonical locate shape (skill_dir + category) consumed by the
+# audit core and checks-report.
 type: object
-required: [name, namespace, path, type]
+required: [name, namespace, path, type, skill_dir, category]
 additionalProperties: false
 properties:
   name:
@@ -11,4 +13,8 @@ properties:
   path:
     type: string
   type:
+    type: string
+  skill_dir:
+    type: string
+  category:
     type: string

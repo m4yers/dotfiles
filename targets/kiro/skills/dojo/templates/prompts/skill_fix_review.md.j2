@@ -1,0 +1,47 @@
+{# Human task: the user reviews the audit report and picks which
+   findings to fix (with how) and which to dismiss. Loop body of
+   the review fix loop (show-report -> skill-fix-review ->
+   skill-fix-apply, latched back to show-report). #}
+# Review findings and choose fixes
+
+`show-report` has opened the audit report in the editor:
+
+    {{ vars.report_path }}
+
+It lists the open findings (Errors, Warnings, Info). Findings
+already closed on a prior pass are marked ✅ (fixed) or ⏩
+(dismissed); ignore those.
+
+## Driving the gate
+
+1. Walk the user through the open findings.
+2. For each open finding the user wants fixed, capture its
+   `finding_id` and a short `instruction` describing how they
+   want it fixed.
+3. For each open finding the user will NOT fix, record its
+   `finding_id` under `dismissed`.
+4. STOP and wait for the user. Every open finding should end up
+   either in `items` (fix) or `dismissed` (skip) — otherwise it
+   stays open and the loop will re-present it next pass.
+
+## Output
+
+Write `{{ task.output_path }}` matching
+`schemas/skill_fix_review.yaml`:
+
+```yaml
+items:
+  - finding_id: 3
+    instruction: rename the package to dojo-dojo and refresh uv.lock
+  - finding_id: 7
+    instruction: drop the jinja2 dependency; loom owns rendering
+dismissed:
+  - 12
+  - 18
+```
+
+`items` and `dismissed` may each be empty, but leaving open
+findings in neither keeps the loop going. The next task,
+`skill-fix-apply`, applies the `items`, marks fixed findings ✅
+and dismissed findings ⏩ in the report, and recomputes how many
+remain open.

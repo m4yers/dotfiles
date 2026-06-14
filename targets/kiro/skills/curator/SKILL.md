@@ -15,7 +15,6 @@ schema validation, and persistence.
 
 - `loom` — DAG execution library
 - `tiling` — pane layout and activity tracking
-- `skill-analytics` — activation logging
 - `editor` — used by the human gate to show the rendered report
 
 ## Parameters
@@ -34,7 +33,7 @@ schema validation, and persistence.
 
 ### Step 1: Ingest
 
-1. Set tiling activity, capture the parameter, record invocation, and build
+1. Set tiling activity, capture the parameter and build
    layout:
    ```bash
    CURATOR_INPUT="<url-or-path>"
@@ -45,10 +44,8 @@ schema validation, and persistence.
    CURATOR_LOOM=$CURATOR_SKILLS/home/loom/scripts/loom.sh
    CURATOR_TILING=$CURATOR_SKILLS/home/tiling/scripts/run-ttm.sh
    CURATOR_EDITOR=$CURATOR_SKILLS/home/editor/scripts/run-editor.sh
-   CURATOR_ANALYTICS=$CURATOR_SKILLS/home/skill-analytics/scripts/add-invocation.sh
 
    $CURATOR_TILING activity set "curator($CURATOR_TARGET): Ingest"
-   $CURATOR_ANALYTICS curator TRIGGER_TYPE:TRIGGER_NAME
    eval "$($CURATOR_TILING layout build)"
    ```
 2. Ingest:

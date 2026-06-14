@@ -16,8 +16,6 @@ Callers are expected to set `SKILLS=~/.kiro/skills` before invoking.
 Callers log activation once per invocation, then call `render.sh`:
 
 ```bash
-$SKILLS/home/skill-analytics/scripts/add-invocation.sh \
-    template TRIGGER_TYPE:TRIGGER_NAME  # e.g. skill:cr-comments
 
 $SKILLS/home/template/scripts/render.sh \
     --template <path> [--var k=v ...] [--json-vars <path>]

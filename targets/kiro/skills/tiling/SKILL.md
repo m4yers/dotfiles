@@ -25,11 +25,11 @@ The standard layout defines two named panes:
 
 ### layout
 
-| Command | Args   | Output                                |
-|---------|--------|---------------------------------------|
-| `build` | (none) | `KIRO=%id` `EDITOR_PANE=%id`          |
-| `check` | (none) | `KIRO=%id` `EDITOR_PANE=%id` or exit 1|
-| `reset` | (none) | `KIRO=%id` (kills all other panes)    |
+| Command | Args   | Output                            |
+|---------|--------|-----------------------------------|
+| `build` | (none) | —                                 |
+| `check` | (none) | — (exit 1 if layout incorrect)    |
+| `reset` | (none) | —                                 |
 
 ### pane
 
@@ -52,11 +52,11 @@ The standard layout defines two named panes:
 
 ### layout build
 
-Create the standard 2-pane layout.
+Create the standard 2-pane layout. Idempotent — exits
+silently if the layout already exists.
 
 ```bash
-eval "$(~/.kiro/skills/home/tiling/scripts/run-ttm.sh layout build)"
-# → KIRO=%42  EDITOR_PANE=%44
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh layout build
 ```
 
 ```
@@ -71,12 +71,11 @@ eval "$(~/.kiro/skills/home/tiling/scripts/run-ttm.sh layout build)"
 Verify the standard 2-pane layout exists.
 
 ```bash
-eval "$(~/.kiro/skills/home/tiling/scripts/run-ttm.sh layout check)"
-# → KIRO=%42  EDITOR_PANE=%44
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh layout check
 ```
 
-Exits 0 with pane IDs if intact. Exits 1 with error
-message if layout is wrong — caller decides what to do.
+Exits 0 if intact. Exits 1 with error message if layout
+is wrong — caller decides what to do.
 
 ### layout reset
 
@@ -84,8 +83,7 @@ Kill all panes except the caller, returning to a single
 pane.
 
 ```bash
-eval "$(~/.kiro/skills/home/tiling/scripts/run-ttm.sh layout reset)"
-# → KIRO=%42
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh layout reset
 ```
 
 ### pane split
@@ -108,8 +106,8 @@ Prints the new pane's ID to stdout.
 Send keystrokes to a pane. Appends Enter by default.
 
 ```bash
-~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane write -t $EDITOR_PANE 'ls -la'
-~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane write -t $EDITOR_PANE -n 'partial input'
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane write -t %44 'ls -la'
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane write -t %44 -n 'partial input'
 ```
 
 - `-t PANE` — target pane (required)
@@ -121,8 +119,8 @@ Send keystrokes to a pane. Appends Enter by default.
 Read the visible content of a pane.
 
 ```bash
-~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane read -t $EDITOR_PANE
-~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane read -t $EDITOR_PANE -n 30
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane read -t %44
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane read -t %44 -n 30
 ```
 
 - `-t PANE` — target pane (required)
@@ -153,7 +151,7 @@ Destroy a pane.
 Resize a pane by pushing its edge in a direction.
 
 ```bash
-~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane resize -t $EDITOR_PANE -d left -s 10
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh pane resize -t %44 -d left -s 10
 ```
 
 - `-t PANE` — pane to resize (required)
@@ -184,14 +182,6 @@ this when starting work so the user sees what's active.
   sending keys — the process may have exited.
 - SHOULD call `activity set` when starting a skill so
   the user sees what's happening.
-
-**Constraints:**
-- You MUST log activation at the start of the first
-  workflow step:
-  ```bash
-  ~/.kiro/skills/home/skill-analytics/scripts/add-invocation.sh \
-    tiling TRIGGER_TYPE:TRIGGER_NAME  # e.g. user:alice, skill:cr-review
-  ```
 
 ## Completion
 

@@ -27,9 +27,9 @@ files; the task output goes through `loom output`.
 LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
 WD={{ run.workdir }}
 
-$LOOM output init "$WD" --task materialize
+$LOOM output init "$WD" --task skill-materialize
 
-$LOOM output add "$WD" --task materialize \
+$LOOM output add "$WD" --task skill-materialize \
     --set 'files[].path=/abs/path/to/SKILL.md' \
     --set 'files[-1].action=created' \
     --set 'files[].path=/abs/path/to/scripts/foo.sh' \
@@ -48,7 +48,7 @@ Render `~/.kiro/skills/home/dojo/templates/skill/workflow.md.j2`
 via the `template` skill's `render.sh`.
 
 ```bash
-SKILLS=~/.kiro/skills
+TEMPLATE=~/.kiro/skills/home/template/scripts/render.sh
 VARS={{ task.workdir }}/vars.json
 
 cat > "$VARS" <<'EOF'
@@ -71,13 +71,10 @@ cat > "$VARS" <<'EOF'
 }
 EOF
 
-$SKILLS/home/skill-analytics/scripts/add-invocation.sh \
-    template skill:dojo
-
-$SKILLS/home/template/scripts/render.sh \
-    --template $SKILLS/home/dojo/templates/skill/workflow.md.j2 \
-    --include-dir $SKILLS/home/dojo/templates/skill \
-    --include-dir $SKILLS/home/loom/templates \
+$TEMPLATE \
+    --template ~/.kiro/skills/home/dojo/templates/skill/workflow.md.j2 \
+    --include-dir ~/.kiro/skills/home/dojo/templates/skill \
+    --include-dir ~/.kiro/skills/home/loom/templates \
     --json-vars "$VARS" \
     > ~/.kiro/skills/<location>/<name>/SKILL.md
 ```

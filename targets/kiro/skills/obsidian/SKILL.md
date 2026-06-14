@@ -11,15 +11,6 @@ Before writing any markdown file to an Obsidian vault, read
 Obsidian-flavored markdown spec covering wikilinks, callouts,
 frontmatter, tags, and formatting conventions.
 
-
-**Constraints:**
-- You MUST log activation at the start of the first
-  workflow step:
-  ```bash
-  ~/.kiro/skills/home/skill-analytics/scripts/add-invocation.sh \
-    obsidian TRIGGER_TYPE:TRIGGER_NAME  # e.g. user:alice, skill:cr-review
-  ```
-
 ## Completion
 
 | Status               | Criteria                            |

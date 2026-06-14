@@ -178,7 +178,7 @@ def cmd_set_activity(args):
 def cmd_build(args):
     """Build the standard 2-pane layout.
 
-    If the layout already exists, returns existing pane IDs.
+    If the layout already exists, returns silently.
     Otherwise splits the current pane to create EDITOR
     (50% width, left).
 
@@ -187,8 +187,6 @@ def cmd_build(args):
         │ EDITOR    │ KIRO      │
         │ 50%       │ 50%       │
         └───────────┴───────────┘
-
-    Output: KIRO=%id EDITOR_PANE=%id for eval.
     """
     target = current_pane_id()
     s = server()
@@ -200,8 +198,6 @@ def cmd_build(args):
         kiro_left = int(kiro.pane_left)
         other = [p for p in panes if p.pane_id != target][0]
         if int(other.pane_left) < kiro_left:
-            print(f"KIRO={target}")
-            print(f"EDITOR_PANE={other.pane_id}")
             return
 
     # Kill stale panes before building
@@ -219,8 +215,6 @@ def cmd_build(args):
     if r1.returncode != 0:
         print(r1.stderr.strip(), file=sys.stderr)
         sys.exit(1)
-    print(f"KIRO={target}")
-    print(f"EDITOR_PANE={r1.stdout.strip()}")
 
 
 def cmd_check(args):
@@ -229,8 +223,8 @@ def cmd_check(args):
     Verifies 2 panes exist and identifies EDITOR to the
     left of KIRO.
 
-    Output: KIRO=%id EDITOR_PANE=%id for eval,
-    or error message and exit 1.
+    Exits 0 if intact; exits 1 with an error message if
+    the layout is wrong.
     """
     target = current_pane_id()
     s = server()
@@ -244,22 +238,16 @@ def cmd_check(args):
         print("layout incorrect: EDITOR not left of KIRO",
               file=sys.stderr)
         sys.exit(1)
-    print(f"KIRO={target}")
-    print(f"EDITOR_PANE={other.pane_id}")
 
 
 def cmd_reset(args):
-    """Reset layout by killing all panes except the caller.
-
-    Output: KIRO=%id for eval.
-    """
+    """Reset layout by killing all panes except the caller."""
     target = current_pane_id()
     s = server()
     kiro = find_pane(s, target)
     for p in kiro.window.panes:
         if p.pane_id != target:
             p.kill()
-    print(f"KIRO={target}")
 
 
 def main():
@@ -275,21 +263,17 @@ def main():
 
     bu = layout_sub.add_parser(
         "build", help="Build standard 2-pane layout",
-        description="Build the standard 2-pane layout (EDITOR | KIRO).",
-        epilog="Outputs (for eval): KIRO=%id  EDITOR_PANE=%id")
+        description="Build the standard 2-pane layout (EDITOR | KIRO).")
 
     ch = layout_sub.add_parser(
         "check", help="Check standard layout exists",
         description="Verify the standard 2-pane layout (EDITOR | KIRO) is "
-                    "intact.",
-        epilog="Outputs (for eval): KIRO=%id  EDITOR_PANE=%id. "
-               "Exits 1 if layout is wrong.")
+                    "intact. Exits 1 if layout is wrong.")
 
     layout_sub.add_parser(
         "reset", help="Kill all panes except caller",
         description="Kill all panes except the caller, returning to a "
-                    "single pane.",
-        epilog="Outputs (for eval): KIRO=%id")
+                    "single pane.")
 
     # --- pane ---
     pane = group.add_parser("pane", help="Pane operations")

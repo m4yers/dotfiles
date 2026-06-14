@@ -1,0 +1,19 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/SKILL.md` (frontmatter, structure, workflow)
+- `{{ vars.skill_dir }}/` directory listing (sub-folders, file layout)
+- `{{ vars.skill_dir }}/scripts/` directory listing
+{% endblock %}
+
+{% block rules %}
+The skill authoring rules — covering directory layout, frontmatter,
+skill type, style, completion, handle policy, degrees of freedom,
+trigger phrase hygiene, and instruction effectiveness — are inlined
+below. For each rule, decide whether the skill follows it, whether
+deviations are justified, and where the skill could be tightened.
+
+## Authoring rules
+
+{% include 'authoring.md' %}
+{% endblock %}

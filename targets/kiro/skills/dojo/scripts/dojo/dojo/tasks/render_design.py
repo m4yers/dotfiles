@@ -28,7 +28,7 @@ from loom import tool
 
 from dojo.utils import emit, fail
 
-ID = "render-design"
+ID = "design-render"
 
 _SKILL_ROOT = Path(__file__).resolve().parents[4]
 SCHEMA = _SKILL_ROOT / "schemas" / "design_render.yaml"

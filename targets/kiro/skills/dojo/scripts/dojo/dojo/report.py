@@ -128,8 +128,13 @@ def _escape_md_underscores(text: str) -> str:
 def add_finding(
     path: Path, severity: str, title: str, location: str,
     description: str, fix: str,
+    rule_ref: str = "",
 ) -> int:
     """Append a finding to the section matching `severity`.
+
+    ``rule_ref`` (when provided) is appended after the description
+    as ``(`<path:line>`)`` — vim ``gf``-friendly link to the rule
+    source in the references markdown.
 
     Returns the finding's sequential number after renumbering.
     Raises ValueError if the severity is unknown or the section
@@ -155,9 +160,12 @@ def add_finding(
         head = f"0. **{title}** — `{location}`\n"
     else:
         head = f"0. **{title}**\n"
+    desc_line = description
+    if rule_ref:
+        desc_line = f"{description} (`{rule_ref}`)"
     entry = (
         head
-        + f"   {description}\n"
+        + f"   {desc_line}\n"
         + f"   > {fix}\n"
     )
 
@@ -263,6 +271,21 @@ def count_findings(path: Path) -> dict[str, int]:
     return counts
 
 
+def count_open_findings(path: Path) -> int:
+    """Count findings not yet closed (no ✅/⏩ marker on the first line).
+
+    A finding is closed when it has been accepted (✅, fixed) or
+    declined (⏩, dismissed). The fix loop exits when this reaches 0.
+    """
+    text = path.read_text(encoding="utf-8")
+    open_n = 0
+    for m in FINDING_BLOCK_RE.finditer(text):
+        first_line = m.group(0).split("\n", 1)[0]
+        if "✅" not in first_line and "⏩" not in first_line:
+            open_n += 1
+    return open_n
+
+
 # ---------------------------------------------------------------------------
 # Marker (accept / decline) — used by apply phase
 # ---------------------------------------------------------------------------
@@ -322,6 +345,17 @@ def cli_decline(
     except LookupError as e:
         fail(str(e), workdir=workdir, finding_id=finding_id)
     print(json.dumps(result))
+
+
+def cli_open_count(workdir: str) -> None:
+    """`dojo.sh report open-count <wd>` — emit `{open_items}`.
+
+    Counts findings not yet closed (no ✅/⏩). Used by the review
+    fix loop's `skill-fix-apply` to report whether another pass is
+    needed.
+    """
+    path = _resolve_report_path(workdir)
+    emit({"open_items": count_open_findings(path)})
 
 
 def _resolve_report_path(workdir: str) -> Path:

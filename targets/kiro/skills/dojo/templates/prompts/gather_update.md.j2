@@ -18,9 +18,15 @@ name: editor
 namespace: home
 path: /home/x/.kiro/skills/home/editor
 type: interface
+skill_dir: /home/x/.kiro/skills/home/editor
+category: home
 description: |
   Free-form description of the changes the user wants.
 ```
 
-The `path` and `type` fields MUST come from `find-skill.skills[]`
-for the chosen skill — do not synthesize them.
+The `name`, `namespace`, `path`, and `type` fields MUST come
+from `find-skill.skills[]` for the chosen skill — do not
+synthesize them. Set `skill_dir` to the same value as `path`,
+and `category` to the first component of `namespace` (e.g.
+`home`, `aws`). These locate-shape fields feed the audit core
+directly.

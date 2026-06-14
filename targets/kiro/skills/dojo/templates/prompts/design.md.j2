@@ -6,9 +6,24 @@ Read gather output at `{{ upstream['gather'].task_path }}` for
 `name`, `location`, `type`, `description`, `purpose`. Apply the
 conventions below, then construct `output.yaml` via `loom output`.
 
-## General conventions
+{% if vars.revise_reason %}
+## Revision feedback (address this)
 
-{% include 'conventions.md' %}
+A previous `design-review` returned `revise`. This is iteration
+N of the design loop. Produce a NEW design that resolves the
+reviewer's feedback below — do not simply re-emit the prior
+design:
+
+> {{ vars.revise_reason }}
+
+{% endif %}
+## General authoring rules
+
+{% include 'authoring.md' %}
+
+## Model awareness
+
+{% include 'model-awareness.md' %}
 
 ## Script conventions
 
@@ -20,13 +35,13 @@ conventions below, then construct `output.yaml` via `loom output`.
                     if upstream['gather'].output
                     and upstream['gather'].output.type else None %}
 {% if skill_type == 'interface' -%}
-{% include 'design/interface.md.j2' %}
+{% include 'design-interface.md.j2' %}
 {%- elif skill_type == 'tool' -%}
-{% include 'design/tool.md.j2' %}
+{% include 'design-tool.md.j2' %}
 {%- elif skill_type == 'workflow' -%}
-{% include 'design/workflow.md.j2' %}
+{% include 'design-workflow.md.j2' %}
 {%- elif skill_type == 'reference' -%}
-{% include 'design/reference.md.j2' %}
+{% include 'design-reference.md.j2' %}
 {%- else -%}
 **ERROR:** gather.type is missing or invalid: `{{ skill_type }}`.
 Stop and report the gather output as malformed.

@@ -1,0 +1,47 @@
+{# Agent task: apply the user's chosen fixes to the skill, mark
+   findings done in the report, and report how many remain open.
+   Latch of the review fix loop — loops back to show-report while
+   open_items > 0. #}
+# Apply chosen fixes
+
+The skill under review is at `{{ vars.skill_dir }}`. The audit
+report is at `{{ vars.report_path }}`. The user's choices for
+this pass are in the `skill-fix-review` output at:
+
+`{{ upstream['skill-fix-review'].task_path }}`
+
+It has two lists: `items` (findings to fix, each with an
+`instruction`) and `dismissed` (findings to close without a
+change).
+
+## Steps
+
+1. For each entry in `items`:
+   - Apply the fix to the skill at `{{ vars.skill_dir }}` following
+     the user's `instruction`. Edit the real skill files.
+   - Mark the finding fixed in the report:
+     `{{ vars.dojo_sh }} report accept {{ run.workdir }} <finding_id>`
+2. For each `finding_id` in `dismissed`:
+   - Close it without a code change:
+     `{{ vars.dojo_sh }} report decline {{ run.workdir }} <finding_id> --reason "<short reason>"`
+3. Recompute the open count:
+   `{{ vars.dojo_sh }} report open-count {{ run.workdir }}`
+   This returns `{open_items: N}` — findings still lacking a ✅/⏩
+   marker.
+
+## Output
+
+Write `{{ task.output_path }}` matching
+`schemas/skill_fix_apply.yaml`:
+
+```bash
+{{ vars.loom_sh }} output init {{ run.workdir }} --task skill-fix-apply
+{{ vars.loom_sh }} output add {{ run.workdir }} --task skill-fix-apply \
+    --set open_items=<N from report open-count> \
+    --set files='["<changed file>", ...]'
+```
+
+If `open_items > 0`, the loop returns to `show-report` for another
+pass; when it reaches 0 the loop exits to `finalize`. Only apply
+what the user asked for this pass — do not fix or dismiss findings
+they did not choose.

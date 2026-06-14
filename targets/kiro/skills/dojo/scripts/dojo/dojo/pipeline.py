@@ -6,6 +6,7 @@ schema-conforming YAML to stdout (loom captures it as the task's
 """
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 from typing import Optional
 
@@ -13,84 +14,23 @@ import typer
 import yaml
 
 from dojo import findings as findings_mod
-from dojo import locate as locate_mod
 from dojo import report as report_mod
-from dojo.lint.runner import lint_to_findings, lint_to_text
+from dojo.autochecks.checks import lint_to_findings, lint_to_text
 from dojo.utils import emit, fail
 
 
 # ---------------------------------------------------------------------------
-# locate
+# autochecks
 # ---------------------------------------------------------------------------
 
-def cli_locate(
-    name: str = typer.Option(..., "--name"),
-    category: Optional[str] = typer.Option(None, "--category"),
-) -> None:
-    """Resolve a skill by name; emit locate.yaml-shaped output."""
-    try:
-        result = locate_mod.build_locate_output(name, category)
-    except (FileNotFoundError, FileExistsError, ValueError) as e:
-        fail(str(e), name=name, category=category or "")
-    emit(result)
-
-
-# ---------------------------------------------------------------------------
-# synth-locate
-# ---------------------------------------------------------------------------
-
-def cli_synth_locate(
-    skill_dir: Optional[str] = typer.Option(
-        None, "--skill-dir",
-        help="Absolute path to skill dir. Mutually exclusive "
-             "with --location."),
-    location: Optional[str] = typer.Option(
-        None, "--location",
-        help="Namespace under ~/.kiro/skills/. Combined with "
-             "--name to derive skill_dir."),
-    name: str = typer.Option(..., "--name"),
-    type_: str = typer.Option(..., "--type"),
-    category: Optional[str] = typer.Option(None, "--category"),
-) -> None:
-    """Synthesise a locate.yaml-shaped output from upstream
-    refs. Used by create/update pipelines so `assemble` has
-    uniform `--locate` input without needing a real `locate`
-    task. Category is derived from the skill_dir's parent if
-    not given.
-    """
-    if skill_dir and location:
-        fail("--skill-dir and --location are mutually exclusive")
-    if not skill_dir and not location:
-        fail("either --skill-dir or --location is required")
-
-    if skill_dir:
-        sd = Path(skill_dir).expanduser().resolve()
-    else:
-        sd = (
-            Path.home() / ".kiro" / "skills" / location / name
-        ).resolve()
-
-    cat = category or locate_mod.derive_category(sd)
-    emit({
-        "skill_dir": str(sd),
-        "name":      name,
-        "category":  cat,
-        "type":      type_,
-    })
-
-
-# ---------------------------------------------------------------------------
-# lint
-# ---------------------------------------------------------------------------
-
-def cli_lint(
+def cli_autochecks(
     skill_dir: str,
     fmt: str = typer.Option(
         "yaml", "--format",
         help="Output format: yaml (default, schema-conforming) "
              "or text (legacy human-readable)"),
 ) -> None:
-    """Run automated lint and emit findings."""
+    """Run automated rule checks and emit findings."""
     sd = Path(skill_dir).expanduser().resolve()
     if not sd.is_dir():
         fail(f"not a directory: {sd}", skill_dir=str(sd))
@@ -129,7 +69,7 @@ def _read_findings(path: Path) -> list[dict]:
 def cli_assemble(
     workdir: str = typer.Option(..., "--workdir"),
     locate_path: str = typer.Option(..., "--locate"),
-    lint_path: str = typer.Option(..., "--lint"),
+    autochecks_path: str = typer.Option(..., "--autochecks"),
     check_paths: list[str] = typer.Option(
         [], "--check", help="One per check-* task output.yaml"),
 ) -> None:
@@ -142,9 +82,9 @@ def cli_assemble(
     category = locate_data["category"]
     typ      = locate_data["type"]
 
-    # Collect findings from lint + every check task.
+    # Collect findings from autochecks + every check task.
     raw: list[dict] = []
-    raw.extend(_read_findings(Path(lint_path)))
+    raw.extend(_read_findings(Path(autochecks_path)))
     for cp in check_paths:
         raw.extend(_read_findings(Path(cp)))
 
@@ -175,6 +115,7 @@ def cli_assemble(
             f.get("file_line", ""),
             f["description"],
             f["fix"],
+            rule_ref=f.get("rule_ref", ""),
         )
         section = report_mod.SECTION_FOR_SEVERITY[f["severity"]]
         counts[section] += 1
@@ -191,6 +132,47 @@ def cli_assemble(
 # ---------------------------------------------------------------------------
 # finalize
 # ---------------------------------------------------------------------------
+
+def cli_show_report(
+    workdir: str = typer.Option(..., "--workdir"),
+    skill_dir: str = typer.Option(..., "--skill-dir"),
+) -> None:
+    """`dojo.sh pipeline show-report` — open report.md in the editor.
+
+    Loop header for the review fix loop: re-displays the current
+    report (with items already marked ✅/⏩ on prior passes) and
+    emits the report path, skill_dir, and counts. It carries
+    skill_dir so the loop-body tasks reference only this header
+    (loom requires single-entry loop regions).
+    """
+    wd = Path(workdir).resolve()
+    report_path = wd / "global" / "report.md"
+    if not report_path.exists():
+        fail(f"report missing at {report_path}", workdir=str(wd))
+
+    editor_sh = (
+        Path.home() / ".kiro" / "skills" / "home"
+        / "editor" / "scripts" / "run-editor.sh"
+    )
+    if editor_sh.is_file():
+        try:
+            subprocess.run(
+                [str(editor_sh), "show", "file", str(report_path)],
+                timeout=30, check=False,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            pass  # display is best-effort; never block the loop
+
+    counts = report_mod.count_findings(report_path)
+    emit({
+        "report_path": str(report_path),
+        "skill_dir":   skill_dir,
+        "errors":   counts["Errors"],
+        "warnings": counts["Warnings"],
+        "infos":    counts["Info"],
+    })
+
 
 def cli_finalize(
     workdir: str = typer.Option(..., "--workdir"),
@@ -211,48 +193,9 @@ def cli_finalize(
 
 
 # ---------------------------------------------------------------------------
-# gate-decisions — parse the human-edited report file
+# gate-decisions — removed: the review fix loop (show-report ->
+# skill-fix-review -> skill-fix-apply) replaced the single gate;
+# fixes are applied via `report accept/decline` and the loop exits
+# on `report open-count`.
 # ---------------------------------------------------------------------------
 
-import re
-
-_ACCEPT_RE  = re.compile(r"^(\d+)\. ✅", re.MULTILINE)
-_DECLINE_RE = re.compile(
-    r"^(\d+)\. ⏩.*?\(declined: (.+?)\)", re.MULTILINE)
-
-
-def cli_gate_decisions(workdir: str) -> None:
-    """Parse the report file and emit gate.yaml-shaped decisions.
-
-    The user marks each finding with ✅ (accept) or ⏩ (decline)
-    by editing the report. We parse the markers back into a
-    structured decision list.
-    """
-    wd = Path(workdir).expanduser().resolve()
-    report = wd / "global" / "report.md"
-    if not report.is_file():
-        fail(f"report not found at {report}")
-
-    text = report.read_text(encoding="utf-8")
-    decisions: list[dict] = []
-
-    # Decline first — they have richer pattern matching.
-    for m in _DECLINE_RE.finditer(text):
-        decisions.append({
-            "finding_id": int(m.group(1)),
-            "action": "decline",
-            "reason": m.group(2).strip(),
-        })
-    declined_ids = {d["finding_id"] for d in decisions}
-
-    for m in _ACCEPT_RE.finditer(text):
-        fid = int(m.group(1))
-        if fid in declined_ids:
-            continue
-        decisions.append({
-            "finding_id": fid,
-            "action": "accept",
-        })
-
-    decisions.sort(key=lambda d: d["finding_id"])
-    emit({"decisions": decisions})

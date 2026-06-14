@@ -12,8 +12,8 @@ Show the user the final state and let them accept or decline.
 {% if 'design-review' in upstream -%}
 - Design (create pipeline): `{{ upstream['design-review'].task_path }}`
 {% endif -%}
-{% if 'materialize' in upstream -%}
-- Materialized files: `{{ upstream['materialize'].task_path }}`
+{% if 'skill-materialize' in upstream -%}
+- Materialized files: `{{ upstream['skill-materialize'].task_path }}`
 {% endif -%}
 {% if 'gather-update' in upstream -%}
 - Update intent: `{{ upstream['gather-update'].task_path }}`
@@ -21,14 +21,14 @@ Show the user the final state and let them accept or decline.
 {% if 'modify-changes' in upstream -%}
 - Initial change pass: `{{ upstream['modify-changes'].task_path }}`
 {% endif -%}
-{% if 'assemble' in upstream -%}
-- Audit report: `{{ upstream['assemble'].output.report_path }}`
-- Audit summary: errors={{ upstream['assemble'].output.errors }},
-  warnings={{ upstream['assemble'].output.warnings }},
-  infos={{ upstream['assemble'].output.infos }}
+{% if 'checks-report' in upstream -%}
+- Audit report: `{{ upstream['checks-report'].output.report_path }}`
+- Audit summary: errors={{ upstream['checks-report'].output.errors }},
+  warnings={{ upstream['checks-report'].output.warnings }},
+  infos={{ upstream['checks-report'].output.infos }}
 {% endif -%}
-{% if 'modify' in upstream -%}
-- Fix pass output: `{{ upstream['modify'].task_path }}`
+{% if 'skill-modify' in upstream -%}
+- Fix pass output: `{{ upstream['skill-modify'].task_path }}`
 {% endif %}
 
 ## Driving the gate

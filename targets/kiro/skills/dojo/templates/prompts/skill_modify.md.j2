@@ -35,9 +35,9 @@ skill files; the task output goes through `loom output`.
 LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
 WD={{ run.workdir }}
 
-$LOOM output init "$WD" --task modify
+$LOOM output init "$WD" --task skill-modify
 
-$LOOM output add "$WD" --task modify \
+$LOOM output add "$WD" --task skill-modify \
     --set 'files[].path=/abs/path/to/edited.md' \
     --set 'files[-1].action=modified' \
     --set 'files[].path=/abs/path/to/new.md' \

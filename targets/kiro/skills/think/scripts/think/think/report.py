@@ -182,18 +182,6 @@ def _render_via_template_skill(
         os.environ.get("SKILLS",
                        str(Path.home() / ".kiro" / "skills")))
     render_sh = skills_root / "home" / "template" / "scripts" / "render.sh"
-    analytics = (
-        skills_root / "home" / "skill-analytics"
-        / "scripts" / "add-invocation.sh"
-    )
-
-    # Log activation of the template skill (per the template
-    # skill's own contract).
-    if analytics.is_file():
-        subprocess.run(
-            [str(analytics), "template", "skill:think"],
-            check=False,
-        )
 
     # Hand vars over via a temp JSON file — preferred for
     # multi-line values, per script-conventions.

@@ -126,7 +126,14 @@ def _resolve_named(name: str) -> dict:
         )
         fail(f"skill '{name}' is ambiguous:\n{listing}",
              name=name, candidates=len(matches))
-    return matches[0]
+    match = dict(matches[0])
+    # Canonical locate-shape fields consumed by the audit core
+    # and checks-report: skill_dir (== path) and category (the
+    # first namespace component, e.g. 'home', 'aws').
+    match["skill_dir"] = match["path"]
+    namespace = match.get("namespace") or ""
+    match["category"] = namespace.split("/", 1)[0] if namespace else "unknown"
+    return match
 
 
 def cli_find(
