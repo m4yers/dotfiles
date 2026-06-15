@@ -242,9 +242,9 @@ class TestBuildReportMergeFields:
         # have output to make load_plan / safe_load happy — they
         # all default-load to None.
         tasks = [
-            Task(id="fetch", kind="tool", depends_on=[],
+            Task(id="source-fetch", kind="tool", depends_on=[],
                  cmd=["true"], output_schema="x"),
-            Task(id="classify", kind="agent", depends_on=[],
+            Task(id="extract-classify", kind="agent", depends_on=[],
                  template="x", output_schema="x"),
         ]
         plan = LoomPlan(tasks=tasks)
@@ -283,9 +283,9 @@ class TestBuildReportMergeFields:
             yaml.safe_dump(manifest), encoding="utf-8")
 
         tasks = [
-            Task(id="fetch", kind="tool", depends_on=[],
+            Task(id="source-fetch", kind="tool", depends_on=[],
                  cmd=["true"], output_schema="x"),
-            Task(id="classify", kind="agent", depends_on=[],
+            Task(id="extract-classify", kind="agent", depends_on=[],
                  template="x", output_schema="x"),
         ]
         plan = LoomPlan(tasks=tasks)

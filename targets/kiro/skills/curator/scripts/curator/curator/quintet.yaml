@@ -60,6 +60,7 @@ slots:
       news:        Reported news story.
       opinion:     Op-ed, editorial, or argument piece.
       blog:        Personal or company blog post.
+      cookbook:    Recipe collection — book of dishes with ingredient lists and steps.
 
   register:
     description: >-
@@ -104,6 +105,7 @@ slots:
       art:                Visual art, art history, aesthetics.
       music:              Music, music theory, music history.
       film:               Film, cinema, film criticism.
+      culinary:           Cooking, baking, food, cuisine.
 
   audience:
     description: >-
@@ -187,6 +189,15 @@ rules:
   - match: ["*", "*", "*", "*", academic]
     extractors: [citations]
 
+  # Per-discipline addition — anything culinary likely carries recipes.
+  - match: ["*", "*", "*", culinary, "*"]
+    extractors: [recipes]
+
+  # Per-form addition — cookbooks always emit recipes regardless of
+  # how the classifier picked discipline.
+  - match: [book, cookbook, "*", "*", "*"]
+    extractors: [recipes]
+
 
 # Destinations — for each extractor kind, declare what happens to its
 # output during composition + materialization. Two modes:
@@ -220,6 +231,7 @@ destinations:
   speaker:       {mode: artifact, folder: "13 PEOPLE"}
   citations:     {mode: artifact, folder: "10 SOURCES"}
   quotes:        {mode: artifact, folder: "11 QUOTES"}
+  recipes:       {mode: artifact, folder: "22 RECIPES"}
 
   # ── Synthesis mode — folded into synthesis pages ────────────────
   topics:        {mode: synthesis}

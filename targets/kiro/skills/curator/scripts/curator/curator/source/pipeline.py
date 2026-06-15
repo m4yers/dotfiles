@@ -171,7 +171,7 @@ def convert(path: str, task_workdir: str | Path) -> dict:
 
     # If the fetch task captured http_headers (web sources), pull
     # them in from its output.yaml sibling.
-    fetch_out = tw.parent / "fetch" / "output.yaml"
+    fetch_out = tw.parent / "source-fetch" / "output.yaml"
     if fetch_out.exists():
         try:
             fetch_data = yaml.safe_load(

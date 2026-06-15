@@ -1,11 +1,11 @@
 {# templates/report.md.j2 — gate-operator overview.
 
    Rendered by loom as the gate task's prompt. Context bags:
-     upstream.report.output  — the report tool's rich output dict
+     upstream['vault-report'].output  — the report tool's rich output dict
      task                    — current task ({id, output_path, ...})
      vars                    — pipeline vars (destinations, etc.)
 
-   Fields from upstream.report.output:
+   Fields from upstream['vault-report'].output:
      basename       — source basename
      topic          — classify topic string
      quintet        — classify quintet object
@@ -26,7 +26,7 @@
                                pages that overwrite an existing
                                vault page.
 #}
-{%- set r = upstream.report.output -%}
+{%- set r = upstream['vault-report'].output -%}
 # Curator Ingest Report
 
 **Source:** `{{ r.basename }}`

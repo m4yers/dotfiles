@@ -119,35 +119,45 @@ def _schema_extractor(kind: str) -> str:
     return str(SCHEMAS / 'extractors' / f'{kind}.yaml')
 
 
+PROMPTS    = TEMPLATES / 'prompts'
+
 def _template(kind: str, judge: bool = False) -> str:
-    return str(TEMPLATES / 'extractors' / kind / ('judge.j2' if judge else 'extractor.j2'))
+    """Resolve the prompt template path for an extractor task.
+
+    All per-task prompts live in ``templates/prompts/<task-id>.md.j2``
+    (symlinks to the ``extractors/<kind>/{extractor,judge}.j2``
+    sources). plan.py routes through the prompts dir so the
+    task-id ↔ prompt mapping is discoverable via ``ls``.
+    """
+    prefix = 'judge' if judge else 'extract'
+    return str(PROMPTS / f'{prefix}-{kind}.md.j2')
 
 
 def _pipeline_head(source_url: str) -> list:
     return [
-        tool('fetch',
+        tool('source-fetch',
              cmd=[str(CURATOR_SH), 'source', 'fetch', source_url],
-             output_schema=_schema_pipeline('fetch')),
-        tool('convert',
+             output_schema=_schema_pipeline('source-fetch')),
+        tool('source-convert',
              cmd=[str(CURATOR_SH), 'source', 'convert',
-                  '${task:fetch:path}',
+                  '${task:source-fetch:path}',
                   '--task-workdir', '${task_workdir}'],
-             depends_on=['fetch'],
-             output_schema=_schema_pipeline('convert')),
-        tool('security_scan',
+             depends_on=['source-fetch'],
+             output_schema=_schema_pipeline('source-convert')),
+        tool('security-scan',
              cmd=[str(SECURITY_SCAN_SH),
-                  '${task:convert:converted_path}'],
-             depends_on=['convert'],
-             output_schema=_schema_pipeline('security_scan')),
-        agent('classify',
+                  '${task:source-convert:converted_path}'],
+             depends_on=['source-convert'],
+             output_schema=_schema_pipeline('security-scan')),
+        agent('extract-classify',
               template=_template('classify'),
-              depends_on=['convert', 'security_scan'],
+              depends_on=['source-convert', 'security-scan'],
               output_schema=_schema_extractor('classify'),
               vars={**_VARS, 'kind_name': 'classify'},
               template_search_paths=_SEARCH_PATHS),
         agent('judge-classify',
               template=_template('classify', judge=True),
-              depends_on=['classify'],
+              depends_on=['extract-classify'],
               output_schema=_schema_pipeline('judge-verdict'),
               vars={**_VARS, 'kind_name': 'classify'},
               template_search_paths=_SEARCH_PATHS),
@@ -160,7 +170,7 @@ def _extractors(parallel: list[str], preds: dict[str, str | None]) -> list:
         extract_id = f'extract-{kind}'
         kw: dict = {
             'template': _template(kind),
-            'depends_on': ['classify', 'convert'],
+            'depends_on': ['extract-classify', 'source-convert'],
             'output_schema': _schema_extractor(kind),
             'vars': {**_VARS, 'kind_name': kind},
             'template_search_paths': _SEARCH_PATHS,
@@ -189,7 +199,7 @@ def _summary_extractor(parallel: list[str]) -> list:
     return [
         agent('extract-summary',
               template=_template('summary'),
-              depends_on_all=['classify', 'convert'],
+              depends_on_all=['extract-classify', 'source-convert'],
               depends_on_any=[f'extract-{k}' for k in parallel],
               output_schema=_schema_extractor('summary'),
               vars={**_VARS, 'kind_name': 'summary'},
@@ -230,7 +240,7 @@ def _merge_tasks(matchable: list[str]) -> list:
         )
         out.append(agent(
             merge_id,
-            template=str(TEMPLATES / 'merge' / f'{kind}.j2'),
+            template=str(PROMPTS / f'merge-{kind}.md.j2'),
             depends_on=[f'judge-{kind}', 'vault-match'],
             when=when,
             output_schema=_schema_pipeline('merge'),
@@ -262,8 +272,8 @@ def _pipeline_tail(parallel: list[str]) -> list:
              cmd=[str(CURATOR_SH), 'vault', 'replica', 'build', '${workdir}'],
              depends_on_any=all_judges + ['vault-match'] + merge_ids,
              output_schema=_schema_pipeline('build-replica')),
-        agent('synthesis',
-              template=str(TEMPLATES / 'extractors' / 'synthesis' / 'extractor.j2'),
+        agent('extract-synthesis',
+              template=str(PROMPTS / 'extract-synthesis.md.j2'),
               depends_on=['build-replica'],
               output_schema=_schema_extractor('synthesis'),
               vars={**_VARS, 'kind_name': 'synthesis',
@@ -271,8 +281,8 @@ def _pipeline_tail(parallel: list[str]) -> list:
                     'vault_root': str(VAULT_ROOT)},
               template_search_paths=_SEARCH_PATHS),
         agent('judge-synthesis',
-              template=str(TEMPLATES / 'extractors' / 'synthesis' / 'judge.j2'),
-              depends_on=['synthesis'],
+              template=str(PROMPTS / 'judge-synthesis.md.j2'),
+              depends_on=['extract-synthesis'],
               output_schema=_schema_pipeline('judge-verdict'),
               vars={**_VARS, 'kind_name': 'synthesis',
                     'destinations': _DESTINATIONS,
@@ -282,24 +292,24 @@ def _pipeline_tail(parallel: list[str]) -> list:
              cmd=[str(CURATOR_SH), 'vault', 'replica', 'prune', '${workdir}'],
              depends_on=['judge-synthesis'],
              output_schema=_schema_pipeline('prune-replica')),
-        tool('report',
+        tool('vault-report',
              cmd=[str(CURATOR_SH), 'vault', 'report', '${workdir}'],
              depends_on=['prune-replica'],
-             output_schema=_schema_pipeline('report')),
-        human('gate',
-              template=str(TEMPLATES / 'report.md.j2'),
+             output_schema=_schema_pipeline('vault-report')),
+        human('vault-gate',
+              template=str(PROMPTS / 'vault-gate.md.j2'),
               template_search_paths=_SEARCH_PATHS,
-              depends_on=['report'],
-              output_schema=_schema_pipeline('gate'),
+              depends_on=['vault-report'],
+              output_schema=_schema_pipeline('vault-gate'),
               vars=_VARS),
         tool('strip-dead-links',
              cmd=[str(CURATOR_SH), 'vault', 'replica', 'strip-dead-links', '${workdir}'],
-             depends_on=['gate'],
-             when='task."gate".proceed == `true`',
+             depends_on=['vault-gate'],
+             when='task."vault-gate".proceed == `true`',
              output_schema=_schema_pipeline('strip-dead-links')),
         tool('apply-replica',
              cmd=[str(CURATOR_SH), 'vault', 'replica', 'apply', '${workdir}'],
              depends_on=['strip-dead-links'],
-             when='task."gate".proceed == `true`',
+             when='task."vault-gate".proceed == `true`',
              output_schema=_schema_pipeline('apply-replica')),
     ]

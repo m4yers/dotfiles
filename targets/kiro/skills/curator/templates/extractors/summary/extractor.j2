@@ -6,10 +6,10 @@
    out per media in the prose below. #}
 
 {% block source_paths -%}
-Source text:        {{ upstream.convert.output.converted_path | default('(missing)', true) }}
-Container metadata: {{ upstream.convert.output.metadata | default('(none)', true) }}
-Quintet:            {{ upstream.classify.output.quintet }}
-Topic:              {{ upstream.classify.output.topic }}
+Source text:        {{ upstream['source-convert'].output.converted_path | default('(missing)', true) }}
+Container metadata: {{ upstream['source-convert'].output.metadata | default('(none)', true) }}
+Quintet:            {{ upstream['extract-classify'].output.quintet }}
+Topic:              {{ upstream['extract-classify'].output.topic }}
 
 {% set peers = [] %}
 {% for tid, peer in upstream.items() if tid.startswith('extract-') and tid != task.id and peer.status == 'done' %}
@@ -66,7 +66,7 @@ The summary should:
 5. Reflect the peers' findings (keywords, topics, models) as a
    cross-check on what mattered in the source.
 
-Length, by source media (`upstream.classify.output.quintet.media`):
+Length, by source media (`upstream['extract-classify'].output.quintet.media`):
 
 - `article` or `paper`: **150–200 words, AT MOST 3 paragraphs**.
 - any other media (`book`, `podcast`, `video`, `lecture`, ...):

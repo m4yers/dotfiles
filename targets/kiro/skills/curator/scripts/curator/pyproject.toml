@@ -13,6 +13,7 @@ dependencies = [
     "arxiv>=2.1",
     "webvtt-py>=0.5",
     "gdown>=5.2",
+    "pint>=0.24",
     "loom",
 ]
 

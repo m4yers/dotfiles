@@ -1,0 +1,43 @@
+{# templates/vault/recipe.j2 — vault page for type=recipe.
+
+   The replica builder enriches each ingredient with
+   ``quantity_metric`` (computed by pint) before passing the item
+   to this template. The template prefers ``quantity_metric``,
+   falling back to ``quantity`` (verbatim) for descriptive,
+   unitless, or kitchen-spoon quantities where pint returned None.
+-#}
+---
+type: recipe
+title: "{{ item.name }}"
+{%- if item.get('yield') %}
+yield: "{{ item.get('yield') }}"
+{%- endif %}
+{%- if item.get('total_time') %}
+total_time: "{{ item.get('total_time') }}"
+{%- endif %}
+{%- if item.get('tags') %}
+tags:
+{%- for t in item.tags %}
+  - {{ t }}
+{%- endfor %}
+{%- endif %}
+last_updated: {{ today }}
+---
+
+# {{ item.name }}
+
+{{ item.description.strip() }}
+
+## Ingredients
+
+{% for ing in item.ingredients -%}
+- {% set q = ing.get('quantity_metric') or ing.get('quantity') -%}
+  {% if q %}{{ q }} {% endif -%}
+  {{ ing.item }}{% if ing.get('notes') %}, {{ ing.notes }}{% endif %}
+{% endfor %}
+
+## Steps
+
+{% for s in item.steps -%}
+{{ loop.index }}. {{ s.strip() }}
+{% endfor %}

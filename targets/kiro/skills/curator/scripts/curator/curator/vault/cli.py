@@ -141,8 +141,8 @@ def cli_replica_build(
     # Source basename for the replica's source-tracking — the
     # build only uses it to derive a default filename slug for
     # any kind that ever needs source attribution.
-    fetch_path = store.task_output_path(wd, plan, "fetch") \
-        if "fetch" in plan.ids() else None
+    fetch_path = store.task_output_path(wd, plan, "source-fetch") \
+        if "source-fetch" in plan.ids() else None
     basename = "unknown-source"
     if fetch_path and fetch_path.exists():
         try:

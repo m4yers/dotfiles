@@ -42,7 +42,7 @@ def _eval(pred, quintet):
     '''Evaluate a compiled predicate against a quintet.'''
     if pred is None:
         return True  # None means always-run
-    data = {'task': {'classify': {'quintet': quintet}}}
+    data = {'task': {'extract-classify': {'quintet': quintet}}}
     return bool(jmespath.search(pred, data))
 
 

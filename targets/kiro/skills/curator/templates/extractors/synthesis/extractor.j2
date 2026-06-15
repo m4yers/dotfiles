@@ -1,10 +1,10 @@
 {% extends 'extractors/_meta/extractor.j2' %}
 
 {% block source_paths -%}
-Source text:        {{ upstream.convert.output.converted_path | default('(missing)', true) }}
+Source text:        {{ upstream['source-convert'].output.converted_path | default('(missing)', true) }}
 Replica root:       {{ vars.replica_root }}
-Quintet:            {{ upstream.classify.output.quintet }}
-Topic:              {{ upstream.classify.output.topic }}
+Quintet:            {{ upstream['extract-classify'].output.quintet }}
+Topic:              {{ upstream['extract-classify'].output.topic }}
 {% if upstream['extract-summary'] is defined -%}
 Summary:            {{ upstream['extract-summary'].output.summary | default('(no summary)', true) }}
 {%- else -%}
@@ -175,7 +175,7 @@ For each page, write a JSON file at ``/tmp/<slug>.json``:
 {
   "title":          "Topic Title",
   "today":          "<YYYY-MM-DD today>",
-  "sources":        ["{{ (upstream.fetch.output.path | replace(vault_root ~ '/', '')) | default('<source-vault-path>', true) }}"],
+  "sources":        ["{{ (upstream['source-fetch'].output.path | replace(vault_root ~ '/', '')) | default('<source-vault-path>', true) }}"],
   "rationale":      "Opening paragraph (≥80 chars) defining and motivating the topic in its own terms. Sits before ## Overview. Lead with substance: state what the topic is and why it matters. NEVER narrate the page or reference 'this hub'/'this page'/'this article'/'the source piece'.",
   "overview":       "Multi-paragraph prose (≥200 chars) explaining the topic as if for a reader who landed here from any link. Lead with substance, never with setup ('the premise is…', 'the general lesson…' are forbidden). Use ``[[Atomic Name]]`` wikilinks as supporting citations that bolster specific claims, not as the page's organizing center. Treat the source as a citation target (frontmatter + wikilinks), not the subject of the prose.",
   "ascii_diagram":  "Multi-line illustrative diagram (≥4 lines, ≥80 chars).\nUse box-drawing chars: ┌ ┐ └ ┘ │ ─ ┬ ┴ ├ ┤ ┼ ▼ ▲ ◄ ►",

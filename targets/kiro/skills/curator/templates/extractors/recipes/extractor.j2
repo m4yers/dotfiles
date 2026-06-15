@@ -1,0 +1,119 @@
+{% extends 'extractors/_meta/extractor.j2' %}
+
+{% block instructions %}
+Identify each **distinct recipe** in the source — a dish title plus
+an ingredient list plus a procedure. Skip "tip" boxes, glossaries,
+ingredient lectures without steps, headnotes, and section
+introductions.
+
+Aim for completeness: every recipe in the source should appear once.
+
+For each recipe:
+
+- `name`: the dish title as the source presents it. Title Case if
+  the source is loose; preserve culturally specific names verbatim
+  (`Pasta alla Carbonara`, `Mapo Tofu`).
+- `description`: 1–3 sentences. What the dish is, when to make it,
+  what makes it distinctive. Pulled from the source's headnote if
+  present.
+- `yield` / `total_time`: optional metadata as the source states it
+  (`"4 servings"`, `"45 min"`). Emit `null` when absent.
+- `ingredients`: each entry a structured `{quantity, amount, unit,
+  item, notes}` object — see the rules below.
+- `steps`: ordered list. Imperative-mood, single sentence per step.
+  Split source paragraphs that bundle multiple actions.
+- `tags`: optional list of short tags (`"dessert"`, `"vegetarian"`,
+  `"italian"`). Source-grounded; do not invent.
+- `source_quote`: a verbatim passage from the source proving the
+  recipe's presence — typically the dish's title line or first
+  procedural sentence.
+
+## Ingredient parsing rules
+
+Each ingredient becomes a structured object. Curator's
+build-replica step converts to metric deterministically using
+`pint`, so your job is faithful structured parsing — DO NOT
+compute metric values yourself.
+
+For each ingredient line:
+
+1. `quantity`: the verbatim quantity string from the source
+   (e.g. `"2 1/4 cups"`, `"a pinch"`, `"1 stick"`).
+2. `amount`: the numeric value as a JSON number. Mixed units
+   flatten to a single canonical unit:
+   `"1 lb 2 oz"` → `amount: 18, unit: "ounce"`.
+   For descriptive (`a pinch`) or unitless (`1 egg`) quantities,
+   set `amount: null`.
+3. `unit`: the singular pint-known unit name. Use the canonical
+   spelling: `cup`, `tablespoon`, `teaspoon`, `fluid_ounce`,
+   `pint`, `quart`, `gallon`, `gram`, `kilogram`, `ounce`, `pound`,
+   `inch`, `centimeter`, `stick`, `liter`, `milliliter`. For
+   unitless counts (`1 egg`) and descriptive quantities, set
+   `unit: null`.
+4. `item`: the ingredient itself, lowercased unless it is a proper
+   noun (`"all-purpose flour"`, `"Parmigiano-Reggiano"`).
+5. `notes`: optional preparation note (`"softened"`, `"chopped"`,
+   `"room temperature"`). Omit or set `null` when absent.
+
+### Examples
+
+| Source line                          | Parsed                                                                     |
+| ------------------------------------ | -------------------------------------------------------------------------- |
+| `2 1/4 cups all-purpose flour`       | `{quantity: "2 1/4 cups", amount: 2.25, unit: "cup", item: "all-purpose flour"}` |
+| `1 stick butter, softened`           | `{quantity: "1 stick", amount: 1, unit: "stick", item: "butter", notes: "softened"}` |
+| `1 lb 2 oz bread flour`              | `{quantity: "1 lb 2 oz", amount: 18, unit: "ounce", item: "bread flour"}`  |
+| `a pinch of salt`                    | `{quantity: "a pinch", amount: null, unit: null, item: "salt"}`            |
+| `3 large eggs`                       | `{quantity: "3", amount: 3, unit: null, item: "eggs", notes: "large"}`     |
+| `1 tsp vanilla extract`              | `{quantity: "1 tsp", amount: 1, unit: "teaspoon", item: "vanilla extract"}` |
+| `300 g flour`                        | `{quantity: "300 g", amount: 300, unit: "gram", item: "flour"}`            |
+
+## Step rewriting rules
+
+Steps are freeform text; you (the LLM) handle their conversion
+because parsing imperial measurements out of mid-sentence prose is
+regex-fragile.
+
+Rewrite each step inline:
+
+- Fahrenheit → Celsius. `"Preheat oven to 375°F"` →
+  `"Preheat oven to 190°C"`.
+- Inches → cm. `"cut into 1-inch cubes"` → `"cut into 2.5 cm cubes"`.
+- Cups / pounds / ounces / fl oz mid-sentence → ml/g equivalent.
+- Leave `tsp`, `teaspoon`, `tbsp`, `tablespoon` alone (universal
+  kitchen-spoon units).
+
+Do NOT preserve the original alongside the metric in parentheses.
+Steps read in metric.
+{% endblock %}
+
+{% block builder_calls %}
+
+For each recipe (increment `<i>` per recipe — 0, 1, 2, ...):
+
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
+        --set recipes.<i>.name='<dish name>' \
+        --set recipes.<i>.description='<1-3 sentences>' \
+        --set recipes.<i>.yield='<servings or null>' \
+        --set recipes.<i>.total_time='<duration or null>' \
+        --set recipes.<i>.source_quote='<verbatim passage>'
+
+For each ingredient (`<j>` is the ingredient index within the recipe):
+
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
+        --set recipes.<i>.ingredients.<j>.quantity='<verbatim or null>' \
+        --set recipes.<i>.ingredients.<j>.amount=<number or null> \
+        --set recipes.<i>.ingredients.<j>.unit='<pint unit or null>' \
+        --set recipes.<i>.ingredients.<j>.item='<ingredient name>' \
+        --set recipes.<i>.ingredients.<j>.notes='<prep note or null>'
+
+For each step (`<k>` is the step index within the recipe):
+
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
+        --set recipes.<i>.steps.<k>='<imperative-mood step text>'
+
+For tags (when present):
+
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
+        --set recipes.<i>.tags.0='<tag>' \
+        --set recipes.<i>.tags.1='<tag>'
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'extractors/_meta/judge.j2' %}
+
+{% block intro -%}
+Verify each recipe item against the rubric below. Recipes have more
+fields than most kinds; score the structural and content axes
+together per item.
+{%- endblock %}
+
+{% block criteria %}
+1. **Has both ingredients and steps.** Every recipe item contains at
+   least one ingredient and one step. Empty either → REJECT.
+2. **Name is a dish title.** `name` identifies a dish, not a section
+   heading, ingredient list, or technique discussion. `"Doughs"`,
+   `"Dessert"`, `"How to Toast Nuts"` → REJECT.
+3. **Source-grounded.** `source_quote` is a verbatim passage from
+   the source proving the recipe is in it. Check the quote against
+   the source text.
+4. **Quantity verbatim.** `quantity` preserves the source's wording
+   exactly: `2 1/4 cups`, not `2.25 cups` or `540 ml`.
+5. **Structured parse correct.** When `amount` is non-null, it
+   equals the source quantity as a JSON number (`2 1/4 cups` →
+   `amount=2.25, unit="cup"`). When `unit` is non-null, it is a
+   singular pint-known unit name (`cup`, not `cups`; `gram`, not
+   `grams`). Mixed units (`1 lb 2 oz`) flatten to a single canonical
+   unit (`amount=18, unit="ounce"`).
+6. **Step conversion.** Step text contains no remaining imperial
+   measurements. Allowed remnants: `tsp`, `teaspoon`, `tbsp`,
+   `tablespoon` (kitchen-spoon units stay verbatim by policy).
+   Disallowed: °F, inches, oz, lb, cup, fl oz, pint, quart, gallon.
+   If found → REJECT.
+7. **Steps are procedural.** Imperative-mood single sentences each.
+   Narrative drift ("Now let me tell you about my grandmother who
+   used to make this every Sunday...") → REJECT.
+
+Conversion correctness of metric values is NOT verified here —
+build-replica computes those deterministically via pint.
+{% endblock %}

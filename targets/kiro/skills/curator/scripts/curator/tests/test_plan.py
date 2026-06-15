@@ -19,7 +19,8 @@ class TestDiscovery:
         kinds = discovery.list_extractor_kinds(TEMPLATES)
         # Must include these core kinds
         for k in ('summary', 'keywords', 'authors', 'citations',
-                  'classify', 'synthesis', 'models', 'themes'):
+                  'classify', 'synthesis', 'models', 'themes',
+                  'recipes'):
             assert k in kinds
         # Must not include _meta
         assert '_meta' not in kinds
@@ -51,6 +52,12 @@ class TestPredicates:
         assert 'non_fiction' in pred
         assert 'pop_science' in pred
 
+    def test_recipes_mentions_culinary_and_cookbook(self, rules):
+        pred = predicates.compile('recipes', rules)
+        assert pred is not None
+        assert 'culinary' in pred
+        assert 'cookbook' in pred
+
     def test_unknown_kind_returns_false(self, rules):
         assert predicates.compile('nonexistent_kind_xyz', rules) == 'false'
 
@@ -65,9 +72,10 @@ class TestDerivePlan:
         assert isinstance(plan, LoomPlan)
 
     def test_task_count(self, plan):
-        # 58 base pipeline tasks + 3 merge agents (one per
-        # matchable kind: keywords, people, models).
-        assert len(plan.tasks) == 61
+        # 60 base pipeline tasks (recipes adds extract+judge to
+        # the previous 58) + 3 merge agents (one per matchable
+        # kind: keywords, people, models).
+        assert len(plan.tasks) == 63
 
     def test_unique_ids(self, plan):
         ids = [t.id for t in plan.tasks]

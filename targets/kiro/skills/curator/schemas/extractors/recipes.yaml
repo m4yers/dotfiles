@@ -1,0 +1,70 @@
+type: object
+required:
+- recipes
+properties:
+  recipes:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - description
+      - ingredients
+      - steps
+      - source_quote
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          minLength: 20
+        yield:
+          type:
+          - string
+          - 'null'
+        total_time:
+          type:
+          - string
+          - 'null'
+        ingredients:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - item
+            properties:
+              quantity:
+                type:
+                - string
+                - 'null'
+              amount:
+                type:
+                - number
+                - 'null'
+              unit:
+                type:
+                - string
+                - 'null'
+              item:
+                type: string
+              notes:
+                type:
+                - string
+                - 'null'
+        steps:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 5
+        tags:
+          type: array
+          items:
+            type: string
+        source_quote:
+          type:
+          - string
+          - 'null'

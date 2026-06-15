@@ -32,9 +32,9 @@ def test_schema_is_valid(name, path):
 # ---- Representative valid/invalid samples for schemas with required fields ----
 
 VALID_SAMPLES = {
-    'pipeline/fetch.yaml': {'path': '/tmp/source.txt'},
-    'pipeline/convert.yaml': {'converted_path': '/tmp/out.md'},
-    'pipeline/gate.yaml': {'proceed': True},
+    'pipeline/source-fetch.yaml': {'path': '/tmp/source.txt'},
+    'pipeline/source-convert.yaml': {'converted_path': '/tmp/out.md'},
+    'pipeline/vault-gate.yaml': {'proceed': True},
     'pipeline/judge-verdict.yaml': {
         'verdict': 'ACCEPT',
         'reasoning': 'all rubric dimensions pass per evidence',
@@ -54,15 +54,41 @@ VALID_SAMPLES = {
             'audience': 'academic',
         }
     },
+    'extractors/recipes.yaml': {
+        'recipes': [{
+            'name': 'Chocolate Chip Cookies',
+            'description': 'Soft, chewy cookies with crisp edges.',
+            'source_quote': 'Chocolate Chip Cookies',
+            'ingredients': [
+                {'quantity': '2 1/4 cups', 'amount': 2.25,
+                 'unit': 'cup', 'item': 'all-purpose flour'},
+                {'quantity': 'a pinch', 'amount': None,
+                 'unit': None, 'item': 'salt'},
+            ],
+            'steps': [
+                'Preheat oven to 190°C.',
+                'Cream butter and sugar.',
+            ],
+        }]
+    },
 }
 
 INVALID_SAMPLES = {
-    'pipeline/fetch.yaml': {'not_path': 123},
-    'pipeline/convert.yaml': {'converted_path': 123},
-    'pipeline/gate.yaml': {'proceed': 'yes'},
+    'pipeline/source-fetch.yaml': {'not_path': 123},
+    'pipeline/source-convert.yaml': {'converted_path': 123},
+    'pipeline/vault-gate.yaml': {'proceed': 'yes'},
     'pipeline/judge-verdict.yaml': {'verdict': 'INVALID_VALUE'},
     'extractors/classify.yaml': {
         'quintet': {'media': 'paper'}  # missing required fields
+    },
+    'extractors/recipes.yaml': {
+        # Missing required fields (description, source_quote);
+        # ingredients empty (minItems: 1).
+        'recipes': [{
+            'name': 'X',
+            'ingredients': [],
+            'steps': ['ok'],
+        }]
     },
 }
 

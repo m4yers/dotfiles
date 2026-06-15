@@ -1,11 +1,11 @@
 {% extends 'extractors/_meta/judge.j2' %}
 
 {% block source_paths -%}
-Source text:        {{ upstream.convert.output.converted_path | default('(missing)', true) }}
+Source text:        {{ upstream['source-convert'].output.converted_path | default('(missing)', true) }}
 Synthesis output:   {{ extracted.task_path | default('(missing)', true) }}
 Replica root:       {{ vars.replica_root }}
-Quintet:            {{ upstream.classify.output.quintet }}
-Topic:              {{ upstream.classify.output.topic }}
+Quintet:            {{ upstream['extract-classify'].output.quintet }}
+Topic:              {{ upstream['extract-classify'].output.topic }}
 {% if upstream['extract-summary'] is defined -%}
 Summary:            {{ upstream['extract-summary'].output.summary | default('(no summary)', true) }}
 {%- else -%}

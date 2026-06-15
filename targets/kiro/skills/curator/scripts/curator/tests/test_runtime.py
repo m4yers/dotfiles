@@ -45,15 +45,15 @@ EXPECTED_SKIP = {
 
 
 def _stub_output(task_id: str, gate_proceed: bool = True) -> dict:
-    if task_id == 'classify':
+    if task_id == 'extract-classify':
         return CLASSIFY_OUTPUT
     if task_id.startswith('judge-'):
         return {'verdict': 'ACCEPT', 'reasons': []}
-    if task_id == 'gate':
+    if task_id == 'vault-gate':
         return {'proceed': gate_proceed}
-    if task_id == 'fetch':
+    if task_id == 'source-fetch':
         return {'path': '/tmp/fake-source.txt'}
-    if task_id == 'convert':
+    if task_id == 'source-convert':
         return {'converted_path': '/tmp/fake-converted.md'}
     return {}
 
@@ -158,13 +158,13 @@ class TestGateFalse:
 class TestPlanStructure:
     def test_gate_is_human_task(self, tmp_path):
         plan = derive_plan(tmp_path, '/tmp/test.txt')
-        gate = next(t for t in plan.tasks if t.id == 'gate')
+        gate = next(t for t in plan.tasks if t.id == 'vault-gate')
         assert gate.kind == 'human'
 
     def test_apply_replica_gated_by_proceed(self, tmp_path):
         plan = derive_plan(tmp_path, '/tmp/test.txt')
         apply_task = next(t for t in plan.tasks if t.id == 'apply-replica')
-        assert 'gate' in apply_task.when
+        assert 'vault-gate' in apply_task.when
         assert 'proceed' in apply_task.when
 
     def test_in_progress_before_done(self, tmp_path):
@@ -172,11 +172,11 @@ class TestPlanStructure:
         plan = derive_plan(wd, '/tmp/test.txt')
         rt = loom.init(workdir=wd, plan=plan)
 
-        # Complete only fetch
+        # Complete only source-fetch
         p = store.load_plan(rt.workdir)
-        t = p.get('fetch')
-        store.ensure_task_dir(rt.workdir, p, 'fetch')
-        op = store.task_output_path(rt.workdir, p, 'fetch')
+        t = p.get('source-fetch')
+        store.ensure_task_dir(rt.workdir, p, 'source-fetch')
+        op = store.task_output_path(rt.workdir, p, 'source-fetch')
         op.write_text(yaml.safe_dump({'path': '/tmp/x'}), encoding='utf-8')
         t.status = STATUS_DONE
         store.save_plan(rt.workdir, p)

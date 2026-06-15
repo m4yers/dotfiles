@@ -20,7 +20,7 @@ def compile(kind: str, rules: list[dict]) -> str | None:
             if val == '*':
                 continue
             slot_clauses.append(
-                f'task."classify".quintet.{slot} == \'{val}\''
+                f'task."extract-classify".quintet.{slot} == \'{val}\''
             )
         if not slot_clauses:
             return None  # base rule — always run

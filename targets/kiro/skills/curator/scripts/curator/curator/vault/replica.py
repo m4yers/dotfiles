@@ -31,6 +31,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+import pint
 import yaml
 
 from curator.vault.config import (
@@ -45,6 +46,121 @@ from curator.vault.pages import (
     save,
     slugify_basename,
 )
+
+
+# ── pint unit registry ──────────────────────────────────
+#
+# Lazy module-level singleton — recipe rendering uses this for
+# imperial → metric conversion. Defined once per process so the
+# ``stick = 113 gram`` extension applies everywhere.
+
+_UREG: pint.UnitRegistry | None = None
+
+
+def _ureg() -> pint.UnitRegistry:
+    """Return the curator-extended pint registry, building it on
+    first call. ``stick`` is added because pint does not know the
+    US butter stick = 113 g."""
+    global _UREG
+    if _UREG is None:
+        u = pint.UnitRegistry()
+        u.define("stick = 113 gram")
+        _UREG = u
+    return _UREG
+
+
+# Kitchen-spoon units stay verbatim in vault pages — they are
+# universal across imperial and metric kitchens, and converting
+# produces awkward output (`3/4 tsp` → `3.75 ml`) for no benefit.
+_KITCHEN_SPOON_UNITS = frozenset({
+    "tsp", "teaspoon", "teaspoons",
+    "tbsp", "tablespoon", "tablespoons",
+})
+
+
+# Recipe-world kitchen volumes. Pint defaults to the legal US
+# values (1 cup = 236.588 ml, 1 pint = 473.176 ml) — but recipes
+# universally treat 1 cup as 240 ml and 1 pint as 480 ml. The
+# helper checks this table before falling through to pint, so
+# vault pages render the round kitchen numbers users expect.
+_KITCHEN_VOLUMES_ML = {
+    "cup":     240,
+    "cups":    240,
+    "pint":    480,
+    "pints":   480,
+    "quart":   960,
+    "quarts":  960,
+    "gallon":  3840,
+    "gallons": 3840,
+}
+
+
+def _convert_to_metric(amount: float | int | None,
+                       unit: str | None) -> str | None:
+    """Convert an ``(amount, unit)`` pair to a formatted metric
+    string, or return ``None`` when not convertible.
+
+    Returns ``None`` when:
+      - either input is None (descriptive quantity, unitless count);
+      - unit is a kitchen-spoon unit (policy: stay verbatim);
+      - pint does not recognize the unit.
+
+    Volumes round to nearest 10 ml above 100 ml, nearest 1 ml below.
+    Mass rounds to nearest 5 g above 100 g, nearest 1 g below.
+    Length renders to one decimal place in cm.
+    """
+    if amount is None or unit is None:
+        return None
+    if unit in _KITCHEN_SPOON_UNITS:
+        return None
+
+    # Kitchen-volume override — recipe-world values, not pint's
+    # legal-US definitions.
+    if unit in _KITCHEN_VOLUMES_ML:
+        ml = amount * _KITCHEN_VOLUMES_ML[unit]
+        if ml >= 100:
+            return f"{int(round(ml / 10) * 10)} ml"
+        return f"{int(round(ml))} ml"
+
+    try:
+        q = amount * _ureg()(unit)
+    except (pint.UndefinedUnitError, pint.DimensionalityError,
+            AttributeError, ValueError):
+        return None
+
+    try:
+        if q.dimensionality == _ureg().cup.dimensionality:
+            ml = q.to(_ureg().milliliter).magnitude
+            if ml >= 100:
+                return f"{int(round(ml / 10) * 10)} ml"
+            return f"{int(round(ml))} ml"
+        if q.dimensionality == _ureg().gram.dimensionality:
+            g = q.to(_ureg().gram).magnitude
+            return f"{int(round(g))} g"
+        if q.dimensionality == _ureg().meter.dimensionality:
+            cm = q.to(_ureg().centimeter).magnitude
+            return f"{cm:.1f} cm"
+    except pint.DimensionalityError:
+        return None
+    return None
+
+
+def _enrich_recipe(item: dict) -> dict:
+    """Return a shallow copy of ``item`` with ``quantity_metric``
+    populated on each ingredient via pint. Used by
+    ``_render_page_via_template`` for ``kind == "recipes"``.
+
+    Ingredients without ``amount`` / ``unit`` (descriptive
+    quantities, unitless counts) get ``quantity_metric: None`` —
+    the vault template falls back to ``quantity`` verbatim.
+    """
+    out = dict(item)
+    out["ingredients"] = [
+        {**ing, "quantity_metric": _convert_to_metric(
+            ing.get("amount"), ing.get("unit"))}
+        for ing in item.get("ingredients", [])
+    ]
+    return out
 
 
 # Locations of the per-kind ``page.j2`` templates and the shared
@@ -66,6 +182,7 @@ _KIND_TO_TYPE = {
     "keywords":  "keyword",
     "people":    "person",
     "models":    "model",
+    "recipes":   "recipe",
     "authors":   "person",
     "guests":    "person",
     "speaker":   "person",
@@ -494,6 +611,13 @@ def _render_page_via_template(kind: str, item: dict) -> str:
     if type_name is None:
         raise ValueError(f"no vault type mapping for kind {kind!r}")
     template_path = _VAULT_TEMPLATES_DIR / f"{type_name}.j2"
+
+    # Recipes need ``quantity_metric`` populated per ingredient
+    # before render — pint converts deterministically here so the
+    # Jinja template stays free of math.
+    if kind == "recipes":
+        item = _enrich_recipe(item)
+
     variables = {
         "item":  item,
         "today": datetime.date.today().isoformat(),
@@ -1049,7 +1173,7 @@ def build_report(workdir: Path) -> dict:
     from curator import quintet as q_mod
     plan = store.load_plan(workdir)
 
-    classify = _safe_load(workdir, "classify", plan)
+    classify = _safe_load(workdir, "extract-classify", plan)
     quintet  = (classify or {}).get("quintet") or {}
     topic    = (classify or {}).get("topic") or "(untyped)"
 
@@ -1124,7 +1248,7 @@ def build_report(workdir: Path) -> dict:
             })
         extractions[kind] = {"items": rendered_items}
 
-    synthesis_doc = _safe_load(workdir, "synthesis", plan)
+    synthesis_doc = _safe_load(workdir, "extract-synthesis", plan)
     synthesis_paths = ((synthesis_doc or {}).get("paths") or [])
 
     # Orphan synthesis links — populated by prune-replica's output.
@@ -1133,7 +1257,7 @@ def build_report(workdir: Path) -> dict:
     if not isinstance(orphan_links, list):
         orphan_links = []
 
-    fetch_doc = _safe_load(workdir, "fetch", plan)
+    fetch_doc = _safe_load(workdir, "source-fetch", plan)
     basename  = ((fetch_doc or {}).get("basename")
                  or "unknown-source")
 

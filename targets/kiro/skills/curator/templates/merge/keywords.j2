@@ -10,11 +10,11 @@
 
 You are the **{{ vars.kind_name }} merge** agent for curator.
 
-Source text:        {{ upstream.convert.output.converted_path | default('(missing)', true) }}
+Source text:        {{ upstream['source-convert'].output.converted_path | default('(missing)', true) }}
 Vault root:         {{ vars.vault_root }}
 Quintet vocabulary: {{ vars.quintet_path }}
-Classified quintet: {{ upstream.classify.output.quintet }}
-Classified topic:   {{ upstream.classify.output.topic }}
+Classified quintet: {{ upstream['extract-classify'].output.quintet }}
+Classified topic:   {{ upstream['extract-classify'].output.topic }}
 
 This run's keyword extractor output:
 {{ upstream['extract-keywords'].task_path }}
