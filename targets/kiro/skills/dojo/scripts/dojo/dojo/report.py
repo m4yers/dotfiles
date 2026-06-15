@@ -99,29 +99,44 @@ def create_report(
     )
 
 
-def _escape_md_underscores(text: str) -> str:
-    """Escape intra-word `_` outside inline code spans.
+_WORD_RE = re.compile(r"[A-Za-z0-9_]+")
 
-    Markdown renders ``DONE_WITH_CONCERNS`` with a stray italic
-    span on ``_WITH_``. Escaping the underscores between word
-    characters preserves the literal text. Underscores inside
-    backtick-delimited spans are left alone so identifiers in
-    code stay verbatim.
+
+def _codeify_underscore_words(text: str) -> str:
+    """Wrap underscore-bearing identifiers in backticks.
+
+    Words like ``DONE_WITH_CONCERNS`` or ``_SEARCH_PATHS`` confuse
+    some markdown renderers and produce visible ``\\_`` cruft if
+    backslash-escaped. Wrapping them as inline code makes them
+    render verbatim everywhere. Tokens already inside a backtick
+    span are left alone.
     """
     out: list[str] = []
+    i = 0
     in_code = False
-    for i, ch in enumerate(text):
+    n = len(text)
+    while i < n:
+        ch = text[i]
         if ch == "`":
             in_code = not in_code
             out.append(ch)
+            i += 1
             continue
-        if ch == "_" and not in_code:
-            prev = text[i - 1] if i > 0 else ""
-            nxt = text[i + 1] if i + 1 < len(text) else ""
-            if prev.isalnum() and nxt.isalnum():
-                out.append("\\_")
-                continue
+        if in_code:
+            out.append(ch)
+            i += 1
+            continue
+        m = _WORD_RE.match(text, i)
+        if m:
+            tok = m.group(0)
+            if "_" in tok and any(c.isalnum() for c in tok):
+                out.append(f"`{tok}`")
+            else:
+                out.append(tok)
+            i = m.end()
+            continue
         out.append(ch)
+        i += 1
     return "".join(out)
 
 
@@ -133,7 +148,7 @@ def add_finding(
     """Append a finding to the section matching `severity`.
 
     ``rule_ref`` (when provided) is appended after the description
-    as ``(`<path:line>`)`` — vim ``gf``-friendly link to the rule
+    as ``(`<path:rule-number>`)`` — a stable link to the rule
     source in the references markdown.
 
     Returns the finding's sequential number after renumbering.
@@ -152,9 +167,9 @@ def add_finding(
     start, end = rng
     content = text[start:end]
 
-    title = _escape_md_underscores(title)
-    description = _escape_md_underscores(description)
-    fix = _escape_md_underscores(fix)
+    title = _codeify_underscore_words(title)
+    description = _codeify_underscore_words(description)
+    fix = _codeify_underscore_words(fix)
 
     if location:
         head = f"0. **{title}** — `{location}`\n"
@@ -220,6 +235,10 @@ def format_report(path: Path) -> None:
                 else:
                     break
             wrapped = textwrap.fill(
+                # 75 — blockquote prefix `   > ` (5 visible cols)
+                # plus 75-col body keeps the rendered line under
+                # the 80-col prose ceiling enforced by authoring
+                # rule 5.7.
                 text, width=75,
                 initial_indent="   > ",
                 subsequent_indent="   > ",
@@ -245,6 +264,10 @@ def format_report(path: Path) -> None:
                 else:
                     break
             wrapped = textwrap.fill(
+                # 80 — standard prose width per authoring rule
+                # 5.7; description body lives at 3-space indent
+                # so 80 keeps the visible line within the same
+                # ceiling the rule applies to top-level prose.
                 text, width=80,
                 initial_indent="   ",
                 subsequent_indent="   ",
