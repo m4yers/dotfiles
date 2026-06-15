@@ -38,6 +38,20 @@ Each finding requires:
 - `fix`          — 1 sentence. Concrete remediation only — what
                    to change. No alternatives, no rationale.
 - `severity`     — `Error`, `Warning`, or `Info` (see rubric below)
+- `rule_ref`     — `<references-file>:<rule-number>` pointing
+                   to the exact rule you applied (see below)
+
+### Rule attribution
+
+Every finding MUST carry a `rule_ref` of the form
+`references/<file>.md:<rule-number>` that points to the specific
+rule you applied — for example `references/authoring.md:5.9`
+for rule 5.9, or `references/tool-conventions.md:5` for a
+section-level rule. This mirrors what the automated lint emits
+and lets reviewers identify the rule unambiguously even after
+prose edits shift line numbers. Inline-prose citations like
+"Section 6.5" or bare line numbers are NOT a substitute — the
+value MUST be a stable `path:rule-number` link.
 
 ### Severity rubric
 
@@ -80,6 +94,7 @@ Initialise the output file once, then append findings:
         --set findings.0.description='<full reason>' \
         --set findings.0.fix='<concrete change>' \
         --set findings.0.severity=Error \
+        --set findings.0.rule_ref='references/<file>.md:<rule-number>' \
         --set findings.0.source={{ task.id }}
 
 Increment the array index per finding (`findings.0`, `findings.1`,

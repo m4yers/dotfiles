@@ -1,10 +1,9 @@
 {# Human task: user reviews and (optionally) edits the design. #}
 # Review the design
 
-You are driving a `design-review` human gate. The `design`
-agent has produced a structured YAML at:
+The `design-author` agent has produced a structured YAML at:
 
-`{{ upstream['design'].task_path }}` (canonical edit target)
+`{{ upstream['design-author'].task_path }}` (canonical edit target)
 
 The `design-render` tool has rendered that YAML as a
 human-readable markdown report at:
@@ -21,7 +20,7 @@ human-readable markdown report at:
    - **Accept** — the design is good; proceed to
      `skill-materialize`.
    - **Revise** — request changes. Capture their feedback
-     verbatim. The gate latches back to `design`, which
+     verbatim. The gate latches back to `design-author`, which
      re-runs and reads this feedback to produce a new design;
      the gate then re-presents it. Iterate until accept.
    - **Decline** — major rework needed, abandon the run.
@@ -29,8 +28,8 @@ human-readable markdown report at:
 
 ## Output
 
-The `design-review` output matches `schemas/design.yaml` (the
-same shape as the `design` agent) plus a `decision` field:
+The `design-review` output matches `schemas/design-author.yaml` (the
+same shape as the `design-author` agent) plus a `decision` field:
 
 - **Accept:** copy the (possibly hand-tweaked) design YAML to
   `{{ task.output_path }}` and set `decision: accept`. Leave
@@ -39,10 +38,10 @@ same shape as the `design` agent) plus a `decision` field:
   `{{ task.output_path }}`, set `decision: revise`, and set
   `revise_reason` to the user's feedback (free text). The
   `while` latch (`decision == 'revise'`) loops back to
-  `design`, which reads `revise_reason` and regenerates.
+  `design-author`, which reads `revise_reason` and regenerates.
 - **Decline:** report BLOCKED and stop the workflow.
 
 `decision` and `revise_reason` are optional in the schema (the
-`design` agent omits them); the gate always sets `decision`.
+`design-author` agent omits them); the gate always sets `decision`.
 The `skill-materialize` agent reads `design-review.output.yaml`,
-NOT the upstream `design` output.
+NOT the upstream `design-author` output.

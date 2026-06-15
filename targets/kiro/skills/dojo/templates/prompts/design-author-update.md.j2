@@ -1,0 +1,136 @@
+{# Agent task: design a change to an existing skill.
+
+   Input is the gather-update output (which skill, what change),
+   and on revise iterations the design-review-update gate's
+   feedback. Output is a structured change plan validated by
+   schemas/design-author-update.yaml.
+#}
+# Design an update
+
+A user has asked to update an existing skill. Read the skill
+on disk, then produce a structured change plan that the user
+can review and approve before any files are touched.
+
+## Inputs
+
+- `gather-update` output:
+  `{{ upstream['gather-update'].task_path }}`
+  Carries `name`, `namespace`, `path`, `type`, `skill_dir`,
+  `category`, `description` (the user's change request).
+- The skill on disk at `{{ vars.skill_dir }}` — `fs_read`
+  SKILL.md and any `references/` or `scripts/` files needed
+  to understand the change.
+
+{% if vars.revise_reason %}
+## Revision feedback (address this)
+
+A previous `design-review-update` returned `revise`. This is
+iteration N of the design loop. Produce a NEW change plan that
+resolves the reviewer's feedback below — do not simply re-emit
+the prior plan:
+
+> {{ vars.revise_reason }}
+
+{% endif %}
+
+## Authoring rules
+
+{% include 'authoring.md' %}
+
+## Model awareness
+
+{% include 'model-awareness.md' %}
+
+## Script conventions
+
+{% include 'script-conventions.md' %}
+
+## Secure-LLM conventions
+
+{% include 'secure-llm-conventions.md' %}
+
+## Type-specific guidance
+
+The skill's existing type is `{{ upstream['gather-update'].output.type }}`.
+Apply that type's conventions when planning changes.
+
+{% set skill_type = upstream['gather-update'].output.type
+                    if upstream['gather-update'].output
+                    and upstream['gather-update'].output.type else None %}
+{% if skill_type == 'interface' -%}
+{% include 'interface-conventions.md' %}
+{%- elif skill_type == 'tool' -%}
+{% include 'tool-conventions.md' %}
+{%- elif skill_type == 'workflow' -%}
+{% include 'workflow-conventions.md' %}
+{%- elif skill_type == 'reference' -%}
+{% include 'reference-conventions.md' %}
+{%- else -%}
+**ERROR:** gather-update.type is missing or invalid:
+`{{ skill_type }}`. Stop and report the gather-update output
+as malformed.
+{%- endif %}
+
+## Change-plan rules
+
+1. **Stay strictly within the user's request.** The plan
+   should describe only changes that implement
+   `description`. Do not opportunistically refactor unrelated
+   code, rename files, or introduce abstractions the user
+   did not ask for.
+
+2. **One file entry per file touched.** Every file you plan
+   to create, modify, or delete gets its own
+   `change_plan.files[]` entry.
+
+3. **Surface ambiguity in `open_questions[]`.** When the
+   user's request leaves a real choice unresolved (naming,
+   defaults, behaviour, scope boundary), record it as an
+   open question rather than picking silently. The reviewer
+   will resolve each in the gate.
+
+4. **`rationale` explains *why these files*.** One short
+   paragraph at the `change_plan.rationale` level: why this
+   set of files, why not others, what alternatives were
+   considered. Skip when the change is mechanical.
+
+## Output
+
+Construct `output.yaml` matching
+`schemas/design-author-update.yaml` via loom's schema-driven
+writer.
+
+```bash
+LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
+WD={{ run.workdir }}
+
+$LOOM output init "$WD" --task design-author-update
+
+# Skill identity (verbatim from gather-update).
+$LOOM output add "$WD" --task design-author-update \
+    --set 'skill.name={{ upstream['gather-update'].output.name }}' \
+    --set 'skill.namespace={{ upstream['gather-update'].output.namespace }}' \
+    --set 'skill.type={{ upstream['gather-update'].output.type }}' \
+    --set 'skill.path={{ upstream['gather-update'].output.path }}'
+
+# User's change request (verbatim).
+$LOOM output add "$WD" --task design-author-update \
+    --set 'change_request=...'
+
+# One file entry per file touched.
+$LOOM output add "$WD" --task design-author-update \
+    --set 'change_plan.files[].path=relative/path.md' \
+    --set 'change_plan.files[-1].action=created' \
+    --set 'change_plan.files[-1].summary=One sentence.' \
+    --set 'change_plan.files[-1].rationale=Optional.'
+
+# Open questions and rationale (optional but recommended).
+$LOOM output add "$WD" --task design-author-update \
+    --set 'change_plan.open_questions[]=Question 1?' \
+    --set 'change_plan.open_questions[]=Question 2?' \
+    --set 'change_plan.rationale=Why this set of files.'
+```
+
+Syntax: `[]` appends, `[-1]` targets the last appended entry.
+
+Write only inside the task workdir.

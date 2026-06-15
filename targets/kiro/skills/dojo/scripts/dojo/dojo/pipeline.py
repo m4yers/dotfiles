@@ -158,6 +158,10 @@ def cli_show_report(
         try:
             subprocess.run(
                 [str(editor_sh), "show", "file", str(report_path)],
+                # 30s — generous ceiling for an interactive editor
+                # display call; the call is best-effort and any
+                # hang past 30s indicates a stuck pane, not normal
+                # latency.
                 timeout=30, check=False,
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             )

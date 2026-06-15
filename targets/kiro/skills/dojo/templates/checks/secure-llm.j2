@@ -1,0 +1,87 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/templates/` — sub-agent prompt
+  templates rendered for downstream agents.
+- `{{ vars.skill_dir }}/scripts/` — Python and bash sources
+  that fetch, render, or pipe content into a sub-agent
+  prompt.
+{% endblock %}
+
+{% block rules %}
+This check is always-on. It enforces the secure-llm rule:
+whenever a sub-agent prompt is going to consume content the
+skill does not control — web fetches, web-search results,
+ticket / SIM / CR / Slack / email bodies, third-party API
+responses, files outside the skill's own scope — the rendered
+prompt MUST inject the secure-llm security frame.
+
+The canonical convention lives at
+`references/secure-llm-conventions.md`. Read it before
+filing findings.
+
+## Steps
+
+1. **Identify external-input surfaces.** Walk
+   `{{ vars.skill_dir }}/templates/` and
+   `{{ vars.skill_dir }}/scripts/` and look for sites that
+   feed external content into a sub-agent prompt. Common
+   shapes:
+
+   - A Jinja prompt template rendered with vars sourced
+     from a web fetch, a web-search result, a ticket / SIM
+     / CR / Slack body, or a third-party API response.
+   - A Python or bash script that reads such a source and
+     pipes its body into a prompt rendered for a sub-agent
+     (for example, an `{% raw %}{% include %}{% endraw %}` of an upstream task
+     output, or a render call that interpolates external
+     bytes).
+   - A prompt template that includes a file written by an
+     upstream task whose source is external.
+
+2. **Skip skill-internal surfaces.** A prompt whose only
+   inputs are the user's direct request, the skill's own
+   template literals, and outputs from the skill's own
+   scripts is NOT external-input bearing. Do not file
+   findings against it.
+
+3. **Verify the frame is injected.** For each
+   external-input surface, confirm the rendered prompt
+   contains `{% raw %}{% include 'security-frame.md.j2' %}{% endraw %}` (or an
+   equivalent direct paste of the frame text) above the
+   external content. The include MUST resolve through the
+   template search path used to render the prompt — confirm
+   `~/.kiro/skills/home/secure-llm/templates` is on that
+   path (dojo sets this on `template_search_paths`;
+   standalone callers must pass it as `--include-dir`).
+
+4. **Verify trust-boundary labelling.** Each block of
+   external content rendered into the prompt MUST be
+   wrapped in a clearly labelled fenced section so the LLM
+   can tell where the untrusted region begins and ends. A
+   prompt that injects the frame but leaves external
+   content unlabelled is a finding.
+
+## Findings
+
+Emit one Error finding per external-input surface that:
+
+- omits the security-frame include, or
+- renders external content above the include, or
+- leaves an external-content block unlabelled.
+
+Use:
+
+- `severity: Error`
+- `rule_ref: references/secure-llm-conventions.md:2.2`
+  for missing or misplaced frame includes.
+- `rule_ref: references/secure-llm-conventions.md:2.3`
+  for missing trust-boundary labels.
+- `fix`: state the concrete change — for example, "Inject
+  `{% raw %}{% include 'security-frame.md.j2' %}{% endraw %}` above the external
+  content and wrap the content in a labelled fenced block
+  per `references/secure-llm-conventions.md`."
+
+Skills with no external-input surfaces produce zero findings
+— run `output init` only and emit an empty `findings: []`.
+{% endblock %}

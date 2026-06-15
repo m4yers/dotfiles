@@ -11,6 +11,7 @@ from dojo.tasks import (
     check_naming as _check_naming,
     find_skill as _find_skill,
     render_design as _render_design,
+    render_design_update as _render_design_update,
     summary as _summary,
 )
 from dojo.validators import validate as _validate
@@ -55,6 +56,7 @@ pipeline_app = typer.Typer(
 )
 pipeline_app.command("summary")(_summary.cli_summary)
 pipeline_app.command("render-design")(_render_design.cli_render)
+pipeline_app.command("render-design-update")(_render_design_update.cli_render)
 pipeline_app.command("autochecks")(pipeline.cli_autochecks)
 pipeline_app.command("assemble")(pipeline.cli_assemble)
 pipeline_app.command("show-report")(pipeline.cli_show_report)

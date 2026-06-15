@@ -1,0 +1,134 @@
+# Output of `design` agent task. Describes the proposed
+# structure of the new skill: what goes in SKILL.md, what
+# references and scripts files are needed, and why.
+type: object
+required: [frontmatter, sections, files, rationale]
+additionalProperties: false
+properties:
+  frontmatter:
+    type: object
+    required: [name, type, description]
+    properties:
+      name: {type: string}
+      type:
+        type: string
+        enum: [interface, tool, workflow, reference]
+      description: {type: string, maxLength: 1024}
+  sections:
+    description: SKILL.md section outline
+    type: array
+    items:
+      type: object
+      required: [heading, outline]
+      properties:
+        heading:
+          type: string
+          description: section heading text without the leading ##
+        outline:
+          type: string
+          description: what the section will contain
+  files:
+    description: non-SKILL.md files (references/, scripts/, etc.)
+    type: array
+    items:
+      type: object
+      required: [path, purpose, content_outline]
+      properties:
+        path:
+          type: string
+          description: path relative to the skill directory
+        purpose:
+          type: string
+        content_outline:
+          type: string
+  tasks:
+    description: |
+      Loom DAG tasks for workflow-type skills. REQUIRED when
+      frontmatter.type == "workflow"; omitted for other types.
+      Each entry describes one task in the workflow.
+    type: array
+    items:
+      type: object
+      required: [id, kind, description]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: kebab-case task id matching plan.py
+        kind:
+          type: string
+          enum: [agent, human, tool]
+        description:
+          type: string
+          description: |
+            What the task does. For workflow-type designs, this
+            is rendered as a per-task section, so 3-5 sentences
+            for keystone tasks (algorithmic core) and 1-2 for
+            boilerplate (parallel fan-outs, near-identical
+            comparators).
+        depends_on:
+          type: array
+          items: {type: string}
+          description: task ids this task depends on (empty for entry tasks)
+        when:
+          type: string
+          description: |
+            loom when-predicate; the task is skipped when it
+            evaluates false (e.g. "${task:cherry-pick:num_conflicts} > 0").
+        latch:
+          type: object
+          description: |
+            loom loop latch. When present, the task is a loop latch;
+            the back-edge runs from this task to `header`. At least
+            one of fuel/while is required by loom (not enforced here).
+          required: [header]
+          additionalProperties: false
+          properties:
+            header:
+              type: string
+              description: back-edge target task id (the loop header)
+            fuel:
+              type: integer
+              description: max iterations; countdown decremented each round
+            while:
+              type: string
+              description: loom predicate; the loop continues while it is true
+  cli_surface:
+    description: |
+      Optional. For tool/workflow skills with a main shim
+      script, list the subcommands the shim exposes. The
+      design renderer presents this as the skill's API
+      contract.
+    type: array
+    items:
+      type: object
+      required: [command, description]
+      additionalProperties: false
+      properties:
+        command:
+          type: string
+          description: subcommand name (e.g. "ingest", "next")
+        args:
+          type: string
+          description: optional argv signature like "<workdir> [--task ID]"
+        description:
+          type: string
+          description: 1-line description of what the subcommand does
+  rationale:
+    type: string
+    description: why this design fits the skill's purpose
+  decision:
+    type: string
+    enum: [accept, revise]
+    description: |
+      Set only by the `design-review` human gate (the `design`
+      agent omits it). 'revise' latches back to `design` with
+      revise_reason; 'accept' exits the loop to skill-materialize.
+      Optional so the same schema validates both the design
+      agent output and the gate output.
+  revise_reason:
+    type: string
+    description: |
+      Set by the gate alongside decision == 'revise': free-text
+      feedback the design agent consumes on the next iteration
+      via the bare ${task:design-review:revise_reason} ref.

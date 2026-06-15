@@ -21,14 +21,14 @@ Rules for skill authors. Read when creating or updating skills.
 1. Each skill MUST live under `~/.kiro/skills/{category}/{skill-name}/`.
 2. `SKILL.md` MUST exist at the skill root.
 3. Reference docs SHOULD live in `references/`. (check:
-   `autochecks/authoring.py:42`)
+   `autochecks/authoring.py:rule_1_3_md_under_references`)
 4. JSON schemas MUST live in top-level `schemas/`, not under `references/`,
    because producer and consumer code MUST resolve them without crossing
-   directories. (check: `autochecks/authoring.py:60`)
+   directories. (check: `autochecks/authoring.py:rule_1_4_schemas_top_level`)
 5. Files with placeholders or used as starting points (artifact templates,
    example outputs, stage templates) MUST live under `templates/`.
 6. Executable scripts MUST live under `scripts/`. (check:
-   `autochecks/authoring.py:25`)
+   `autochecks/authoring.py:rule_1_6_scripts_directory`)
 
 ```
 ~/.kiro/skills/
@@ -66,16 +66,16 @@ Decision guide:
 1. Frontmatter MUST include `name`, `type`, and `description`.
 
 2. `name` MUST be 1-64 chars using only lowercase letters, digits, and hyphens.
-   (check: `autochecks/authoring.py:101`)
+   (check: `autochecks/authoring.py:rule_3_2_name_format`)
 
 3. `type` MUST be one of `interface`, `tool`, `workflow`, `reference`. (check:
-   `autochecks/authoring.py:123`)
+   `autochecks/authoring.py:rule_3_3_type_values`)
 
 4. `description` MUST be ≤1024 chars and MUST include trigger keywords for
-   routing. (check: `autochecks/authoring.py:145`)
+   routing. (check: `autochecks/authoring.py:rule_3_4_description_length`)
 
 5. `description` MUST be written in third person ("Extracts text from PDFs"),
-   not first or second person. (check: `autochecks/authoring.py:173`)
+   not first or second person. (check: `autochecks/authoring.py:rule_3_5_description_person`)
 
 6. `name` and `description` MUST each stay on a single line, regardless of
    length.
@@ -116,58 +116,57 @@ description: What it does. Use when [trigger phrases].
 02. Aliases and primary commands MUST appear up front in SKILL.md.
 
 03. Skills MUST NOT have a README.md, because SKILL.md is the single source of
-    truth. (check: `autochecks/authoring.py:81`)
+    truth. (check: `autochecks/authoring.py:rule_5_3_no_readme`)
 
 04. Constraints MUST use RFC 2119 keywords (MUST, SHOULD, MAY, MUST NOT) and
     negative constraints MUST carry a "because \[reason\]" clause. (check:
-    `autochecks/authoring.py:209`)
+    `autochecks/authoring.py:rule_5_4_constraints_form`)
 
 05. SQL queries MUST live in `references/`, because keeping them out of SKILL.md
     preserves scannability.
 
-06. Scripts MUST live under a `scripts/` subfolder, not loose at the skill root.
+06. Tables MUST be whitespace-aligned for readability.
 
-07. Tables MUST be whitespace-aligned for readability.
+07. Prose lines MUST fill to at least 75 chars before wrapping at 80; tables MAY
+    extend to 100 chars. (check: `autochecks/authoring.py:rule_5_7_line_widths`)
 
-08. Prose lines MUST fill to at least 75 chars before wrapping at 80; tables MAY
-    extend to 100 chars. (check: `autochecks/authoring.py:262`)
+08. Constraints SHOULD be written in positive form; MUST NOT is reserved for
+    hard safety boundaries, because reserving MUST NOT preserves its weight
+    when authors reach for it on a genuine boundary.
 
-09. Constraints SHOULD be written in positive form; MUST NOT is reserved for
-    hard safety boundaries.
-
-10. RFC 2119 keywords MUST stand alone; authors MUST NOT prefix them with
+09. RFC 2119 keywords MUST stand alone; authors MUST NOT prefix them with
     "CRITICAL", "IMPORTANT", "ALWAYS", or exclamation marks, because the model
-    overtriggers on amplified language. (check: `autochecks/authoring.py:342`)
+    overtriggers on amplified language. (check: `autochecks/authoring.py:rule_5_9_emphasis_stacking`)
 
-11. Authors MUST challenge every token before adding it: ask whether the model
+10. Authors MUST challenge every token before adding it: ask whether the model
     already knows what is being explained.
 
-12. When multiple approaches exist, skills MUST recommend a single default with
+11. When multiple approaches exist, skills MUST recommend a single default with
     an escape hatch for edge cases.
 
-13. Every file under `references/` MUST be reachable from SKILL.md through the
+12. Every file under `references/` MUST be reachable from SKILL.md through the
     markdown link graph; chained references are allowed. (check:
-    `autochecks/authoring.py:372`)
+    `autochecks/authoring.py:rule_5_12_references_reachable`)
 
-14. Reference files over 100 lines SHOULD start with a table of contents.
-    (check: `autochecks/authoring.py:458`)
+13. Reference files over 100 lines SHOULD start with a table of contents.
+    (check: `autochecks/authoring.py:rule_5_13_toc_long_files`)
 
-15. Sub-step prose MUST NOT re-narrate what a script does internally (algorithm,
+14. Sub-step prose MUST NOT re-narrate what a script does internally (algorithm,
     edge cases, return values), because re-narration drifts from the script over
     time and bloats SKILL.md.
 
-16. Files under `scripts/`, `schemas/`, and `templates/` MUST be referenced by
+15. Files under `scripts/`, `schemas/`, and `templates/` MUST be referenced by
     SKILL.md, other scripts, prompts, or plan code; orphan files MUST be
     deleted, because they signal incomplete refactors or dead code that confuses
-    reviewers. (check: `autochecks/authoring.py:611`)
+    reviewers. (check: `autochecks/authoring.py:rule_5_15_no_orphans`)
 
 ## 6. Completion Status
 
 1. Every skill MUST end with a `## Completion` section defining terminal states.
-   (check: `autochecks/authoring.py:489`)
+   (check: `autochecks/authoring.py:rule_6_1_completion_section`)
 
 2. The section MUST use exactly four statuses: `DONE`, `DONE_WITH_CONCERNS`,
-   `BLOCKED`, `NEEDS_CONTEXT`. (check: `autochecks/authoring.py:505`)
+   `BLOCKED`, `NEEDS_CONTEXT`. (check: `autochecks/authoring.py:rule_6_2_completion_statuses`)
 
 3. `DONE_WITH_CONCERNS` MUST be used only for workflow-level problems (sub-agent
    returned empty, verification skipped because a tool was unavailable, partial
@@ -198,7 +197,7 @@ description: What it does. Use when [trigger phrases].
 ## 7. Handle Policy
 
 1. Skill files (SKILL.md, references, examples) MUST NOT contain other people's
-   aliases, because that exposes PII. (check: `autochecks/authoring.py:554`)
+   aliases, because that exposes PII. (check: `autochecks/authoring.py:rule_7_1_no_other_aliases`)
 
 2. When a handle is needed in an example, authors MUST use their own handle or a
    generic placeholder (e.g., `userA`, `userB`).
@@ -246,5 +245,7 @@ description: What it does. Use when [trigger phrases].
   paths, Jinja rendering, magic constants, stdlib first, producer/consumer
   contracts.
 - `model-awareness.md` — model behaviour tendencies and token budget.
+- `secure-llm-conventions.md` — when sub-agent prompts must inject the
+  secure-llm security frame for external content.
 - `interface-conventions.md`, `tool-conventions.md`, `workflow-conventions.md`,
   `reference-conventions.md` — per-type structure rules.

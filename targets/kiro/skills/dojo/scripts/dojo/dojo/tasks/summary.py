@@ -2,7 +2,7 @@
 
 Reads the final-review (or user-review for update) decision
 and the create / apply-changes file manifests, then writes a
-summary against `schemas/summary.yaml`.
+summary against `schemas/summary-emit.yaml`.
 """
 from __future__ import annotations
 
@@ -16,10 +16,10 @@ from loom import tool
 
 from dojo.utils import emit, fail
 
-ID = "summary"
+ID = "summary-emit"
 
 _SKILL_ROOT = Path(__file__).resolve().parents[4]
-SCHEMA = _SKILL_ROOT / "schemas" / "summary.yaml"
+SCHEMA = _SKILL_ROOT / "schemas" / "summary-emit.yaml"
 SHIM = _SKILL_ROOT / "scripts" / "dojo.sh"
 
 

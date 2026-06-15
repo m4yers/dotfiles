@@ -8,13 +8,13 @@ from typing import List
 
 from dojo.autochecks._helpers import ERROR, Finding, WARN, rule
 
-@rule('references/script-conventions.md:54')
+@rule('references/script-conventions.md:3.2')
 def rule_3_2_unique_aliases(
     lines: List[str], filename: str,
 ) -> List[Finding]:
     """Each script-alias env var MUST be declared once per file.
 
-    Rule: references/script-conventions.md:54
+    Rule: references/script-conventions.md:3.2
     """
     findings: List[Finding] = []
     in_code = False
@@ -45,14 +45,14 @@ def rule_3_2_unique_aliases(
     return findings
 
 
-@rule('references/script-conventions.md:53')
+@rule('references/script-conventions.md:3.1')
 def rule_3_1_named_aliases(
     lines: List[str], filename: str,
 ) -> List[Finding]:
     """Code-block script invocations MUST use named env vars, not
     hardcoded ``~/.kiro/skills/...`` paths.
 
-    Rule: references/script-conventions.md:53
+    Rule: references/script-conventions.md:3.1
     """
     findings: List[Finding] = []
     in_code = False
@@ -79,11 +79,11 @@ def rule_3_1_named_aliases(
     return findings
 
 
-@rule('references/script-conventions.md:79')
+@rule('references/script-conventions.md:4.2')
 def rule_4_2_bash_size_limit(skill_dir: Path) -> List[Finding]:
     """Bash scripts >10 code lines MUST be converted to Python.
 
-    Rule: references/script-conventions.md:79
+    Rule: references/script-conventions.md:4.2
     """
     findings: List[Finding] = []
     scripts_dir = skill_dir / "scripts"
@@ -110,12 +110,12 @@ def rule_4_2_bash_size_limit(skill_dir: Path) -> List[Finding]:
     return findings
 
 
-@rule('references/script-conventions.md:99')
+@rule('references/script-conventions.md:5.2')
 def rule_5_2_pyproject_per_package(skill_dir: Path) -> List[Finding]:
     """``pyproject.toml`` MUST live inside each dep-using package
     under ``scripts/``, not at the ``scripts/`` top level.
 
-    Rule: references/script-conventions.md:99
+    Rule: references/script-conventions.md:5.2
     """
     findings: List[Finding] = []
     top_pp = skill_dir / "scripts" / "pyproject.toml"

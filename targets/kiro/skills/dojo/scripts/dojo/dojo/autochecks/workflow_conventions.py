@@ -8,7 +8,7 @@ from typing import List, Tuple
 
 from dojo.autochecks._helpers import ERROR, Finding, WARN, rule
 
-@rule('references/workflow-conventions.md:31')
+@rule('references/workflow-conventions.md:2.2')
 def rule_2_2_activity_pattern(
     lines: List[str],
     headings: List[Tuple[int, int, str]],
@@ -18,7 +18,7 @@ def rule_2_2_activity_pattern(
     The template enforces the pattern; this rule lints hand-edited
     SKILL.md files for conformance.
 
-    Rule: references/workflow-conventions.md:31
+    Rule: references/workflow-conventions.md:2.2
     """
     findings: List[Finding] = []
     step_headings = [
@@ -28,6 +28,8 @@ def rule_2_2_activity_pattern(
     for ph_lineno, _, ph_text in step_headings:
         found_activity = False
         has_target = False
+        # 15 lines is the typical max distance between a step heading and
+        # its `activity set` line.
         search_end = min(ph_lineno + 15, len(lines))
         for j in range(ph_lineno, search_end):
             if "activity set" in lines[j]:
@@ -55,14 +57,14 @@ def rule_2_2_activity_pattern(
     return findings
 
 
-@rule('references/workflow-conventions.md:138')
+@rule('references/workflow-conventions.md:8.2')
 def rule_8_2_max_substeps(
     lines: List[str],
     headings: List[Tuple[int, int, str]],
 ) -> List[Finding]:
     """Each step MUST have at most 5 numbered sub-steps.
 
-    Rule: references/workflow-conventions.md:138
+    Rule: references/workflow-conventions.md:8.2
     """
     findings: List[Finding] = []
     step_headings = [
@@ -96,7 +98,7 @@ def rule_8_2_max_substeps(
     return findings
 
 
-@rule('references/workflow-conventions.md:58')
+@rule('references/workflow-conventions.md:4.1')
 def rule_4_1_name_alignment(skill_dir: Path) -> List[Finding]:
     """A task and its bound resources MUST share the same base
     name (task `<name>` ↔ `schemas/<name>.yaml` ↔
@@ -108,7 +110,7 @@ def rule_4_1_name_alignment(skill_dir: Path) -> List[Finding]:
     warnings (the rule may be overridden by intentionally shared
     schemas — see §4.4).
 
-    Rule: references/workflow-conventions.md:58
+    Rule: references/workflow-conventions.md:4.1
     """
     findings: List[Finding] = []
     prompts_dir = skill_dir / "templates" / "prompts"
@@ -132,14 +134,14 @@ def rule_4_1_name_alignment(skill_dir: Path) -> List[Finding]:
     return findings
 
 
-@rule('references/workflow-conventions.md:135')
+@rule('references/workflow-conventions.md:8.1')
 def rule_8_1_descriptive_step_name(
     headings: List[Tuple[int, int, str]],
 ) -> List[Finding]:
     """Each step MUST have a descriptive name after the number
     (e.g., "Step 1: Setup & Checkout"), not just "Step 1".
 
-    Rule: references/workflow-conventions.md:135
+    Rule: references/workflow-conventions.md:8.1
     """
     findings: List[Finding] = []
     step_re = re.compile(r"^(?:Step\s+)?(\d+)(?::\s*(.+))?\s*$")

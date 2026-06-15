@@ -46,10 +46,10 @@ Rules for skill scripts: APIs, oracles, packaging, and contracts.
 
 1. Skills MUST invoke scripts through uppercase env vars whose names match the
    target script's basename (hyphens → underscores). (check:
-   `autochecks/script_conventions.py:49`)
+   `autochecks/script_conventions.py:rule_3_1_named_aliases`)
 
 2. Each env var MUST be declared once at the top of Step 1 and reused for every
-   invocation. (check: `autochecks/script_conventions.py:12`)
+   invocation. (check: `autochecks/script_conventions.py:rule_3_2_unique_aliases`)
 
 ```bash
 DOJO=~/.kiro/skills/home/dojo/scripts/dojo.sh
@@ -66,7 +66,7 @@ $TILING activity set "..."
 2. Any script with argument parsing, loops over command output, or more than ~10
    non-blank/non-comment code lines MUST be Python, because beyond that size
    bash quoting and error propagation become fragile. (check:
-   `autochecks/script_conventions.py:83`)
+   `autochecks/script_conventions.py:rule_4_2_bash_size_limit`)
 
 3. Acceptable bash patterns are: a shim that execs a uv/python command, an
    env-detection script that prints shell assignments for `eval`, and a
@@ -79,7 +79,7 @@ $TILING activity set "..."
 
 2. Each dependency-using package under `scripts/` MUST have its own
    `pyproject.toml` and `uv.lock` at the package root. (check:
-   `autochecks/script_conventions.py:114`)
+   `autochecks/script_conventions.py:rule_5_2_pyproject_per_package`)
 
 3. Each dependency-using package MUST be invoked through a `.sh` shim in
    `scripts/` that runs `uv run --project ... python -m`.

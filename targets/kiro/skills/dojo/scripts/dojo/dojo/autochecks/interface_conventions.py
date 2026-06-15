@@ -6,13 +6,13 @@ from typing import List, Tuple
 
 from dojo.autochecks._helpers import ERROR, Finding, rule
 
-@rule('references/interface-conventions.md:21')
+@rule('references/interface-conventions.md:2.1')
 def rule_2_1_invocation_section(
     headings: List[Tuple[int, int, str]],
 ) -> List[Finding]:
     """Interface skills MUST have an ``## Invocation`` section.
 
-    Rule: references/interface-conventions.md:21
+    Rule: references/interface-conventions.md:2.1
     """
     findings: List[Finding] = []
     h2_names = {h[2].lower() for h in headings if h[1] == 2}
@@ -24,13 +24,13 @@ def rule_2_1_invocation_section(
     return findings
 
 
-@rule('references/interface-conventions.md:24')
+@rule('references/interface-conventions.md:2.2')
 def rule_2_2_api_section(
     headings: List[Tuple[int, int, str]],
 ) -> List[Finding]:
     """Interface skills MUST have an ``## API`` section.
 
-    Rule: references/interface-conventions.md:24
+    Rule: references/interface-conventions.md:2.2
     """
     findings: List[Finding] = []
     h2_names = {h[2].lower() for h in headings if h[1] == 2}
@@ -42,13 +42,13 @@ def rule_2_2_api_section(
     return findings
 
 
-@rule('references/interface-conventions.md:27')
+@rule('references/interface-conventions.md:2.3')
 def rule_2_3_commands_section(
     headings: List[Tuple[int, int, str]],
 ) -> List[Finding]:
     """Interface skills MUST have a ``## Commands`` section.
 
-    Rule: references/interface-conventions.md:27
+    Rule: references/interface-conventions.md:2.3
     """
     findings: List[Finding] = []
     h2_names = {h[2].lower() for h in headings if h[1] == 2}
@@ -60,7 +60,7 @@ def rule_2_3_commands_section(
     return findings
 
 
-@rule('references/interface-conventions.md:27')
+@rule('references/interface-conventions.md:2.4')
 def rule_2_4_api_commands_match(
     lines: List[str],
     headings: List[Tuple[int, int, str]],
@@ -68,7 +68,7 @@ def rule_2_4_api_commands_match(
     """Every entry in the API table MUST have a matching
     ``### <command>`` subsection in Commands.
 
-    Rule: references/interface-conventions.md:27
+    Rule: references/interface-conventions.md:2.4
     """
     import re
 

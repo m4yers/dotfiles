@@ -26,12 +26,12 @@ authoring rules in `authoring.md`.
 
 1. A tool skill MUST contain a single `## Steps` section with a numbered list of
    indivisible actions that run in order without interruption. (check:
-   `autochecks/tool_conventions.py:12`)
+   `autochecks/tool_conventions.py:rule_2_1_steps_section`)
 
 2. A tool skill MUST contain a `## Parameters` section listing inputs;
    parameters MUST either be provided in the user's invocation message or the
    skill MUST ask for them explicitly. (check:
-   `autochecks/tool_conventions.py:30`)
+   `autochecks/tool_conventions.py:rule_2_2_parameters_section`)
 
 3. A tool skill SHOULD contain a `## Dependencies` section before `## Steps`
    when it depends on other skills or external tools.
@@ -57,7 +57,7 @@ authoring rules in `authoring.md`.
 
 1. Each step MUST be a single action, not a sub-workflow.
 2. Steps MUST be numbered, not bulleted. (check:
-   `autochecks/tool_conventions.py:48`)
+   `autochecks/tool_conventions.py:rule_3_2_steps_numbered`)
 3. Steps MUST NOT branch ("if X then Y else Z"), because conditional logic
    belongs in a `workflow`.
 4. Steps MAY include code blocks showing the exact command.

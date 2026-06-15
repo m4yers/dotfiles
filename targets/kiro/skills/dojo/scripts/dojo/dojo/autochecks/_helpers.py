@@ -22,8 +22,8 @@ class Finding(NamedTuple):
     ``rule`` is the check function name (e.g. ``rule_2_2_activity_pattern``)
     and ``rule_ref`` is the markdown source location of the rule
     (e.g. ``references/workflow-conventions.md:31``). Both fields default
-    to empty for SKIP advisories and frontmatter parser errors that have
-    no single backing rule.
+    to empty for frontmatter parser errors that have no single backing
+    rule.
     """
     severity: str
     filename: str
@@ -35,7 +35,6 @@ class Finding(NamedTuple):
 
 ERROR = "ERROR"
 WARN = "WARN"
-SKIP = "SKIP"
 INFO = "INFO"
 
 
@@ -49,7 +48,7 @@ def rule(ref: str) -> Callable:
     name (function ``__name__``) and ``ref`` (markdown source link).
 
     Usage:
-        @rule("references/authoring.md:69")
+        @rule("references/authoring.md:3.2")
         def rule_3_2_name_format(fields): ...
     """
 

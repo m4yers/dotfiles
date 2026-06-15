@@ -12,7 +12,7 @@ agent had a design specification to follow; this check verifies
 that every design point is reflected in the produced skill.
 
 Read the design at `{{ vars.design_path }}`. The schema
-(`schemas/design.yaml`) documents the field meanings. Compare the
+(`schemas/design-author.yaml`) documents the field meanings. Compare the
 materialized skill at `{{ vars.skill_dir }}` against the design
 point by point.
 
@@ -56,6 +56,25 @@ For workflow skills, the steps in the design's `workflow`
 section MUST appear in the same order in SKILL.md, with the
 same step names and the same outputs. Any reordering, rename,
 or skipped step is a finding.
+
+### 7. External-input prompts missing the security frame
+
+Any sub-agent prompt the design proposes that will consume
+external content — web fetches, web-search results, ticket /
+SIM / CR / Slack bodies, third-party API responses, files
+outside the skill's own scope — MUST mention how the
+secure-llm security frame is injected. A design that
+introduces such a surface without calling out the frame is
+incomplete: the materialize step will produce an unsafe
+prompt.
+
+For each such surface:
+
+- Severity: Error
+- Fix: "Update the design to inject
+  `{% raw %}{% include 'security-frame.md.j2' %}{% endraw %}`
+  above the external content and label trust boundaries per
+  `references/secure-llm-conventions.md`."
 
 For each finding, point at both the design line (`design_path:N`)
 and the skill file (`SKILL.md:M` or `references/X.md:M`).

@@ -32,6 +32,7 @@ properties:
         rule_ref:
           type: string
           description: |
-            Vim-friendly path:line link to the rule's source in
-            the references markdown (e.g.
-            'references/workflow-conventions.md:31').
+            Path:rule-number link to the rule's source in the
+            references markdown (e.g.
+            'references/workflow-conventions.md:2.2'). The
+            rule-number form is stable across line edits.

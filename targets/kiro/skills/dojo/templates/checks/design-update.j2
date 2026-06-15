@@ -1,0 +1,95 @@
+{% extends 'check.j2' %}
+
+{% block scope %}
+- `{{ vars.skill_dir }}/` — the skill directory after the
+  update was applied.
+- `{{ vars.design_path }}` — the change plan approved at the
+  `design-review-update` human gate.
+{% endblock %}
+
+{% block rules %}
+This check is exclusive to the `update` pipeline. The
+`modify-changes` agent had an approved change plan to follow;
+this check verifies that the plan was applied faithfully,
+nothing more, nothing less.
+
+Read the change plan at `{{ vars.design_path }}`. The schema
+(`schemas/design-author-update.yaml`) documents the field
+meanings. The `change_plan.files[]` entries are the contract:
+each entry has a `path`, an `action` (`created` / `modified` /
+`deleted`), a `summary`, and optionally a `rationale` and a
+pre-drafted `content_outline`.
+
+Compare the plan against the actual state at
+`{{ vars.skill_dir }}` — checking both file-presence facts
+(does the file exist, was it touched) and content alignment
+with the per-file `summary`.
+
+Flag any of the following as findings:
+
+### 1. Missing change
+
+A file in `change_plan.files[]` with `action: created` does
+not exist at `{{ vars.skill_dir }}/<path>`, or with
+`action: modified` shows no edits relative to the skill's
+prior state, or with `action: deleted` is still present.
+
+### 2. Out-of-plan change
+
+A file at `{{ vars.skill_dir }}/` was created, edited, or
+deleted that has no entry in `change_plan.files[]`. Update
+is not authoring — surfaces should match the plan exactly.
+The fix-pass step (`skill-modify`) is allowed to touch any
+file flagged by an audit finding; that is not an
+out-of-plan change.
+
+### 3. Action mismatch
+
+A file's `change_plan.files[].action` disagrees with what
+actually happened. Examples: the plan says `modified` but
+the file did not exist before and now does (should be
+`created`); the plan says `deleted` but the file is still
+present.
+
+### 4. Summary drift
+
+The actual edits to a file diverge substantially from the
+`summary` (and `rationale`, if present) recorded in the
+plan. Acceptable for cosmetic deviations (re-wording,
+stylistic adjustments); a finding when the agent expanded
+the change scope, dropped a documented sub-change, or
+implemented a different mechanism than the plan described.
+
+### 5. Open questions left unresolved
+
+For each entry in `change_plan.open_questions[]`, verify
+that the materialized skill reflects a concrete answer.
+Examples: a question about a name should resolve to a
+single name in the code; a question about behaviour should
+resolve to one branch in the implementation. Flag any
+question that the materialized skill leaves ambiguous.
+
+### 6. External-input changes missing the security frame
+
+For any `change_plan.files[]` entry that introduces or
+touches a sub-agent prompt template, or a script that pipes
+external content — web fetches, web-search results, ticket /
+SIM / CR / Slack bodies, third-party API responses, files
+outside the skill's own scope — into a sub-agent prompt, the
+plan's `summary` (and `content_outline` if present) MUST
+mention the secure-llm security frame. An external-input
+change that does not is incomplete: `modify-changes` will
+produce an unsafe prompt.
+
+For each such entry:
+
+- Severity: Error
+- Fix: "Update the change-plan entry to call out injecting
+  `{% raw %}{% include 'security-frame.md.j2' %}{% endraw %}`
+  above the external content and labelling trust boundaries
+  per `references/secure-llm-conventions.md`."
+
+For each finding, point at both the change-plan line
+(`{{ vars.design_path }}:N`) and the skill file
+(`SKILL.md:M`, `references/X.md:M`, etc.).
+{% endblock %}

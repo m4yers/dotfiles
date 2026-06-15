@@ -1,0 +1,58 @@
+{# Agent task: apply an approved change plan to an existing skill. #}
+# Apply the approved change plan
+
+The user has approved a change plan in
+`design-review-update`. Apply it exactly — nothing more,
+nothing less.
+
+## Inputs
+
+- Approved plan: `{{ vars.design_path }}` (matches
+  `schemas/design-author-update.yaml`).
+- Skill on disk: `{{ vars.skill_dir }}` — `fs_read` the
+  current state of any file in `change_plan.files[]` before
+  editing.
+
+## Task
+
+For each entry in `change_plan.files[]`:
+
+1. Read `path`, `action`, `summary`, and (if present)
+   `rationale` and `content_outline`.
+2. Apply the change:
+   - **`action: created`** — write a new file at
+     `{{ vars.skill_dir }}/<path>` with content matching
+     `summary` (and `content_outline` when provided as a
+     starting draft).
+   - **`action: modified`** — edit the existing file at
+     `{{ vars.skill_dir }}/<path>` to implement the
+     `summary`. Preserve unrelated content. Use
+     `content_outline` as guidance when present.
+   - **`action: deleted`** — remove the file at
+     `{{ vars.skill_dir }}/<path>`.
+3. Stay strictly within the plan. Any deviation requires the
+   user to revise the plan first — there is no path here for
+   "while I'm at it" cleanups, refactors, or naming changes.
+
+## Output
+
+Construct `output.yaml` (matching `schemas/files.yaml`) via
+loom's schema-driven writer. `fs_write` is for the edited
+skill files; the task output goes through `loom output`.
+
+```bash
+LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
+WD={{ run.workdir }}
+
+$LOOM output init "$WD" --task modify-changes
+
+$LOOM output add "$WD" --task modify-changes \
+    --set 'files[].path=/abs/path/to/edited.md' \
+    --set 'files[-1].action=modified' \
+    --set 'files[].path=/abs/path/to/new-section.md' \
+    --set 'files[-1].action=created' \
+    --set 'files[].path=/abs/path/to/removed.md' \
+    --set 'files[-1].action=deleted'
+```
+
+Syntax: `[]` appends, `[-1]` targets the last appended entry.

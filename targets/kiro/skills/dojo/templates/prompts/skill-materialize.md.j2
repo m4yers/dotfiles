@@ -2,7 +2,7 @@
 # Materialize the skill
 
 Approved design: `{{ upstream['design-review'].task_path }}`.
-Gather output: `{{ upstream['gather'].task_path }}` (provides
+Gather-create output: `{{ upstream['gather-create'].task_path }}` (provides
 `name` and `location`).
 
 ## Task
@@ -87,13 +87,13 @@ template's folder and loom's templates so the partial
 
 | Variable        | Source / how to derive                                          |
 |-----------------|-----------------------------------------------------------------|
-| `name`          | `gather.name`                                                   |
-| `description`  | `gather.description` (refined by your design pass if needed)    |
-| `title`         | Pretty H1 form, e.g. `gather.name` with `-` → space, title-cased|
+| `name`          | `gather-create.name`                                            |
+| `description`  | `gather-create.description` (refined by your design pass if needed) |
+| `title`         | Pretty H1 form, e.g. `gather-create.name` with `-` → space, title-cased|
 | `intro`         | 1–3 sentences explaining what the skill does                    |
 | `prefix`        | Uppercase shell prefix from name initials (`SB`, `SR`, …)       |
 | `shim`          | Uppercase wrapper-script base name (`BUILDER`, `REVIEWER`, …)   |
-| `skill_name`    | Equals `gather.name` for the tiling activity label              |
+| `skill_name`    | Equals `gather-create.name` for the tiling activity label       |
 | `target`        | Placeholder for primary parameter, e.g. `<op>` or `<name>`      |
 | `dependencies`  | Markdown bullet list (each item: `` - `<dep>` — note ``)        |
 | `parameters`    | Markdown bullet list describing the skill's inputs              |

@@ -1,0 +1,108 @@
+# Output of the `design-author-update` agent task. Describes
+# the proposed change to an existing skill: which files are
+# created/modified/deleted, why, and what's still open for the
+# user to confirm. Validates both the agent output and the
+# `design-review-update` gate output (which sets `decision`
+# and possibly `revise_reason`).
+type: object
+required: [skill, change_request, change_plan]
+additionalProperties: false
+properties:
+  skill:
+    description: |
+      Identification of the skill being updated. Carried
+      verbatim from gather-update so the renderer and the
+      materialize step have a stable reference.
+    type: object
+    required: [name, namespace, type, path]
+    additionalProperties: false
+    properties:
+      name:      {type: string}
+      namespace: {type: string}
+      type:
+        type: string
+        enum: [interface, tool, workflow, reference]
+      path:
+        type: string
+        description: absolute path to the skill directory
+  change_request:
+    type: string
+    description: |
+      The user's free-form description from gather-update,
+      passed through unchanged so the reviewer sees what was
+      asked alongside the proposed plan.
+  change_plan:
+    type: object
+    required: [files]
+    additionalProperties: false
+    properties:
+      files:
+        description: |
+          Per-file changes. Order is presentational only —
+          the renderer groups by `action` for display.
+        type: array
+        items:
+          type: object
+          required: [path, action, summary]
+          additionalProperties: false
+          properties:
+            path:
+              type: string
+              description: |
+                Path relative to the skill directory. Use
+                "SKILL.md" for the top-level skill file.
+            action:
+              type: string
+              enum: [created, modified, deleted]
+            summary:
+              type: string
+              description: |
+                One- to two-sentence summary of what changes
+                in this file and why. Rendered verbatim in
+                the design-review markdown.
+            rationale:
+              type: string
+              description: |
+                Optional per-file explanation when the
+                summary alone isn't enough (e.g., the change
+                ripples to other files, or there's a design
+                tradeoff worth surfacing). Rendered as
+                italics under the file's bullet.
+            content_outline:
+              type: string
+              description: |
+                Optional. For `created` or `modified` files
+                where the agent already drafted concrete
+                content, this carries the draft. Not shown
+                in the design-review markdown — consumed by
+                modify-changes when applying the plan.
+      open_questions:
+        description: |
+          Questions the author wants the user to resolve
+          during review. Empty when the plan is fully
+          determined.
+        type: array
+        items: {type: string}
+      rationale:
+        type: string
+        description: |
+          Overall reasoning for the plan — why these files,
+          why these changes, what alternatives were
+          considered. Optional but recommended for non-
+          trivial updates.
+  decision:
+    type: string
+    enum: [accept, revise]
+    description: |
+      Set only by the `design-review-update` human gate (the
+      author agent omits it). 'revise' latches back to
+      `design-author-update` with `revise_reason`; 'accept'
+      exits the loop. Optional so the same schema validates
+      both the agent output and the gate output.
+  revise_reason:
+    type: string
+    description: |
+      Set by the gate alongside `decision == 'revise'`: the
+      user's free-text feedback. The author agent reads this
+      on the next iteration via the bare
+      `${task:design-review-update:revise_reason}` ref.

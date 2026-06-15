@@ -1,8 +1,8 @@
-{# Agent task: design a new skill from gather output. Dispatches
+{# Agent task: design a new skill from gather-create output. Dispatches
    to a per-type body under templates/design/. #}
 # Design a new skill
 
-Read gather output at `{{ upstream['gather'].task_path }}` for
+Read gather-create output at `{{ upstream['gather-create'].task_path }}` for
 `name`, `location`, `type`, `description`, `purpose`. Apply the
 conventions below, then construct `output.yaml` via `loom output`.
 
@@ -29,11 +29,15 @@ design:
 
 {% include 'script-conventions.md' %}
 
+## Secure-LLM conventions
+
+{% include 'secure-llm-conventions.md' %}
+
 ## Type-specific guidance
 
-{% set skill_type = upstream['gather'].output.type
-                    if upstream['gather'].output
-                    and upstream['gather'].output.type else None %}
+{% set skill_type = upstream['gather-create'].output.type
+                    if upstream['gather-create'].output
+                    and upstream['gather-create'].output.type else None %}
 {% if skill_type == 'interface' -%}
 {% include 'design-interface.md.j2' %}
 {%- elif skill_type == 'tool' -%}
@@ -43,8 +47,8 @@ design:
 {%- elif skill_type == 'reference' -%}
 {% include 'design-reference.md.j2' %}
 {%- else -%}
-**ERROR:** gather.type is missing or invalid: `{{ skill_type }}`.
-Stop and report the gather output as malformed.
+**ERROR:** gather-create.type is missing or invalid: `{{ skill_type }}`.
+Stop and report the gather-create output as malformed.
 {%- endif %}
 
 ## Output

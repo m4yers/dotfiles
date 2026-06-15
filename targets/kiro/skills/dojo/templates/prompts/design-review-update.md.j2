@@ -1,0 +1,53 @@
+{# Human task: user reviews and (optionally) edits the change
+   plan. Same shape as create's design-review gate. #}
+# Review the update plan
+
+The `design-author-update` agent has produced a structured
+change plan at:
+
+`{{ upstream['design-author-update'].task_path }}` (canonical edit target)
+
+The `design-render-update` tool has rendered it as a
+human-readable markdown report at:
+
+`{{ upstream['design-render-update'].output.report_path }}`
+
+## Driving the gate
+
+1. Open the rendered markdown in the editor for the user
+   (use the `editor` skill: `editor.sh show file <path>`).
+   Show the markdown — it is far easier to scan than the
+   raw YAML.
+2. STOP and wait for the user. The user can:
+   - **Accept** — the plan is good; proceed to
+     `modify-changes`.
+   - **Revise** — request changes. Capture their feedback
+     verbatim. The gate latches back to
+     `design-author-update`, which re-runs and reads the
+     feedback to produce a new plan; the gate then
+     re-presents it. Iterate until accept.
+   - **Decline** — major rework needed, abandon the run.
+     Report BLOCKED.
+
+## Output
+
+The `design-review-update` output matches
+`schemas/design-author-update.yaml` (the same shape as the
+`design-author-update` agent) plus a `decision` field:
+
+- **Accept:** copy the (possibly hand-tweaked) change plan
+  YAML to `{{ task.output_path }}` and set
+  `decision: accept`. Leave `revise_reason` unset.
+- **Revise:** copy the current change plan YAML to
+  `{{ task.output_path }}`, set `decision: revise`, and set
+  `revise_reason` to the user's feedback (free text). The
+  `while` latch (`decision == 'revise'`) loops back to
+  `design-author-update`, which reads `revise_reason` and
+  regenerates.
+- **Decline:** report BLOCKED and stop the workflow.
+
+`decision` and `revise_reason` are optional in the schema (the
+`design-author-update` agent omits them); the gate always
+sets `decision`. The `modify-changes` agent reads
+`design-review-update.output.yaml`, NOT the upstream
+`design-author-update` output.

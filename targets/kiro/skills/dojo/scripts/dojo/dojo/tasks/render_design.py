@@ -40,7 +40,7 @@ def task(*, depends_on_all=()):
         ID,
         cmd=[
             str(SHIM), "pipeline", "render-design",
-            "--design", "${task_path:design}",
+            "--design", "${task_path:design-author}",
         ],
         output_schema=str(SCHEMA),
         depends_on_all=list(depends_on_all) if depends_on_all else None,

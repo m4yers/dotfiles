@@ -21,13 +21,13 @@ from dojo.autochecks import (
     workflow_conventions,
 )
 from dojo.autochecks._helpers import (
-    ERROR, Finding, INFO, SKIP, WARN,
+    ERROR, Finding, INFO, WARN,
     get_headings, parse_frontmatter, to_finding,
 )
 
 # Re-exports for backwards compatibility.
 __all__ = [
-    "ERROR", "INFO", "SKIP", "WARN",
+    "ERROR", "INFO", "WARN",
     "Finding", "lint_skill",
     "lint_to_findings", "lint_to_text",
 ]
@@ -37,9 +37,7 @@ __all__ = [
 # Output adapters
 # ---------------------------------------------------------------------------
 
-# Internal severity → findings.yaml schema enum. SKIP is dropped
-# from emission — those are LLM-checked advisories, not lint
-# violations.
+# Internal severity → findings.yaml schema enum.
 _SEVERITY_MAP = {
     ERROR: "Error",
     WARN:  "Warning",
@@ -48,14 +46,9 @@ _SEVERITY_MAP = {
 
 
 def lint_to_findings(skill_dir: Path) -> list[dict]:
-    """Run autochecks and return findings as ``findings.yaml`` dicts.
-
-    SKIP findings are excluded — advisory, not actionable.
-    """
+    """Run autochecks and return findings as ``findings.yaml`` dicts."""
     out: list[dict] = []
     for f in lint_skill(skill_dir):
-        if f.severity == SKIP:
-            continue
         loc = f"{f.filename}:{f.line}" if f.line > 0 else f.filename
         entry = {
             "title": f.message[:80],
@@ -78,7 +71,7 @@ def lint_to_text(skill_dir: Path) -> str:
 
     Used by ``--format text`` and the apply phase to verify fixes.
     """
-    counts = {ERROR: 0, WARN: 0, SKIP: 0, INFO: 0}
+    counts = {ERROR: 0, WARN: 0, INFO: 0}
     lines: list[str] = []
     for f in lint_skill(skill_dir):
         counts[f.severity] += 1
@@ -88,7 +81,7 @@ def lint_to_text(skill_dir: Path) -> str:
     lines.append("")
     lines.append(
         f"Summary: {counts[ERROR]} errors, {counts[WARN]} warnings, "
-        f"{counts[SKIP]} skipped (manual), {counts[INFO]} info"
+        f"{counts[INFO]} info"
     )
     return "\n".join(lines) + "\n"
 
@@ -123,13 +116,13 @@ def lint_skill(skill_dir: Path) -> List[Finding]:
     findings.extend(authoring.rule_1_3_md_under_references(skill_dir))
     findings.extend(authoring.rule_1_4_schemas_top_level(skill_dir))
     findings.extend(authoring.rule_1_6_scripts_directory(skill_dir))
-    findings.extend(authoring.rule_5_16_no_orphans(skill_dir))
+    findings.extend(authoring.rule_5_15_no_orphans(skill_dir))
 
     # authoring.md §5 Style Guide (applied to SKILL.md).
     findings.extend(authoring.rule_5_3_no_readme(skill_dir))
     findings.extend(authoring.rule_5_4_constraints_form(lines, "SKILL.md"))
-    findings.extend(authoring.rule_5_8_line_widths(lines, "SKILL.md"))
-    findings.extend(authoring.rule_5_10_emphasis_stacking(lines, "SKILL.md"))
+    findings.extend(authoring.rule_5_7_line_widths(lines, "SKILL.md"))
+    findings.extend(authoring.rule_5_9_emphasis_stacking(lines, "SKILL.md"))
 
     # authoring.md §6 Completion Status.
     findings.extend(authoring.rule_6_1_completion_section(lines))
@@ -228,21 +221,21 @@ def lint_skill(skill_dir: Path) -> List[Finding]:
             ref_name = f"references/{ref_file.name}"
 
             findings.extend(
-                reference_conventions.rule_4_4_file_length(
+                reference_conventions.rule_4_3_file_length(
                     ref_lines, ref_name,
                 )
             )
             findings.extend(
-                authoring.rule_5_14_toc_long_files(ref_lines, ref_name)
+                authoring.rule_5_13_toc_long_files(ref_lines, ref_name)
             )
             findings.extend(
-                authoring.rule_5_8_line_widths(ref_lines, ref_name)
+                authoring.rule_5_7_line_widths(ref_lines, ref_name)
             )
             findings.extend(
                 authoring.rule_5_4_constraints_form(ref_lines, ref_name)
             )
             findings.extend(
-                authoring.rule_5_10_emphasis_stacking(ref_lines, ref_name)
+                authoring.rule_5_9_emphasis_stacking(ref_lines, ref_name)
             )
             findings.extend(
                 authoring.rule_7_1_no_other_aliases(ref_lines, ref_name)
@@ -254,26 +247,10 @@ def lint_skill(skill_dir: Path) -> List[Finding]:
             )
 
         findings.extend(
-            authoring.rule_5_13_references_reachable(skill_dir, refs_dir)
+            authoring.rule_5_12_references_reachable(skill_dir, refs_dir)
         )
 
-    # Skipped (semantic) checks — surfaced as SKIP advisories.
-    skipped = [
-        "Trigger phrase uniqueness across skills",
-        "Functionality uniqueness across skills",
-        "Negative trigger phrase coverage",
-        "Reference file focus (one topic each)",
-        "Repeatable actions (deterministic actions as scripts)",
-        "Missing oracles (steps with verifiable outcomes need automated oracle sub-steps)",
-        "Positive framing (MUST NOT vs positive alternative)",
-        "Magic constants in scripts (uncommented values)",
-        "Gameable success criteria (measurable outcomes have anti-gaming guards)",
-        "Reinvention in scripts (reimplements stdlib/Linux tools)",
-    ]
-    for desc in skipped:
-        findings.append((SKIP, "SKILL.md", 0, desc))
-
-    # Normalize: promote any plain tuples (parser errors, SKIP) to Finding.
+    # Normalize: promote any plain tuples (parser errors) to Finding.
     findings = [to_finding(f) for f in findings]
     findings.sort(key=lambda f: (f.filename, f.line))
     return findings

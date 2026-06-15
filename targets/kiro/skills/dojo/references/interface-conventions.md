@@ -24,20 +24,20 @@ general authoring rules in `authoring.md`.
 
 1. An interface skill MUST contain an `## Invocation` section that shows the
    base command or import pattern as a single, complete invocation template that
-   callers copy verbatim. (check: `autochecks/interface_conventions.py:10`)
+   callers copy verbatim. (check: `autochecks/interface_conventions.py:rule_2_1_invocation_section`)
 
 2. An interface skill MUST contain an `## API` section with a table summarising
    every operation; columns MUST be command name, arguments, and output, and the
-   table MUST be exhaustive. (check: `autochecks/interface_conventions.py:28`)
+   table MUST be exhaustive. (check: `autochecks/interface_conventions.py:rule_2_2_api_section`)
 
 3. An interface skill MUST contain a `## Commands` section with one subsection
    per command listed in the API table, showing full invocation examples,
    argument descriptions, and behaviour notes. (check:
-   `autochecks/interface_conventions.py:46`)
+   `autochecks/interface_conventions.py:rule_2_3_commands_section`)
 
 4. Every entry in the API table MUST have a corresponding `### Commands`
    subsection, because the API table is the contract and the Commands section is
-   the manual. (check: `autochecks/interface_conventions.py:64`)
+   the manual. (check: `autochecks/interface_conventions.py:rule_2_4_api_commands_match`)
 
 5. An interface skill MAY contain `## Defaults` (when commands have implicit
    defaults), `## Rules` (cross-command constraints), and `## References` (when

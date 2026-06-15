@@ -44,7 +44,7 @@ def task(*, depends_on_all=()):
     return tool(
         ID,
         cmd=[str(SHIM), "check", "naming", "--design",
-             "${task_path:design}"],
+             "${task_path:design-author}"],
         output_schema=str(SCHEMA),
         depends_on_all=list(depends_on_all) if depends_on_all else None,
     )

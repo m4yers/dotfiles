@@ -1,8 +1,7 @@
 {# Human task: gather skill metadata for a new skill (create flow). #}
 # Gather skill metadata
 
-You are driving a `gather` human task in the dojo
-create pipeline. Collect the following from the user
+Collect the following from the user
 conversationally and write the answers to
 `{{ task.output_path }}`.
 
@@ -18,15 +17,15 @@ conversationally and write the answers to
 - **type** — one of `interface`, `tool`, `workflow`,
   `reference`. Suggest based on the user's description; fall
   back to asking explicitly.
-- **description** — short prose for SKILL.md frontmatter
-  (max 1024 chars). MUST contain the trigger keywords that
+- **description** — short prose for SKILL.md frontmatter.
+  MUST contain the trigger keywords that
   describe when the skill activates.
 - **purpose** — free-form: what the skill does and when to
-  use it. The `design` agent uses this to propose structure.
+  use it. The `design-author` agent uses this to propose structure.
 
 ## Output
 
-Write a YAML file matching `schemas/gather.yaml`:
+Write a YAML file matching `schemas/gather-create.yaml`:
 
 ```yaml
 name: my-new-skill

@@ -40,7 +40,7 @@ def task(workdir: Path, *, depends_on_all=()):
     return tool(
         ID,
         cmd=[str(SHIM), "check", "overlaps",
-             "--gather-output", "${task_path:gather}"],
+             "--gather-output", "${task_path:gather-create}"],
         output_schema=str(SCHEMA),
         depends_on_all=list(depends_on_all) if depends_on_all else None,
     )

@@ -35,7 +35,7 @@ general authoring rules in `authoring.md`.
 
 2. Hand-edited or pre-existing workflow SKILL.md files MUST conform to that
    template's section order, required sections, and activity-tracking pattern.
-   (check: `autochecks/workflow_conventions.py:12`)
+   (check: `autochecks/workflow_conventions.py:rule_2_2_activity_pattern`)
 
 3. Reviews of a workflow SKILL.md MUST diff its rendered structure against the
    template, flagging any missing required section, divergent section order, or
@@ -60,7 +60,7 @@ general authoring rules in `authoring.md`.
    prompt MUST be `templates/prompts/<name>.md.j2`, and any other per-task
    artefact MUST follow the same `<name>` convention. Aligned names make the
    task-resource graph visible by ls. (check:
-   `autochecks/workflow_conventions.py:100`)
+   `autochecks/workflow_conventions.py:rule_4_1_name_alignment`)
 2. Task ids, schema filenames, and prompt filenames MUST be domain-prefixed
    kebab-case (`<domain>-<action>`) so related tasks group visibly.
 3. Every task id MUST match `^[a-z][a-z0-9]*(-[a-z0-9{}]+)+$` (at least one
@@ -151,11 +151,11 @@ $TILING activity set "dojo($DOJO_OP:$DOJO_NAME): ..."
 
 1. Each step MUST have a descriptive name after the number (e.g., "Setup &
    Checkout", not just "Setup"). (check:
-   `autochecks/workflow_conventions.py:136`)
+   `autochecks/workflow_conventions.py:rule_8_1_descriptive_step_name`)
 
 2. Each step MUST have at most 5 numbered sub-steps, because longer steps are
    skipped or partially executed; split into more steps instead. (check:
-   `autochecks/workflow_conventions.py:59`)
+   `autochecks/workflow_conventions.py:rule_8_2_max_substeps`)
 
 3. A step MAY loop (e.g., "Repeat from sub-step 2 until all comments are
    addressed") or stop to wait for user input (e.g., "STOP and wait for user to
@@ -164,11 +164,7 @@ $TILING activity set "dojo($DOJO_OP:$DOJO_NAME): ..."
 4. Transitions between steps MUST be explicit, stating what triggers moving to
    the next step.
 
-5. Sub-step prose MUST NOT restate what a script does internally (algorithm,
-   edge cases, return values), because duplicated prose rots when the script
-   changes and inflates SKILL.md.
-
-6. Script invocations MUST appear as actual commands in fenced bash blocks, not
+5. Script invocations MUST appear as actual commands in fenced bash blocks, not
    as prose describing the call, because prose invocations hide arguments and
    drift from the real CLI. Exception: sibling skills referenced by name when
    the full command is documented in the other skill's SKILL.md.

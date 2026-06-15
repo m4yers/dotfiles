@@ -8,17 +8,18 @@ create-only checks stay surface-visible.
 
 Pipelines:
 
-- `create` — gather → check-name/location/overlaps → design →
-  design-review (loop) → skill-materialize → find-skill →
-  audit-core → skill-modify → final-review → summary. Includes
-  the create-only `check-design` task. The `design-review` gate
-  is a while-loop latch back to `design`: a `revise` verdict
-  re-runs the design with the gate's feedback; `accept` exits.
+- `create` — gather-create → check-name/location/overlaps →
+  design-author → design-review (loop) → skill-materialize →
+  find-skill → audit-core → skill-modify → final-review →
+  summary-emit. Includes the create-only `check-design` task.
+  The `design-review` gate is a while-loop latch back to
+  `design-author`: a `revise` verdict re-runs the design with
+  the gate's feedback; `accept` exits.
 - `update` — find-skill (landscape) → gather-update →
   modify-changes → audit-core → skill-modify → final-review →
-  summary.
+  summary-emit.
 - `review` — find-skill (--name) → audit-core (no modify) →
-  gate → finalize.
+  gate → review-finalize.
 
 Locate shape: every pipeline feeds `checks-report` a
 locate-shaped `{skill_dir, name, category, type}` source —
@@ -39,7 +40,7 @@ from loom import LoomPlan, agent, human, latch, make_plan, tool
 
 from dojo.tasks import (
     check_overlaps, check_name, check_location, check_naming,
-    find_skill, render_design, summary,
+    find_skill, render_design, render_design_update, summary,
 )
 
 # Path layout: <skill>/scripts/dojo/dojo/plan.py — parents[3] is
@@ -47,6 +48,7 @@ from dojo.tasks import (
 SKILL_ROOT = Path(__file__).resolve().parents[3]
 PROMPTS    = SKILL_ROOT / "templates" / "prompts"
 CHECKS     = SKILL_ROOT / "templates" / "checks"
+DESIGN     = SKILL_ROOT / "templates" / "design"
 TEMPLATES  = SKILL_ROOT / "templates"
 SCHEMAS    = SKILL_ROOT / "schemas"
 SCRIPTS    = SKILL_ROOT / "scripts"
@@ -72,6 +74,7 @@ SEARCH_PATHS = [
     str(PROMPTS),
     str(CHECKS),
     str(CHECKS / "_meta"),
+    str(DESIGN),
     str(REFERENCES),
     str(SECURE_LLM_TEMPLATES),
 ]
@@ -185,6 +188,8 @@ def _audit_tasks(skill_dir_ref: str, skill_name_ref: str,
                     base_vars),
         _check_task("check-scripts",      "scripts.j2",
                     base_vars),
+        _check_task("check-secure-llm",   "secure-llm.j2",
+                    base_vars),
         _check_task("check-interface",    "interface.j2",
                     base_vars,
                     when=f"{skill_type_ref} == 'interface'"),
@@ -205,6 +210,7 @@ def _all_check_ids(extra: list[str] | None = None) -> list[str]:
     base = [
         "check-authoring",
         "check-model-awareness", "check-scripts",
+        "check-secure-llm",
         "check-interface", "check-tool",
         "check-workflow", "check-reference",
     ]
@@ -271,39 +277,40 @@ def build_create_plan(workdir: Path, name: str) -> LoomPlan:
 
     return make_plan(
         # 1. Human gather — capture name, type, intent.
-        _human("gather", "gather.md.j2", "gather.yaml"),
+        _human("gather-create", "gather-create.md.j2", "gather-create.yaml"),
 
         # 2. Pre-design tool checks (parallel).
-        check_name.task(workdir,     depends_on_all=["gather"]),
-        check_location.task(workdir, depends_on_all=["gather"]),
-        check_overlaps.task(workdir, depends_on_all=["gather"]),
+        check_name.task(workdir,     depends_on_all=["gather-create"]),
+        check_location.task(workdir, depends_on_all=["gather-create"]),
+        check_overlaps.task(workdir, depends_on_all=["gather-create"]),
 
         # 3. Design phase. On a design-review `revise` verdict the
         # latch re-runs this task; it reads the gate's feedback
         # from the bare (latest-completed) revise_reason ref.
-        _agent("design", "design.md.j2", "design.yaml",
+        _agent("design-author", "design-author.md.j2", "design-author.yaml",
                deps=["check-name", "check-location",
                      "check-overlaps"],
                vars_={"revise_reason":
                       "${task:design-review:revise_reason}"}),
         # 3b. Render design YAML as readable markdown for the
         # design-review gate (tool task `design-render`).
-        render_design.task(depends_on_all=["design"]),
+        render_design.task(depends_on_all=["design-author"]),
         # 3c. Deterministic naming check `design-checks` — gates
         # design-review so bad names abort before the human
         # reviews and before materialization.
-        check_naming.task(depends_on_all=["design"]),
-        # 3d. Human gate with a while-loop latch back to `design`:
+        check_naming.task(depends_on_all=["design-author"]),
+        # 3d. Human gate with a while-loop latch back to `design-author`:
         # `revise` loops, `accept` exits.
-        _human("design-review", "design_review.md.j2",
-               "design.yaml",
-               deps=["design", "design-render", "design-checks"],
+        _human("design-review", "design-review.md.j2",
+               "design-review.yaml",
+               deps=["design-author", "design-render", "design-checks"],
                latch_=latch(
-                   "design",
+                   "design-author",
                    while_="${task:design-review:decision} == 'revise'")),
 
         # 4. Materialize — write SKILL.md + refs + scripts.
-        _agent("skill-materialize", "skill_materialize.md.j2", "files.yaml",
+        _agent("skill-materialize", "skill-materialize.md.j2",
+               "skill-materialize.yaml",
                deps=["design-review"]),
 
         # 5. Locate the just-created skill on disk (canonical
@@ -319,15 +326,16 @@ def build_create_plan(workdir: Path, name: str) -> LoomPlan:
         _assemble_task(check_ids, "${task_path:find-skill}"),
 
         # 8. Apply findings.
-        _agent("skill-modify", "skill_modify.md.j2", "files.yaml",
+        _agent("skill-modify", "skill-modify.md.j2",
+               "skill-modify.yaml",
                deps=["checks-report"],
                vars_={"report_path":
                       "${task:checks-report:report_path}",
                       "skill_dir":   skill_dir_ref}),
 
         # 9. Final human gate.
-        _human("final-review", "final_review.md.j2",
-               "decision.yaml", deps=["skill-modify"]),
+        _human("final-review", "final-review.md.j2",
+               "final-review.yaml", deps=["skill-modify"]),
 
         # 10. Summary.
         summary.task(workdir, depends_on_all=["final-review"]),
@@ -335,23 +343,44 @@ def build_create_plan(workdir: Path, name: str) -> LoomPlan:
 
 
 def build_update_plan(workdir: Path, name: str) -> LoomPlan:
-    """Update pipeline: pick a skill, apply user-described
-    change, then audit-core.
+    """Update pipeline: pick a skill, design the change with a
+    review loop, apply, then audit-core.
 
     The locate shape comes from `gather-update`, whose picked
     skill carries `{skill_dir, name, category, type}` straight
     from the find-skill landscape — no separate locate task.
+
+    The design loop (`design-author-update` →
+    `design-render-update` → `design-review-update`) is
+    always-on. Its `latch` re-runs the author with the gate's
+    `revise_reason` until the user accepts. `modify-changes`
+    consumes the approved change plan instead of the user's
+    raw description.
+
+    Audit core includes the update-only `check-design-update`,
+    which verifies the change plan was applied faithfully.
     """
     skill_dir_ref = "${task:gather-update:skill_dir}"
     name_ref      = "${task:gather-update:name}"
     type_ref      = "${task:gather-update:type}"
+
+    base_vars = _check_vars(skill_dir_ref, name_ref, type_ref)
 
     audit_tasks, _ = _audit_tasks(
         skill_dir_ref, name_ref, type_ref,
         lint_dep_extras=["modify-changes"],
     )
 
-    check_ids = _all_check_ids()
+    # check-design-update is exclusive to update — verifies each
+    # entry in the approved change plan was applied faithfully.
+    design_check_update = _check_task(
+        "check-design-update", "design-update.j2",
+        {**base_vars,
+         "design_path": "${task_path:design-review-update}"},
+        lint_dep="check-autochecks",
+    )
+
+    check_ids = _all_check_ids(extra=["check-design-update"])
 
     return make_plan(
         # 1. Discover landscape (lister for the picker).
@@ -362,31 +391,66 @@ def build_update_plan(workdir: Path, name: str) -> LoomPlan:
                "gather_update.yaml",
                deps=["find-skill"]),
 
-        # 3. Apply user-described change.
-        _agent("modify-changes", "modify_changes.md.j2",
-               "files.yaml",
+        # 3. Design loop. On a design-review-update `revise`
+        # verdict the latch re-runs design-author-update; it
+        # reads the gate's feedback from the bare
+        # (latest-completed) revise_reason ref.
+        _agent("design-author-update",
+               "design-author-update.md.j2",
+               "design-author-update.yaml",
                deps=["gather-update"],
+               vars_={
+                   "skill_dir":   skill_dir_ref,
+                   "description":
+                       "${task:gather-update:description}",
+                   "revise_reason":
+                       "${task:design-review-update:revise_reason}",
+               }),
+        # 3b. Render change plan as readable markdown.
+        render_design_update.task(
+            depends_on_all=["design-author-update"]),
+        # 3c. Human gate with while-loop latch back to author:
+        # `revise` loops, `accept` exits. depends_on_all lists
+        # only the renderer because the author dep is
+        # transitive through it — listing it explicitly creates
+        # a redundant edge in the loom visualisation.
+        _human("design-review-update",
+               "design-review-update.md.j2",
+               "design-review-update.yaml",
+               deps=["design-render-update"],
+               latch_=latch(
+                   "design-author-update",
+                   while_=("${task:design-review-update:decision}"
+                           " == 'revise'"))),
+
+        # 4. Apply the approved change plan.
+        _agent("modify-changes", "modify-changes.md.j2",
+               "modify-changes.yaml",
+               deps=["design-review-update"],
                vars_={"skill_dir":   skill_dir_ref,
-                      "description": "${task:gather-update:description}"}),
+                      "design_path":
+                          "${task_path:design-review-update}"}),
 
-        # 4. Audit core.
+        # 5. Audit core + plan-vs-skill check.
         *audit_tasks,
+        design_check_update,
 
-        # 5. Assemble.
+        # 6. Assemble.
         _assemble_task(check_ids, "${task_path:gather-update}"),
 
-        # 6. Modify based on findings.
-        _agent("skill-modify", "skill_modify.md.j2", "files.yaml",
+        # 7. Modify based on findings.
+        _agent("skill-modify", "skill-modify.md.j2",
+               "skill-modify.yaml",
                deps=["checks-report"],
                vars_={"report_path":
                       "${task:checks-report:report_path}",
                       "skill_dir":   skill_dir_ref}),
 
-        # 7. Final human gate.
-        _human("final-review", "final_review.md.j2",
-               "decision.yaml", deps=["skill-modify"]),
+        # 8. Final human gate.
+        _human("final-review", "final-review.md.j2",
+               "final-review.yaml", deps=["skill-modify"]),
 
-        # 8. Summary.
+        # 9. Summary.
         summary.task(workdir, depends_on_all=["final-review"]),
     )
 
@@ -446,7 +510,7 @@ def build_review_plan(workdir: Path, name: str) -> LoomPlan:
                    "show-report",
                    while_="${task:skill-fix-apply:open_items} > `0`")),
 
-        tool("finalize",
+        tool("review-finalize",
              cmd=[str(DOJO_SH), "pipeline", "finalize",
                   "--workdir", "${workdir}"],
              depends_on_all=["skill-fix-apply"],

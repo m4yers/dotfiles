@@ -21,11 +21,11 @@ from dojo.autochecks._helpers import (
 # ---------------------------------------------------------------------------
 
 
-@rule('references/authoring.md:33')
+@rule('references/authoring.md:1.6')
 def rule_1_6_scripts_directory(skill_dir: Path) -> List[Finding]:
     """Scripts MUST live under ``scripts/``, not loose at skill root.
 
-    Rule: references/authoring.md:33
+    Rule: references/authoring.md:1.6
     """
     findings: List[Finding] = []
     for f in skill_dir.iterdir():
@@ -38,11 +38,11 @@ def rule_1_6_scripts_directory(skill_dir: Path) -> List[Finding]:
     return findings
 
 
-@rule('references/authoring.md:23')
+@rule('references/authoring.md:1.3')
 def rule_1_3_md_under_references(skill_dir: Path) -> List[Finding]:
     """Reference docs SHOULD live under ``references/``.
 
-    Rule: references/authoring.md:23
+    Rule: references/authoring.md:1.3
     """
     findings: List[Finding] = []
     for f in skill_dir.iterdir():
@@ -56,12 +56,12 @@ def rule_1_3_md_under_references(skill_dir: Path) -> List[Finding]:
     return findings
 
 
-@rule('references/authoring.md:24')
+@rule('references/authoring.md:1.4')
 def rule_1_4_schemas_top_level(skill_dir: Path) -> List[Finding]:
     """JSON/YAML schemas MUST live at top-level ``schemas/``,
     not under ``references/``.
 
-    Rule: references/authoring.md:24
+    Rule: references/authoring.md:1.4
     """
     findings: List[Finding] = []
     refs_dir = skill_dir / "references"
@@ -77,11 +77,11 @@ def rule_1_4_schemas_top_level(skill_dir: Path) -> List[Finding]:
     return findings
 
 
-@rule('references/authoring.md:107')
+@rule('references/authoring.md:5.3')
 def rule_5_3_no_readme(skill_dir: Path) -> List[Finding]:
     """Skills MUST NOT have a README.md.
 
-    Rule: references/authoring.md:107
+    Rule: references/authoring.md:5.3
     """
     if (skill_dir / "README.md").exists():
         return [
@@ -97,11 +97,11 @@ def rule_5_3_no_readme(skill_dir: Path) -> List[Finding]:
 # ---------------------------------------------------------------------------
 
 
-@rule('references/authoring.md:69')
+@rule('references/authoring.md:3.2')
 def rule_3_2_name_format(fields: dict) -> List[Finding]:
     """``name`` MUST be 1-64 chars, lowercase letters/digits/hyphens.
 
-    Rule: references/authoring.md:69
+    Rule: references/authoring.md:3.2
     """
     findings: List[Finding] = []
     if "name" not in fields:
@@ -119,11 +119,11 @@ def rule_3_2_name_format(fields: dict) -> List[Finding]:
     return findings
 
 
-@rule('references/authoring.md:70')
+@rule('references/authoring.md:3.3')
 def rule_3_3_type_values(fields: dict) -> List[Finding]:
     """``type`` MUST be one of interface | tool | workflow | reference.
 
-    Rule: references/authoring.md:70
+    Rule: references/authoring.md:3.3
     """
     findings: List[Finding] = []
     if "type" not in fields:
@@ -141,11 +141,11 @@ def rule_3_3_type_values(fields: dict) -> List[Finding]:
     return findings
 
 
-@rule('references/authoring.md:71')
+@rule('references/authoring.md:3.4')
 def rule_3_4_description_length(fields: dict) -> List[Finding]:
     """``description`` MUST be ≤1024 chars and include trigger keywords.
 
-    Rule: references/authoring.md:71
+    Rule: references/authoring.md:3.4
     """
     findings: List[Finding] = []
     if "description" not in fields:
@@ -169,11 +169,11 @@ def rule_3_4_description_length(fields: dict) -> List[Finding]:
     return findings
 
 
-@rule('references/authoring.md:73')
+@rule('references/authoring.md:3.5')
 def rule_3_5_description_person(fields: dict) -> List[Finding]:
     """``description`` MUST be in third person (no I/you/my/your).
 
-    Rule: references/authoring.md:73
+    Rule: references/authoring.md:3.5
     """
     findings: List[Finding] = []
     if "description" not in fields:
@@ -205,14 +205,14 @@ def rule_3_5_description_person(fields: dict) -> List[Finding]:
 # ---------------------------------------------------------------------------
 
 
-@rule('references/authoring.md:108')
+@rule('references/authoring.md:5.4')
 def rule_5_4_constraints_form(
     lines: List[str], filename: str,
 ) -> List[Finding]:
     """Constraints MUST use RFC 2119 keywords (uppercased), and
     negative constraints MUST carry a "because [reason]" clause.
 
-    Rule: references/authoring.md:108
+    Rule: references/authoring.md:5.4
     """
     findings: List[Finding] = []
     in_code = False
@@ -258,13 +258,13 @@ def rule_5_4_constraints_form(
     return findings
 
 
-@rule('references/authoring.md:117')
-def rule_5_8_line_widths(
+@rule('references/authoring.md:5.7')
+def rule_5_7_line_widths(
     lines: List[str], filename: str,
 ) -> List[Finding]:
     """Prose fills ≥75 chars and wraps at 80; tables ≤100 chars.
 
-    Rule: references/authoring.md:117
+    Rule: references/authoring.md:5.7
     """
     findings: List[Finding] = []
     in_code_block = False
@@ -338,13 +338,13 @@ def rule_5_8_line_widths(
     return findings
 
 
-@rule('references/authoring.md:124')
-def rule_5_10_emphasis_stacking(
+@rule('references/authoring.md:5.9')
+def rule_5_9_emphasis_stacking(
     lines: List[str], filename: str,
 ) -> List[Finding]:
     """RFC 2119 keywords MUST stand alone, no CRITICAL/IMPORTANT prefix.
 
-    Rule: references/authoring.md:124
+    Rule: references/authoring.md:5.9
     """
     findings: List[Finding] = []
     in_code_block = False
@@ -368,13 +368,13 @@ def rule_5_10_emphasis_stacking(
     return findings
 
 
-@rule('references/authoring.md:133')
-def rule_5_13_references_reachable(
+@rule('references/authoring.md:5.12')
+def rule_5_12_references_reachable(
     skill_dir: Path, refs_dir: Path,
 ) -> List[Finding]:
     """Every ``references/*.md`` MUST be reachable from SKILL.md.
 
-    Rule: references/authoring.md:133
+    Rule: references/authoring.md:5.12
     """
     findings: List[Finding] = []
     all_refs = {
@@ -454,18 +454,20 @@ def rule_5_13_references_reachable(
     return findings
 
 
-@rule('references/authoring.md:134')
-def rule_5_14_toc_long_files(
+@rule('references/authoring.md:5.13')
+def rule_5_13_toc_long_files(
     ref_lines: List[str], filename: str,
 ) -> List[Finding]:
     """Reference files >100 lines SHOULD start with a table of contents.
 
-    Rule: references/authoring.md:134
+    Rule: references/authoring.md:5.13
     """
     findings: List[Finding] = []
     if len(ref_lines) <= 100:
         return findings
     has_toc = False
+    # 30 lines covers the conventional TOC region after frontmatter and
+    # intro prose.
     for rl in ref_lines[:30]:
         low = rl.lower()
         if ("contents" in low or "toc" in low
@@ -485,11 +487,11 @@ def rule_5_14_toc_long_files(
 # ---------------------------------------------------------------------------
 
 
-@rule('references/authoring.md:147')
+@rule('references/authoring.md:6.1')
 def rule_6_1_completion_section(lines: List[str]) -> List[Finding]:
     """Every skill MUST end with a ``## Completion`` section.
 
-    Rule: references/authoring.md:147
+    Rule: references/authoring.md:6.1
     """
     findings: List[Finding] = []
     for line in lines:
@@ -501,12 +503,12 @@ def rule_6_1_completion_section(lines: List[str]) -> List[Finding]:
     return findings
 
 
-@rule('references/authoring.md:148')
+@rule('references/authoring.md:6.2')
 def rule_6_2_completion_statuses(lines: List[str]) -> List[Finding]:
     """Completion section MUST contain a table with all four
     statuses: DONE, DONE_WITH_CONCERNS, BLOCKED, NEEDS_CONTEXT.
 
-    Rule: references/authoring.md:148
+    Rule: references/authoring.md:6.2
     """
     findings: List[Finding] = []
     completion_line = None
@@ -550,13 +552,13 @@ def rule_6_2_completion_statuses(lines: List[str]) -> List[Finding]:
 # ---------------------------------------------------------------------------
 
 
-@rule('references/authoring.md:165')
+@rule('references/authoring.md:7.1')
 def rule_7_1_no_other_aliases(
     lines: List[str], filename: str,
 ) -> List[Finding]:
     """Skill files MUST NOT contain other people's @aliases.
 
-    Rule: references/authoring.md:165
+    Rule: references/authoring.md:7.1
     """
     findings: List[Finding] = []
     known_safe = {
@@ -585,7 +587,7 @@ def rule_7_1_no_other_aliases(
 
 
 # ---------------------------------------------------------------------------
-# §5.16 Orphan files
+# §5.15 Orphan files
 # ---------------------------------------------------------------------------
 
 
@@ -607,8 +609,8 @@ def _read_safe(path: Path) -> str:
         return ""
 
 
-@rule('references/authoring.md:160')
-def rule_5_16_no_orphans(skill_dir: Path) -> List[Finding]:
+@rule('references/authoring.md:5.15')
+def rule_5_15_no_orphans(skill_dir: Path) -> List[Finding]:
     """Files under ``scripts/``, ``schemas/``, ``templates/`` MUST be
     referenced by SKILL.md, scripts, prompts, or plan code; orphans
     are dead code.
@@ -619,7 +621,7 @@ def rule_5_16_no_orphans(skill_dir: Path) -> List[Finding]:
     ``references/``, and ``templates/`` (with the candidate's own
     text removed from the haystack to avoid self-reference).
 
-    Rule: references/authoring.md:160
+    Rule: references/authoring.md:5.15
     """
     findings: List[Finding] = []
 

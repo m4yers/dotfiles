@@ -8,13 +8,13 @@ from typing import List, Tuple
 from dojo.autochecks._helpers import ERROR, Finding, WARN, rule
 
 
-@rule('references/tool-conventions.md:25')
+@rule('references/tool-conventions.md:2.1')
 def rule_2_1_steps_section(
     headings: List[Tuple[int, int, str]],
 ) -> List[Finding]:
     """Tool skills MUST have a ``## Steps`` section.
 
-    Rule: references/tool-conventions.md:25
+    Rule: references/tool-conventions.md:2.1
     """
     findings: List[Finding] = []
     h2_names = [h[2].lower() for h in headings if h[1] == 2]
@@ -26,13 +26,13 @@ def rule_2_1_steps_section(
     return findings
 
 
-@rule('references/tool-conventions.md:26')
+@rule('references/tool-conventions.md:2.2')
 def rule_2_2_parameters_section(
     headings: List[Tuple[int, int, str]],
 ) -> List[Finding]:
     """Tool skills MUST have a ``## Parameters`` section.
 
-    Rule: references/tool-conventions.md:26
+    Rule: references/tool-conventions.md:2.2
     """
     findings: List[Finding] = []
     h2_names = [h[2].lower() for h in headings if h[1] == 2]
@@ -44,7 +44,7 @@ def rule_2_2_parameters_section(
     return findings
 
 
-@rule('references/tool-conventions.md:38')
+@rule('references/tool-conventions.md:3.2')
 def rule_3_2_steps_numbered(
     lines: List[str],
     headings: List[Tuple[int, int, str]],
@@ -52,7 +52,7 @@ def rule_3_2_steps_numbered(
     """Steps in a tool skill MUST be numbered list items, not
     bulleted.
 
-    Rule: references/tool-conventions.md:38
+    Rule: references/tool-conventions.md:3.2
     """
     findings: List[Finding] = []
     steps_start = None
@@ -86,14 +86,14 @@ def rule_3_2_steps_numbered(
     return findings
 
 
-@rule('references/tool-conventions.md:79')
+@rule('references/tool-conventions.md:5')
 def rule_5_no_api_section(
     headings: List[Tuple[int, int, str]],
 ) -> List[Finding]:
     """Tool skills MUST NOT have an ``## API`` section
     (that is an interface).
 
-    Rule: references/tool-conventions.md:79
+    Rule: references/tool-conventions.md:5
     """
     findings: List[Finding] = []
     h2_names = {h[2].lower() for h in headings if h[1] == 2}

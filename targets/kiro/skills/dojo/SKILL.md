@@ -30,7 +30,6 @@ task ordering, predicate evaluation, schema validation, and persistence.
    ```bash
    DOJO_OP=<create|update|review>
    DOJO_NAME=<skill-name>
-   DOJO_TAG="dojo($DOJO_OP:$DOJO_NAME)"
 
    DOJO=~/.kiro/skills/home/dojo/scripts/dojo.sh
    TILING=~/.kiro/skills/home/tiling/scripts/run-ttm.sh
@@ -38,7 +37,7 @@ task ordering, predicate evaluation, schema validation, and persistence.
    ```
 2. Set tiling activity and build layout:
    ```bash
-   $TILING activity set "$DOJO_TAG: Ingest"
+   $TILING activity set "dojo($DOJO_OP:$DOJO_NAME): Ingest"
    eval "$($TILING layout build)"
    ```
 3. Ingest:
@@ -46,35 +45,33 @@ task ordering, predicate evaluation, schema validation, and persistence.
    DOJO_WD=$($DOJO ingest --op "$DOJO_OP" --name "$DOJO_NAME")
    ```
 4. If `ingest` fails: NEEDS_CONTEXT.
+5. On success: proceed to Step 2.
 
 ### Step 2: Drive the loop
 
-```bash
-$TILING activity set "$DOJO_TAG: Drive the loop"
-```
+1. Set tiling activity to Drive:
+   ```bash
+   $TILING activity set "dojo($DOJO_OP:$DOJO_NAME): Drive the loop"
+   ```
+2. Loop until done:
+   - Run `$DOJO next "$DOJO_WD"`. Parse the YAML response.
+   - If `done: true` → break.
+   - If `stuck: true` → BLOCKED.
+   - Otherwise, for each `ready[].id`:
+     - If `kind == human` → drive the human gate (see helper).
+     - If `kind == agent` → dispatch the sub-agent (see helper).
+     - Then `$DOJO complete "$DOJO_WD" <id>`.
+   - Independent ids in one batch can be dispatched in parallel.
 
-Loop until done:
-
-1. Run `$DOJO next "$DOJO_WD"`. Parse the YAML response.
-2. If `done: true` → break.
-3. If `stuck: true` → BLOCKED.
-4. Otherwise, for each `ready[].id`:
-   - If the task `kind == human` → drive the human gate (see helper).
-   - If the task `kind == agent` → dispatch the sub-agent (see helper).
-   - Then `$DOJO complete "$DOJO_WD" <id>`.
-
-Independent ids in one batch can be dispatched in parallel.
-
-When stepping into a per-task action, refresh the activity to include the
-current task id so the user can see progress:
-
-```bash
-$TILING activity set "$DOJO_TAG: <task-id>"
-```
-
-```bash
-$TILING activity set "$DOJO_TAG: Done"
-```
+   When stepping into a per-task action, refresh the activity to include the
+   current task id so the user can see progress:
+   ```bash
+   $TILING activity set "dojo($DOJO_OP:$DOJO_NAME): <task-id>"
+   ```
+3. Set tiling activity to Done:
+   ```bash
+   $TILING activity set "dojo($DOJO_OP:$DOJO_NAME): Done"
+   ```
 
 ## Helper: Dispatch agent task
 
@@ -116,117 +113,47 @@ decision and any edits in the output file before completing the task.
 3. A failed task aborts the entire run. Loom's `next()` raises `RunAborted`; the
    orchestrator emits a run-level error. Do not try to recover by re-running the
    failed task; report status and stop.
+4. Skill modifications dispatched to sub-agents MUST be limited to what is
+   directly requested; sub-agents MUST NOT add abstractions, helpers, or
+   defensive code beyond what was asked, because uncommanded additions inflate
+   the diff and drift from the requested change.
 
-## Plan topology
+## Plan visualisation
 
-### Create
-
-```text
-○  23 summary
-▣  22 final-review
-◆  21 skill-modify
-○                  20 checks-report
-├─┬─┬─┬─┬─┬─┬─┬─╮
-│ ◆ ╷ ╷ ╷ ╷ ╷ ╷ ╷  12 check-authoring
-├─╯ ╷ ╷ ╷ ╷ ╷ ╷ ╷
-│   ◆ ╷ ╷ ╷ ╷ ╷ ╷  13 check-model-awareness
-├───╯ ╷ ╷ ╷ ╷ ╷ ╷
-│     ◆ ╷ ╷ ╷ ╷ ╷  14 check-scripts
-├─────╯ ╷ ╷ ╷ ╷ ╷
-│       ◆ ╷ ╷ ╷ ╷  15 check-interface   when: ${task:find-skill:type} == 'interface'
-├───────╯ ╷ ╷ ╷ ╷
-│         ◆ ╷ ╷ ╷  16 check-tool   when: ${task:find-skill:type} == 'tool'
-├─────────╯ ╷ ╷ ╷
-│           ◆ ╷ ╷  17 check-workflow   when: ${task:find-skill:type} == 'workflow'
-├───────────╯ ╷ ╷
-│             ◆ ╷  18 check-reference   when: ${task:find-skill:type} == 'reference'
-├─────────────╯ ╷
-│               ◆  19 check-design
-├───────────────╯
-○  11 check-autochecks
-○  10 find-skill
-◆  09 skill-materialize
-↻      08 design-review   ↻ loop → design · while …
-├─┬─╮
-│ ○ │  06 design-render
-├─╯ │
-│   ○  07 design-checks
-├───╯
-◆      05 design
-├─┬─╮
-○ │ │  02 check-name
-│ ○ │  03 check-location
-├─╯ │
-│   ○  04 check-overlaps
-├───╯
-▣  01 gather
-```
-
-### Update
-
-```text
-○  15 summary
-▣  14 final-review
-◆  13 skill-modify
-○                12 checks-report
-├─┬─┬─┬─┬─┬─┬─╮
-│ ◆ ╷ ╷ ╷ ╷ ╷ ╷  05 check-authoring
-├─╯ ╷ ╷ ╷ ╷ ╷ ╷
-│   ◆ ╷ ╷ ╷ ╷ ╷  06 check-model-awareness
-├───╯ ╷ ╷ ╷ ╷ ╷
-│     ◆ ╷ ╷ ╷ ╷  07 check-scripts
-├─────╯ ╷ ╷ ╷ ╷
-│       ◆ ╷ ╷ ╷  08 check-interface   when: ${task:gather-update:type} == 'interface'
-├───────╯ ╷ ╷ ╷
-│         ◆ ╷ ╷  09 check-tool   when: ${task:gather-update:type} == 'tool'
-├─────────╯ ╷ ╷
-│           ◆ ╷  10 check-workflow   when: ${task:gather-update:type} == 'workflow'
-├───────────╯ ╷
-│             ◆  11 check-reference   when: ${task:gather-update:type} == 'reference'
-├─────────────╯
-○  04 check-autochecks
-◆  03 modify-changes
-▣  02 gather-update
-○  01 find-skill
-```
-
-### Review
-
-```text
-○  14 finalize
-↻  13 skill-fix-apply   ↻ loop → show-report · while …
-▣  12 skill-fix-review
-○  11 show-report
-○                10 checks-report
-├─┬─┬─┬─┬─┬─┬─╮
-│ ◆ ╷ ╷ ╷ ╷ ╷ ╷  03 check-authoring
-├─╯ ╷ ╷ ╷ ╷ ╷ ╷
-│   ◆ ╷ ╷ ╷ ╷ ╷  04 check-model-awareness
-├───╯ ╷ ╷ ╷ ╷ ╷
-│     ◆ ╷ ╷ ╷ ╷  05 check-scripts
-├─────╯ ╷ ╷ ╷ ╷
-│       ◆ ╷ ╷ ╷  06 check-interface   when: ${task:find-skill:type} == 'interface'
-├───────╯ ╷ ╷ ╷
-│         ◆ ╷ ╷  07 check-tool   when: ${task:find-skill:type} == 'tool'
-├─────────╯ ╷ ╷
-│           ◆ ╷  08 check-workflow   when: ${task:find-skill:type} == 'workflow'
-├───────────╯ ╷
-│             ◆  09 check-reference   when: ${task:find-skill:type} == 'reference'
-├─────────────╯
-○  02 check-autochecks
-○  01 find-skill
-```
+See [references/plan-topology.md](references/plan-topology.md) for the
+per-operation task DAGs (create, update, review).
 
 ## Completion
 
-| Status               | Criteria                                                   |
-| -------------------- | ---------------------------------------------------------- |
-| `DONE`               | `final-review` (create) or `user-review` (update) accepted |
-| `DONE_WITH_CONCERNS` | Accepted with the user noting unresolved concerns          |
-| `BLOCKED`            | `next`/`complete` errored, plan stuck, or user declined    |
-| `NEEDS_CONTEXT`      | `ingest` rejected the operation                            |
+| Status               | Criteria                                                              |
+|----------------------|-----------------------------------------------------------------------|
+| `DONE`               | Skill files materialised under ~/.kiro/skills/<category>/<name>/, or review report saved to the workdir. |
+| `DONE_WITH_CONCERNS` | Check sub-agent failed to produce output, or autocheck unavailable.   |
+| `BLOCKED`            | `next`/`complete` errored, plan stuck, or user declined               |
+| `NEEDS_CONTEXT`      | `ingest` rejected the operation                                       |
 
 Loom workdirs live under `/tmp/dojo/<skill-name>/` — ephemeral by design, named
 by the skill being created or updated. Re-running
 `ingest --op <op> --name <name>` wipes the workdir and starts fresh; previous
 runs are not auto-resumed.
+
+## References
+
+- [Authoring rules](references/authoring.md) — directory structure,
+  frontmatter, style, completion, freedom, trigger hygiene, instruction
+  effectiveness.
+- [Workflow conventions](references/workflow-conventions.md) — workflow-skill
+  structure, task naming, output construction, prompt templates, step rules.
+- [Interface conventions](references/interface-conventions.md) — interface
+  skill rules (API tables, branches).
+- [Tool conventions](references/tool-conventions.md) — tool skill rules
+  (fixed-step sequences).
+- [Reference conventions](references/reference-conventions.md) — passive rule
+  set conventions.
+- [Script conventions](references/script-conventions.md) — script APIs,
+  oracles, packaging, rendering, magic constants, producer/consumer contracts.
+- [Secure-LLM conventions](references/secure-llm-conventions.md) — when
+  sub-agent prompts must inject the secure-llm security frame.
+- [Model awareness](references/model-awareness.md) — Claude behaviour
+  tendencies and token budget.
+- [Plan topology](references/plan-topology.md) — per-operation task DAGs.
