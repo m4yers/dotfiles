@@ -479,7 +479,11 @@ def test_reset_clears_iterations_and_region(tmp_path):  # #6
     assert rt.plan().get('loop').status == 'pending'
 
 
-def test_write_path_never_overwrites_completed_round(tmp_path):  # #8
+def test_write_path_stable_within_round(tmp_path):  # #8
+    '''write_path is stable within a round — once begin_round creates an
+    iter dir, write_path returns it consistently regardless of whether
+    output.yaml has been written yet. Round advancement is begin_round's
+    exclusive responsibility.'''
     s = _int_schema(tmp_path)
     plan = make_plan(
         tool('loop', cmd=['echo', '{"val":1}'], output_schema=s,
@@ -489,8 +493,59 @@ def test_write_path_never_overwrites_completed_round(tmp_path):  # #8
     rt = loom.init(workdir=wd, plan=plan)
     p = rt.plan()
     td = store.task_dir(wd, p, 'loop')
-    (td / 'iter-00').mkdir(parents=True)
+
+    # Bootstrap: no iter dirs yet → iter-00 (deterministic fallback).
+    assert store.task_output_write_path(wd, p, 'loop').parent.name == 'iter-00'
+
+    # After begin_round + write, write_path still points at iter-00.
+    store.begin_round(wd, p, 'loop')
+    assert store.task_output_write_path(wd, p, 'loop').parent.name == 'iter-00'
     (td / 'iter-00' / 'output.yaml').write_text('val: 1', encoding='utf-8')
-    # iter-00 already has output and no fresh dir exists -> write to iter-01.
-    wp = store.task_output_write_path(wd, p, 'loop')
-    assert wp.parent.name == 'iter-01'
+    assert store.task_output_write_path(wd, p, 'loop').parent.name == 'iter-00'
+
+    # Only begin_round advances the round.
+    store.begin_round(wd, p, 'loop')
+    assert store.task_output_write_path(wd, p, 'loop').parent.name == 'iter-01'
+
+
+def test_external_loop_body_next_complete_round_trip(tmp_path):
+    '''Regression: next/complete must agree on the iter path for an
+    external loop-body task. Agent writes output.yaml externally between
+    next() (which reports the path) and complete() (which checks it) —
+    the dojo external-driver pattern. Without the fix, complete()
+    recomputes write_path and lands on iter-(N+1), failing the exists
+    check.'''
+    s = _int_schema(tmp_path)
+    tpl = write_template(tmp_path / 'r.j2', 'round')
+    plan = make_plan(
+        agent('refine', template=tpl, output_schema=s,
+              latch=latch('refine', fuel=2)),
+    )
+    wd = tmp_path / 'wd'
+    rt = loom.init(workdir=wd, plan=plan)
+
+    advertised_paths = []
+    rounds = 0
+    while True:
+        spec = rt.next()
+        if spec is None:
+            break
+        for t in spec.tasks:
+            out_path = Path(t['output_path'])
+            advertised_paths.append(out_path)
+            # Agent writes the output externally — NOT via complete(output=).
+            out_path.write_text(f'val: {rounds}\n', encoding='utf-8')
+            rt.commit_running([t['id']])
+            rt.complete(t['id'])  # must accept the externally-written file
+            rounds += 1
+        assert rounds <= 5  # guard against runaway in a broken impl
+
+    assert rounds == 2
+    assert rt.is_done()
+    # Each round should have advertised a distinct, monotonically
+    # advancing iter path.
+    assert [p.parent.name for p in advertised_paths] == ['iter-00', 'iter-01']
+    iters = _iter_dirs(rt, 'refine')
+    assert [d.name for d in iters] == ['iter-00', 'iter-01']
+    for d in iters:
+        assert (d / 'output.yaml').exists()

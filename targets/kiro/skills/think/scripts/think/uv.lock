@@ -86,6 +86,7 @@ dependencies = [
     { name = "jmespath" },
     { name = "jsonschema" },
     { name = "pyyaml" },
+    { name = "renderdag" },
 ]
 
 [package.metadata]
@@ -95,6 +96,7 @@ requires-dist = [
     { name = "jsonschema", specifier = ">=4.23" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "renderdag", specifier = ">=0.1.1" },
 ]
 provides-extras = ["test"]
 
@@ -269,6 +271,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/22/f5/df4e9027acead3ecc63e50fe1e36aca1523e1719559c499951bb4b53188f/referencing-0.37.0.tar.gz", hash = "sha256:44aefc3142c5b842538163acb373e24cce6632bd54bdb01b21ad5863489f50d8", size = 78036, upload-time = "2025-10-13T15:30:48.871Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2c/58/ca301544e1fa93ed4f80d724bf5b194f6e4b945841c5bfd555878eea9fcb/referencing-0.37.0-py3-none-any.whl", hash = "sha256:381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231", size = 26766, upload-time = "2025-10-13T15:30:47.625Z" },
+]
+
+[[package]]
+name = "renderdag"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/36/80/6d8316097b96553402943adc0dc2c32f23ed1c2ea435431cafd98de648e4/renderdag-0.1.1.tar.gz", hash = "sha256:bc474583ab450c155c788d07bd6e5400c81105a787e13f720d42496b90fe8f5b", size = 8412, upload-time = "2026-02-13T20:37:17.431Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/64/29/3ac771a191bd0509d988941ac21e77752e27e05309a0927c4e0b5e510dd9/renderdag-0.1.1-py3-none-any.whl", hash = "sha256:89f67da5e045e42a08b7e7c4024a4601467ae68b4280d5187bdbc7f04084c95a", size = 12418, upload-time = "2026-02-13T20:37:16.688Z" },
 ]
 
 [[package]]

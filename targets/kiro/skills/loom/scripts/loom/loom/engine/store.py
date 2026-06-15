@@ -92,22 +92,24 @@ def task_output_write_path(workdir: Path, plan: LoomPlan, task_id: str) -> Path:
     '''WRITE path: where the current round's output.yaml is written.
 
     For a non-loop task this equals ``task_output_path``. For a loop-body
-    task it is the highest ``iter-NN/`` dir that does **not** yet contain an
-    ``output.yaml`` (the round in progress, normally created by
-    ``begin_round``); if every existing round is already written it falls
-    back to a fresh next index. This makes the path stable within a round
-    and guarantees a completed round is never overwritten even if
-    ``complete`` is reached without a preceding ``begin_round``.
+    task it is the latest ``iter-NN/`` dir, regardless of whether
+    ``output.yaml`` already exists in it — round identity comes from the
+    directory existing, not from whether the round has been written. This
+    keeps the path stable within a round across both ``next`` (which calls
+    this before the agent writes) and ``complete`` (which calls it after).
+    Round advancement is the exclusive responsibility of ``begin_round``.
+
+    Before the first ``begin_round`` call, falls back to ``iter-00`` so
+    early callers still see a deterministic path; that file will not exist
+    yet and ``complete`` will surface the missing output.
     '''
     td = task_dir(workdir, plan, task_id)
     if not _is_loop_body(plan, task_id):
         return td / 'output.yaml'
     existing = _iter_dirs(td)
-    empty = [d for d in existing if not (d / 'output.yaml').exists()]
-    if empty:
-        return empty[-1] / 'output.yaml'
-    nxt = (int(existing[-1].name[len('iter-'):]) + 1) if existing else 0
-    return td / f'iter-{nxt:02d}' / 'output.yaml'
+    if existing:
+        return existing[-1] / 'output.yaml'
+    return td / 'iter-00' / 'output.yaml'
 
 
 def _is_loop_body(plan: LoomPlan, task_id: str) -> bool:
