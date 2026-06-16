@@ -1,7 +1,7 @@
 ---
 name: retro
 type: workflow
-description: Analyzes the current session for learnings and encodes them into skills, steering, or prompts. Use when the user says "retro", "retrospective", "what did we learn", or "session review". Do not use for tracking learnings mid-session — that happens automatically via the session-retro-tracker steering file.
+description: Analyzes the current session for learnings and encodes them into skills, steering, or prompts. Use when the user says "retro", "retrospective", "what did we learn", or "session review". Do not use for tracking learnings mid-session — that happens automatically via the retro steering file.
 ---
 
 # Session Retrospective
@@ -9,7 +9,7 @@ description: Analyzes the current session for learnings and encodes them into sk
 Review learnings collected during this session and encode them into skills,
 steering, or prompts.
 
-Learnings are tracked per the `session-retro-tracker` steering file and stored
+Learnings are tracked per the `retro` steering file and stored
 as JSON files in `~/.kiro/retro/pending/`.
 
 ## Parameters
