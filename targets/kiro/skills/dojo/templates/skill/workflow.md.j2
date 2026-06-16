@@ -86,12 +86,11 @@ description: {{ description }}
 
 {{ rules }}
 
-## Plan visualisation
 {% if plan_visualisation is defined and plan_visualisation %}
+## Plan visualisation
 
-```
-{{ plan_visualisation }}
-```
+See [references/loom-visualisation.md](references/loom-visualisation.md) for
+the task DAG (legend: ○ tool · ◆ agent · ▣ human · ↻ loop).
 {% endif %}
 
 ## Completion

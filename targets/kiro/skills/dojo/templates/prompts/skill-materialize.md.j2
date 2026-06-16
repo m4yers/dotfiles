@@ -100,7 +100,7 @@ template's folder and loom's templates so the partial
 | `ingest_args`   | Argv tail for the `ingest` call, e.g. `--op <create|update>`    |
 | `rules`         | Markdown numbered list of cross-step rules                      |
 | `completion`    | Markdown table body rows (no header), one per status            |
-| `plan_visualisation` | Build the skill's loom plan (call its plan builder, e.g. `derive_static_plan`, with placeholder CR/arg values) and capture `loom.visualise(plan)` — the very plan you `loom.init`-verify. This populates the `## Plan visualisation` section with the task DAG. Empty string if the skill has no static plan to show. |
+| `plan_visualisation` | Build the skill's loom plan (call its plan builder, e.g. `derive_static_plan`, with placeholder CR/arg values) and capture `loom.visualise(plan)` — the very plan you `loom.init`-verify. Used as a presence flag: when non-empty, SKILL.md emits a one-line link to `references/loom-visualisation.md`, and you MUST also `fs_write` the visualised diagram to `~/.kiro/skills/<location>/<name>/references/loom-visualisation.md` as a fenced ``` ``` block. Empty string if the skill has no static plan to show (no link, no reference file). |
 | `final_notes`   | Optional trailing prose (empty string if none)                  |
 
 Pick `prefix` and `shim` per workflow-conventions's "Shell
