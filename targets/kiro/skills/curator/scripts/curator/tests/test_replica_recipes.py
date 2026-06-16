@@ -71,26 +71,26 @@ class TestBuildReplicaRecipes:
             workdir=tmp_path,
             extractions={"recipes": [_basic_recipe()]},
             destinations={"recipes": {"mode": "artifact",
-                                       "folder": "22 RECIPES"}},
+                                       "folder": "15 RECIPES"}},
             vault_matches=None,
             source_basename="cookbook.pdf",
         )
         page = (tmp_path / "global" / "vault-replica"
-                / "22 RECIPES" / "Chocolate Chip Cookies.md")
+                / "15 RECIPES" / "Chocolate Chip Cookies.md")
         assert page.exists(), \
-            "recipe page must land under 22 RECIPES/"
+            "recipe page must land under 15 RECIPES/"
 
     def test_metric_quantity_rendered(self, tmp_path, fake_vault):
         replica.build_replica(
             workdir=tmp_path,
             extractions={"recipes": [_basic_recipe()]},
             destinations={"recipes": {"mode": "artifact",
-                                       "folder": "22 RECIPES"}},
+                                       "folder": "15 RECIPES"}},
             vault_matches=None,
             source_basename="cookbook.pdf",
         )
         body = (tmp_path / "global" / "vault-replica"
-                / "22 RECIPES" / "Chocolate Chip Cookies.md").read_text()
+                / "15 RECIPES" / "Chocolate Chip Cookies.md").read_text()
         # Volume: 2.25 cup → 540 ml
         assert "540 ml all-purpose flour" in body
         # Custom unit: 1 stick → 113 g
@@ -107,12 +107,12 @@ class TestBuildReplicaRecipes:
             workdir=tmp_path,
             extractions={"recipes": [_basic_recipe()]},
             destinations={"recipes": {"mode": "artifact",
-                                       "folder": "22 RECIPES"}},
+                                       "folder": "15 RECIPES"}},
             vault_matches=None,
             source_basename="cookbook.pdf",
         )
         body = (tmp_path / "global" / "vault-replica"
-                / "22 RECIPES" / "Chocolate Chip Cookies.md").read_text()
+                / "15 RECIPES" / "Chocolate Chip Cookies.md").read_text()
         assert "type: recipe" in body
         assert 'title: "Chocolate Chip Cookies"' in body
         assert 'yield: "24 cookies"' in body
@@ -125,18 +125,51 @@ class TestBuildReplicaRecipes:
             workdir=tmp_path,
             extractions={"recipes": [_basic_recipe()]},
             destinations={"recipes": {"mode": "artifact",
-                                       "folder": "22 RECIPES"}},
+                                       "folder": "15 RECIPES"}},
             vault_matches=None,
             source_basename="cookbook.pdf",
         )
         body = (tmp_path / "global" / "vault-replica"
-                / "22 RECIPES" / "Chocolate Chip Cookies.md").read_text()
+                / "15 RECIPES" / "Chocolate Chip Cookies.md").read_text()
         assert "1. Preheat oven to 190°C." in body
         assert "3. Bake for 12 minutes." in body
 
+    def test_grouped_steps_render_nested(self, tmp_path, fake_vault):
+        recipe = _basic_recipe()
+        recipe["steps"] = [
+            {"text": "Prep",
+             "sub_steps": ["Cream butter and sugar.",
+                           "Beat in eggs."]},
+            "Preheat oven to 190°C.",
+            {"text": "Bake",
+             "sub_steps": ["Drop dough on tray.",
+                           "Bake for 12 minutes."]},
+        ]
+        replica.build_replica(
+            workdir=tmp_path,
+            extractions={"recipes": [recipe]},
+            destinations={"recipes": {"mode": "artifact",
+                                       "folder": "15 RECIPES"}},
+            vault_matches=None,
+            source_basename="cookbook.pdf",
+        )
+        body = (tmp_path / "global" / "vault-replica"
+                / "15 RECIPES" / "Chocolate Chip Cookies.md").read_text()
+        # Grouped banner rendered bold at the outer level.
+        assert "1. **Prep**" in body
+        assert "3. **Bake**" in body
+        # Sub-steps rendered as 4-space-indented nested ordered list.
+        assert "    1. Cream butter and sugar." in body
+        assert "    2. Beat in eggs." in body
+        # Flat string between groups keeps its outer numbering.
+        assert "2. Preheat oven to 190°C." in body
+        # Sub-step numbering restarts inside each group.
+        assert "    1. Drop dough on tray." in body
+        assert "    2. Bake for 12 minutes." in body
+
     def test_modified_op_when_page_exists(self, tmp_path, fake_vault):
         # Pre-populate the vault with the same-named recipe.
-        recipes_dir = fake_vault / "22 RECIPES"
+        recipes_dir = fake_vault / "15 RECIPES"
         recipes_dir.mkdir(parents=True)
         (recipes_dir / "Chocolate Chip Cookies.md").write_text(
             "---\ntype: recipe\n---\n\n# Chocolate Chip Cookies\n\nold\n",
@@ -146,7 +179,7 @@ class TestBuildReplicaRecipes:
             workdir=tmp_path,
             extractions={"recipes": [_basic_recipe()]},
             destinations={"recipes": {"mode": "artifact",
-                                       "folder": "22 RECIPES"}},
+                                       "folder": "15 RECIPES"}},
             vault_matches=None,
             source_basename="cookbook.pdf",
         )

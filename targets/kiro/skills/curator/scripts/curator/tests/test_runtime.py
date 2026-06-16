@@ -38,8 +38,8 @@ EXPECTED_RUN = {
 
 # Extractors that should be SKIPPED
 EXPECTED_SKIP = {
-    'chapters', 'characters', 'code_examples', 'exercises',
-    'guests', 'key_points', 'people', 'quotes',
+    'chapters', 'characters', 'code-examples', 'exercises',
+    'guests', 'key-points', 'people', 'quotes',
     'setting', 'speaker', 'story', 'themes',
 }
 

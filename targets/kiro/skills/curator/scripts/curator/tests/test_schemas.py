@@ -106,3 +106,35 @@ def test_invalid_sample_fails(name):
     schema = yaml.safe_load(path.read_text(encoding='utf-8'))
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(INVALID_SAMPLES[name], schema)
+
+
+# ---- Quintet vocabulary <-> classify schema sync ----------------------------
+
+QUINTET_PATH = (
+    Path(__file__).resolve().parents[1] / 'curator' / 'quintet.yaml'
+)
+
+
+@pytest.mark.parametrize(
+    'slot',
+    ['media', 'form', 'register', 'discipline', 'audience'],
+)
+def test_classify_schema_covers_quintet_vocab(slot):
+    '''Every value declared in quintet.yaml must be in the classify
+    schema enum for that slot. Otherwise classify-stage extraction
+    fails at schema validation for any source needing that value.
+    '''
+    quintet = yaml.safe_load(QUINTET_PATH.read_text(encoding='utf-8'))
+    schema = yaml.safe_load(
+        (SCHEMAS_ROOT / 'extractors' / 'classify.yaml').read_text(
+            encoding='utf-8'))
+
+    vocab = set(quintet['slots'][slot]['values'].keys())
+    enum = set(
+        schema['properties']['quintet']['properties'][slot]['enum'])
+
+    missing = vocab - enum
+    assert not missing, (
+        f'classify.yaml {slot}.enum is missing values declared in '
+        f'quintet.yaml: {sorted(missing)}'
+    )

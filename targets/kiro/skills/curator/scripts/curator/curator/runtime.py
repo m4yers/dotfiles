@@ -24,6 +24,9 @@ def _curator_workdir(url_or_path: str) -> Path:
     Wipes any existing dir at the resolved path so re-runs start fresh.
     '''
     today = datetime.date.today().isoformat()
+    # 60 chars: filesystem-friendly slug cap — fits in a typical
+    # filesystem row and leaves headroom for the date prefix and
+    # any per-task suffixes appended below the workdir.
     slug = slugify(derive_basename(url_or_path), max_length=60)
     wd = (Path(WORKDIR_ROOT) / today / slug).expanduser().resolve()
     if wd.exists():

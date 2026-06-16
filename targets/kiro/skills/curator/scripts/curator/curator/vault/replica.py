@@ -375,8 +375,8 @@ def _normalize(name: str) -> str:
 #
 # Different extractor schemas use different identity fields:
 # ``name`` (keywords, models, people, topics, themes, …),
-# ``title`` (citations, chapters, code_examples), ``summary``
-# (key_points), ``claim`` (contributions, results), ``prompt``
+# ``title`` (citations, chapters, code-examples), ``summary``
+# (key-points), ``claim`` (contributions, results), ``prompt``
 # (exercises), ``text`` (quotes). Both the report and the
 # atomic-page builder need ONE call to pick the right field per
 # kind — otherwise items silently disappear from the report and
@@ -385,7 +385,7 @@ def _normalize(name: str) -> str:
 # Per-kind text fields that should be truncated to a one-liner
 # label when no explicit name/title exists.
 _KIND_TEXT_LABEL = {
-    "key_points":     "summary",
+    "key-points":     "summary",
     "contributions":  "claim",
     "results":        "claim",
     "exercises":      "prompt",
@@ -431,7 +431,7 @@ def _display_name(kind: str, item: dict) -> str | None:
     Resolution order:
       1. ``item['name']`` if non-empty.
       2. ``item['title']`` if non-empty (citations, chapters,
-         code_examples).
+         code-examples).
       3. The kind's text-label field (``summary``, ``claim``,
          ``prompt``, ``text``) truncated to ~80 chars.
       4. ``None`` — caller should treat as "unlabelled" and

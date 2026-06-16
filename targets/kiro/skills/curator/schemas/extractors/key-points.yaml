@@ -1,8 +1,8 @@
 type: object
 required:
-- key_points
+- key-points
 properties:
-  key_points:
+  key-points:
     type: array
     items:
       type: object

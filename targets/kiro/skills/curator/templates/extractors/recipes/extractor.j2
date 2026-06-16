@@ -20,8 +20,17 @@ For each recipe:
   (`"4 servings"`, `"45 min"`). Emit `null` when absent.
 - `ingredients`: each entry a structured `{quantity, amount, unit,
   item, notes}` object — see the rules below.
-- `steps`: ordered list. Imperative-mood, single sentence per step.
-  Split source paragraphs that bundle multiple actions.
+- `steps`: ordered list of cooking actions. Each entry is either a
+  plain string (a single imperative-mood sentence) or a grouped
+  object `{text, sub_steps}` for phased recipes. Use grouped form
+  when the source itself organizes a long procedure into named
+  phases (`Prep`, `Cook`, `Glaze`, `Plate`) or when distinct
+  variants share a common arc — `text` becomes the phase / variant
+  banner, `sub_steps` the imperative actions under it. Use plain
+  strings when the recipe is a flat sequence with no inherent
+  grouping. Do not invent phases the source does not imply. Mixing
+  strings and grouped objects in the same list is allowed (a flat
+  preamble followed by phased blocks).
 - `tags`: optional list of short tags (`"dessert"`, `"vegetarian"`,
   `"italian"`). Source-grounded; do not invent.
 - `source_quote`: a verbatim passage from the source proving the
@@ -106,10 +115,17 @@ For each ingredient (`<j>` is the ingredient index within the recipe):
         --set recipes.<i>.ingredients.<j>.item='<ingredient name>' \
         --set recipes.<i>.ingredients.<j>.notes='<prep note or null>'
 
-For each step (`<k>` is the step index within the recipe):
+For each flat step (`<k>` is the step index within the recipe):
 
     {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
         --set recipes.<i>.steps.<k>='<imperative-mood step text>'
+
+For each grouped step (`<k>` is the index within the recipe;
+`<m>` is the sub-step index within the group):
+
+    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
+        --set recipes.<i>.steps.<k>.text='<phase or variant banner>' \
+        --set recipes.<i>.steps.<k>.sub_steps.<m>='<imperative-mood action>'
 
 For tags (when present):
 

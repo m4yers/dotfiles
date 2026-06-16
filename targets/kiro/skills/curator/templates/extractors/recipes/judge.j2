@@ -8,7 +8,9 @@ together per item.
 
 {% block criteria %}
 1. **Has both ingredients and steps.** Every recipe item contains at
-   least one ingredient and one step. Empty either → REJECT.
+   least one ingredient and one step. Empty either → REJECT. A
+   "step" counts whether it is a plain string or a grouped object;
+   a grouped object with empty `sub_steps` does not count.
 2. **Name is a dish title.** `name` identifies a dish, not a section
    heading, ingredient list, or technique discussion. `"Doughs"`,
    `"Dessert"`, `"How to Toast Nuts"` → REJECT.
@@ -27,10 +29,19 @@ together per item.
    measurements. Allowed remnants: `tsp`, `teaspoon`, `tbsp`,
    `tablespoon` (kitchen-spoon units stay verbatim by policy).
    Disallowed: °F, inches, oz, lb, cup, fl oz, pint, quart, gallon.
-   If found → REJECT.
+   If found → REJECT. Apply this check to plain-string steps, to
+   grouped step `text` banners, and to every entry in `sub_steps`.
 7. **Steps are procedural.** Imperative-mood single sentences each.
    Narrative drift ("Now let me tell you about my grandmother who
-   used to make this every Sunday...") → REJECT.
+   used to make this every Sunday...") → REJECT. Grouped step
+   banners (`text`) may instead be short phase / variant labels
+   ("Prep", "Extra-Crispy Method") — these do not need to be
+   imperative; their `sub_steps` do.
+8. **Grouping is source-driven.** When the extractor uses grouped
+   steps, the phase/variant banners (`text`) reflect divisions the
+   source itself makes — section headings, explicit "Method 1 /
+   Method 2" forks, prep-vs-cook splits. Banners invented purely
+   to chunk a flat narrative → REJECT.
 
 Conversion correctness of metric values is NOT verified here —
 build-replica computes those deterministically via pint.

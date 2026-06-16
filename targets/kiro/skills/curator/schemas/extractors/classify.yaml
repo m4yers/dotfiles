@@ -24,6 +24,7 @@ properties:
         enum:
         - anthology
         - blog
+        - cookbook
         - documentary
         - interview
         - keynote
@@ -57,6 +58,7 @@ properties:
         - business
         - chemistry
         - cs
+        - culinary
         - economics
         - engineering
         - fantasy

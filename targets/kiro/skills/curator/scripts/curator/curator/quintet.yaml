@@ -175,15 +175,15 @@ rules:
   - match: [audio,   roundtable, "*", "*", "*"]
     extractors: [guests, quotes]
   - match: [video,   lecture,    "*", "*", "*"]
-    extractors: [key_points]
+    extractors: [key-points]
   - match: [video,   keynote,    "*", "*", "*"]
-    extractors: [speaker, key_points]
+    extractors: [speaker, key-points]
   - match: [video,   talk,       "*", "*", "*"]
-    extractors: [speaker, key_points]
+    extractors: [speaker, key-points]
   - match: [article, news,       "*", "*", "*"]
     extractors: [quotes]
   - match: [article, tutorial,   "*", cs,  "*"]
-    extractors: [code_examples]
+    extractors: [code-examples]
 
   # Per-audience additions.
   - match: ["*", "*", "*", "*", academic]
@@ -231,7 +231,7 @@ destinations:
   speaker:       {mode: artifact, folder: "13 PEOPLE"}
   citations:     {mode: artifact, folder: "10 SOURCES"}
   quotes:        {mode: artifact, folder: "11 QUOTES"}
-  recipes:       {mode: artifact, folder: "22 RECIPES"}
+  recipes:       {mode: artifact, folder: "15 RECIPES"}
 
   # ── Synthesis mode — folded into synthesis pages ────────────────
   topics:        {mode: synthesis}
@@ -244,6 +244,6 @@ destinations:
   contributions: {mode: synthesis}
   methods:       {mode: synthesis}
   results:       {mode: synthesis}
-  key_points:    {mode: synthesis}
+  key-points:    {mode: synthesis}
   exercises:     {mode: synthesis}
-  code_examples: {mode: synthesis}
+  code-examples: {mode: synthesis}

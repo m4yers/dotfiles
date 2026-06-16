@@ -136,10 +136,9 @@ material that bolsters specific claims. Concretely:
 
 - **1–2 pages total.** Merge overlapping topics; do NOT produce
   one page per cluster. Over-fragmentation fails the judge.
-- **Every extracted item that belongs in a key-concept
-  position MUST appear at least once as a ``[[Name]]``
-  wikilink on some synthesis page** — either as a
-  ``- [[Name]] - <summary>`` bullet in that page's
+- **Every extracted item from every kind MUST appear at least
+  once as a ``[[Name]]`` wikilink on some synthesis page** —
+  either as a ``- [[Name]] - <summary>`` bullet in that page's
   ``key_concepts`` array, OR as an inline ``[[Name]]``
   wikilink in the page's ``rationale``, ``overview``,
   ``worked_examples.<i>.body``, or ``discussion.<i>.summary``
@@ -147,15 +146,29 @@ material that bolsters specific claims. Concretely:
   an item from the overview (or any other prose field), do
   NOT also list it in ``key_concepts``. Duplicating the same
   item in both prose and the bulleted list is noise.
-  Synthesis-mode kinds (``topics``, ``themes``,
-  ``key_points``, ``chapters``) have no standalone vault
-  page — their ``[[Name]]`` wikilinks resolve to nothing on
-  disk and the post-gate strip-dead-links task will rewrite
-  them to plain text. Artifact-mode kinds (``keywords``,
-  ``people``, ``models``) already have replica pages so
-  their wikilinks resolve directly. Either way, the agent's
-  job is the same: link each item exactly once on some hub
-  page, in whichever location reads best.
+
+  This obligation applies to BOTH synthesis-mode and
+  artifact-mode kinds. Synthesis-mode kinds (e.g. ``topics``,
+  ``themes``, ``key-points``, ``chapters``) have no
+  standalone vault page — their ``[[Name]]`` wikilinks
+  resolve to nothing on disk and the post-gate
+  strip-dead-links task will rewrite them to plain text.
+  Artifact-mode kinds — every kind in the destinations map
+  with ``mode: artifact``, namely:
+{%- for kind, dest in vars.destinations.items() if dest.mode == 'artifact' %}
+  ``{{ kind }}``{% if not loop.last %},{% else %} —{% endif %}
+{%- endfor %}
+  already have replica pages so their wikilinks resolve
+  directly. Recipes, citations, quotes, and any other
+  artifact-mode kind are NOT optional: an unlinked artifact
+  is silently deleted by the post-build prune step. Link
+  each item exactly once on some hub page, in whichever
+  location reads best — even when the item feels more like
+  a self-contained artifact than a "key concept" (a recipe,
+  a quote, a citation). For artifact-mode items that do not
+  fit the topic argumentation, add a brief ``## Related
+  artifacts`` section near the end of one hub page and list
+  them as ``- [[Name]] — one-sentence relevance``.
 
 ## Authoring + rendering protocol
 
@@ -175,7 +188,7 @@ For each page, write a JSON file at ``/tmp/<slug>.json``:
 {
   "title":          "Topic Title",
   "today":          "<YYYY-MM-DD today>",
-  "sources":        ["{{ (upstream['source-fetch'].output.path | replace(vault_root ~ '/', '')) | default('<source-vault-path>', true) }}"],
+  "sources":        ["{{ (upstream['source-fetch'].output.path | replace(vars.vault_root ~ '/', '')) | default('<source-vault-path>', true) }}"],
   "rationale":      "Opening paragraph (≥80 chars) defining and motivating the topic in its own terms. Sits before ## Overview. Lead with substance: state what the topic is and why it matters. NEVER narrate the page or reference 'this hub'/'this page'/'this article'/'the source piece'.",
   "overview":       "Multi-paragraph prose (≥200 chars) explaining the topic as if for a reader who landed here from any link. Lead with substance, never with setup ('the premise is…', 'the general lesson…' are forbidden). Use ``[[Atomic Name]]`` wikilinks as supporting citations that bolster specific claims, not as the page's organizing center. Treat the source as a citation target (frontmatter + wikilinks), not the subject of the prose.",
   "ascii_diagram":  "Multi-line illustrative diagram (≥4 lines, ≥80 chars).\nUse box-drawing chars: ┌ ┐ └ ┘ │ ─ ┬ ┴ ├ ┤ ┼ ▼ ▲ ◄ ►",

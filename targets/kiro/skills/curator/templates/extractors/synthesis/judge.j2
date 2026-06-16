@@ -52,31 +52,47 @@ criteria are ``target=null``.
      ``category=missing_synthesis``.
    - 1–2 pages — PASS.
    - 3 or more — REJECT with ``category=over_fragmented``.
-2. **Coverage of synthesis-mode kinds.** Read each peer
-   extractor's output. For every kind whose
-   ``destinations.<kind>.mode == "synthesis"`` and that has
-   items, every item's name SHOULD appear at least once as a
-   ``[[Name]]`` wikilink on some synthesis page — either as
-   a ``- [[Name]] - …`` bullet under that page's
-   ``## Key Concepts`` section, OR as an inline
+2. **Coverage of extracted items.** Read each peer
+   extractor's output. For every kind that has items —
+   regardless of whether ``destinations.<kind>.mode`` is
+   ``synthesis`` or ``artifact`` — every item's name SHOULD
+   appear at least once as a ``[[Name]]`` wikilink on some
+   synthesis page — either as a ``- [[Name]] - …`` bullet
+   under that page's ``## Key Concepts`` (or
+   ``## Related artifacts``) section, OR as an inline
    ``[[Name]]`` wikilink in the page's opening rationale,
    ``## Overview`` prose, ``## Worked Examples`` body, or
-   ``## Discussion`` text. (Synthesis-mode wikilinks resolve
-   to nothing on disk; the post-gate strip-dead-links task
-   rewrites them to plain text.)
+   ``## Discussion`` text.
 
-   Score (target=null):
-   - **All synthesis-mode items covered, OR ≤25% uncovered AND
-     ≤3 absolute orphans** → PASS.
+   Why both modes matter: synthesis-mode wikilinks resolve
+   to nothing on disk (``strip-dead-links`` rewrites them to
+   plain text post-gate). Artifact-mode wikilinks point at
+   real replica pages — and the post-build ``prune-replica``
+   task DELETES any artifact whose ``[[Name]]`` is not
+   referenced by some synthesis page. Missing an artifact-
+   mode wikilink therefore causes silent data loss (e.g.
+   recipes vanish from the vault). Treat artifact-mode
+   coverage with at least the same scrutiny as
+   synthesis-mode coverage.
+
+   Score (target=null), computed across the union of all
+   extracted items from synthesis-mode AND artifact-mode
+   kinds:
+   - **All items covered, OR ≤25% uncovered AND ≤3 absolute
+     orphans** → PASS.
    - More than 25% OR more than 3 orphans → REVIEW with
-     ``category=orphan_synthesis_item`` and name the orphans.
+     ``category=orphan_synthesis_item`` and name the
+     orphans, marking each as ``synthesis-mode`` or
+     ``artifact-mode`` so the gate operator knows which
+     orphans will be silently pruned vs. merely reformatted.
    - Fewer than 50% covered → REJECT with
      ``category=undercoverage``.
+   - Any artifact-mode orphan whose extractor verdict was
+     ACCEPT → REVIEW at minimum (data loss risk),
+     regardless of percentage.
 
-   Coverage is a quality concern, not a blocker for apply. Hub
-   pages with strong prose pass even with a handful of items
-   that the prose surfaces by description rather than by
-   canonical wikilink.
+   Coverage is a quality concern for synthesis-mode items
+   but a correctness concern for artifact-mode items.
 3. **Frontmatter required.** Each synthesis page MUST have YAML
    frontmatter declaring at minimum ``type: synthesis``,
    ``title``, ``sources`` (non-empty list pointing at a

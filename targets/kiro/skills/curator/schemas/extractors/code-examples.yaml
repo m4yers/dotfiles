@@ -1,8 +1,8 @@
 type: object
 required:
-- code_examples
+- code-examples
 properties:
-  code_examples:
+  code-examples:
     type: array
     items:
       type: object

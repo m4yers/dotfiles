@@ -73,12 +73,12 @@ CASES = [
     ('guests-audio-roundtable', {'media': 'audio', 'form': 'roundtable'}, {'media': 'paper', 'form': 'research'}),
     ('quotes-audio-interview', {'media': 'audio', 'form': 'interview'}, {'media': 'book', 'form': 'textbook'}),
     ('quotes-news', {'media': 'article', 'form': 'news'}, {'media': 'book', 'form': 'textbook'}),
-    ('key_points-lecture', {'media': 'video', 'form': 'lecture'}, {'media': 'book'}),
-    ('key_points-video-keynote', {'media': 'video', 'form': 'keynote'}, {'media': 'book'}),
-    ('key_points-videotalk', {'media': 'video', 'form': 'talk'}, {'media': 'book'}),
+    ('key-points-lecture', {'media': 'video', 'form': 'lecture'}, {'media': 'book'}),
+    ('key-points-video-keynote', {'media': 'video', 'form': 'keynote'}, {'media': 'book'}),
+    ('key-points-videotalk', {'media': 'video', 'form': 'talk'}, {'media': 'book'}),
     ('speaker-video-keynote', {'media': 'video', 'form': 'keynote'}, {'media': 'video', 'form': 'lecture'}),
     ('speaker-videotalk', {'media': 'video', 'form': 'talk'}, {'media': 'video', 'form': 'lecture'}),
-    ('code_examples', {'media': 'article', 'form': 'tutorial', 'discipline': 'cs'},
+    ('code-examples', {'media': 'article', 'form': 'tutorial', 'discipline': 'cs'},
      {'media': 'article', 'form': 'tutorial', 'discipline': 'physics'}),
 ]
 
@@ -90,8 +90,8 @@ def test_predicate_trigger_and_skip(rules, case_id, trigger_kw, skip_kw):
         pytest.skip(f'quintet uses value not in slot vocabulary')
 
     kind = case_id.split('-')[0] if '-' in case_id else case_id
-    # Handle multi-word kinds like key_points, code_examples
-    for k in ('key_points', 'code_examples', 'pop_science'):
+    # Handle multi-word kinds like key-points, code-examples
+    for k in ('key-points', 'code-examples', 'pop_science'):
         if case_id.startswith(k):
             kind = k
             break
@@ -124,7 +124,7 @@ def test_empty_rules_returns_false():
 # ---- Compound clauses (||) ----
 
 @pytest.mark.parametrize('kind', ['models', 'citations', 'themes',
-                                   'quotes', 'key_points'])
+                                   'quotes', 'key-points'])
 def test_compound_clauses_have_or(rules, kind):
     pred = predicates.compile(kind, rules)
     assert pred is not None
