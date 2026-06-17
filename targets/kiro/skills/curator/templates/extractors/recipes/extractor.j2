@@ -20,17 +20,20 @@ For each recipe:
   (`"4 servings"`, `"45 min"`). Emit `null` when absent.
 - `ingredients`: each entry a structured `{quantity, amount, unit,
   item, notes}` object — see the rules below.
-- `steps`: ordered list of cooking actions. Each entry is either a
-  plain string (a single imperative-mood sentence) or a grouped
-  object `{text, sub_steps}` for phased recipes. Use grouped form
-  when the source itself organizes a long procedure into named
-  phases (`Prep`, `Cook`, `Glaze`, `Plate`) or when distinct
-  variants share a common arc — `text` becomes the phase / variant
-  banner, `sub_steps` the imperative actions under it. Use plain
-  strings when the recipe is a flat sequence with no inherent
-  grouping. Do not invent phases the source does not imply. Mixing
-  strings and grouped objects in the same list is allowed (a flat
-  preamble followed by phased blocks).
+- `steps`: ordered list of cooking actions. Recipes always organize
+  into a few major phases × multiple sub-actions per phase, so
+  every entry is a grouped object `{text, sub_steps}`. `text` is
+  the major-phase header — a short imperative banner that names
+  the phase (`"Prepare the chicken"`, `"Sear the chicken"`,
+  `"Make the sauce"`, `"Glaze and finish"`). Banners may be
+  authored by you; they do not need to come verbatim from a source
+  heading. The constraint is that each banner must faithfully
+  summarize the sub-steps grouped under it. `sub_steps` is the
+  list of imperative-mood sub-actions for that phase; every phase
+  must have at least one sub-step. Atomic source actions should be
+  grouped under a broader phase header (e.g. `"Pat surface dry"`
+  becomes a sub-step of `"Prepare the chicken"`, not its own
+  top-level step).
 - `tags`: optional list of short tags (`"dessert"`, `"vegetarian"`,
   `"italian"`). Source-grounded; do not invent.
 - `source_quote`: a verbatim passage from the source proving the
@@ -115,16 +118,11 @@ For each ingredient (`<j>` is the ingredient index within the recipe):
         --set recipes.<i>.ingredients.<j>.item='<ingredient name>' \
         --set recipes.<i>.ingredients.<j>.notes='<prep note or null>'
 
-For each flat step (`<k>` is the step index within the recipe):
-
-    {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
-        --set recipes.<i>.steps.<k>='<imperative-mood step text>'
-
-For each grouped step (`<k>` is the index within the recipe;
+For each step (`<k>` is the step index within the recipe;
 `<m>` is the sub-step index within the group):
 
     {{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
-        --set recipes.<i>.steps.<k>.text='<phase or variant banner>' \
+        --set recipes.<i>.steps.<k>.text='<phase banner>' \
         --set recipes.<i>.steps.<k>.sub_steps.<m>='<imperative-mood action>'
 
 For tags (when present):

@@ -66,8 +66,9 @@ VALID_SAMPLES = {
                  'unit': None, 'item': 'salt'},
             ],
             'steps': [
-                'Preheat oven to 190°C.',
-                'Cream butter and sugar.',
+                {'text': 'Prep',
+                 'sub_steps': ['Preheat oven to 190°C.',
+                               'Cream butter and sugar.']},
             ],
         }]
     },

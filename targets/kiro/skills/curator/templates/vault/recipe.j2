@@ -39,11 +39,8 @@ last_updated: {{ today }}
 ## Steps
 
 {% for s in item.steps -%}
-{% if s is string -%}
-{{ loop.index }}. {{ s.strip() }}
-{% else -%}
-{{ loop.index }}. **{{ s.text.strip() }}**
-{% for ss in s.get('sub_steps', []) %}    {{ loop.index }}. {{ ss.strip() }}
-{% endfor -%}
-{% endif -%}
+### {{ s.text.strip() }}
+
+{% for ss in s.sub_steps %}{{ loop.index }}. {{ ss.strip() }}
+{% endfor %}
 {% endfor %}

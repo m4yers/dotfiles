@@ -58,9 +58,16 @@ def _basic_recipe() -> dict:
              "item": "eggs", "notes": "large"},
         ],
         "steps": [
-            "Preheat oven to 190°C.",
-            "Cream butter and sugar until fluffy.",
-            "Bake for 12 minutes.",
+            {"text": "Prep",
+             "sub_steps": [
+                 "Preheat oven to 190°C.",
+                 "Cream butter and sugar until fluffy.",
+             ]},
+            {"text": "Bake",
+             "sub_steps": [
+                 "Drop dough on tray.",
+                 "Bake for 12 minutes.",
+             ]},
         ],
     }
 
@@ -131,8 +138,15 @@ class TestBuildReplicaRecipes:
         )
         body = (tmp_path / "global" / "vault-replica"
                 / "15 RECIPES" / "Chocolate Chip Cookies.md").read_text()
+        # Each phase rendered as a level-3 header.
+        assert "### Prep" in body
+        assert "### Bake" in body
+        # Sub-step numbering starts at 1 in the first phase.
         assert "1. Preheat oven to 190°C." in body
-        assert "3. Bake for 12 minutes." in body
+        assert "2. Cream butter and sugar until fluffy." in body
+        # Sub-step numbering restarts at 1 in the next phase.
+        assert "1. Drop dough on tray." in body
+        assert "2. Bake for 12 minutes." in body
 
     def test_grouped_steps_render_nested(self, tmp_path, fake_vault):
         recipe = _basic_recipe()
@@ -140,7 +154,6 @@ class TestBuildReplicaRecipes:
             {"text": "Prep",
              "sub_steps": ["Cream butter and sugar.",
                            "Beat in eggs."]},
-            "Preheat oven to 190°C.",
             {"text": "Bake",
              "sub_steps": ["Drop dough on tray.",
                            "Bake for 12 minutes."]},
@@ -155,17 +168,15 @@ class TestBuildReplicaRecipes:
         )
         body = (tmp_path / "global" / "vault-replica"
                 / "15 RECIPES" / "Chocolate Chip Cookies.md").read_text()
-        # Grouped banner rendered bold at the outer level.
-        assert "1. **Prep**" in body
-        assert "3. **Bake**" in body
-        # Sub-steps rendered as 4-space-indented nested ordered list.
-        assert "    1. Cream butter and sugar." in body
-        assert "    2. Beat in eggs." in body
-        # Flat string between groups keeps its outer numbering.
-        assert "2. Preheat oven to 190°C." in body
-        # Sub-step numbering restarts inside each group.
-        assert "    1. Drop dough on tray." in body
-        assert "    2. Bake for 12 minutes." in body
+        # Phase banners rendered as level-3 headers.
+        assert "### Prep" in body
+        assert "### Bake" in body
+        # Sub-steps rendered as a top-level numbered list (no indent).
+        assert "1. Cream butter and sugar." in body
+        assert "2. Beat in eggs." in body
+        # Sub-step numbering restarts inside each phase.
+        assert "1. Drop dough on tray." in body
+        assert "2. Bake for 12 minutes." in body
 
     def test_modified_op_when_page_exists(self, tmp_path, fake_vault):
         # Pre-populate the vault with the same-named recipe.
