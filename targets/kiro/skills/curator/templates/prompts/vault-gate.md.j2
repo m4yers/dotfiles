@@ -1,1 +1,113 @@
-../report.md.j2
+{# templates/report.md.j2 — gate-operator overview.
+
+   Rendered by loom as the gate task's prompt. Context bags:
+     upstream['vault-report'].output  — the report tool's rich output dict
+     task                    — current task ({id, output_path, ...})
+     vars                    — pipeline vars (destinations, etc.)
+
+   Fields from upstream['vault-report'].output:
+     basename       — source basename
+     topic          — classify topic string
+     quintet        — classify quintet object
+     summary        — extract-summary's text (verbatim)
+
+     extractions    — { kind: {items: [
+                          {display_name, materialized, fields: [
+                              {name, value}, ...
+                          ]},
+                          ...
+                       ]} }
+
+     synthesis_paths       — list of ``21 WIKI/<slug>.md`` paths
+     orphan_links          — wikilink targets unresolved at
+                             prune-replica time.
+
+     manifest_modifications  — [{vault_path, kind, name}] for atomic
+                               pages that overwrite an existing
+                               vault page.
+#}
+{%- set r = upstream['vault-report'].output -%}
+# Curator Ingest Report
+
+**Source:** `{{ r.basename }}`
+**Topic:** {{ r.topic }}
+**Classification:** `{{ r.quintet.media }}` / `{{ r.quintet.form }}` / `{{ r.quintet.register }}` / `{{ r.quintet.discipline }}` / `{{ r.quintet.audience }}`
+
+## Summary
+
+{{ r.summary }}
+
+## Modifying existing vault pages
+
+{% set total_mods = (r.manifest_modifications | length) -%}
+{%- if total_mods == 0 -%}
+_None — every replica page is a new file._
+{%- else -%}
+The following replica files would overwrite existing vault pages on
+apply. Each entry shows what the existing page already says and
+why this run rewrites it. The gate driver opens each as a diff
+against the vault original; new pages are listed under their kind
+below.
+
+{% for m in r.manifest_modifications %}
+### `{{ m.vault_path }}` — {{ m.kind }}: {{ m.name }}
+
+**Existing page.** {{ m.existing_summary or '_(no summary recorded)_' }}
+
+{% if m.new_info_present -%}
+**Why rewrite.** {{ m.rationale or '_(no rationale recorded)_' }}
+{%- else -%}
+**Why rewrite.** _No new info._ {{ m.rationale or 'This run repeats the existing definition; the merge keeps the page as-is.' }}
+{%- endif %}
+
+{% endfor %}
+{%- endif %}
+
+{% for kind in r.extractions | dictsort -%}
+{%- set items = kind[1]['items'] -%}
+{%- set kind_label = kind[0].replace('_', ' ').replace('-', ' ').upper() -%}
+## {{ kind_label }}({{ items | length }})
+
+{% if not items -%}
+_None._
+
+{% else -%}
+{% for it in items -%}
+### {{ it.display_name }}
+
+({{ 'materialized' if it.materialized else 'not materialized' }})
+
+{% for f in it.fields -%}
+- **{{ f.name }}:** {{ f.value }}
+{% endfor %}
+{% endfor -%}
+{% endif -%}
+{% endfor -%}
+{%- if r.synthesis_paths %}
+## Synthesis hubs
+
+{% for p in r.synthesis_paths -%}
+- [[{{ p }}]]
+{% endfor %}
+{%- endif %}
+{%- if r.orphan_links %}
+## Orphan synthesis links
+
+The synthesis hubs link to the following targets that match neither
+a built artifact nor an existing vault page. They will render as
+broken links in Obsidian — edit the synthesis hub at gate time to
+remove or fix them.
+
+{% for t in r.orphan_links %}
+- `[[{{ t }}]]`
+{%- endfor %}
+{% endif %}
+
+## Output
+
+Write to `{{ task.output_path }}` against
+`schemas/pipeline/gate.yaml`:
+
+```yaml
+proceed: true   # or: false
+```

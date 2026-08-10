@@ -1,1 +1,305 @@
-../extractors/synthesis/extractor.j2
+{% extends 'extractors/_meta/extractor.j2' %}
+
+{% block source_paths -%}
+Source text:        {{ upstream['source-convert'].output.converted_path | default('(missing)', true) }}
+Replica root:       {{ vars.replica_root }}
+Quintet:            {{ upstream['extract-classify'].output.quintet }}
+Topic:              {{ upstream['extract-classify'].output.topic }}
+{% if upstream['extract-summary'] is defined -%}
+Summary:            {{ upstream['extract-summary'].output.summary | default('(no summary)', true) }}
+{%- else -%}
+Summary:            (no summary)
+{%- endif %}
+
+Wiki template:      {{ vars.wiki_template_path }}
+Include dir:        {{ vars.vault_templates_dir }}
+
+{% set peers = [] %}
+{% for tid, peer in upstream.items() if tid.startswith('extract-') and tid != task.id and peer.status == 'done' %}
+{% set judge_id = 'judge-' + tid[8:] %}
+{% set _ = peers.append({'task_id': tid, 'task_path': peer.task_path, 'verdict_path': upstream[judge_id].task_path if upstream[judge_id] is defined else None}) %}
+{% endfor %}
+Per-peer extractor outputs (read each ``output.yaml`` for items
+in that kind's array):
+{% for peer in peers %}
+- **{{ peer.task_id }}**: {{ peer.task_path }}
+{%- endfor %}
+
+Per-peer judge verdicts (read each ``verdict.yaml`` to learn
+which items were REVIEW or REJECT):
+{% for peer in peers %}
+- **{{ peer.task_id }}**: {{ peer.verdict_path | default('(no judge)', true) }}
+{%- endfor %}
+
+Per-kind destination map (drives the synthesis-vs-artifact
+folding rule below):
+{% for kind, dest in vars.destinations.items() %}
+- **{{ kind }}** → mode: `{{ dest.mode }}`{% if dest.get('folder') %}, folder: `{{ dest.folder }}`{% endif %}
+{%- endfor %}
+{%- endblock %}
+
+{% block instructions %}
+You are the **synthesis** author. Mechanical work (extraction,
+classification, atomic page rendering) is already done. The
+replica directory at `{{ vars.replica_root }}` contains every atomic
+page the source contributed. Your job is to add 1–2 synthesis
+pages.
+
+Each synthesis page is a **stand-alone wiki entry on a synthesized
+topic**: it describes the topic on its own terms and uses the
+materialized atomic pages (people, models, keywords, …) as
+supporting links. It is NOT an index, commentary, or companion to
+the source — the source is a citation, not the subject.
+
+Ultrathink about which kinds cluster into a shared topic before
+committing to a page split. Over-fragmentation is the most common
+failure mode — prefer one rich page over two thin ones.
+
+## Read first
+
+1. Read each peer's ``task_path`` file. Each file's payload is a
+   YAML object with one top-level key (the peer kind) holding a
+   list of items. Each item has at minimum a ``name``; other
+   fields vary by kind.
+2. Read each peer's ``verdict_path`` file. Each carries
+   ``item_verdicts`` — an array of
+   ``{target, verdict, scores, rationale}``. Items with REJECT
+   verdicts SHOULD be omitted; REVIEW items can be included
+   with caution.
+3. List the replica directory `{{ vars.replica_root }}` to see which
+   atomic pages already exist as standalone files. Wikilinks
+   (``[[Atomic Name]]``) MUST point at filenames that exist
+   there OR at ``### Name`` subsections you will create on the
+   same synthesis page (``[[#Name]]``).
+
+## Voice and framing
+
+The page is an **encyclopedic wiki entry on its own topic**.
+Imagine the reader landed here from any link, not from the
+source. The topic is the subject; the source and the
+extracted artifacts (people, models, keywords) are supporting
+material that bolsters specific claims. Concretely:
+
+- **Open with the topic, not the page.** Do NOT use phrases like
+  "this hub orbits…", "this companion hub turns…", "this page
+  covers…", "this article presents…". Open by stating what the
+  topic *is* and why it matters.
+- **Lead with substance, never with setup.** Forbidden meta-
+  openers and meta-transitions in any prose field include:
+  "the premise is…", "the general lesson…", "the key insight…",
+  "the takeaway…", "the bottom line…", "what follows is…",
+  "in this article…", "as we shall see…", "it bears noting…",
+  "the bridging observation is…", "the upshot…". When tempted
+  to write "The general lesson: X is Y." — write "X is Y."
+  directly. The reader does not need the page to telegraph its
+  own structure.
+- **Describe the topic on its own terms.** Treat materialized
+  atomic pages (people, models, keywords) as supporting links —
+  reach for ``[[Person Name]]`` when the person is factually
+  relevant, not as the page's organizing center. Do not write
+  "Author X's three case studies" when "Three observed cases"
+  reads more cleanly.
+- **Do not center the source.** Phrases like "the article's
+  central thesis", "the article's negative case", "the source
+  argues", "the article catalogues", "Author X writes that…",
+  "the source piece that grounds the cases below" reframe the
+  page as commentary on a document. Make the same point as a
+  direct claim ("The central claim is…", "The negative case is…",
+  "Catalogued correctness oracles include…") and attribute
+  specific framings via inline wikilinks
+  (``[[Author Name]] argues…``) only when attribution adds
+  factual value.
+- **Cite, don't narrate.** The source goes in the ``sources``
+  frontmatter field and may appear as a ``[[Source Title]]``
+  wikilink where natural. Do not paraphrase the source's
+  rhetorical structure or reference its existence ("the piece
+  that grounds the cases below", "the article begins by…").
+- **Use artifacts as supporting evidence.** Each ``[[Atomic Name]]``
+  wikilink is a citation that bolsters the claim it appears in.
+  Do not introduce a wikilink for its own sake; introduce it
+  when the named entity directly supports the local point.
+- **No internal vault vocabulary in reader-facing text.** Never
+  use the words "atomic", "atomic page", "artifact", "keyword
+  artifact", "synthesis hub", "vault", "replica", "extractor",
+  or "key concept" as prose terms — they are curator
+  scaffolding, invisible to the reader. Instead, describe the
+  linked entity by what it *is* in the topic's own vocabulary
+  ("a related principle", "the term", "the programmer credited
+  with the framing", "a parallel pattern from incentive
+  design").
+- **Multi-source futureproofing.** A topic may later be revisited
+  by other sources; write prose that survives that — describe
+  the topic, attribute specific framings to specific people via
+  wikilinks rather than to "the source".
+
+## Coverage obligations
+
+- **1–2 pages total.** Merge overlapping topics; do NOT produce
+  one page per cluster. Over-fragmentation fails the judge.
+- **Every extracted item from every kind MUST appear at least
+  once as a ``[[Name]]`` wikilink on some synthesis page** —
+  either as a ``- [[Name]] - <summary>`` bullet in that page's
+  ``key_concepts`` array, OR as an inline ``[[Name]]``
+  wikilink in the page's ``rationale``, ``overview``,
+  ``worked_examples.<i>.body``, or ``discussion.<i>.summary``
+  prose. Pick one location per item — once you have linked
+  an item from the overview (or any other prose field), do
+  NOT also list it in ``key_concepts``. Duplicating the same
+  item in both prose and the bulleted list is noise.
+
+  This obligation applies to BOTH synthesis-mode and
+  artifact-mode kinds. Synthesis-mode kinds (e.g. ``topics``,
+  ``themes``, ``key-points``, ``chapters``) have no
+  standalone vault page — their ``[[Name]]`` wikilinks
+  resolve to nothing on disk and the post-gate
+  strip-dead-links task will rewrite them to plain text.
+  Artifact-mode kinds — every kind in the destinations map
+  with ``mode: artifact``, namely:
+{%- for kind, dest in vars.destinations.items() if dest.mode == 'artifact' %}
+  ``{{ kind }}``{% if not loop.last %},{% else %} —{% endif %}
+{%- endfor %}
+  already have replica pages so their wikilinks resolve
+  directly. Recipes, citations, quotes, and any other
+  artifact-mode kind are NOT optional: an unlinked artifact
+  is silently deleted by the post-build prune step. Link
+  each item exactly once on some hub page, in whichever
+  location reads best — even when the item feels more like
+  a self-contained artifact than a "key concept" (a recipe,
+  a quote, a citation). For artifact-mode items that do not
+  fit the topic argumentation, add a brief ``## Related
+  artifacts`` section near the end of one hub page and list
+  them as ``- [[Name]] — one-sentence relevance``.
+
+## Authoring + rendering protocol
+
+For each page you author, build a JSON file with the structured
+fields the wiki template requires, then run the renderer to
+turn it into markdown. The renderer (``render.sh`` from the
+``template`` skill) uses ``StrictUndefined`` and refuses to
+render if any field is missing — this is the enforcement
+mechanism. Do not skip fields; supply empty values
+(``""`` or ``[]``) for genuinely-absent optional fields.
+
+### Step 1 — author the JSON
+
+For each page, write a JSON file at ``/tmp/<slug>.json``:
+
+```json
+{
+  "title":          "Topic Title",
+  "today":          "<YYYY-MM-DD today>",
+  "sources":        ["{{ (upstream['source-fetch'].output.path | replace(vars.vault_root ~ '/', '')) | default('<source-vault-path>', true) }}"],
+  "rationale":      "Opening paragraph (≥80 chars) defining and motivating the topic in its own terms. Sits before ## Overview. Lead with substance: state what the topic is and why it matters. NEVER narrate the page or reference 'this hub'/'this page'/'this article'/'the source piece'.",
+  "overview":       "Multi-paragraph prose (≥200 chars) explaining the topic as if for a reader who landed here from any link. Lead with substance, never with setup ('the premise is…', 'the general lesson…' are forbidden). Use ``[[Atomic Name]]`` wikilinks as supporting citations that bolster specific claims, not as the page's organizing center. Treat the source as a citation target (frontmatter + wikilinks), not the subject of the prose.",
+  "ascii_diagram":  "Multi-line illustrative diagram (≥4 lines, ≥80 chars).\nUse box-drawing chars: ┌ ┐ └ ┘ │ ─ ┬ ┴ ├ ┤ ┼ ▼ ▲ ◄ ►",
+  "key_concepts":   [
+    {"name": "Atomic A", "summary": "One-sentence definition of A in topic-relevant terms (≥30 chars). Treat this as the bullet's gloss after the ``[[A]]`` wikilink."},
+    {"name": "Atomic B", "summary": "One-sentence explanation of what B is and why it is relevant to this topic. NEVER 'see [[B]]' or 'the keyword' — the bullet head already carries the wikilink; the gloss must add substance."},
+    {"name": "Atomic C", "summary": "Another one-sentence gloss."}
+  ],
+  "worked_examples": [],
+  "discussion":      []
+}
+```
+
+Required: ``title``, ``today``, ``sources``, ``rationale``,
+``overview``, ``ascii_diagram``, ``key_concepts`` (≥3 entries,
+each with ``name`` and ``summary``). ``worked_examples`` and
+``discussion`` are optional but MUST be present (empty array)
+— the renderer fails on missing keys.
+
+### Discussion shape
+
+When the source surfaces ongoing debate, open questions, or
+contested framings, populate ``discussion`` with **at most 3**
+topic entries. Each entry has shape:
+
+```json
+{
+  "topic":   "Concise framing of the debate / open question",
+  "summary": "1-2 sentence framing in the topic's own terms.",
+  "actors":  [
+    {"name": "Person Or Group", "argument": "Their position in one sentence."}
+  ]
+}
+```
+
+``actors`` is optional — leave it as ``[]`` when the source
+frames the topic but does not name specific participants.
+Otherwise, name every actor the source attributes a position
+to, with a single-sentence summary of their argument. Use
+``[[Person Name]]`` only inside ``summary`` prose; the
+``actors.<i>.name`` field is rendered with its own wikilink by
+the template.
+
+If the source is purely expository (no live debate, no
+identified open questions), leave ``discussion: []``. Do NOT
+fabricate disagreement.
+
+### Step 2 — render to the replica
+
+Run the wiki renderer; pipe stdout into the replica file. Use
+the **natural title verbatim** as the filename (with filesystem-
+illegal chars stripped — strip ``: * ? " < > |`` and replace
+``/`` with ``—``). DO NOT kebab-case the filename. Obsidian
+resolves wikilinks like ``[[Topic Title]]`` against the filename
+directly:
+
+```bash
+$SKILLS/home/template/scripts/render.sh \
+    --template {{ vars.wiki_template_path }} \
+    --include-dir {{ vars.vault_templates_dir }} \
+    --json-vars /tmp/<slug>.json \
+    --allow-unused \
+    > "{{ vars.replica_root }}/21 WIKI/<Topic Title>.md"
+```
+
+Example: a page titled ``Constraining LLM Coding Agents`` lands
+at ``{{ vars.replica_root }}/21 WIKI/Constraining LLM Coding Agents.md``.
+
+If the renderer prints
+``ERROR: template variables not provided: <name>`` on stderr,
+add the missing key to your JSON (with an empty value if it's
+genuinely absent) and re-run. **Do not edit the rendered
+markdown by hand** — fix the JSON and re-render. The template
+is the source of truth for the layout.
+
+### Step 3 — record the path
+
+After each page renders successfully, record its vault-relative
+path in your output:
+
+```bash
+{{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} \
+    --set paths.<i>='21 WIKI/<Topic Title>.md'
+```
+
+Increment ``<i>`` per page (0, 1) — cap at 2.
+
+If you wrote zero pages (the source genuinely has no topics
+worth a stand-alone wiki entry), leave ``paths`` empty:
+
+```bash
+{{ vars.loom_sh }} output add {{ run.workdir }} --task {{ task.id }} --set paths='[]'
+```
+
+## Inline wikilink discipline
+
+Inside ``rationale``, ``overview``, ``key_concepts.<i>.summary``,
+``worked_examples.<i>.body``, and ``discussion.<i>.summary``,
+the FIRST occurrence of any atomic name MUST be wrapped as a
+wikilink ``[[Atomic Name]]``. Subsequent occurrences need not be
+wrapped. Wikilinks that resolve to no atomic page (synthesis-
+mode kinds, people who weren't extracted, etc.) are normalized
+to plain text by the post-gate strip-dead-links task — write
+them as ``[[Name]]`` regardless and let the pipeline handle
+resolution.
+{% endblock %}
+
+{% block builder_calls %}
+The render protocol above includes the only ``loom output`` calls
+needed: one ``loom output add`` per page to record the rendered
+path. The wiki template determines the page shape; you
+exclusively author the structured JSON and let the renderer
+produce the markdown.
+{% endblock %}
