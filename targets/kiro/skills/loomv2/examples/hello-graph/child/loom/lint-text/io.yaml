@@ -1,0 +1,14 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    greeting: {type: string}
+  required: [greeting]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    issues_found: {type: integer}
+    notes: {type: string}
+  required: [issues_found, notes]

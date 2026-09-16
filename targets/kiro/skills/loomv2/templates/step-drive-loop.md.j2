@@ -1,0 +1,39 @@
+{# Suggested heading for the host SKILL.md:
+   ### Step 2: Drive the loop
+
+   Place under the `## Workflow` section, immediately after
+   the per-skill Step 1 (Ingest).
+
+   Variables (must be passed by the includer):
+     prefix     — uppercase shell-variable prefix, e.g. "SB"
+     shim       — uppercase wrapper-script variable, e.g. "LOOM";
+                  must resolve to the loom CLI (loom.sh) or a
+                  wrapper forwarding args verbatim
+     skill_name — kebab-case skill name shown in tiling labels
+     target     — placeholder for the primary parameter, e.g. "<op>"
+#}
+1. Set tiling activity:
+   ```bash
+   ${{ prefix }}_TILING activity set "{{ skill_name }}({{ target }}): Drive the loop"
+   ```
+2. Loop until done:
+   - Run `${{ prefix }}_{{ shim }} runtime next "${{ prefix }}_WD"`.
+     Parse the YAML response (shape: loomv2 `schemas/next.yaml`).
+   - If the command exits non-zero → BLOCKED; stderr carries
+     `{failed_task, error_path}`.
+   - If `done: true` → break.
+   - Otherwise, handle the `ready[]` batch (all entries are
+     `kind: agent|human`; tool tasks already ran inside
+     `runtime next`). Entries in one batch are independent:
+     - Dispatch every `kind: agent` entry in parallel (see the
+       agent-dispatch helper) — these are independent sub-agent
+       calls and MUST NOT be serialized.
+     - Drive every `kind: human` entry sequentially after the
+       agent dispatches (see the human-gate helper) — user
+       interaction cannot be parallelized.
+     - After each entry finishes, call
+       `${{ prefix }}_{{ shim }} runtime complete "${{ prefix }}_WD" <task-address>`.
+3. Set tiling activity to Done:
+   ```bash
+   ${{ prefix }}_TILING activity set "{{ skill_name }}({{ target }}): Done"
+   ```

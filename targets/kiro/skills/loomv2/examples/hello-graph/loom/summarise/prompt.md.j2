@@ -1,0 +1,7 @@
+Summarise this greeting in one line: {{ input.greeting }}
+
+Write your answer:
+
+```bash
+$LOOM output add {{ input.__loom.workdir }} --task summarise --set summary='<one-line summary>'
+```

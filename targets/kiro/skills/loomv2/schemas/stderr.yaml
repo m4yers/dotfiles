@@ -1,0 +1,40 @@
+# schemas/stderr.yaml — self-describing meta-schema for task stderr.yaml.
+#
+# Written when a tool task's body emits anything to stderr or when
+# the body fails. Captured via contextlib.redirect_stderr around the
+# in-process tool invocation. JSON Schema draft 2020-12, serialised
+# as YAML. Consumers: engine/store.py (producer),
+# engine/tool_dispatch.py (call site), tests.
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://loom.internal/schemas/stderr.yaml"
+title: "Task stderr.yaml"
+description: >-
+  Records captured stderr output for a task's body. Written on
+  non-empty stderr or on failure; absent when the body ran clean
+  and silent.
+type: object
+required: [task_id, kind, text, timestamp]
+additionalProperties: false
+properties:
+  task_id:
+    type: string
+    description: Canonical address of the task.
+  kind:
+    type: string
+    enum: [tool, agent, human]
+    description: Task kind at capture time.
+  text:
+    type: string
+    description: >-
+      The captured stderr text verbatim. May be an empty string when
+      the file is emitted purely because the body failed.
+  timestamp:
+    type: string
+    format: date-time
+
+examples:
+  - task_id: compute
+    kind: tool
+    text: "deprecation warning: X will be removed\n"
+    timestamp: "2026-01-01T12:00:00Z"

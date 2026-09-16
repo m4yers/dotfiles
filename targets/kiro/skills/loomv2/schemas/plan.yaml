@@ -1,0 +1,109 @@
+# schemas/plan.yaml — self-describing meta-schema for engine-owned plan.yaml.
+#
+# JSON Schema draft 2020-12, serialised as YAML. Consumers: store.py,
+# engine/inline.py, engine/runner.py. Load via yaml.safe_load then
+# validate with jsonschema.
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://loom.internal/schemas/plan.yaml"
+title: "Engine-owned plan.yaml"
+description: >-
+  The lowered DAG loom writes into a workdir. Reflects the composed
+  plan AFTER subgraph inlining.
+type: object
+required: [tasks, loom_root]
+additionalProperties: false
+properties:
+  loom_root:
+    type: string
+    description: Absolute path to the root loom/ folder for the run.
+  tasks:
+    type: array
+    items:
+      $ref: "#/$defs/task"
+
+$defs:
+  task:
+    type: object
+    required: [id, kind, folder, status]
+    additionalProperties: false
+    properties:
+      id:
+        type: string
+        description: >-
+          Canonical address = instance-id chain joined with '/' plus
+          task name. Root tasks have degenerate one-segment addresses.
+      kind:
+        type: string
+        enum: [tool, agent, human]
+        description: >-
+          Post-inlining kind. Subgraph nodes are flattened; only
+          leaf kinds survive.
+      folder:
+        type: string
+        description: Absolute path to the source task folder on disk.
+      depends_on_all:
+        type: array
+        items: {type: string}
+        description: AND-dependency ids (canonical addresses).
+      depends_on_any:
+        type: array
+        items: {type: string}
+        description: OR-dependency ids (canonical addresses).
+      when:
+        type: string
+        description: Optional predicate.
+      latch:
+        type: object
+        description: Optional latch block (header, fuel, while_).
+      status:
+        type: string
+        enum: [pending, ready, running, done, failed, skipped]
+      iter:
+        type: integer
+        minimum: 0
+        description: Loop round index (0 outside loops).
+      namespace:
+        type: string
+        description: Instance-id chain for inlined tasks (empty for root).
+      inlined_from_subgraph:
+        type: boolean
+        description: Marker for tasks composed via subgraph().
+      instance_uid:
+        type: string
+        description: Short uuid stamped at inlining; telemetry only.
+      source_root:
+        type: string
+        description: Loom root the instance was inlined from; telemetry only.
+      pinned_version:
+        type: integer
+        minimum: 1
+        description: io.yaml version pinned by the pinning graph.yaml.
+      input_mapping:
+        type: object
+        additionalProperties: {type: string}
+        description: >-
+          Materialised mapping (field → placeholder string) inlined
+          from the pinning graph.yaml entry. Resolved at every
+          dispatch (per round for loop bodies).
+
+examples:
+  - loom_root: /abs/skill/loom
+    tasks:
+      - {id: fetch, kind: tool, folder: /abs/skill/loom/fetch, status: done, pinned_version: 1}
+      - {id: classify, kind: agent, folder: /abs/skill/loom/classify, status: pending,
+         depends_on_all: [fetch], pinned_version: 1}
+  - # After subgraph inlining
+    loom_root: /abs/skill/loom
+    tasks:
+      - {id: fetch, kind: tool, folder: /abs/skill/loom/fetch, status: done}
+      - id: child-lint/lint-text
+        kind: tool
+        folder: /abs/child/loom/lint-text
+        status: pending
+        depends_on_all: [fetch]
+        namespace: child-lint
+        inlined_from_subgraph: true
+        instance_uid: 4f2a
+        source_root: /abs/child/loom
+        pinned_version: 1

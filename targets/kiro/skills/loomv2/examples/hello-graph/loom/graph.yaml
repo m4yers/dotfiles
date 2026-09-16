@@ -1,0 +1,40 @@
+tasks:
+  - {id: greet-user, kind: tool, version: 1}
+  - id: summarise
+    kind: agent
+    version: 1
+    depends_on_all: [greet-user]
+    input:
+      greeting: "${task:greet-user:greeting}"
+  - id: confirm
+    kind: human
+    version: 1
+    depends_on_all: [summarise]
+    input:
+      summary: "${task:summarise:summary}"
+  - id: child-lint
+    kind: subgraph
+    version: 1
+    root: ../child/loom
+    depends_on_all: [greet-user]
+    input:
+      greeting: "${task:greet-user:greeting}"
+  - id: child-relint
+    kind: subgraph
+    version: 1
+    root: ../child/loom
+    depends_on_all: [confirm]
+    input:
+      greeting: "${task:summarise:summary}"
+  - id: finalise
+    kind: tool
+    version: 1
+    depends_on_all: [confirm, child-lint, child-relint]
+    input:
+      summary: "${task:summarise:summary}"
+      decision: "${task:confirm:decision}"
+latches:
+  - task: confirm
+    header: summarise
+    fuel: 3
+    while_: "${task:confirm:decision != 'accept'}"

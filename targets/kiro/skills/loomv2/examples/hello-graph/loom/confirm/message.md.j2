@@ -1,0 +1,11 @@
+Please confirm this summary:
+
+{{ input.summary }}
+
+Ask the user for `decision` (accept | revise) and optional `reason`.
+Capture with:
+
+```bash
+$LOOM output add {{ input.__loom.workdir }} --task confirm \
+    --set decision='accept' --set reason='<user reason>'
+```

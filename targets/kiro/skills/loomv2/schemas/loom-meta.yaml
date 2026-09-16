@@ -1,0 +1,44 @@
+# schemas/loom-meta.yaml — self-describing meta-schema for the reserved
+# `__loom` input object.
+#
+# SYNC MANDATE: this schema and the ``LoomMeta`` dataclass in
+# ``scripts/loom/loom/engine/reserved.py`` are one mirror. Fields here
+# and there change together in the same commit; the extension recipe
+# is documented in ``references/io.md`` §5.
+#
+# Task authors opt in by declaring ``__loom`` under their io.yaml
+# ``input.properties`` (typically via ``$ref`` to this file). The
+# engine fills the value at dispatch; graph.yaml ``input:`` mappings
+# MUST NOT wire it (static validate + dispatch both reject the
+# shadow).
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://loom.internal/schemas/loom-meta.yaml"
+title: "Reserved __loom object"
+description: >-
+  Engine-provided reserved input object mirrored by the ``LoomMeta``
+  dataclass in ``scripts/loom/loom/engine/reserved.py``. SYNC MANDATE:
+  fields here and in ``LoomMeta`` change together in the same commit.
+  See ``references/io.md`` §5 for the author-facing declaration
+  recipe.
+type: object
+additionalProperties: false
+required: [workdir, runtime]
+properties:
+  workdir:
+    type: string
+    description: >-
+      Absolute path to the current loom RUN workdir (the value passed
+      to ``$LOOM runtime init``). Every task in the run sees the same
+      value.
+  runtime:
+    type: string
+    description: >-
+      Absolute path to the ``loom.sh`` CLI shim of the loomv2
+      installation that dispatched this task. Templates use it to
+      invoke runtime commands (``output init``/``add`` etc.) without
+      hardcoding an install path.
+
+examples:
+  - workdir: "/tmp/loom-workdir"
+    runtime: "/home/user/.kiro/skills/home/loomv2/scripts/loom.sh"

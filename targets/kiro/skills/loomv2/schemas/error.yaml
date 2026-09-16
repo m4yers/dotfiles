@@ -1,0 +1,74 @@
+# schemas/error.yaml — self-describing meta-schema for task error.yaml.
+#
+# Two variants: leaf (raised inside a task) and subgraph summary
+# (aggregated at the subgraph parent folder). JSON Schema draft 2020-12,
+# serialised as YAML. Consumers: engine/tool_dispatch.py, engine/store.py.
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://loom.internal/schemas/error.yaml"
+title: "Task error.yaml"
+description: >-
+  Written when a task fails. Subgraph parents also carry a summary
+  variant pointing at the failing child.
+oneOf:
+  - $ref: "#/$defs/leaf"
+  - $ref: "#/$defs/subgraph_summary"
+
+$defs:
+  leaf:
+    type: object
+    required: [task_id, kind, exception_type, message, timestamp]
+    additionalProperties: false
+    properties:
+      task_id:
+        type: string
+        description: Canonical address of the failing task.
+      kind:
+        type: string
+        enum: [tool, agent, human]
+      exception_type:
+        type: string
+        description: Fully-qualified exception class name.
+      message:
+        type: string
+      traceback:
+        type: string
+        description: Optional textual traceback.
+      timestamp:
+        type: string
+        format: date-time
+
+  subgraph_summary:
+    type: object
+    required: [task_id, failed_task, inner_error_path, timestamp]
+    additionalProperties: false
+    properties:
+      task_id:
+        type: string
+        description: The subgraph instance id at this level.
+      failed_task:
+        type: string
+        description: Canonical address of the failing child task.
+      inner_error_path:
+        type: string
+        description: Absolute path to the leaf error.yaml.
+      timestamp:
+        type: string
+        format: date-time
+
+examples:
+  - # Leaf
+    task_id: greet-user
+    kind: tool
+    exception_type: ValueError
+    message: name must be non-empty
+    traceback: |
+      Traceback (most recent call last):
+        ...
+      ValueError: name must be non-empty
+    timestamp: "2026-01-01T12:00:00Z"
+  - # Subgraph summary
+    task_id: child-lint
+    failed_task: child-lint/lint-text
+    inner_error_path: /abs/workdir/tasks/02-child-lint/lint-text/error.yaml
+    timestamp: "2026-01-01T12:00:00Z"

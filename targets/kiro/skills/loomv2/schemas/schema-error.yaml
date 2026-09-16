@@ -1,0 +1,51 @@
+# schemas/schema-error.yaml — self-describing meta-schema for task schema-error.yaml.
+#
+# Written when a task's materialised input.yaml fails validation
+# against io.yaml/input (phase=input) or when its output.yaml fails
+# validation against io.yaml/output (phase=output). JSON Schema draft
+# 2020-12, serialised as YAML. Consumers: engine/store.py (producer),
+# engine/mapping.py + engine/runner.py (call sites), tests.
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://loom.internal/schemas/schema-error.yaml"
+title: "Task schema-error.yaml"
+description: >-
+  Records a schema validation failure at the task's input or output
+  boundary. One document per failure.
+type: object
+required: [phase, task_id, message, timestamp]
+additionalProperties: false
+properties:
+  phase:
+    type: string
+    enum: [input, output]
+    description: >-
+      `input` for materialised-input validation failures at dispatch;
+      `output` for output.yaml validation failures at complete.
+  task_id:
+    type: string
+    description: Canonical address of the offending task.
+  message:
+    type: string
+    description: Human-readable validator message.
+  path:
+    type: string
+    description: >-
+      JSON Pointer (RFC 6901) into the failing document identifying
+      the offending field. Empty string means the failure is at the
+      document root.
+  timestamp:
+    type: string
+    format: date-time
+
+examples:
+  - phase: input
+    task_id: summarise
+    message: "'greeting' is a required property"
+    path: ""
+    timestamp: "2026-01-01T12:00:00Z"
+  - phase: output
+    task_id: confirm
+    message: "'decision' is a required property"
+    path: ""
+    timestamp: "2026-01-01T12:00:00Z"

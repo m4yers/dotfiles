@@ -1,0 +1,125 @@
+# schemas/graph.yaml — self-describing meta-schema for <skill>/loom/graph.yaml.
+#
+# This IS the graph.yaml format doc. Serialised as YAML (still a JSON Schema
+# draft 2020-12 document). Load via yaml.safe_load, then validate with
+# jsonschema. Referenced by discovery.load_graph_yaml,
+# validate/composition.py, validate/versions.py, and plan.py's
+# from_graph_yaml / to_graph_yaml.
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://loom.internal/schemas/graph.yaml"
+title: "Skill loom/graph.yaml"
+description: >-
+  Peer to make_plan(). Declares the graph so other skills can compose it
+  without running Python. Each task entry (own tasks AND subgraph
+  references) pins the target io.yaml version as seen at authoring time.
+type: object
+required: [tasks]
+additionalProperties: false
+properties:
+  tasks:
+    type: array
+    minItems: 1
+    description: Task entries in declaration order.
+    items:
+      $ref: "#/$defs/task_entry"
+  latches:
+    type: array
+    description: >-
+      Optional latch entries turning tasks into loop latches. Each entry
+      names the latch task id, the header, and at least one exit
+      control.
+    items:
+      $ref: "#/$defs/latch_entry"
+
+$defs:
+  task_entry:
+    type: object
+    required: [id, kind, version]
+    additionalProperties: false
+    properties:
+      id:
+        type: string
+        pattern: "^[a-z][a-z0-9-]*$"
+        description: Kebab-case unique task id within the graph.
+      kind:
+        type: string
+        enum: [tool, agent, human, subgraph]
+        description: Task kind. `subgraph` inlines another skill's loom tree.
+      version:
+        type: integer
+        minimum: 1
+        description: >-
+          Pinned io.yaml version at authoring time. `$LOOM graph new`
+          re-stamps this to the current version on disk.
+      depends_on_all:
+        type: array
+        minItems: 1
+        items: {type: string}
+        description: AND-dependency. All must be done (or skipped=False).
+      depends_on_any:
+        type: array
+        minItems: 1
+        items: {type: string}
+        description: OR-dependency. At least one must be done.
+      when:
+        type: string
+        description: Predicate string; ${task:...} refs allowed.
+      root:
+        type: string
+        description: >-
+          Only for kind=subgraph. Path to the child skill's loom root
+          (absolute or relative to this graph.yaml).
+      input:
+        type: object
+        additionalProperties: {type: string}
+        description: >-
+          Optional field → placeholder-string map. The SOLE cross-task
+          data conduit: resolved at dispatch (per round for loop
+          bodies; @k/@prev allowed) into the task's materialised
+          input.yaml. Every ${task:<addr>...} ref MUST target one of
+          this entry's declared deps (depends_on_all / depends_on_any).
+          Entries without `input` are caller-seeded (entry-task
+          pattern).
+
+  latch_entry:
+    type: object
+    required: [task, header]
+    additionalProperties: false
+    properties:
+      task:
+        type: string
+        description: The latch task id.
+      header:
+        type: string
+        description: The header task id the back-edge points at.
+      fuel:
+        type: integer
+        minimum: 1
+        description: Positive countdown decremented per round.
+      while_:
+        type: string
+        description: Predicate; loop continues while true.
+    anyOf:
+      - required: [fuel]
+      - required: [while_]
+
+examples:
+  - # Linear
+    tasks:
+      - {id: fetch, kind: tool, version: 1}
+      - {id: classify, kind: agent, version: 1, depends_on_all: [fetch]}
+      - {id: publish, kind: tool, version: 1, depends_on_all: [classify]}
+  - # Loop
+    tasks:
+      - {id: fetch, kind: tool, version: 1}
+      - {id: fix, kind: agent, version: 1, depends_on_all: [fetch]}
+      - {id: review, kind: agent, version: 1, depends_on_all: [fix]}
+      - {id: publish, kind: tool, version: 1, depends_on_all: [review]}
+    latches:
+      - {task: review, header: fix, fuel: 5, while_: "${task:review:verdict != 'approved'}"}
+  - # Subgraph
+    tasks:
+      - {id: fetch, kind: tool, version: 1}
+      - {id: child-lint, kind: subgraph, version: 1, root: ../other/loom, depends_on_all: [fetch]}
+      - {id: publish, kind: tool, version: 1, depends_on_all: [child-lint]}

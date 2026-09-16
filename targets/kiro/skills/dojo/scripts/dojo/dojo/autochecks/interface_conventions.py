@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import List, Tuple
 
-from dojo.autochecks._helpers import ERROR, Finding, rule
+from dojo.autochecks._helpers import ERROR, WARN, Finding, rule
 
 @rule('references/interface-conventions.md:2.1')
 def rule_2_1_invocation_section(

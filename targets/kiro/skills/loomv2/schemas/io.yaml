@@ -1,0 +1,70 @@
+# schemas/io.yaml — self-describing meta-schema for a task io.yaml.
+#
+# This IS the io.yaml format doc. Serialised as YAML (still a JSON Schema
+# draft 2020-12 document) so per-field `description` strings sit next to
+# author-facing comments. validate/io_yaml.py quotes the offending field
+# `description` into failure messages, delivering the doc at the moment
+# of the mistake. Load via yaml.safe_load, then validate with jsonschema.
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://loom.internal/schemas/io.yaml"
+title: "Task io.yaml"
+description: >-
+  Declares a task's IO contract. Every task folder MUST contain io.yaml.
+type: object
+required: [version, input, output]
+additionalProperties: false
+properties:
+  version:
+    type: integer
+    minimum: 1
+    description: >-
+      IO-contract revision. Bump whenever the input or output shape
+      changes. Every graph.yaml entry pins the version it saw at
+      authoring time; drift raises TaskVersionMismatchError at load.
+  input:
+    type: object
+    description: >-
+      JSON Schema (draft 2020-12) that input.yaml MUST validate against
+      before dispatch. Root MUST be an object; tool tasks receive a
+      generated <TaskName>Input dataclass built from this schema.
+  output:
+    type: object
+    description: >-
+      JSON Schema (draft 2020-12) that output.yaml MUST validate
+      against on completion. Root MUST be an object; tool tasks
+      return a generated <TaskName>Output.
+
+examples:
+  - version: 1
+    input:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: Who to greet.
+      additionalProperties: false
+    output:
+      type: object
+      required: [greeting]
+      properties:
+        greeting:
+          type: string
+          description: Rendered greeting.
+      additionalProperties: false
+  - version: 2
+    input:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+      additionalProperties: false
+    output:
+      type: object
+      required: [answer]
+      properties:
+        answer:
+          type: string
+      additionalProperties: false

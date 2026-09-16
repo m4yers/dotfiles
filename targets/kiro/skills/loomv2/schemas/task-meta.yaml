@@ -1,0 +1,52 @@
+# schemas/task-meta.yaml — self-describing meta-schema for the reserved
+# `__task` input object.
+#
+# SYNC MANDATE: this schema and the ``TaskMeta`` dataclass in
+# ``scripts/loom/loom/engine/reserved.py`` are one mirror. Fields here
+# and there change together in the same commit; the extension recipe
+# is documented in ``references/io.md`` §5.
+#
+# Deliberately narrowed from the old ambient ``task`` dict (which was
+# the full ``dataclasses.asdict(Task)`` over all 15 Task fields). The
+# new ``__task`` object exposes only identity/metadata that a template
+# would sensibly reference; add-only extensions go through the sync
+# mandate.
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://loom.internal/schemas/task-meta.yaml"
+title: "Reserved __task object"
+description: >-
+  Engine-provided reserved input object mirrored by the ``TaskMeta``
+  dataclass in ``scripts/loom/loom/engine/reserved.py``. SYNC MANDATE:
+  fields here and in ``TaskMeta`` change together in the same commit.
+  Deliberately narrowed from the old ambient ``task`` dict (which was
+  ``dataclasses.asdict(Task)`` over all 15 Task fields). See
+  ``references/io.md`` §5 for the author-facing declaration recipe.
+type: object
+additionalProperties: false
+required: [id, kind, iter, namespace, workdir]
+properties:
+  id:
+    type: string
+    description: Canonical task address.
+  kind:
+    type: string
+    enum: [tool, agent, human, subgraph]
+    description: Task kind.
+  iter:
+    type: integer
+    minimum: 0
+    description: Loop-round counter; 0 outside a latch.
+  namespace:
+    type: string
+    description: Namespace path chain.
+  workdir:
+    type: string
+    description: Absolute path to the current task's dispatch folder.
+
+examples:
+  - id: "review-docs/lint"
+    kind: agent
+    iter: 0
+    namespace: "review-docs"
+    workdir: "/tmp/loom-workdir/tasks/04-review-docs__lint"

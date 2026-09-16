@@ -1,0 +1,27 @@
+{# Suggested heading for the host SKILL.md:
+   ## Helper: Drive human gate
+
+   Place at top level, after the `## Workflow` section and
+   before `## Rules` / `## Completion`.
+
+   Variables (must be passed by the includer):
+     prefix — uppercase shell-variable prefix, e.g. "SB"
+     shim   — uppercase wrapper-script variable, e.g. "LOOM";
+              must resolve to the loom CLI (loom.sh) or a
+              wrapper forwarding args verbatim
+#}
+Human tasks are conversational. Read the rendered prompt at
+`message_path`, follow its instructions, and write structured YAML to
+`output_path` against the task's `io.yaml/output` schema (use
+`${{ prefix }}_{{ shim }} output add` for validated writes). Then call
+`${{ prefix }}_{{ shim }} runtime complete "${{ prefix }}_WD" "<task-address>"`.
+
+For gates that show files, use the editor:
+
+```bash
+${{ prefix }}_EDITOR show file <path>
+```
+
+STOP and wait for the user. The user can accept, edit, or decline.
+Capture their decision and any edits in the output file before
+completing the task.

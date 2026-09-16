@@ -1,0 +1,2 @@
+tasks:
+  - {id: lint-text, kind: tool, version: 1}

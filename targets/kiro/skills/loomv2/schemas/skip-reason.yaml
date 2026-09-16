@@ -1,0 +1,46 @@
+# schemas/skip-reason.yaml — self-describing meta-schema for task skip-reason.yaml.
+#
+# Written by the engine when a task is marked skipped, either because
+# its `when` predicate evaluated cleanly false or because a cascade
+# rule fired (an upstream dep was skipped). JSON Schema draft 2020-12,
+# serialised as YAML. Consumers: engine/store.py (producer),
+# engine/runner.py (dispatch-time skip decisions), tests.
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://loom.internal/schemas/skip-reason.yaml"
+title: "Task skip-reason.yaml"
+description: >-
+  Records why a task was skipped. One document per skip; siblings
+  along a cascade each get their own file.
+type: object
+required: [task_id, reason_kind, timestamp]
+additionalProperties: false
+properties:
+  task_id:
+    type: string
+    description: Canonical address of the skipped task.
+  reason_kind:
+    type: string
+    enum: [when-false, cascade-skip]
+    description: >-
+      `when-false` means the task's own `when` predicate evaluated
+      to a clean false. `cascade-skip` means an upstream dep was
+      already skipped (AND with any skipped → False; OR when all
+      deps skipped → False).
+  predicate:
+    type: string
+    description: >-
+      For `when-false`, the source `when` expression that evaluated
+      false. Omitted for cascade-skip.
+  timestamp:
+    type: string
+    format: date-time
+
+examples:
+  - task_id: publish
+    reason_kind: when-false
+    predicate: "${task:review:verdict == 'approved'}"
+    timestamp: "2026-01-01T12:00:00Z"
+  - task_id: tail
+    reason_kind: cascade-skip
+    timestamp: "2026-01-01T12:00:00Z"

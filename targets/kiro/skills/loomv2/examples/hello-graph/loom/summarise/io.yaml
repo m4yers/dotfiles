@@ -1,0 +1,16 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    greeting: {type: string}
+    # `__loom` is the reserved engine-provided input object; loom
+    # substitutes its meta-schema — see references/io.md §5.
+    __loom: {}
+  required: [greeting, __loom]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    summary: {type: string}
+  required: [summary]

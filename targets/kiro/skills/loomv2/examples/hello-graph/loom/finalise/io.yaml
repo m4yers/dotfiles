@@ -1,0 +1,14 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    summary: {type: string}
+    decision: {type: string}
+  required: [summary, decision]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    message: {type: string}
+  required: [message]

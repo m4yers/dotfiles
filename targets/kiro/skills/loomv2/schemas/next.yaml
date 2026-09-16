@@ -1,0 +1,136 @@
+# schemas/next.yaml — self-describing meta-schema for `$LOOM runtime next` output.
+#
+# Two variants: the success document emitted to stdout (`done` + `ready`)
+# and the abort document emitted to stderr (`failed_task` + `error_path`)
+# when a task has failed. JSON Schema draft 2020-12, serialised as YAML.
+# Consumers: loom/cli_run.py (producer), external orchestrators, and
+# tests/test_cli_run.py (validation). Load via yaml.safe_load then
+# validate with jsonschema.
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://loom.internal/schemas/next.yaml"
+title: "$LOOM runtime next output"
+description: >-
+  YAML document emitted by `$LOOM runtime next <workdir>`. On progress or
+  completion, stdout carries a success document; on abort, stderr
+  carries an abort document and the process exits non-zero.
+oneOf:
+  - $ref: "#/$defs/success"
+  - $ref: "#/$defs/abort"
+
+$defs:
+  success:
+    type: object
+    required: [done, ready]
+    additionalProperties: false
+    properties:
+      done:
+        type: boolean
+        description: >-
+          True when every task in the plan is done (or cleanly
+          skipped) and there is nothing left to dispatch. `ready` is
+          empty in that case.
+      ready:
+        type: array
+        description: >-
+          Batch of agent/human tasks the caller MUST dispatch before
+          the next `$LOOM runtime next` call. Empty when `done` is true. Tool
+          tasks are executed inside `runtime next` and never appear here.
+        items:
+          $ref: "#/$defs/ready_entry"
+
+  ready_entry:
+    type: object
+    required: [id, kind, task_workdir, input_path, output_path]
+    additionalProperties: false
+    properties:
+      id:
+        type: string
+        description: >-
+          Canonical task address (`<namespace-path>/<task-name>`, or
+          the bare task name at the root namespace). Pass this back
+          to `$LOOM runtime complete` after `output.yaml` is written.
+      kind:
+        type: string
+        enum: [agent, human]
+        description: >-
+          Post-inlining leaf kind. `agent` tasks are dispatched to a
+          sub-agent via `prompt_path`; `human` tasks are presented to
+          the user via `message_path`. Tool tasks are absent — `runtime next`
+          runs them internally.
+      task_workdir:
+        type: string
+        description: >-
+          Absolute path to the per-task folder inside the run workdir
+          (`<workdir>/tasks/NN-<flat-id>/`). Every other path in the
+          entry lives under it.
+      input_path:
+        type: string
+        description: >-
+          Absolute path to `input.yaml` inside `task_workdir`.
+          Pre-seeded with `{}` when the caller did not stage inputs.
+      output_path:
+        type: string
+        description: >-
+          Absolute path where the caller MUST write `output.yaml`
+          before calling `$LOOM runtime complete`. Validated against the
+          task's `io.yaml/output` on completion.
+      prompt_path:
+        type: string
+        description: >-
+          Only for `kind: agent`. Absolute path to the rendered
+          `prompt.md` the caller feeds to the sub-agent.
+      message_path:
+        type: string
+        description: >-
+          Only for `kind: human`. Absolute path to the rendered
+          `message.md` the caller presents to the user.
+    oneOf:
+      - required: [prompt_path]
+        not: {required: [message_path]}
+        properties:
+          kind: {const: agent}
+      - required: [message_path]
+        not: {required: [prompt_path]}
+        properties:
+          kind: {const: human}
+
+  abort:
+    type: object
+    required: [failed_task, error_path]
+    additionalProperties: false
+    properties:
+      failed_task:
+        type: string
+        description: Canonical address of the first failed task.
+      error_path:
+        type: string
+        description: >-
+          Absolute path to that task's `error.yaml` (validates
+          against `schemas/error.yaml`).
+
+examples:
+  - # Progress: one agent task surfaced.
+    done: false
+    ready:
+      - id: classify
+        kind: agent
+        task_workdir: /abs/workdir/tasks/02-classify
+        input_path: /abs/workdir/tasks/02-classify/input.yaml
+        output_path: /abs/workdir/tasks/02-classify/output.yaml
+        prompt_path: /abs/workdir/tasks/02-classify/prompt.md
+  - # Progress: one human task surfaced.
+    done: false
+    ready:
+      - id: child-lint/confirm
+        kind: human
+        task_workdir: /abs/workdir/tasks/03-child-lint/confirm
+        input_path: /abs/workdir/tasks/03-child-lint/confirm/input.yaml
+        output_path: /abs/workdir/tasks/03-child-lint/confirm/output.yaml
+        message_path: /abs/workdir/tasks/03-child-lint/confirm/message.md
+  - # Terminal: plan complete.
+    done: true
+    ready: []
+  - # Abort (stderr document).
+    failed_task: classify
+    error_path: /abs/workdir/tasks/02-classify/error.yaml

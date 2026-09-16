@@ -1,0 +1,32 @@
+[project]
+name = "loom"
+version = "0.2.0"
+requires-python = ">=3.11"
+dependencies = [
+    "pyyaml>=6.0",
+    "jsonschema>=4.23",
+    "jmespath>=1.0",
+    # jinja2 is imported by loom/validate/templates.py for in-process AST
+    # parsing (jinja_meta.find_undeclared_variables + Environment().parse).
+    # Rendering itself is delegated to the template skill, so this direct
+    # dep is a temporary AST-parse island; tracked for consolidation
+    # behind a template-skill helper (dojo report warning 12,
+    # references/script-conventions.md §6.1).
+    "jinja2>=3.1",
+    # renderdag backs the git-log-style rail visualiser (loom/visualise/).
+    # Python port of Meta Sapling's commit-graph renderer.
+    "renderdag>=0.1.1",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["loom"]
