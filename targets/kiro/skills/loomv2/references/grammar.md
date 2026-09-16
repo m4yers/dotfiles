@@ -16,7 +16,7 @@ at the root, e.g. `lint`; nested, e.g. `review-docs/lint`).
 | `${workdir}` | Absolute path to the ROOT workdir. Child tasks share this. |
 | `${task_workdir}` | Absolute path to the current task's folder. |
 | `${task:<addr>@<k>}` | Loop body: absolute round `k` output. |
-| `${task:<addr>@prev}` | Loop body: the round before the latest completed round. |
+| `${task:<addr>@prev}` | The previous iteration's output, relative to the reading task's round — null on the very first iteration. In a latch `while_`, the round before the one that just finished. Read from outside the loop: the final round. |
 | `${task:<addr>:<jmespath>}` | Upstream task output projected via JMESPath. |
 | `${task:<addr>}` | Latest completed round of upstream task's `output.yaml`. |
 | `${task_path:<addr>}` | Absolute path to upstream task folder. |

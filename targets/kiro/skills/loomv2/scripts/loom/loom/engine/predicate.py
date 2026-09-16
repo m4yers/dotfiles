@@ -52,18 +52,39 @@ def desugar_predicate(expr: str) -> str:
     return _TASK_REF_RE.sub(repl, expr)
 
 
-def build_predicate_context(plan: LoomPlan, workdir: Path) -> dict:
+def build_predicate_context(
+    plan: LoomPlan,
+    workdir: Path,
+    evaluator: tuple[str, int | None] | None = None,
+) -> dict:
     """Virtual document for predicate eval.
 
     ``task`` maps each id to its latest-completed output (or None).
     ``task_iter`` maps each loop-body id to a dict keyed by round index
-    (as a string) plus ``prev`` (the round before the latest completed),
-    enabling ``${task:addr@sel:path}`` references.
+    (as a string) plus ``prev``, enabling ``${task:addr@sel:path}``
+    references.
+
+    ``prev`` is EVALUATOR-RELATIVE — "the most recent result produced
+    before the current evaluation point":
+
+    - ``evaluator=(id, k)`` with a round index ``k`` (a loop task
+      dispatching round k, or a latch whose just-completed round is k):
+      ``prev`` of any loop task is its round ``k-1`` output — ``None``
+      on the very first iteration (k == 0). Loop-region rounds are
+      aligned, so this reads "the previous iteration's result" and, for
+      a latch reading itself, "the round before the one that just
+      finished".
+    - ``evaluator=(id, None)`` (a non-iterating task, e.g. reading a
+      finished loop from outside): ``prev`` is the latest completed
+      round — the loop's final result.
+    - ``evaluator=None`` (legacy callers): the round before the latest
+      completed, absent unless two rounds completed.
     """
     from loom.engine import store
     from loom.engine.loops import region_members
 
     loop_ids = region_members(plan)
+    ev_round = evaluator[1] if evaluator is not None else None
 
     task_outputs: dict[str, Any] = {}
     task_iter: dict[str, Any] = {}
@@ -80,7 +101,15 @@ def build_predicate_context(plan: LoomPlan, workdir: Path) -> dict:
             str(i): _load(folder / f"iter-{i:02d}" / "output.yaml")
             for i in completed
         }
-        if len(completed) >= 2:
+        if evaluator is not None:
+            if ev_round is not None:
+                # Previous iteration relative to the evaluator's round;
+                # None on the first iteration (k-1 < 0).
+                per["prev"] = per.get(str(ev_round - 1)) if ev_round > 0 else None
+            elif completed:
+                # Non-iterating evaluator: the loop's final result.
+                per["prev"] = per[str(completed[-1])]
+        elif len(completed) >= 2:
             per["prev"] = per.get(str(completed[-2]))
         if per:
             task_iter[t.id] = per
@@ -88,7 +117,12 @@ def build_predicate_context(plan: LoomPlan, workdir: Path) -> dict:
     return {"task": task_outputs, "task_iter": task_iter}
 
 
-def eval_predicate(expr: str, plan: LoomPlan, workdir: Path) -> tuple[bool, str | None]:
+def eval_predicate(
+    expr: str,
+    plan: LoomPlan,
+    workdir: Path,
+    evaluator: tuple[str, int | None] | None = None,
+) -> tuple[bool, str | None]:
     """Evaluate ``expr``. Returns ``(truthy, reason)``; reason on falsy.
 
     Raises :class:`PredicateEvalError` on parse errors, JMESPath
@@ -101,7 +135,7 @@ def eval_predicate(expr: str, plan: LoomPlan, workdir: Path) -> tuple[bool, str 
     if not expr:
         return True, None
     desugared = desugar_predicate(expr)
-    ctx = build_predicate_context(plan, workdir)
+    ctx = build_predicate_context(plan, workdir, evaluator)
     try:
         result = jmespath.search(desugared, ctx)
     except Exception as exc:  # noqa: BLE001 — surfaced as PredicateEvalError

@@ -64,14 +64,23 @@ def latch_continue(
     caller persists it on the latch. Pure: mutates nothing.
 
     ``while_`` is evaluated against the latest completed outputs (the
-    round that just finished) via the predicate machinery.
+    round that just finished) via the predicate machinery; ``@prev``
+    refs inside it resolve relative to the latch's just-completed
+    round (its round N-1).
     """
+    from loom.engine import store
     from loom.engine.predicate import eval_predicate
 
     latch = latch_task.latch
     while_ok = True
     if latch.while_:
-        while_ok, _reason = eval_predicate(latch.while_, plan, workdir)
+        completed = store.completed_iter_indices(
+            store.task_folder(Path(workdir), plan, latch_task.id)
+        )
+        evaluator = (latch_task.id, completed[-1] if completed else None)
+        while_ok, _reason = eval_predicate(
+            latch.while_, plan, workdir, evaluator=evaluator
+        )
 
     new_fuel = latch.fuel
     fuel_ok = True

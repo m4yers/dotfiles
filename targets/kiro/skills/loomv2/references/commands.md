@@ -93,8 +93,9 @@ to pending and the next `runtime next` re-dispatches it — each activation of a
 loop-body task gets a fresh `iter-NN/` round dir under its task folder. On stop,
 the latch stays done and the region's exit edge releases downstream tasks. The
 latest completed round is what `${task:<addr>}` references and downstream
-consumers see; earlier rounds stay addressable via `${task:<addr>@<k>}` /
-`@prev`.
+consumers see; earlier rounds stay addressable via `${task:<addr>@<k>}`, and
+`@prev` gives each round the previous iteration's output (null on the very
+first iteration).
 
 ## runtime fail
 
@@ -218,12 +219,18 @@ $LOOM output add "$WORKDIR" --task greet-user \
     --set meta.tone='cheerful'
 ```
 
-Applies dotted-path assignments to the task's `output.yaml`, coerces each value
-against the schema, revalidates, and writes atomically.
+Applies dotted-path assignments to the task's `output.yaml`, coerces each value,
+validates, and writes atomically. Validation is PARTIAL: wrong field names
+(`additionalProperties`) and wrong types fail immediately, but `required`
+obligations are deferred so a document can be built across multiple calls —
+completeness is enforced by `runtime complete`.
 
-- `--set path=value` — repeatable; supports `field`, `field.sub`, and `field[]`
-  for list append (`field[-1]` targets the last append).
-- Non-zero exit on schema failure; the file on disk is not modified.
+- `--set path=value` — repeatable; supports `field`, `field.sub`, explicit
+  indices (`field.0` / `field[0]`), and `field[]` for list append
+  (`field[-1]` targets the last element — e.g. `items[].name=a` then
+  `items[-1].size=3`).
+- Non-zero exit on schema failure or malformed path; the file on disk is not
+  modified.
 
 ## validate
 

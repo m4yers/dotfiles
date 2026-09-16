@@ -7,7 +7,10 @@ context (built from upstream outputs on disk), then STRICTLY validates
 the resolved dict against the task's own ``io.yaml/input`` in both
 directions — absent required field OR undeclared extra raises
 :class:`InputSchemaError`. Missing / unfinished upstream refs raise the
-same error (no silent empty-string coercion).
+same error (no silent empty-string coercion), with ONE exception: an
+``@prev`` selector evaluated on the FIRST iteration of a loop (round 0)
+resolves to null — nothing was produced before that round, and the
+consumer's own io.yaml nullability decides whether null is acceptable.
 
 Reserved engine-provided inputs (``__loom``, ``__task``) are handled
 here: the mapping MUST NOT wire them (dispatch-time shadow check
@@ -89,7 +92,9 @@ def resolve_task_input(
                 f"input mapping key {key!r} shadows a reserved "
                 f"engine-provided name (see references/io.md)",
             )
-    ctx = build_predicate_context(plan, workdir)
+    ctx = build_predicate_context(
+        plan, workdir, evaluator=(task.id, _folder_round(task_folder))
+    )
     resolved: dict[str, Any] = {}
     for field, placeholder in task.input_mapping.items():
         m = _FULL_TASK_REF_RE.match(placeholder)
@@ -100,6 +105,7 @@ def resolve_task_input(
                 "single ${task:...} reference",
             )
         addr = m.group(1)
+        sel = m.group(2)
         expr = desugar_predicate(placeholder.strip())
         try:
             value = jmespath.search(expr, ctx)
@@ -109,6 +115,13 @@ def resolve_task_input(
                 f"field {field!r}: could not evaluate {placeholder!r}: {exc}",
             ) from exc
         if value is None:
+            if sel == "prev" and _folder_round(task_folder) == 0:
+                # First iteration: nothing was produced before this
+                # round, so a prev-selector ref legally resolves to
+                # null. The io.yaml schema (strict-validated below)
+                # decides whether the consumer accepts it.
+                resolved[field] = None
+                continue
             raise InputSchemaError(
                 task.id,
                 f"field {field!r}: upstream ref {placeholder!r} did not "
@@ -124,6 +137,14 @@ def resolve_task_input(
 
     _strict_validate(task.id, resolved, input_schema)
     return resolved
+
+
+def _folder_round(task_folder: Path) -> int | None:
+    """Round index of a dispatch folder (``iter-NN``), or None if flat."""
+    name = task_folder.name
+    if name.startswith("iter-") and name[len("iter-"):].isdigit():
+        return int(name[len("iter-"):])
+    return None
 
 
 def _strict_validate(task_id: str, doc: dict, schema: dict) -> None:

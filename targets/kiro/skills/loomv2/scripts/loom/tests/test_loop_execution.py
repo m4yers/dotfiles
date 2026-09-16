@@ -92,6 +92,49 @@ def test_predicate_context_rounds_and_prev(tmp_path: Path):
     assert ok is True
 
 
+def test_predicate_context_evaluator_relative_prev(tmp_path: Path):
+    """@prev = previous iteration relative to the evaluator's round;
+    null on the first iteration; final round for non-iterating readers."""
+    plan, wd = _loop_plan(tmp_path, LoopBlock(header="fix", fuel=5))
+    _write_output(wd, plan, "review", {"verdict": "rejected"})
+    _write_output(wd, plan, "review", {"verdict": "approved"})
+
+    # Header dispatching round 2 reads round 1.
+    ctx = build_predicate_context(plan, wd, evaluator=("fix", 2))
+    assert ctx["task_iter"]["review"]["prev"] == {"verdict": "approved"}
+    # Header dispatching round 1 reads round 0.
+    ctx = build_predicate_context(plan, wd, evaluator=("fix", 1))
+    assert ctx["task_iter"]["review"]["prev"] == {"verdict": "rejected"}
+    # First iteration: explicit null — nothing produced before it.
+    ctx = build_predicate_context(plan, wd, evaluator=("fix", 0))
+    assert ctx["task_iter"]["review"]["prev"] is None
+    # Latch self-read after completing round 1: its round 0.
+    ctx = build_predicate_context(plan, wd, evaluator=("review", 1))
+    assert ctx["task_iter"]["review"]["prev"] == {"verdict": "rejected"}
+    # Non-iterating evaluator after loop exit: the final result.
+    ctx = build_predicate_context(plan, wd, evaluator=("publish", None))
+    assert ctx["task_iter"]["review"]["prev"] == {"verdict": "approved"}
+
+
+def test_latch_continue_while_prev_self_read(tmp_path: Path):
+    """A latch while_ using @prev on itself compares against the round
+    before the one that just finished."""
+    plan, wd = _loop_plan(
+        tmp_path,
+        LoopBlock(header="fix",
+                  while_="${task:review@prev:verdict} != 'approved'"))
+    latch = plan.tasks[1]
+    _write_output(wd, plan, "review", {"verdict": "approved"})
+    _write_output(wd, plan, "review", {"verdict": "rejected"})
+    # Just finished round 1; @prev = round 0 = approved → while_ false.
+    cont, _ = latch_continue(latch, plan, wd)
+    assert cont is False
+    _write_output(wd, plan, "review", {"verdict": "rejected"})
+    # Just finished round 2; @prev = round 1 = rejected → while_ true.
+    cont, _ = latch_continue(latch, plan, wd)
+    assert cont is True
+
+
 def test_eval_predicate_error_raises(tmp_path: Path):
     """Broken JMESPath raises PredicateEvalError; only a clean false skips."""
     from loom.errors import PredicateEvalError

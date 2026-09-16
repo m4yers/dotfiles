@@ -85,7 +85,10 @@ class LoomRuntime:
                 folder.mkdir(parents=True, exist_ok=True)
                 write_skip_reason_yaml(folder, t.id, "cascade-skip")
                 continue
-            ok, _reason = eval_predicate(t.when or "", self.plan, self.workdir)
+            ok, _reason = eval_predicate(
+                t.when or "", self.plan, self.workdir,
+                evaluator=(t.id, self._pending_round(t.id)),
+            )
             if not ok:
                 t.status = "skipped"
                 folder = _task_folder(self.workdir, self.plan, t.id)
@@ -105,6 +108,18 @@ class LoomRuntime:
             if not unfinished:
                 return None
         return ActionSpec(tasks=batch)
+
+    def _pending_round(self, task_id: str) -> int | None:
+        """Round index the next activation of ``task_id`` would get.
+
+        None for tasks outside every loop region (they do not iterate).
+        """
+        from loom.engine.loops import region_members
+        from loom.engine.store import next_round_index
+
+        if task_id not in region_members(self.plan):
+            return None
+        return next_round_index(_task_folder(self.workdir, self.plan, task_id))
 
     def commit_running(self, task_ids: list[str]) -> None:
         """Flip ``task_ids`` to running and persist."""

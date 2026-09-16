@@ -250,7 +250,10 @@ def test_mapping_prev_round_reference(tmp_path: Path):
 
     Not exercised through the CLI (agent tasks require external
     completion). Uses ``resolve_task_input`` directly against a
-    hand-built plan and pre-populated iter-NN/ outputs.
+    hand-built plan and pre-populated iter-NN/ outputs. Mirrors the
+    real dispatch contract: loop-body tasks receive their ``iter-NN``
+    round dir (``_dispatch_folder`` → ``begin_round``), and @prev is
+    evaluator-relative — round k reads round k-1.
     """
     from loom.engine.mapping import resolve_task_input
     from loom.engine.models import LoomPlan, LoopBlock, Task
@@ -273,6 +276,135 @@ def test_mapping_prev_round_reference(tmp_path: Path):
     d1 = begin_round(fix_folder)
     (d1 / "output.yaml").write_text(yaml.safe_dump({"note": "second"}))
 
+    # review completed round 0; its round-1 dispatch dir is fresh.
+    review_folder = task_folder(workdir, plan, "review")
+    r0 = begin_round(review_folder)
+    (r0 / "output.yaml").write_text(yaml.safe_dump({"note": "r0"}))
+    r1 = begin_round(review_folder)
+
+    schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {"note": {"type": "string"}},
+        "required": ["note"],
+    }
+    doc = resolve_task_input(plan.tasks[1], plan, workdir, r1, schema)
+    assert doc == {"note": "first"}  # previous iteration (round 0)
+
+
+def _backedge_loop_plan(tmp_path: Path):
+    """header reads latch@prev — the theory-form/theory-verdict shape."""
+    from loom.engine.models import LoomPlan, LoopBlock, Task
+
+    return LoomPlan(loom_root=tmp_path, tasks=[
+        Task(
+            id="form",
+            kind="agent",
+            input_mapping={"hint": "${task:verdict@prev:hint}"},
+        ),
+        Task(
+            id="verdict",
+            kind="agent",
+            depends_on_all=["form"],
+            latch=LoopBlock(header="form", fuel=5),
+        ),
+    ])
+
+
+_NULLABLE_HINT_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {"hint": {"type": ["string", "null"]}},
+    "required": ["hint"],
+}
+
+
+def test_mapping_prev_first_iteration_is_null(tmp_path: Path):
+    """@prev on round 0 resolves to null when the schema allows it."""
+    from loom.engine.mapping import resolve_task_input
+    from loom.engine.store import begin_round, task_folder
+
+    plan = _backedge_loop_plan(tmp_path)
+    workdir = tmp_path / "wd"
+    f0 = begin_round(task_folder(workdir, plan, "form"))
+
+    doc = resolve_task_input(
+        plan.tasks[0], plan, workdir, f0, _NULLABLE_HINT_SCHEMA
+    )
+    assert doc == {"hint": None}
+
+
+def test_mapping_prev_first_iteration_rejected_by_schema(tmp_path: Path):
+    """Round-0 null still fails strict validation for non-nullable fields."""
+    from loom.engine.mapping import resolve_task_input
+    from loom.engine.store import begin_round, task_folder
+    from loom.errors import InputSchemaError
+
+    plan = _backedge_loop_plan(tmp_path)
+    workdir = tmp_path / "wd"
+    f0 = begin_round(task_folder(workdir, plan, "form"))
+
+    strict = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {"hint": {"type": "string"}},
+        "required": ["hint"],
+    }
+    with pytest.raises(InputSchemaError):
+        resolve_task_input(plan.tasks[0], plan, workdir, f0, strict)
+
+
+def test_mapping_prev_later_rounds_get_previous_iteration(tmp_path: Path):
+    """Round 1 of the header reads the latch's round-0 output — not null,
+    not two rounds back."""
+    from loom.engine.mapping import resolve_task_input
+    from loom.engine.store import begin_round, task_folder
+
+    plan = _backedge_loop_plan(tmp_path)
+    workdir = tmp_path / "wd"
+    v_folder = task_folder(workdir, plan, "verdict")
+    v0 = begin_round(v_folder)
+    (v0 / "output.yaml").write_text(yaml.safe_dump({"hint": "try-harder"}))
+    form_folder = task_folder(workdir, plan, "form")
+    f0 = begin_round(form_folder)
+    (f0 / "output.yaml").write_text(yaml.safe_dump({}))
+    f1 = begin_round(form_folder)
+
+    doc = resolve_task_input(
+        plan.tasks[0], plan, workdir, f1, _NULLABLE_HINT_SCHEMA
+    )
+    assert doc == {"hint": "try-harder"}
+
+
+def test_mapping_prev_from_outside_loop_gets_final_round(tmp_path: Path):
+    """A non-iterating consumer reading @prev after loop exit gets the
+    loop's final (latest completed) result."""
+    from loom.engine.mapping import resolve_task_input
+    from loom.engine.models import LoomPlan, LoopBlock, Task
+    from loom.engine.store import begin_round, task_folder
+
+    plan = LoomPlan(loom_root=tmp_path, tasks=[
+        Task(id="fix", kind="agent"),
+        Task(
+            id="review",
+            kind="agent",
+            depends_on_all=["fix"],
+            latch=LoopBlock(header="fix", fuel=5),
+        ),
+        Task(
+            id="publish",
+            kind="agent",
+            depends_on_all=["review"],
+            input_mapping={"note": "${task:fix@prev:note}"},
+        ),
+    ])
+    workdir = tmp_path / "wd"
+    fix_folder = task_folder(workdir, plan, "fix")
+    d0 = begin_round(fix_folder)
+    (d0 / "output.yaml").write_text(yaml.safe_dump({"note": "first"}))
+    d1 = begin_round(fix_folder)
+    (d1 / "output.yaml").write_text(yaml.safe_dump({"note": "final"}))
+
     schema = {
         "type": "object",
         "additionalProperties": False,
@@ -280,9 +412,10 @@ def test_mapping_prev_round_reference(tmp_path: Path):
         "required": ["note"],
     }
     doc = resolve_task_input(
-        plan.tasks[1], plan, workdir, task_folder(workdir, plan, "review"), schema
+        plan.tasks[2], plan, workdir, task_folder(workdir, plan, "publish"),
+        schema,
     )
-    assert doc == {"note": "first"}  # previous round
+    assert doc == {"note": "final"}
 
 
 # ---- dual-instance subgraph wiring ----

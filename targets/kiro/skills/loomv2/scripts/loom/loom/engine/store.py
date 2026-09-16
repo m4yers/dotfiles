@@ -75,6 +75,16 @@ def completed_iter_indices(folder: Path) -> list[int]:
     )
 
 
+def next_round_index(folder: Path) -> int:
+    """Index :func:`begin_round` would assign to the next activation.
+
+    One past the highest existing iter dir; 0 when none exist. Pure
+    read — creates nothing.
+    """
+    existing = _iter_dirs(folder)
+    return (int(existing[-1].name[len("iter-"):]) + 1) if existing else 0
+
+
 def begin_round(folder: Path) -> Path:
     """Create and return the iter dir for a fresh loop round.
 
