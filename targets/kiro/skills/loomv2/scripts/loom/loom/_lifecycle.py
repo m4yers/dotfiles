@@ -10,6 +10,7 @@ lifecycle contract.
 """
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from loom.engine.inline import expand_subgraphs
@@ -19,7 +20,7 @@ from loom.engine.store import read_plan_yaml, write_plan_yaml
 from loom.errors import WorkdirExistsError, WorkdirNotEmptyError
 
 
-def init(workdir: Path, *, loom_root: Path) -> LoomRuntime:
+def init(workdir: Path, *, loom_root: Path, force: bool = False) -> LoomRuntime:
     """Initialise a fresh workdir from ``<loom_root>/graph.yaml``.
 
     Preconditions:
@@ -30,10 +31,19 @@ def init(workdir: Path, *, loom_root: Path) -> LoomRuntime:
       - Loads and validates the plan (internal ``loom.plan`` API).
       - Runs static validation on the composed (post-inlining) plan.
       - Writes plan.yaml atomically.
+      - When ``force=True``: if ``workdir`` exists, wipe it
+        (``shutil.rmtree``) before the usual precondition checks so
+        ``WorkdirExistsError`` / ``WorkdirNotEmptyError`` never fire;
+        if it does not exist, proceed silently — ``--force`` is purely
+        an alternative to the "already-exists" errors and is
+        idempotent on a missing workdir. ``force=False`` behaviour is
+        unchanged.
 
     Raises:
-      - WorkdirExistsError if workdir already contains plan.yaml.
-      - WorkdirNotEmptyError if workdir has unrecognised contents.
+      - WorkdirExistsError if workdir already contains plan.yaml (only
+        when ``force=False``).
+      - WorkdirNotEmptyError if workdir has unrecognised contents
+        (only when ``force=False``).
       - LoomPlanError subclasses on validation failure (no state written).
 
     Returns a LoomRuntime bound to workdir.
@@ -41,6 +51,8 @@ def init(workdir: Path, *, loom_root: Path) -> LoomRuntime:
     from loom.plan import from_graph_yaml
 
     workdir = Path(workdir)
+    if force and workdir.exists():
+        shutil.rmtree(workdir)
     if (workdir / "plan.yaml").exists():
         raise WorkdirExistsError(f"workdir already has plan.yaml: {workdir}")
     if workdir.exists() and any(workdir.iterdir()):
@@ -99,6 +111,7 @@ def _static_validate(plan: LoomPlan, pinning_graph: Path | None) -> None:
     from loom.validate.loops import validate_loops
     from loom.validate.mapping import validate_mapping
     from loom.validate.references import validate_references
+    from loom.validate.subtype import validate_required_wiring, validate_subtype
     from loom.validate.templates import validate_templates
     from loom.validate.versions import check_versions
 
@@ -106,7 +119,14 @@ def _static_validate(plan: LoomPlan, pinning_graph: Path | None) -> None:
     validate_dag(plan)
     validate_single_entry_exit(plan)
     validate_references(plan)
+    # validate_mapping runs BEFORE the subtype / required-wiring passes
+    # so that reserved-shadow keys (`__loom` / `__task` in an
+    # ``input:`` mapping) surface as :class:`ReservedShadowError`
+    # without the alignment passes first attempting to load the
+    # consumer's ``io.yaml`` (which the shadow may itself invalidate).
     validate_mapping(plan)
+    validate_subtype(plan)
+    validate_required_wiring(plan)
     validate_templates(plan)
     validate_loops(plan)
     if pinning_graph is not None:

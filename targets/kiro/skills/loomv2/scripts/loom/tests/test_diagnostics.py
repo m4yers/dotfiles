@@ -31,7 +31,7 @@ def _make_folder_with_stderr(tmp_path: Path, body: str) -> Path:
     folder.mkdir()
     (folder / "io.yaml").write_text(yaml.safe_dump({
         "version": 1,
-        "input": {"type": "object"},
+        "input": {"type": "object", "additionalProperties": False},
         "output": {
             "type": "object",
             "additionalProperties": False,
@@ -130,7 +130,7 @@ def test_schema_error_on_output_validation(tmp_path: Path):
     task.mkdir()
     (task / "io.yaml").write_text(yaml.safe_dump({
         "version": 1,
-        "input": {"type": "object"},
+        "input": {"type": "object", "additionalProperties": False},
         "output": {
             "type": "object",
             "additionalProperties": False,

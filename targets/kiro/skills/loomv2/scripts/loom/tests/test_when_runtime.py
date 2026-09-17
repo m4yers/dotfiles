@@ -31,7 +31,7 @@ def _write_seed_tool(root: Path, name: str, pascal: str, output_doc: dict) -> No
     fields = list(output_doc.keys())
     (d / "io.yaml").write_text(yaml.safe_dump({
         "version": 1,
-        "input": {"type": "object"},
+        "input": {"type": "object", "additionalProperties": False},
         "output": {
             "type": "object",
             "additionalProperties": False,
@@ -79,8 +79,8 @@ def _write_agent(root: Path, name: str) -> None:
     d.mkdir(parents=True, exist_ok=True)
     (d / "io.yaml").write_text(yaml.safe_dump({
         "version": 1,
-        "input": {"type": "object"},
-        "output": {"type": "object"},
+        "input": {"type": "object", "additionalProperties": False},
+        "output": {"type": "object", "additionalProperties": False},
     }))
     (d / "prompt.md.j2").write_text("say something\n")
 

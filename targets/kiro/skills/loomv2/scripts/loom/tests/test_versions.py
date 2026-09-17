@@ -34,8 +34,8 @@ def test_missing_version_meta_schema(tmp_path):
     task = tmp_path / "compute"
     task.mkdir()
     (task / "io.yaml").write_text(yaml.safe_dump({
-        "input": {"type": "object"},
-        "output": {"type": "object"},
+        "input": {"type": "object", "additionalProperties": False},
+        "output": {"type": "object", "additionalProperties": False},
     }))
     from loom.errors import IOYamlError
 

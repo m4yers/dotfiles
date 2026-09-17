@@ -15,8 +15,15 @@ loom drives the run loop and executes the agent and human tasks loom surfaces.
 validated `input.yaml` it reads and the `output.yaml` it writes. Cross-task
 data flows only through the `input:` block on each `graph.yaml` task entry,
 which the engine resolves at dispatch and materialises into that task's
-`input.yaml`. There is no shared state between tasks, so every run is
-replayable from the recorded inputs.
+`input.yaml`. There is no shared state between tasks, so every run is replayable
+from the recorded inputs.
+
+**Parallel-dispatch:** agent entries in the same `ready` batch surfaced by
+`runtime next` are independent by DAG construction and MUST be dispatched in
+parallel — host skills MUST NOT serialize them, because serial dispatch drops
+the DAG's concurrency guarantee and inflates end-to-end latency for no gain.
+Tool tasks never appear in `ready` (loom runs them internally); human gates
+surface one message at a time.
 
 ## Invocation
 
@@ -31,14 +38,14 @@ Consumer surface is the CLI, grouped by command family.
 
 ### runtime
 
-| Command            | Args                                    | Output                          |
-|--------------------|-----------------------------------------|---------------------------------|
-| `runtime init`     | `<workdir> --loom-root PATH`            | prints workdir path             |
-| `runtime next`     | `<workdir>`                             | YAML: `done` + `ready` batch    |
-| `runtime complete` | `<workdir> <task-address>`              | `ok`; validates `output.yaml`   |
-| `runtime fail`     | `<workdir> <task-address> --message T`  | marks failed; writes error.yaml |
-| `runtime reset`    | `<workdir> <task-address>`              | resets task (region-aware)      |
-| `runtime status`   | `<workdir>`                             | YAML: totals + status counts    |
+| Command            | Args                                                   | Output             |
+|--------------------|--------------------------------------------------------|--------------------|
+| `runtime init`     | `<workdir> --loom-root PATH [--force] [--set K=V ...]` | workdir path       |
+| `runtime next`     | `<workdir>`                                            | YAML: done + ready |
+| `runtime complete` | `<workdir> <task-address>`                             | validates output   |
+| `runtime fail`     | `<workdir> <task-address> --message T`                 | writes error.yaml  |
+| `runtime reset`    | `<workdir> <task-address>`                             | region-aware reset |
+| `runtime status`   | `<workdir>`                                            | totals + counts    |
 
 ### task
 
@@ -55,237 +62,60 @@ Consumer surface is the CLI, grouped by command family.
 
 ### output
 
-| Command       | Args                                 | Output                         |
-|---------------|--------------------------------------|--------------------------------|
-| `output init` | `<workdir> --task <id>`              | seeds `output.yaml`            |
-| `output add`  | `<workdir> --task <id> --set K=V...` | dotted-path writes + validates |
+| Command       | Args                                                | Output                    |
+|---------------|-----------------------------------------------------|---------------------------|
+| `output init` | `<workdir> --task <id>`                             | seeds `output.yaml`       |
+| `output add`  | `<workdir> --task <id> --set K=V [--set-json K=V]`  | writes + validates output |
+
+`output add` accepts `--set` (scalar with bool/int/float coercion) and
+`--set-json` (value parsed as JSON) — use `--set-json` for explicit empty values
+(`items=[]`, `note=""`, `owner=null`) and nested structures the scalar grammar
+cannot express. Required by the io.md contract-soundness rule: when data may
+be absent, the producer emits the explicit empty value — never omitting a
+required field.
 
 ### misc
 
-| Command     | Args                         | Output                          |
-|-------------|------------------------------|---------------------------------|
-| `validate`  | `<skill-root> [--plan PATH]` | non-zero on any `LoomPlanError` |
-| `visualise` | `<workdir>`                  | ASCII DAG with namespaced tasks |
+| Command     | Args                                                                | Output    |
+|-------------|---------------------------------------------------------------------|-----------|
+| `validate`  | `<skill-root> [--graph PATH]`                                       | non-zero  |
+| `visualise` | `[<workdir>] [--plan PATH] [--no-when] [--no-loops] [--ascii-only]` | ASCII DAG |
+
+`validate --graph PATH` targets a `graph.yaml`; `visualise --plan PATH` targets
+a `plan.yaml`. The flag names are distinct so callers cannot cross-feed the two
+file shapes. `visualise` takes exactly one of `<workdir>` or `--plan PATH`; the
+full flag list (including `-o/--output PATH`) is documented under `visualise`
+in [references/commands.md](references/commands.md).
 
 ## Commands
 
-Per-command contracts live below. Each subsection carries the invocation
-example, arguments, and behaviour notes callers need. Full edge-case
-contracts and cross-command interactions live in
-[references/commands.md](references/commands.md).
+Per-command contracts, flags, error paths, and edge-case notes live in
+[references/commands.md](references/commands.md). High-level dispatch notes
+for the runtime loop:
 
-### runtime init
-
-```bash
-$LOOM runtime init "$WORKDIR" --loom-root "$LOOM_ROOT"
-```
-
-Creates a fresh workdir on top of `<loom-root>/graph.yaml`. Loads the graph,
-inlines subgraphs, runs static validation, then writes `plan.yaml` and
-per-task folders. Prints the workdir path on success.
-
-- `<workdir>` — target folder; must not already contain a `plan.yaml`.
-- `--loom-root PATH` — folder containing `graph.yaml` and task folders.
-- Non-zero exit on any `LoomPlanError`; nothing is written when validation
-  fails.
-
-### runtime next
-
-```bash
-$LOOM runtime next "$WORKDIR"
-```
-
-Resumes the workdir, runs every ready tool task internally, and emits a YAML
-document to stdout (shape: `schemas/next.yaml`). If `done: true` execution is
-finished; otherwise execute each entry in `ready` — dispatch `kind: agent`
-entries to a sub-agent using `prompt_path`, drive `kind: human` entries from
-`message_path`, write each task's `output.yaml`, then call
-`$LOOM runtime complete`. The surfaced batch is committed to `running` before
-`next` returns; tool tasks never appear in `ready`.
-
-At every dispatch (once per activation; per round for loop bodies) `next`
-evaluates the `when` predicate, resolves and strictly validates any
-`input:` mapping in `graph.yaml`, and captures a tool body's stderr into
-`stderr.yaml` when non-empty. Skipped tasks write `skip-reason.yaml`; input
-validation failures write `schema-error.yaml` (`phase: input`).
-
-- `<workdir>` — run workdir produced by `runtime init`.
-- Non-zero exit if the run is aborted. Stderr carries the abort variant of
-  `schemas/next.yaml` (`failed_task` + `error_path`).
-
-### runtime complete
-
-```bash
-$LOOM runtime complete "$WORKDIR" "$TASK_ADDRESS"
-```
-
-Validates `<task-workdir>/output.yaml` against the task's `io.yaml/output`,
-marks the task done, and persists the plan. Prints `ok` on success.
-Completing a loop-latch task also runs the loop decision — `fuel` is
-decremented and `while_` is evaluated against the round that just
-finished; on continue the loop body is reset and the next `runtime next`
-re-dispatches it under a fresh `iter-NN/` round dir.
-
-- `<workdir>` — the run workdir.
-- `<task-address>` — canonical task address as surfaced by `runtime next`.
-- Raises `OutputSchemaError` (non-zero exit) if `output.yaml` fails its
-  schema; the task is marked failed and a `schema-error.yaml`
-  (`phase: output`) is written.
-
-### runtime fail
-
-```bash
-$LOOM runtime fail "$WORKDIR" "$TASK_ADDRESS" --message "human reason"
-```
-
-Marks the task failed and writes `<task_workdir>/error.yaml` with the given
-message. Used by callers to surface human/agent failures the CLI cannot
-detect on its own (a human refuses, an external agent returns a fault).
-Prints `ok`. The next `runtime next` raises `RunAborted`.
-
-- `<workdir>` — the run workdir.
-- `<task-address>` — canonical task address.
-- `--message TEXT` — human-readable failure reason recorded in
-  `error.yaml`.
-
-### runtime reset
-
-```bash
-$LOOM runtime reset "$WORKDIR" "$TASK_ADDRESS"
-```
-
-Flips the task back to `pending` and clears its generated artifacts —
-`output.yaml`, `error.yaml`, diagnostic YAMLs (`skip-reason.yaml`,
-`schema-error.yaml`, `stderr.yaml`), rendered `prompt.md` / `message.md`,
-and every `iter-NN/` round dir. Region-aware: resetting any task inside a
-loop body resets the whole region so round indexing restarts at `iter-00`.
-Caller-seeded `input.yaml` is preserved; mapping-driven `input.yaml` is
-deleted and re-materialised on the next dispatch. Latch `fuel` is NOT
-restored.
-
-- `<workdir>` — the run workdir.
-- `<task-address>` — canonical task address.
-
-### runtime status
-
-```bash
-$LOOM runtime status "$WORKDIR"
-```
-
-Emits a YAML document with `total`, `is_done`, `is_stuck`, and per-status
-counts (`pending`/`ready`/`running`/`done`/`failed`/`skipped`). Read-only.
-
-- `<workdir>` — the run workdir.
-
-### task new
-
-```bash
-$LOOM task new greet-user --loom-root ./loom
-```
-
-Creates `<loom-root>/<name>/` — folder only, no files inside. The authoring
-agent then writes `io.yaml` by hand (see `schemas/io.yaml`) and the body
-file appropriate to the task kind: tool task → run `task io-python` then
-write `tool.py`; agent task → write `prompt.md.j2`; human task → write
-`message.md.j2`.
-
-- `<name>` — kebab-case, matches `^[a-z][a-z0-9-]*$`.
-- `--loom-root PATH` — override the default (`./loom`).
-- Raises `TaskFolderError` on bad name or when the folder already exists.
-
-### task io-python
-
-```bash
-$LOOM task io-python greet-user --loom-root ./loom
-```
-
-Reads `<loom-root>/<name>/io.yaml` and (re)writes
-`<loom-root>/<name>/io_types.py` — a fully generator-owned file carrying
-`<TaskName>Input` / `<TaskName>Output` dataclasses with `VERSION`,
-JSON→Python-typed fields, and `from_dict` / `to_dict` helpers. Regenerate
-any time — the whole file is overwritten. Prints `wrote io_types.py (vN)`.
-
-- `<name>` — task folder name.
-- `--loom-root PATH` — override the default (`./loom`).
-- Only meaningful for tool tasks; not gated on kind.
-- Raises `TaskFolderError` if the folder is missing; `IOYamlError` if
-  `io.yaml` is missing or fails the meta-schema.
-
-### graph new
-
-```bash
-$LOOM graph new --loom-root ./loom
-```
-
-Idempotent. If `<loom-root>/graph.yaml` is absent, scaffolds a starter by
-discovering task folders and pinning each entry to the current `io.yaml`
-version (prints `scaffolded <path> with N task(s)`). If present, preserves
-every authored field (task entries, `depends_on_all`/`any`, `when`,
-latches, subgraph entries and their `root` paths, ordering, extra fields)
-and restamps each entry's `version` from the referenced task folder's
-current `io.yaml` (prints `repinned N task(s)` or `unchanged`).
-
-- `--loom-root PATH` — override the default (`./loom`).
-- Raises `GraphYamlError` if the existing file fails the meta-schema.
-
-### output init
-
-```bash
-$LOOM output init "$WORKDIR" --task greet-user
-```
-
-Seeds `<workdir>/tasks/<id>/output.yaml` from the task's `io.yaml/output`
-schema with the schema defaults.
-
-- `<workdir>` — the run workdir.
-- `--task <id>` — canonical task address.
-- Non-zero exit if the task or workdir is missing.
-
-### output add
-
-```bash
-$LOOM output add "$WORKDIR" --task greet-user \
-    --set greeting='Hello' \
-    --set meta.tone='cheerful'
-```
-
-Applies dotted-path assignments to the task's `output.yaml`, coerces each
-value against the schema, revalidates, and writes atomically.
-
-- `--set path=value` — repeatable; supports `field`, `field.sub`, and
-  `field[]` for list append (`field[-1]` targets the last append).
-- Non-zero exit on schema failure; the file on disk is not modified.
-
-### validate
-
-```bash
-$LOOM validate <skill-root> [--plan PATH]
-```
-
-Runs the static validation set against a skill's `loom/` folder without
-touching a workdir.
-
-- `<skill-root>` — the skill root.
-- `--plan PATH` — optional path to a `graph.yaml` to validate; when
-  omitted, validates `<skill-root>/loom/graph.yaml`.
-- Exits non-zero on any `LoomPlanError`; every message quotes the schema
-  field description or the exception `remedy`.
-
-### visualise
-
-```bash
-$LOOM visualise <workdir>
-```
-
-Renders `plan.yaml` as an ASCII DAG with statuses, loop glyphs, and
-subgraph child tasks under their subgraph header.
-
-- `<workdir>` — run workdir; must contain `plan.yaml`.
+- `runtime init` builds the workdir. The single-call
+  `runtime init --force --set K=V ...` form is the DEFAULT ingest — wipe,
+  init, and entry-task seeding fold into one invocation. Omitting `--set`
+  leaves the entry task caller-seeded (hand-written `input.yaml` before
+  the first `runtime next`) — still supported as the escape hatch.
+- `runtime next` prints a [`schemas/next.yaml`](schemas/next.yaml)
+  document to stdout. If `done: true`, execution is finished; otherwise
+  the surfaced `ready` batch is committed to `running` before `next`
+  returns. Loop through `ready`: dispatch `kind: agent` entries to a
+  sub-agent using `prompt_path` (in parallel — see Parallel-dispatch
+  above), drive `kind: human` entries from `message_path`, write each
+  task's `output.yaml` via `output add`, then call `runtime complete`.
+- `runtime complete` validates `output.yaml` against the task's
+  `io.yaml/output` and persists the plan; loop latches also run the
+  loop decision here.
+- `runtime fail`, `runtime reset`, and `runtime status` handle
+  out-of-band failure, region-aware resets, and read-only progress
+  reporting respectively — see commands.md for the full contracts.
 
 ## References
 
 - `references/guide.md` — step-by-step guide for building a loom skill;
-  `examples/hello-graph/` is the finished reference skill it builds.
+  `references/hello-graph/` is the finished reference skill it builds.
 - `references/commands.md` — per-command CLI contracts.
 - `references/grammar.md` — placeholder grammar table.
 - `references/io.md` — io.yaml contract: version, input/output blocks,
@@ -297,6 +127,9 @@ subgraph child tasks under their subgraph header.
   input object.
 - `templates/step-drive-loop.md.j2` — host-skill workflow step: the
   next/dispatch/complete loop.
+- `templates/step-ingest.md.j2` — host-skill workflow Step 1: the
+  single-call `runtime init --force --set K=V` ingest step
+  (wipe + init + entry-task seed).
 - `templates/helper-dispatch-agent.md.j2` — host-skill helper: dispatch
   a surfaced agent task via `subagent`.
 - `templates/helper-drive-human-gate.md.j2` — host-skill helper: drive
@@ -318,11 +151,25 @@ subgraph child tasks under their subgraph header.
 
 ## Completion
 
-| Status               | Criteria                                                    |
-|----------------------|-------------------------------------------------------------|
-| `DONE`               | Runtime returned; workdir holds a valid `plan.yaml`         |
-| `DONE_WITH_CONCERNS` | Validation surfaced a non-fatal warning the workflow logged |
-| `BLOCKED`            | Validation raised a `LoomPlanError`; no writes performed    |
-| `NEEDS_CONTEXT`      | No workdir/loom_root supplied; `resume` on a missing dir    |
+Evidence per command family — every command has a concrete DONE phrase so
+authoring, ingest, runtime, and diagnostic callers all know when to move on.
+
+| Status               | Criteria                                                          |
+|----------------------|-------------------------------------------------------------------|
+| `DONE`               | See per-family evidence rows below                                |
+| `DONE_WITH_CONCERNS` | Non-fatal warning logged: `stderr.yaml` present, deprecated field |
+| `BLOCKED`            | Any `LoomPlanError` raised; nothing was written                   |
+| `NEEDS_CONTEXT`      | Missing `<workdir>` / `<name>` / `<skill-root>` / `--loom-root`   |
+
+Per-family `DONE` evidence:
+
+| Command family         | Evidence                                                     |
+|------------------------|--------------------------------------------------------------|
+| `runtime`              | `next` returned `done: true` and `plan.yaml` validates       |
+| `task new`             | Task folder exists (empty; author writes bodies next)        |
+| `task io-python`       | `io_types.py` regenerated at the current `io.yaml/version`   |
+| `graph new`            | Prints `scaffolded ...`, `repinned ...`, or `unchanged`      |
+| `output init` / `add`  | Task `output.yaml` validates against `io.yaml/output`        |
+| `validate` / `visualise` | Exit 0 (validate: no `LoomPlanError`; visualise: DAG printed) |
 
 Escalation: any failure surfaces the exception unchanged; there is no retry.

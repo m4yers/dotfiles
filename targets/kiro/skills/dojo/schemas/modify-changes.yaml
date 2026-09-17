@@ -15,7 +15,7 @@ properties:
           description: absolute path on disk
         action:
           type: string
-          enum: [created, modified, unchanged]
+          enum: [created, modified, deleted, unchanged]
         notes:
           type: string
           description: optional per-file notes

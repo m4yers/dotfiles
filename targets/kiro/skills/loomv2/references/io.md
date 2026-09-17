@@ -74,8 +74,8 @@ loader inlines the target at parse time. Nested `$ref`s inside the target
 re-anchor to that file's folder. `$ref` cycles and missing targets raise
 `IOYamlError` with the offending path.
 
-Reserved names (`__loom`, `__task`) do NOT use `$ref` — see §5. Any `$ref`
-on a reserved-name property is rejected.
+Reserved names (`__loom`, `__task`) do NOT use `$ref` — see §5. Any `$ref` on
+a reserved-name property is rejected.
 
 ## 4. Versioning
 
@@ -92,10 +92,10 @@ the value at dispatch when the name is declared. Declaring is opt-in: templates
 that do not need the values do not declare the names and pay no cost.
 
 Because loom owns the canonical shape of these objects, authors declare them
-BARE — as the empty mapping `{}` — and the io.yaml loader substitutes the
-meta-schema (`schemas/loom-meta.yaml` / `schemas/task-meta.yaml`) in place.
-Any non-empty declaration (`$ref`, inline `type`, extra keys) is rejected
-with `IOYamlError`: reserved shapes are not author-editable.
+BARE — as the empty mapping `{}` — and the io.yaml loader substitutes in the
+meta-schema (`schemas/loom-meta.yaml` / `schemas/task-meta.yaml`). Any non-empty
+declaration (`$ref`, inline `type`, or extra keys) is rejected via `IOYamlError`
+because reserved shapes are not author-editable.
 
 - `input:` mappings in graph.yaml MUST NOT wire either reserved name,
   because the engine owns those values — both static (`ReservedShadowError`)
@@ -169,6 +169,79 @@ RFC-2119 shall-language:
    those values.
 4. `version` MUST bump whenever the shape of `input` or `output`
    changes.
+5. Producer/consumer contracts MUST be sound: the engine NEVER
+   inserts defaults. If a field is unconditionally present, list it
+   in `required` and the producer MUST produce it. If the underlying
+   data may be absent, the field STAYS in `required` and the producer
+   MUST emit an explicit empty value (`[]`, `""`, `null` — via
+   `output add --set-json`); a task prompt MUST NOT tell the producer
+   to omit a required field, because a silent omission would let
+   undeclared "missing" satisfy the consumer schema and defeat the
+   alignment guarantee that `loom.validate.subtype` relies on. Fields
+   a consumer can genuinely work without are the only ones that may
+   leave `required`.
+6. The root of both `input` and `output` MUST declare
+   `additionalProperties: false`. The meta-schema hard-enforces this
+   at load; a missing declaration raises `IOYamlError`. Rule (5)'s
+   soundness rests on it — an open producer surface would let
+   undeclared fields silently satisfy a consumer wiring, defeating
+   the alignment guarantee that `loom.validate.subtype` provides.
+
+## 6b. Static alignment: subtype projection + required wiring
+
+Two static passes run at `$LOOM runtime init` (and any subsequent `extend`),
+immediately after `validate_references` and `validate_mapping`:
+
+**`validate_subtype`** — for every task's `input_mapping` entry `field:
+${task:X[@<selector>][:PATH]}`, project `PATH` through task `X`'s
+`io.yaml/output` schema and check that the projected schema is a subtype of
+the consumer's `io.yaml/input.properties[field]`. The walk propagates a
+`may-be-absent` presence bit whenever a step lands on a non-required property
+or the round selector points at the previous round (nullable on round 0); the
+subtype check then rejects `may-be-absent` projections into required
+non-nullable consumer fields. Rules used by the check:
+
+- type-set inclusion (with `may-be-absent` injecting `null` into
+  the producer's type set),
+- enum subset, const equality, numeric-bound tightening
+  (`minimum` / `maximum` on the producer must be at least as
+  restrictive as the consumer's),
+- object: producer `required ⊇` consumer `required`, covariant
+  property subtyping, `additionalProperties: false` on the consumer
+  requires the same on the producer,
+- array: covariant items and tightened `minItems` / `maxItems`,
+- unions: every producer branch subtypes some consumer branch (or
+  the consumer union covers every producer branch).
+
+**`validate_required_wiring`** — for every consumer task with an
+`input_mapping`, every name in the consumer's `io.yaml/input.required` list
+MUST be wired in the mapping, except reserved engine-provided names (`__loom`
+/ `__task`). Entry tasks seeded via `runtime init --set` have `input_mapping
+is None` and are exempt because `--set` is strict-validated against the same
+schema at init.
+
+### Statically-projectable JMESPath subset
+
+Only these placeholder shapes admit static projection:
+
+- `${task:<addr>}` and `${task:<addr>@<sel>}` — plain address /
+  round-selected address; the projected schema is the whole producer
+  output schema (or its round-0 nullable variant).
+- `${task:<addr>[@<sel>]:PATH}` where `PATH` is a dot-separated
+  chain of identifiers, each optionally followed by any number of
+  integer bracket-indices — `foo.bar[0].baz[2][1]`.
+
+Anything outside that subset — JMESPath filters (`items[?x > \`5\`]`), wildcards
+(`items[*].x`), functions, quoted keys, arithmetic — is statically ambiguous
+and **fails closed** with `TypeMismatchError` at init. So do schemas that carry
+`not`, `if`, `then`, or `else` on the projected path, and `oneOf` / `anyOf`
+where more than one branch admits the next projection step. The engine never
+falls back to runtime here; the alignment guarantee only holds when the
+projection is provably sound.
+
+Subgraph-inlined child tasks re-anchor through `source_root` so subtype loads
+the child skill's `io.yaml`, not the composed plan's root — matching
+`validate_references`.
 
 ## 7. See also
 

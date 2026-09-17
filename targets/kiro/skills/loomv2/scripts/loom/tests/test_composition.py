@@ -16,8 +16,8 @@ def _minimal_child(tmp_path: Path) -> Path:
     (root / "lint").mkdir(parents=True)
     (root / "lint" / "io.yaml").write_text(yaml.safe_dump({
         "version": 1,
-        "input": {"type": "object"},
-        "output": {"type": "object"},
+        "input": {"type": "object", "additionalProperties": False},
+        "output": {"type": "object", "additionalProperties": False},
     }))
     (root / "lint" / "tool.py").write_text(
         "from io_types import LintInput, LintOutput\n"

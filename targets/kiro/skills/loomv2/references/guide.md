@@ -1,23 +1,13 @@
 # Building a Loom Skill
 
 Step-by-step recipe. `$LOOM` = `~/.kiro/skills/home/loomv2/scripts/loom.sh`.
-The complete reference skill built by these steps lives at
-`../examples/hello-graph/` (all task kinds plus an embedded subgraph) and is
+The complete reference skill built by these steps lives at `hello-graph/`
+alongside this file (all task kinds plus an embedded subgraph) and is
 executed by the test suite. Cross-refs: [commands.md](commands.md),
-[grammar.md](grammar.md), and the meta-schemas under `../schemas/`.
-
-Contents:
-
-- [1. Scaffold the loom root](#1-scaffold-the-loom-root)
-- [2. Tool task](#2-tool-task)
-- [3. Agent task](#3-agent-task)
-- [4. Human task](#4-human-task)
-- [5. Wire graph.yaml](#5-wire-graphyaml)
-- [6. Run the graph](#6-run-the-graph)
-- [7. Add a loop](#7-add-a-loop)
-- [8. Embed a subgraph](#8-embed-a-subgraph)
-- [9. Evolve a contract](#9-evolve-a-contract)
-- [10. Render host drive-loop text](#10-render-host-drive-loop-text)
+[grammar.md](grammar.md), and the meta-schemas under `../schemas/`. Sections
+1–10 below are ordered as the recipe: scaffold → tool → agent → human → wire
+graph.yaml → run → add a loop → embed a subgraph → evolve a contract →
+render host drive-loop text.
 
 ## 1. Scaffold the loom root
 
@@ -46,11 +36,11 @@ $LOOM graph new --loom-root ./loom
 present, and pins each entry to the current `io.yaml/version`.
 
 **Choosing a task kind.** Prefer `tool` for anything a Python body can do
-deterministically — arithmetic, file IO, deterministic parsing, HTTP calls with
-fixed shape. Reserve `agent` for work that genuinely needs reasoning or
-synthesis (summarising free-text, judging quality, choosing between
-alternatives). Spawning a sub-agent for a job a tool can do burns tokens and
-adds latency for no gain; sections 2, 3, and 4 below cover each kind in turn.
+deterministically — arithmetic, file IO, deterministic parsing, HTTP calls
+with fixed shape. Reserve `agent` for work that genuinely needs reasoning or
+synthesis (summarising free-text, judging quality, choosing alternatives).
+Spawning a sub-agent for a job a tool can do burns tokens and adds latency
+for no gain; sections 2, 3, and 4 below cover each kind in turn.
 
 ## 2. Tool task
 
@@ -91,16 +81,10 @@ from typing import ClassVar
 class GreetUserInput:
     VERSION: ClassVar[int] = 1
     name: str
-    @classmethod
-    def from_dict(cls, d): ...
-    def to_dict(self): ...
+    # from_dict / to_dict helpers ...
 
 
-@dataclass
-class GreetUserOutput:
-    VERSION: ClassVar[int] = 1
-    greeting: str
-    ...
+# GreetUserOutput follows the same shape with fields from io.yaml/output.
 ```
 
 Write `tool.py` by hand — user-owned, imports the generated dataclasses:
@@ -114,15 +98,14 @@ def greet_user(inp: GreetUserInput) -> GreetUserOutput:
     return GreetUserOutput(greeting=f"Hello, {inp.name}!")
 ```
 
-Regenerate `io_types.py` after every `io.yaml` change; the entire file is
-overwritten. Dispatch loads `io_types.py` (missing → `ToolTaskError` with a
+Regenerate `io_types.py` after every `io.yaml` change (whole file is
+overwritten). Dispatch loads `io_types.py` (missing → `ToolTaskError` with a
 `$LOOM task io-python <id>` remedy), version-checks
 `<TaskName>Input.VERSION == <TaskName>Output.VERSION == io.yaml/version`
 (drift → `ToolIOVersionMismatchError`), then loads `tool.py` with `io_types`
-temporarily registered in `sys.modules` so the import resolves. Function name
-MUST equal `snake_case(<task-id>)`, so the engine's tool dispatcher can find
-it. `$LOOM runtime next` runs tool tasks internally; they never appear in the
-`ready` batch surfaced to callers.
+temporarily registered in `sys.modules`. Function name MUST equal
+`snake_case(<task-id>)`. Tool tasks run internally in `runtime next` and
+never appear in the `ready` batch.
 
 ## 3. Agent task
 
@@ -155,13 +138,13 @@ $LOOM output add {{ workdir }} --task summarise \
 ```
 ```
 
-Jinja context: only `input` (the validated `input.yaml`). Two reserved default
-objects (`__loom`, `__task`) are engine-provided. Declare them in the task's
-io.yaml/input to use as `{{ input.__loom.workdir }}`, `{{ input.__task.id }}`,
-and so on. See [io.md](io.md) for the declaration recipe. Inside non-Jinja
-surfaces (`input.yaml`, `when` predicates, `--set` values) use the placeholder
-grammar instead — for example `${input:greeting}` projects into the current
-task's input via JMESPath. Full table in [grammar.md](grammar.md).
+Jinja context: only `input` (the validated `input.yaml`). Two reserved
+default objects (`__loom`, `__task`) are engine-provided; declare them in the
+task's `io.yaml/input` to use as `{{ input.__loom.workdir }}` and
+`{{ input.__task.id }}` (see [io.md](io.md)). Inside non-Jinja surfaces
+(`input.yaml`, `when` predicates, `--set` values) use the placeholder grammar
+instead — for example `${input:greeting}` projects into the current task's
+input via JMESPath. Full table in [grammar.md](grammar.md).
 
 ## 4. Human task
 
@@ -204,13 +187,16 @@ contract, which is what lets it embed as a subgraph.
 ```bash
 LOOM=~/.kiro/skills/home/loomv2/scripts/loom.sh
 WORKDIR=$(mktemp -d)
-$LOOM runtime init "$WORKDIR" --loom-root ./loom
+$LOOM runtime init "$WORKDIR" --loom-root ./loom --force --set name=Alice
 while true; do
     yaml=$($LOOM runtime next "$WORKDIR")    # schemas/next.yaml
-    done=$(echo "$yaml" | yq '.done')
-    [ "$done" = "true" ] && break
+    [ "$(echo "$yaml" | yq '.done')" = "true" ] && break
+    # Agent entries in `ready` are independent by DAG construction and MUST
+    # be dispatched IN PARALLEL — see `templates/step-drive-loop.md.j2` for
+    # the authoritative host-skill fan-out pattern; the loop below is
+    # bookkeeping only.
     for id in $(echo "$yaml" | yq '.ready[].id'); do
-        # kind=agent → dispatch prompt_path to sub-agent
+        # kind=agent → dispatch prompt_path to sub-agent (parallel across ids)
         # kind=human → present message_path to the user
         $LOOM output add "$WORKDIR" --task "$id" --set <field>=<value>
         $LOOM runtime complete "$WORKDIR" "$id"
@@ -218,11 +204,18 @@ while true; do
 done
 ```
 
+The single-call `runtime init --force --set K=V ...` form is the DEFAULT
+ingest pattern: it folds wipe / init / entry-task seed into one invocation.
+Escape hatch: when the entry has a mapping-bound input or a hand-written
+seed is easier, drop `--force --set` and write
+`<workdir>/tasks/<NN>-<entry>/input.yaml` by hand before the first
+`runtime next`.
+
 `$LOOM runtime next` runs tool tasks internally and prints a
-[`schemas/next.yaml`](../schemas/next.yaml) document to stdout; parse it, then
-for every entry in `ready` write `output.yaml` and call
-`$LOOM runtime complete`. On abort, the command exits non-zero and writes
-`{failed_task, error_path}` to stderr.
+[`schemas/next.yaml`](../schemas/next.yaml) document to stdout; parse it,
+then for every entry in `ready` write `output.yaml` and call
+`$LOOM runtime complete`. On abort, exit is non-zero and stderr carries
+`{failed_task, error_path}`.
 
 ## 7. Add a loop
 
@@ -247,10 +240,10 @@ Latest review:   {{ '${task:review}' }}
 ```
 
 A latch turns `review` into a back-edge onto `fix`, so the natural-loop body
-between header and latch reruns each round. Exit controls are `fuel` (positive
-countdown per round) and `while_` (predicate string) — at least one MUST be
-set. The loop body sees per-round outputs via the `@<k>` and prev-round
-placeholders documented in [grammar.md](grammar.md).
+between header and latch reruns each round. Exit controls are `fuel`
+(positive countdown per round) and `while_` (predicate string) — at least
+one MUST be set. The loop body sees per-round outputs via the `${...@<k>}`
+and `${...@prev}` placeholders documented in [grammar.md](grammar.md).
 
 ## 8. Embed a subgraph
 
@@ -274,10 +267,10 @@ cross-skill embed. Child tasks are inlined under the instance id, so a task
 `lint` inside `review-docs` addresses as `review-docs/lint` — this is the
 canonical namespace-path surfaced by `$LOOM runtime next`. The child graph's
 entry `input` and exit `output` become the subgraph's own IO contract, so
-parents can wire `depends_on_all` against the instance id as if it were a single
-task. Reusing the same `root` under distinct instance ids (e.g. `review-code`
-and `review-docs`) is allowed and gives each its own private namespace.
-
+parents can wire `depends_on_all` against the instance id as if it were a
+single task. Reusing the same `root` under distinct instance ids (e.g.
+`review-code` and `review-docs`) is allowed and gives each its own private
+namespace.
 
 ## 9. Evolve a contract
 
@@ -297,9 +290,8 @@ $LOOM validate .
 idempotent: it preserves every authored field (deps, `when`, latches, and
 subgraph `root` paths, task ordering) and only restamps each entry's
 `version` from the referenced task folder. Any parent skill embedding this
-loom root as a subgraph MUST also re-run `$LOOM graph new` against its own graph
-so the subgraph entry picks up the new pin.
-
+loom root as a subgraph MUST also re-run `$LOOM graph new` against its own
+graph so the subgraph entry picks up the new pin.
 
 ## 10. Render host drive-loop text
 
@@ -308,14 +300,27 @@ hand-written:
 
 ```bash
 RENDER=~/.kiro/skills/home/template/scripts/render.sh
-for t in step-drive-loop helper-dispatch-agent helper-drive-human-gate; do
+for t in step-ingest step-drive-loop helper-dispatch-agent helper-drive-human-gate; do
     $RENDER --template ~/.kiro/skills/home/loomv2/templates/$t.md.j2 \
         --var prefix=SB --var shim=LOOM \
         --var skill_name=my-skill --var target='<op>' --allow-unused
 done
 ```
 
-Variables: `prefix` (shell-var prefix), `shim` (wrapper-script var),
-`skill_name`, `target` (primary parameter). Each template's Jinja comment
-states its heading and placement — `step-drive-loop` renders under `##
-Workflow`, `helper-*` as `## Helper:` sections after it.
+Variables shared by every partial: `prefix` (shell-var prefix), `shim` (the
+wrapper-script var), `skill_name`, and `target` (the primary parameter name).
+
+`step-ingest.md.j2` renders as `### Step 1: Ingest`, just before
+`### Step 2: Drive the loop`. It takes `loom_root_var` (a shell-var name
+holding the absolute path to the loom skill's `loom/` folder) and
+`set_assignments` (a pre-rendered list of `--set K=V` fragments to seed the
+entry task) alongside the shared variables. Output is the DEFAULT single-call
+ingest — `runtime init "$WD" --loom-root "$LOOM_ROOT" --force
+{{ set_assignments }}` — that wipes any existing workdir, inits fresh, and
+seeds the entry task's `input.yaml` in one call. Consumer skills MUST NOT
+re-implement the wipe/init/seed logic in per-skill Python, because forking
+it drifts from the canonical sequence rendered by the partial.
+
+`step-drive-loop` renders as `### Step 2: Drive the loop`; each `helper-*`
+template's Jinja comment states its placement (`## Helper:` sections after
+`## Workflow`).

@@ -183,7 +183,7 @@ def test_reserved_shadow_static_via_lifecycle(tmp_path: Path):
     seed.mkdir()
     (seed / "io.yaml").write_text(yaml.safe_dump({
         "version": 1,
-        "input": {"type": "object"},
+        "input": {"type": "object", "additionalProperties": False},
         "output": {
             "type": "object",
             "additionalProperties": False,

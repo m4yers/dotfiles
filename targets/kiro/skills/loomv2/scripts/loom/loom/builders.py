@@ -49,13 +49,22 @@ def output_init(workdir: Path, task_id: str) -> None:
     write_output_yaml(_target_folder(workdir, plan, task_id), _seed_from_schema(io.output_schema))
 
 
-def output_add(workdir: Path, task_id: str, assignments: list[str]) -> None:
+def output_add(
+    workdir: Path, task_id: str, assignments: list[str | tuple[bool, str]]
+) -> None:
     """Apply ``path=value`` assignments to output.yaml, coerce, validate, write.
 
     Paths support dict keys (``meta.tone``), explicit indices
     (``items.0`` or ``items[0]``), list append (``items[]``), and
     last-element addressing (``items[-1]``) — so a list of objects is
     built incrementally: ``items[].name=a`` then ``items[-1].size=3``.
+
+    Each assignment is either a plain ``"path=value"`` string (value
+    coerced as a CLI scalar via ``_coerce``) or a ``(is_json, "path=value")``
+    tuple from the ``--set-json`` flag: when ``is_json`` is true the
+    value is parsed as JSON, so producers can express explicit empty
+    values (``[]``, ``""``, ``null``) and nested structures that the
+    scalar grammar cannot. Assignments apply in CLI order.
 
     Validation here is PARTIAL: the document is checked against the
     output schema with ``required`` obligations stripped, so incremental
@@ -67,6 +76,8 @@ def output_add(workdir: Path, task_id: str, assignments: list[str]) -> None:
     For a loop-body task the writes land in the current ``iter-NN/``
     round dir.
     """
+    import json
+
     plan = read_plan_yaml(Path(workdir))
     task = _task(plan, task_id)
     folder = task.folder if task.folder else resolve_task_folder(plan.loom_root, task_id)
@@ -75,9 +86,19 @@ def output_add(workdir: Path, task_id: str, assignments: list[str]) -> None:
     target = target_folder / "output.yaml"
     doc: Any = yaml.safe_load(target.read_text()) if target.exists() else {}
     for a in assignments:
-        path, _, raw_value = a.partition("=")
+        is_json, raw = a if isinstance(a, tuple) else (False, a)
+        path, _, raw_value = raw.partition("=")
+        if is_json:
+            try:
+                value = json.loads(raw_value)
+            except json.JSONDecodeError as exc:
+                raise OutputSchemaError(
+                    task_id, f"bad JSON value for {path!r}: {exc}"
+                ) from exc
+        else:
+            value = _coerce(raw_value)
         try:
-            _set_by_tokens(doc, _tokenize_path(path), _coerce(raw_value))
+            _set_by_tokens(doc, _tokenize_path(path), value)
         except ValueError as exc:
             raise OutputSchemaError(task_id, f"bad path {path!r}: {exc}") from exc
     try:

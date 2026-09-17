@@ -72,6 +72,16 @@ $TILING activity set "..."
    env-detection script that prints shell assignments for `eval`, and a
    single-line `exec` wrapper.
 
+4. A skill MUST NOT add a wrapper/shim script when a dependency skill's script
+   API already covers every call ("script-less skill"), because the extra
+   wrapper forks the dependency's API surface and adds a redundant hop that
+   drifts as the dependency evolves. SKILL.md MUST invoke
+   the dependency's shim directly via a named alias per §3. Short inline bash
+   glue in a SKILL.md fenced block — within the same ~10 non-blank/non-comment
+   line spirit as rule 4.2 — is acceptable for connecting parameters to such
+   calls (e.g. deriving a slug then passing it to the dependency shim).
+   Beyond that size, the glue MUST become a skill-owned script per rule 4.2.
+
 ## 5. Python Scripts
 
 1. Stdlib-only scripts MUST be a single file without `pyproject.toml`, invoked

@@ -37,10 +37,90 @@ from loom.errors import InputSchemaError, RunAborted
 from loom.render.jinja import render_task_body
 
 
-def cmd_init(workdir: Path, loom_root: Path) -> int:
-    """Initialise a fresh workdir from ``<loom_root>/graph.yaml``."""
-    _init(workdir, loom_root=loom_root)
+def cmd_init(
+    workdir: Path,
+    loom_root: Path,
+    *,
+    force: bool = False,
+    assignments: list[str] | None = None,
+) -> int:
+    """Initialise a fresh workdir from ``<loom_root>/graph.yaml``.
+
+    ``force`` is forwarded to :func:`loom._lifecycle.init` and, when
+    true, wipes an existing workdir before the usual precondition
+    checks (idempotent when the workdir does not exist).
+
+    ``assignments`` is a list of ``key=value`` strings sharing
+    grammar with ``output add --set``. When non-empty, after init
+    succeeds this function resolves the plan's single entry task
+    (in-degree 0 in the composed plan) and, provided the entry task
+    has no ``input:`` mapping in graph.yaml, applies the assignments
+    into an accumulator dict, strict-validates the assembled document
+    against the entry task's ``io.yaml/input`` (required fields
+    enforced), and writes ``tasks/<NN>-<entry>/input.yaml`` via the
+    same atomic YAML emitter used elsewhere. Raises
+    :class:`SeedNotAllowedError` if the entry task has an ``input:``
+    mapping; raises a :class:`LoomPlanError` on bad grammar or a
+    schema-validation failure.
+    """
+    import jsonschema
+
+    from loom._lifecycle import resume as _resume_lifecycle
+    from loom.builders import _APPEND, _coerce, _set_by_tokens, _tokenize_path
+    from loom.discovery import load_io_yaml
+    from loom.engine.models import Task
+    from loom.engine.store import task_folder as _task_folder
+    from loom.errors import LoomPlanError, SeedNotAllowedError
+
+    _init(workdir, loom_root=loom_root, force=force)
     print(str(workdir))
+    if not assignments:
+        return 0
+
+    # Load the composed plan and resolve the entry task via the same
+    # in-degree-0 predicate `validate_single_entry_exit` uses. Static
+    # validation has already run inside `_init`, so exactly one entry
+    # exists.
+    runtime = _resume_lifecycle(workdir)
+    plan = runtime.plan
+    tasks = [t for t in plan.tasks if isinstance(t, Task)]
+    incoming: dict[str, int] = {t.id: 0 for t in tasks}
+    for t in tasks:
+        for d in list(t.depends_on_all) + list(t.depends_on_any):
+            if d in incoming:
+                incoming[t.id] += 1
+    entry_ids = [i for i, c in incoming.items() if c == 0]
+    entry_id = entry_ids[0]
+    entry = next(t for t in tasks if t.id == entry_id)
+    if entry.input_mapping is not None:
+        raise SeedNotAllowedError(
+            f"entry task {entry_id!r} has an `input:` mapping; "
+            "`--set` cannot seed its input.yaml."
+        )
+
+    doc: dict[str, Any] = {}
+    for a in assignments:
+        path, _, raw_value = a.partition("=")
+        try:
+            _set_by_tokens(doc, _tokenize_path(path), _coerce(raw_value))
+        except ValueError as exc:
+            raise LoomPlanError(
+                f"--set path {path!r} is malformed: {exc}"
+            ) from exc
+
+    source = _source_folder(runtime, entry)
+    io = load_io_yaml(source)
+    try:
+        jsonschema.validate(doc, io.input_schema)
+    except jsonschema.ValidationError as exc:
+        raise LoomPlanError(
+            f"--set seed for entry task {entry_id!r} fails "
+            f"io.yaml/input: {exc.message}"
+        ) from exc
+
+    folder = _task_folder(workdir, plan, entry_id)
+    folder.mkdir(parents=True, exist_ok=True)
+    write_output_yaml_like(folder / "input.yaml", doc)
     return 0
 
 

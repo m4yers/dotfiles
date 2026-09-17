@@ -93,9 +93,19 @@ class ReferenceError(LoomPlanError):
 
 
 class TypeMismatchError(LoomPlanError):
-    """Comparator literal type incompatible with the declared field type."""
+    """Type contract violated: either a comparator literal is
+    incompatible with the declared field type, OR a producer/consumer
+    ``input_mapping`` wiring fails the static subtype-projection check
+    (see ``loom.validate.subtype``)."""
 
-    remedy = "Match the literal type to the field type declared in io.yaml/output."
+    remedy = (
+        "For predicate-literal failures, match the literal type to the "
+        "field type declared in io.yaml/output. For input_mapping "
+        "failures, align the producer io.yaml/output projection with "
+        "the consumer io.yaml/input field type (types, enum, const, "
+        "numeric bounds, required-superset, or nullability); the "
+        "message names the (producer, JMESPath, consumer field) triple."
+    )
 
 
 class TemplateReferenceError(LoomPlanError):
@@ -240,6 +250,17 @@ class WorkdirNotEmptyError(LoomPlanError):
     """`loom.init` called on a workdir with unrecognised contents."""
 
     remedy = "Empty the workdir or point at a fresh path."
+
+
+class SeedNotAllowedError(LoomPlanError):
+    """`runtime init --set` used on an entry task that has an `input:`
+    mapping declared in graph.yaml."""
+
+    remedy = (
+        "Either remove the `input:` mapping from the entry task in "
+        "graph.yaml, or drop `--set` and let the mapping resolve at "
+        "the first `runtime next`."
+    )
 
 
 # ---- Runtime ----

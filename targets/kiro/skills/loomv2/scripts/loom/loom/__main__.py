@@ -13,6 +13,21 @@ import sys
 from pathlib import Path
 
 
+class _SetAssignmentAction(argparse.Action):
+    """Collect ``--set`` / ``--set-json`` into ONE ordered list.
+
+    Each entry is ``(is_json, "path=value")``. A single shared list
+    preserves CLI order across the two flags, so mixed invocations that
+    build list elements incrementally (``items[]`` then ``items[-1].x``)
+    apply exactly as written.
+    """
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        items = getattr(namespace, self.dest, None) or []
+        items.append((option_string == "--set-json", values))
+        setattr(namespace, self.dest, items)
+
+
 def main(argv: list[str] | None = None) -> int:
     """Dispatch a CLI invocation."""
     parser = argparse.ArgumentParser(prog="loom")
@@ -37,6 +52,8 @@ def main(argv: list[str] | None = None) -> int:
     p_init = p_runtime_sub.add_parser("init")
     p_init.add_argument("workdir", type=Path)
     p_init.add_argument("--loom-root", type=Path, required=True)
+    p_init.add_argument("--force", action="store_true")
+    p_init.add_argument("--set", dest="assignments", action="append", default=[])
 
     p_next = p_runtime_sub.add_parser("next")
     p_next.add_argument("workdir", type=Path)
@@ -65,11 +82,15 @@ def main(argv: list[str] | None = None) -> int:
     p_out_add = p_output_sub.add_parser("add")
     p_out_add.add_argument("workdir", type=Path)
     p_out_add.add_argument("--task", required=True)
-    p_out_add.add_argument("--set", dest="assignments", action="append", default=[])
+    p_out_add.add_argument("--set", dest="assignments",
+                           action=_SetAssignmentAction, default=[])
+    p_out_add.add_argument("--set-json", dest="assignments",
+                           action=_SetAssignmentAction, default=[])
 
     p_validate = sub.add_parser("validate")
     p_validate.add_argument("skill_root", type=Path)
-    p_validate.add_argument("--plan", type=Path, default=None)
+    p_validate.add_argument("--graph", type=Path, default=None,
+                            help="path to a graph.yaml file directly")
 
     p_visualise = sub.add_parser("visualise")
     src = p_visualise.add_mutually_exclusive_group(required=True)
@@ -109,7 +130,12 @@ def _dispatch(args) -> int:
         elif args.cmd == "runtime" and args.runtime_cmd == "init":
             from loom.cli_run import cmd_init
 
-            return cmd_init(args.workdir, args.loom_root)
+            return cmd_init(
+                args.workdir,
+                args.loom_root,
+                force=args.force,
+                assignments=args.assignments,
+            )
         elif args.cmd == "runtime" and args.runtime_cmd == "next":
             from loom.cli_run import cmd_next
 

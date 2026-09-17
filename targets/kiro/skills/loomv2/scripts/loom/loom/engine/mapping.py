@@ -6,11 +6,29 @@ each ``${task:<addr>...}`` reference against the current predicate
 context (built from upstream outputs on disk), then STRICTLY validates
 the resolved dict against the task's own ``io.yaml/input`` in both
 directions — absent required field OR undeclared extra raises
-:class:`InputSchemaError`. Missing / unfinished upstream refs raise the
-same error (no silent empty-string coercion), with ONE exception: an
-``@prev`` selector evaluated on the FIRST iteration of a loop (round 0)
-resolves to null — nothing was produced before that round, and the
-consumer's own io.yaml nullability decides whether null is acceptable.
+:class:`InputSchemaError`.
+
+Null-vs-unresolved is distinguished per io.md §6 rule 5 (no
+engine-inserted defaults):
+
+- The producer task has no completed output at all (``task."addr"``
+  or ``task_iter."addr"."sel"`` is ``None`` in the predicate
+  context) → :class:`InputSchemaError` — the ref is genuinely
+  unresolved.
+- The producer output exists but the JMESPath terminal step is
+  absent from the producer's ``output.yaml`` (the producer emitted
+  ``{}`` where an optional key would live) →
+  :class:`InputSchemaError` — undeclared upstream miss.
+- The producer output exists AND the terminal step is present but
+  its value is literally ``null`` → the null is passed through
+  unchanged; the consumer's ``io.yaml/input`` strict validation
+  (below) decides whether ``null`` is acceptable, exactly as it
+  already does for the round-0 ``@prev`` case.
+
+The round-0 ``@prev`` case is kept as a separate legit-null branch
+because ``build_predicate_context`` intentionally leaves ``prev``
+absent from ``task_iter."addr"`` on round 0 rather than filling in a
+producer-output shape that does not yet exist.
 
 Reserved engine-provided inputs (``__loom``, ``__task``) are handled
 here: the mapping MUST NOT wire them (dispatch-time shadow check
@@ -51,6 +69,18 @@ _FULL_TASK_REF_RE = re.compile(
 )
 
 
+# JMESPath path segment: identifier optionally followed by ``[<int>]``
+# accessors. Mirrors the projectable subset in ``validate/subtype.py``;
+# anything the mapping walk sees outside this shape falls back to
+# jmespath.search's evaluation and its None result is treated as
+# unresolved (case (b)).
+_PATH_SEGMENT_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_\-]*)((?:\[\d+\])*)$")
+_PATH_INDEX_RE = re.compile(r"\[(\d+)\]")
+
+
+_SENTINEL = object()  # Distinguishes present-but-null from missing.
+
+
 def resolve_task_input(
     task: Task,
     plan: LoomPlan,
@@ -78,11 +108,13 @@ def resolve_task_input(
 
     Raises:
       InputSchemaError: on any of (a) a mapping key that shadows a
-        reserved engine-provided name; (b) an upstream ref that cannot
-        be resolved because the target task has no completed output
-        yet; (c) a resolved dict missing a required field; (d) a
-        resolved dict carrying an undeclared field; (e) a jsonschema
-        validation failure.
+        reserved engine-provided name; (b) an upstream ref that
+        cannot be resolved because the target task has no completed
+        output at all; (c) an upstream ref whose JMESPath terminal
+        step is absent from the producer's output.yaml; (d) a
+        resolved dict missing a required field; (e) a resolved dict
+        carrying an undeclared field; (f) a jsonschema validation
+        failure.
     """
     assert task.input_mapping is not None
     for key in task.input_mapping:
@@ -106,6 +138,7 @@ def resolve_task_input(
             )
         addr = m.group(1)
         sel = m.group(2)
+        path = m.group(3)
         expr = desugar_predicate(placeholder.strip())
         try:
             value = jmespath.search(expr, ctx)
@@ -114,20 +147,42 @@ def resolve_task_input(
                 task.id,
                 f"field {field!r}: could not evaluate {placeholder!r}: {exc}",
             ) from exc
-        if value is None:
-            if sel == "prev" and _folder_round(task_folder) == 0:
-                # First iteration: nothing was produced before this
-                # round, so a prev-selector ref legally resolves to
-                # null. The io.yaml schema (strict-validated below)
-                # decides whether the consumer accepts it.
-                resolved[field] = None
-                continue
+        if value is not None:
+            resolved[field] = value
+            continue
+        # jmespath.search returned None. Three distinguishable cases:
+        #   (a) producer has no completed output at all — the base of
+        #       the projection (``task."addr"`` or
+        #       ``task_iter."addr"."sel"``) is ``None`` in ctx.
+        #   (b) producer output exists but the JMESPath terminal step
+        #       is missing from it.
+        #   (c) producer output exists AND the terminal is present but
+        #       its value is literally ``null`` — pass through and let
+        #       the consumer schema decide.
+        # The round-0 ``@prev`` case is a legit-null distinct from
+        # any of the above: build_predicate_context deliberately does
+        # not set ``per["prev"]`` on round 0, so no producer-output
+        # shape is available to probe.
+        if sel == "prev" and _folder_round(task_folder) == 0:
+            resolved[field] = None
+            continue
+        base = _producer_base(ctx, addr, sel)
+        if base is None:
             raise InputSchemaError(
                 task.id,
                 f"field {field!r}: upstream ref {placeholder!r} did not "
                 f"resolve (task {addr!r} has no completed output)",
             )
-        resolved[field] = value
+        probe = _probe_terminal(base, path)
+        if probe is _SENTINEL:
+            raise InputSchemaError(
+                task.id,
+                f"field {field!r}: upstream ref {placeholder!r} did not "
+                f"resolve (path {path!r} not present in producer output "
+                f"of task {addr!r})",
+            )
+        # Terminal present, value is null. Pass through unchanged.
+        resolved[field] = None
 
     reserved = build_reserved_values(task, workdir, task_folder)
     declared = input_schema.get("properties") or {}
@@ -137,6 +192,59 @@ def resolve_task_input(
 
     _strict_validate(task.id, resolved, input_schema)
     return resolved
+
+
+def _producer_base(ctx: dict, addr: str, sel: str | None) -> Any:
+    """Return the producer output dict (or None) for ``addr``[@``sel``].
+
+    ``None`` means "no completed output available" — case (a). A dict
+    (possibly empty) means the producer has output; caller walks the
+    JMESPath path against it.
+    """
+    if sel is None:
+        return ctx.get("task", {}).get(addr)
+    per = ctx.get("task_iter", {}).get(addr) or {}
+    if sel == "prev":
+        return per.get("prev")
+    # Numeric selector: normalise ``@05`` to ``"5"`` to match the
+    # str(int) keys built in build_predicate_context.
+    key = str(int(sel)) if sel.isdigit() else sel
+    return per.get(key)
+
+
+def _probe_terminal(base: Any, path: str | None) -> Any:
+    """Walk ``path`` in ``base``; return the terminal value or ``_SENTINEL``.
+
+    ``_SENTINEL`` signals "terminal step is absent from the producer's
+    output" — case (b). A returned value of ``None`` (only reachable
+    when the walk lands on a key whose stored value is literally
+    ``None``) is case (c) — pass-through null.
+
+    Falls back to ``_SENTINEL`` on any JMESPath fragment outside the
+    projectable subset (identifier + dot + integer bracket-index) so
+    the exotic-JMESPath dispatch stays fail-closed at runtime, matching
+    the static ``validate/subtype`` policy.
+    """
+    if not path:
+        return base
+    current = base
+    segments = path.split(".")
+    for seg in segments:
+        m = _PATH_SEGMENT_RE.match(seg)
+        if not m:
+            return _SENTINEL
+        name = m.group(1)
+        indices = [int(i) for i in _PATH_INDEX_RE.findall(m.group(2) or "")]
+        if not isinstance(current, dict) or name not in current:
+            return _SENTINEL
+        current = current[name]
+        for idx in indices:
+            if current is None:
+                return _SENTINEL
+            if not isinstance(current, list) or idx >= len(current):
+                return _SENTINEL
+            current = current[idx]
+    return current
 
 
 def _folder_round(task_folder: Path) -> int | None:

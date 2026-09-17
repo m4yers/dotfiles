@@ -19,7 +19,7 @@ def _tool_only_root(tmp_path: Path) -> Path:
         d.mkdir()
         (d / "io.yaml").write_text(yaml.safe_dump({
             "version": 1,
-            "input": {"type": "object"},
+            "input": {"type": "object", "additionalProperties": False},
             "output": {
                 "type": "object",
                 "additionalProperties": False,
@@ -135,7 +135,7 @@ def test_reset_loop_body_region_aware_fuel_preserved(tmp_path: Path):
         d.mkdir()
         (d / "io.yaml").write_text(yaml.safe_dump({
             "version": 1,
-            "input": {"type": "object"},
+            "input": {"type": "object", "additionalProperties": False},
             "output": {
                 "type": "object",
                 "additionalProperties": False,

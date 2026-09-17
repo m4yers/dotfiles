@@ -22,17 +22,17 @@ def tmp_workdir(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def hello_graph(tmp_path: Path) -> Path:
-    """Copy examples/hello-graph AND the schemas/ folder into a scratch
+    """Copy references/hello-graph AND the schemas/ folder into a scratch
     dir so ``$ref`` paths in the example task io.yaml files (which climb
     four levels up to ``schemas/``) resolve correctly."""
     src_skill = Path(__file__).parents[3]
     dst_skill = tmp_path / "skill"
     shutil.copytree(
-        src_skill / "examples" / "hello-graph",
-        dst_skill / "examples" / "hello-graph",
+        src_skill / "references" / "hello-graph",
+        dst_skill / "references" / "hello-graph",
     )
     shutil.copytree(src_skill / "schemas", dst_skill / "schemas")
-    return dst_skill / "examples" / "hello-graph"
+    return dst_skill / "references" / "hello-graph"
 
 
 @pytest.fixture
@@ -43,8 +43,18 @@ def tool_task_folder(tmp_path: Path) -> Path:
     task.mkdir(parents=True)
     (task / "io.yaml").write_text(yaml.safe_dump({
         "version": 1,
-        "input": {"type": "object", "properties": {"n": {"type": "integer"}}, "required": ["n"]},
-        "output": {"type": "object", "properties": {"m": {"type": "integer"}}, "required": ["m"]},
+        "input": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"n": {"type": "integer"}},
+            "required": ["n"],
+        },
+        "output": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"m": {"type": "integer"}},
+            "required": ["m"],
+        },
     }))
     (task / "tool.py").write_text(
         "def compute(inp):\n    return {'m': inp['n'] * 2}\n"

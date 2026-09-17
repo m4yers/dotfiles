@@ -24,16 +24,31 @@ properties:
       authoring time; drift raises TaskVersionMismatchError at load.
   input:
     type: object
+    required: [additionalProperties]
+    properties:
+      additionalProperties:
+        const: false
     description: >-
       JSON Schema (draft 2020-12) that input.yaml MUST validate against
       before dispatch. Root MUST be an object; tool tasks receive a
-      generated <TaskName>Input dataclass built from this schema.
+      generated <TaskName>Input dataclass built from this schema. Root
+      MUST declare `additionalProperties: false` — the sound
+      producer/consumer alignment check in
+      `loom.validate.subtype.validate_subtype` needs a closed
+      consumer surface (io.md §6 rule 5 / references/io.md §6b).
   output:
     type: object
+    required: [additionalProperties]
+    properties:
+      additionalProperties:
+        const: false
     description: >-
       JSON Schema (draft 2020-12) that output.yaml MUST validate
       against on completion. Root MUST be an object; tool tasks
-      return a generated <TaskName>Output.
+      return a generated <TaskName>Output. Root MUST declare
+      `additionalProperties: false` — the sound alignment check
+      needs a closed producer surface too, so undeclared upstream
+      fields cannot silently satisfy a consumer wiring.
 
 examples:
   - version: 1

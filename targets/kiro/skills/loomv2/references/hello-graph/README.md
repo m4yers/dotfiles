@@ -12,6 +12,6 @@ Run it:
 
 ```bash
 LOOM=~/.kiro/skills/home/loomv2/scripts/loom.sh
-$LOOM runtime init /tmp/hello-run --loom-root examples/hello-graph/loom
+$LOOM runtime init /tmp/hello-run --loom-root references/hello-graph/loom
 $LOOM runtime next /tmp/hello-run
 ```

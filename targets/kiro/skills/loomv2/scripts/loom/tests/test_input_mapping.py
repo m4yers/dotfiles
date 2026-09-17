@@ -101,7 +101,7 @@ def two_tool_loom(tmp_path: Path) -> Path:
     root.mkdir()
     _write_tool_task(
         root / "seed", "seed",
-        {"type": "object"},
+        {"type": "object", "additionalProperties": False},
         _MAP_LOOM_YAML["seed_output"],
         "from io_types import SeedInput, SeedOutput\n"
         "\n"
@@ -155,7 +155,7 @@ def _tool_with_input(root: Path, input_schema):
     is empty (declared as `{}`) so the resolved dict is empty."""
     _write_tool_task(
         root / "seed", "seed",
-        {"type": "object"},
+        {"type": "object", "additionalProperties": False},
         _MAP_LOOM_YAML["seed_output"],
         "from io_types import SeedInput, SeedOutput\n"
         "def seed(inp: SeedInput) -> SeedOutput:\n"
@@ -164,7 +164,7 @@ def _tool_with_input(root: Path, input_schema):
     _write_tool_task(
         root / "target", "target",
         input_schema,
-        {"type": "object"},
+        {"type": "object", "additionalProperties": False},
         "from io_types import TargetInput, TargetOutput\n"
         "def target(inp: TargetInput) -> TargetOutput:\n"
         "    return TargetOutput()\n",
@@ -172,34 +172,71 @@ def _tool_with_input(root: Path, input_schema):
 
 
 def test_mapping_missing_required_raises_and_writes_diagnostic(tmp_path: Path):
+    """Producer output.yaml legitimately omits a terminal key wired
+    to a consumer's nullable required field — dispatch raises
+    :class:`InputSchemaError` and writes ``schema-error.yaml`` with
+    ``phase: input``.
+
+    The static subtype pass passes because the consumer is nullable
+    and the producer's schema marks the projected field as optional
+    (``required`` at the producer's root does not include ``note``).
+    Dispatch enforces the "no engine-inserted defaults" contract by
+    refusing to invent a null the producer never emitted — the
+    producer must emit an explicit null (via ``output add
+    --set-json``) if the value is meant to be absent (io.md §6
+    rule 5)."""
     from loom.__main__ import main
+    from loom.builders import output_add
     from loom.engine.store import task_folder
     from loom._lifecycle import resume as _resume
+    from loom.errors import InputSchemaError
 
     root = tmp_path / "loom"
     root.mkdir()
-    _tool_with_input(
-        root,
+    # `seed` is an agent so the test drives its output.yaml directly.
+    (root / "seed").mkdir()
+    (root / "seed" / "io.yaml").write_text(yaml.safe_dump({
+        "version": 1,
+        "input": {"type": "object", "additionalProperties": False},
+        "output": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "n": {"type": "integer"},
+                "note": {"type": ["string", "null"]},
+            },
+            "required": ["n"],
+        },
+    }))
+    (root / "seed" / "prompt.md.j2").write_text("Produce n. {{ input }}\n")
+    _write_tool_task(
+        root / "target", "target",
         {
             "type": "object",
             "additionalProperties": False,
-            "properties": {"n": {"type": "integer"}},
-            "required": ["n"],
+            "properties": {"note": {"type": ["string", "null"]}},
+            "required": ["note"],
         },
+        {"type": "object", "additionalProperties": False},
+        "from io_types import TargetInput, TargetOutput\n"
+        "def target(inp: TargetInput) -> TargetOutput:\n"
+        "    return TargetOutput()\n",
     )
-    # Mapping declared empty — required `n` will be missing.
     (root / "graph.yaml").write_text(yaml.safe_dump({
         "tasks": [
-            {"id": "seed", "kind": "tool", "version": 1},
+            {"id": "seed", "kind": "agent", "version": 1},
             {"id": "target", "kind": "tool", "version": 1,
              "depends_on_all": ["seed"],
-             "input": {}},
+             "input": {"note": "${task:seed:note}"}},
         ],
     }))
     workdir = tmp_path / "run"
     assert main(["runtime", "init", str(workdir), "--loom-root", str(root)]) == 0
-    from loom.errors import InputSchemaError
-
+    # Seed dispatches as agent; write its output missing `note`.
+    assert main(["runtime", "next", str(workdir)]) == 0
+    output_add(workdir, "seed", ["n=1"])
+    assert main(["runtime", "complete", str(workdir), "seed"]) == 0
+    # Target dispatch trips case (b): terminal key absent from producer.
     with pytest.raises(InputSchemaError):
         main(["runtime", "next", str(workdir)])
 
@@ -241,6 +278,68 @@ def test_mapping_undeclared_extra_raises(tmp_path: Path):
     main(["runtime", "init", str(workdir), "--loom-root", str(root)])
     with pytest.raises(InputSchemaError):
         main(["runtime", "next", str(workdir)])
+
+
+# ---- explicit-null pass-through (io.md §6 rule 5) ---------------------
+
+def test_mapping_producer_emits_explicit_null_passes(tmp_path: Path):
+    """Producer emits an explicit ``null`` (via ``output add
+    --set-json``) into a field wired to a consumer input typed
+    ``[X, null]``. Dispatch passes the null through unchanged; strict
+    validation accepts it. The engine never invents a default — the
+    producer's explicit null IS the value."""
+    from loom.__main__ import main
+    from loom.builders import output_add
+    from loom.engine.store import task_folder
+    from loom._lifecycle import resume as _resume
+
+    root = tmp_path / "loom"
+    root.mkdir()
+    (root / "seed").mkdir()
+    (root / "seed" / "io.yaml").write_text(yaml.safe_dump({
+        "version": 1,
+        "input": {"type": "object", "additionalProperties": False},
+        "output": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"note": {"type": ["string", "null"]}},
+            "required": ["note"],
+        },
+    }))
+    (root / "seed" / "prompt.md.j2").write_text("Produce note. {{ input }}\n")
+    _write_tool_task(
+        root / "target", "target",
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"note": {"type": ["string", "null"]}},
+            "required": ["note"],
+        },
+        {"type": "object", "additionalProperties": False},
+        "from io_types import TargetInput, TargetOutput\n"
+        "def target(inp: TargetInput) -> TargetOutput:\n"
+        "    return TargetOutput()\n",
+    )
+    (root / "graph.yaml").write_text(yaml.safe_dump({
+        "tasks": [
+            {"id": "seed", "kind": "agent", "version": 1},
+            {"id": "target", "kind": "tool", "version": 1,
+             "depends_on_all": ["seed"],
+             "input": {"note": "${task:seed:note}"}},
+        ],
+    }))
+    workdir = tmp_path / "run"
+    assert main(["runtime", "init", str(workdir), "--loom-root", str(root)]) == 0
+    assert main(["runtime", "next", str(workdir)]) == 0  # seed ready.
+    # Write an explicit null via --set-json semantics.
+    output_add(workdir, "seed", [(True, "note=null")])
+    assert main(["runtime", "complete", str(workdir), "seed"]) == 0
+    # Target dispatches; the null flows through.
+    assert main(["runtime", "next", str(workdir)]) == 0
+    runtime = _resume(workdir)
+    folder = task_folder(workdir, runtime.plan, "target")
+    doc = yaml.safe_load((folder / "input.yaml").read_text())
+    assert doc == {"note": None}
 
 
 # ---- per-round @prev ----
@@ -449,7 +548,7 @@ def test_dual_instance_subgraph_wires_independently(tmp_path: Path):
     parent_root = tmp_path / "parent" / "loom"
     _write_tool_task(
         parent_root / "origin", "origin",
-        {"type": "object"},
+        {"type": "object", "additionalProperties": False},
         {
             "type": "object",
             "additionalProperties": False,
@@ -520,7 +619,7 @@ def test_mapping_ref_to_undeclared_task_rejected_at_init(tmp_path: Path):
     root.mkdir()
     _write_tool_task(
         root / "seed", "seed",
-        {"type": "object"},
+        {"type": "object", "additionalProperties": False},
         _MAP_LOOM_YAML["seed_output"],
         "from io_types import SeedInput, SeedOutput\n"
         "def seed(inp: SeedInput) -> SeedOutput:\n"
@@ -529,7 +628,7 @@ def test_mapping_ref_to_undeclared_task_rejected_at_init(tmp_path: Path):
     _write_tool_task(
         root / "target", "target",
         _MAP_LOOM_YAML["square_input"],
-        {"type": "object"},
+        {"type": "object", "additionalProperties": False},
         "from io_types import TargetInput, TargetOutput\n"
         "def target(inp: TargetInput) -> TargetOutput:\n"
         "    return TargetOutput()\n",
@@ -589,7 +688,7 @@ def test_reserved_field_engine_filled(tmp_path: Path):
     root.mkdir()
     _write_tool_task(
         root / "seed", "seed",
-        {"type": "object"},
+        {"type": "object", "additionalProperties": False},
         _MAP_LOOM_YAML["seed_output"],
         "from io_types import SeedInput, SeedOutput\n"
         "def seed(inp: SeedInput) -> SeedOutput:\n"
@@ -686,7 +785,7 @@ def test_reserved_field_shadow_rejected_static(tmp_path: Path):
     root.mkdir()
     _write_tool_task(
         root / "seed", "seed",
-        {"type": "object"},
+        {"type": "object", "additionalProperties": False},
         _MAP_LOOM_YAML["seed_output"],
         "from io_types import SeedInput, SeedOutput\n"
         "def seed(inp: SeedInput) -> SeedOutput:\n"
@@ -699,12 +798,7 @@ def test_reserved_field_shadow_rejected_static(tmp_path: Path):
             "type": "object",
             "additionalProperties": False,
             "properties": {
-                "__loom": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "properties": {"workdir": {"type": "string"}},
-                    "required": ["workdir"],
-                },
+                "__loom": {},
             },
             "required": ["__loom"],
         },

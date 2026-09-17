@@ -15,8 +15,8 @@ def _write(folder, doc):
 def test_positive(tmp_path):
     _write(tmp_path, {
         "version": 1,
-        "input": {"type": "object"},
-        "output": {"type": "object"},
+        "input": {"type": "object", "additionalProperties": False},
+        "output": {"type": "object", "additionalProperties": False},
     })
     io = load_io_yaml(tmp_path)
     assert io.version == 1
@@ -51,10 +51,58 @@ def test_missing_output(tmp_path):
 
 
 def test_error_quotes_description(tmp_path):
-    _write(tmp_path, {"input": {"type": "object"}, "output": {"type": "object"}})
+    _write(tmp_path, {
+        "input": {"type": "object", "additionalProperties": False},
+        "output": {"type": "object", "additionalProperties": False},
+    })
     with pytest.raises(IOYamlError) as exc:
         load_io_yaml(tmp_path)
     assert "version" in str(exc.value).lower()
+
+
+# ---- root additionalProperties: false is mandatory (io.md §6b) --------
+
+def test_meta_rejects_input_without_additional_properties(tmp_path):
+    """The tightened meta-schema rejects an io.yaml whose ``input``
+    root omits ``additionalProperties: false``. The
+    sound-alignment subtype pass in
+    ``loom.validate.subtype.validate_subtype`` needs a closed
+    consumer surface, so this MUST be enforced meta-schema-wide."""
+    _write(tmp_path, {
+        "version": 1,
+        "input": {"type": "object"},
+        "output": {"type": "object", "additionalProperties": False},
+    })
+    with pytest.raises(IOYamlError) as exc:
+        load_io_yaml(tmp_path)
+    assert "additionalProperties" in str(exc.value)
+
+
+def test_meta_rejects_output_without_additional_properties(tmp_path):
+    """The tightened meta-schema rejects an io.yaml whose ``output``
+    root omits ``additionalProperties: false``. A producer with an
+    open output would let undeclared fields silently satisfy a
+    downstream wiring, defeating the static alignment guarantee."""
+    _write(tmp_path, {
+        "version": 1,
+        "input": {"type": "object", "additionalProperties": False},
+        "output": {"type": "object"},
+    })
+    with pytest.raises(IOYamlError) as exc:
+        load_io_yaml(tmp_path)
+    assert "additionalProperties" in str(exc.value)
+
+
+def test_meta_rejects_input_with_additional_properties_true(tmp_path):
+    """The tightened meta-schema requires ``additionalProperties:
+    false`` as a const equal to false — ``true`` is not permitted."""
+    _write(tmp_path, {
+        "version": 1,
+        "input": {"type": "object", "additionalProperties": True},
+        "output": {"type": "object", "additionalProperties": False},
+    })
+    with pytest.raises(IOYamlError):
+        load_io_yaml(tmp_path)
 
 
 # ---- $ref resolution ---------------------------------------------------
@@ -63,13 +111,14 @@ def test_ref_relative_inline(tmp_path):
     """Sibling relative ``$ref`` inline-resolves at load."""
     (tmp_path / "greeting.yaml").write_text(yaml.safe_dump({
         "type": "object",
+        "additionalProperties": False,
         "properties": {"greeting": {"type": "string"}},
         "required": ["greeting"],
     }))
     _write(tmp_path, {
         "version": 1,
         "input": {"$ref": "greeting.yaml"},
-        "output": {"type": "object"},
+        "output": {"type": "object", "additionalProperties": False},
     })
     io = load_io_yaml(tmp_path)
     assert "greeting" in io.input_schema["properties"]
@@ -87,7 +136,7 @@ def test_bare_reserved_substitution(tmp_path):
             "properties": {"__loom": {}},
             "required": ["__loom"],
         },
-        "output": {"type": "object"},
+        "output": {"type": "object", "additionalProperties": False},
     })
     io = load_io_yaml(tmp_path)
     loom_schema = io.input_schema["properties"]["__loom"]
@@ -144,7 +193,7 @@ def test_substituted_schema_validates_input(tmp_path):
             "properties": {"__loom": {}},
             "required": ["__loom"],
         },
-        "output": {"type": "object"},
+        "output": {"type": "object", "additionalProperties": False},
     })
     io = load_io_yaml(tmp_path)
     ok = {"__loom": {"workdir": "/tmp/loom-workdir", "runtime": "/x/loom.sh"}}

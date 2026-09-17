@@ -33,7 +33,7 @@ def report_loom_root(tmp_path: Path) -> Path:
     gate.mkdir(parents=True)
     (gate / "io.yaml").write_text(yaml.safe_dump({
         "version": 1,
-        "input": {"type": "object"},
+        "input": {"type": "object", "additionalProperties": False},
         "output": {
             "type": "object",
             "additionalProperties": False,
@@ -144,3 +144,44 @@ def test_negative_index_on_empty_list_is_clear_error(gate_workdir: Path):
 def test_malformed_bracket_segment_is_clear_error(gate_workdir: Path):
     with pytest.raises(OutputSchemaError, match="bad path"):
         output_add(gate_workdir, "gate", ["timeline[x].date=nope"])
+
+
+# --- --set-json: explicit empty values and JSON-typed assignments ---
+
+
+def test_set_json_empty_list(gate_workdir: Path):
+    """A producer can emit an explicit empty list — the contract-soundness
+    pattern: schema keeps the field required, producer supplies []."""
+    output_add(gate_workdir, "gate", [
+        "narrative=no events found",
+        "decision=continue",
+        (True, "timeline=[]"),
+    ])
+    assert _output_doc(gate_workdir)["timeline"] == []
+    assert main(["runtime", "complete", str(gate_workdir), "gate"]) == 0
+
+
+def test_set_json_cli_order_preserved_with_set(gate_workdir: Path):
+    """Mixed --set / --set-json apply in CLI order via the shared list."""
+    assert main([
+        "output", "add", str(gate_workdir), "--task", "gate",
+        "--set", "timeline[].date=2026-09-14",
+        "--set-json", 'timeline[-1].summary="from json"',
+        "--set", "timeline[].date=2026-09-16",
+        "--set", "timeline[-1].summary=from scalar",
+    ]) == 0
+    assert _output_doc(gate_workdir)["timeline"] == [
+        {"date": "2026-09-14", "summary": "from json"},
+        {"date": "2026-09-16", "summary": "from scalar"},
+    ]
+
+
+def test_set_json_bad_json_is_clear_error(gate_workdir: Path):
+    with pytest.raises(OutputSchemaError, match="bad JSON value"):
+        output_add(gate_workdir, "gate", [(True, "timeline=[unquoted]")])
+
+
+def test_set_json_still_type_checked(gate_workdir: Path):
+    # JSON value must still satisfy the schema type.
+    with pytest.raises(OutputSchemaError):
+        output_add(gate_workdir, "gate", [(True, "narrative=5")])

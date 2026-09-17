@@ -153,7 +153,10 @@ description: What it does. Use when [trigger phrases].
 
 14. Sub-step prose MUST NOT re-narrate what a script does internally (algorithm,
     edge cases, return values), because re-narration drifts from the script over
-    time and bloats SKILL.md.
+    time and bloats SKILL.md. Exception: inline bash glue inside a fenced block
+    is the implementation itself, not narration, and is exempt; the surrounding
+    prose still MUST NOT duplicate what the snippet already states, because
+    duplication drifts from the snippet over time and bloats SKILL.md.
 
 15. Files under `scripts/`, `schemas/`, and `templates/` MUST be referenced by
     SKILL.md, other scripts, prompts, or plan code; orphan files MUST be

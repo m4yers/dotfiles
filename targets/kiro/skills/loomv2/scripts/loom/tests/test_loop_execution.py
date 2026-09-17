@@ -157,9 +157,10 @@ def fuel_loop_root(tmp_path: Path) -> Path:
         d.mkdir()
         (d / "io.yaml").write_text(yaml.safe_dump({
             "version": 1,
-            "input": {"type": "object"},
+            "input": {"type": "object", "additionalProperties": False},
             "output": {
                 "type": "object",
+                "additionalProperties": False,
                 "properties": {"n": {"type": "integer"}},
                 "required": ["n"],
             },
@@ -244,9 +245,10 @@ def _write_tool(root: Path, name: str, pascal: str, out_field: str = "n") -> Non
     d.mkdir()
     (d / "io.yaml").write_text(yaml.safe_dump({
         "version": 1,
-        "input": {"type": "object"},
+        "input": {"type": "object", "additionalProperties": False},
         "output": {
             "type": "object",
+            "additionalProperties": False,
             "properties": {out_field: {"type": "integer"}},
             "required": [out_field],
         },
@@ -332,9 +334,10 @@ def while_loop_root(tmp_path: Path) -> Path:
     step.mkdir()
     (step / "io.yaml").write_text(yaml.safe_dump({
         "version": 1,
-        "input": {"type": "object"},
+        "input": {"type": "object", "additionalProperties": False},
         "output": {
             "type": "object",
+            "additionalProperties": False,
             "properties": {"n": {"type": "integer"}},
             "required": ["n"],
         },
@@ -356,6 +359,7 @@ def while_loop_root(tmp_path: Path) -> Path:
         },
         "output": {
             "type": "object",
+            "additionalProperties": False,
             "properties": {"delta": {"type": "integer"}},
             "required": ["delta"],
         },
