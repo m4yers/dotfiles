@@ -12,6 +12,12 @@ tasks:
     depends_on_all: [summarise]
     input:
       summary: "${task:summarise:summary}"
+  - id: banner-sh
+    kind: tool
+    version: 1
+    depends_on_all: [greet-user]
+    input:
+      greeting: "${task:greet-user:greeting}"
   - id: child-lint
     kind: subgraph
     version: 1
@@ -29,7 +35,7 @@ tasks:
   - id: finalise
     kind: tool
     version: 1
-    depends_on_all: [confirm, child-lint, child-relint]
+    depends_on_all: [confirm, child-lint, child-relint, banner-sh]
     input:
       summary: "${task:summarise:summary}"
       decision: "${task:confirm:decision}"

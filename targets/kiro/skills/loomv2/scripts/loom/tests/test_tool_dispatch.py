@@ -1,6 +1,8 @@
-"""tool.py + io_types.py dispatch with typed IO."""
+"""tool.py + io_types.py dispatch with typed IO, plus tool.sh shell shim dispatch."""
 from __future__ import annotations
 
+import os
+import stat
 import sys
 from pathlib import Path
 
@@ -206,4 +208,171 @@ def test_sys_modules_io_types_cleared_when_absent(tmp_path):
         "    return ComputeOutput(m=inp.n * 2)\n",
     )
     dispatch_tool(Task(id="compute", kind="tool"), folder)
+    assert "io_types" not in sys.modules
+
+
+
+# ---- tool.sh shell shim dispatch ----
+
+_SHELL_IO_YAML = yaml.safe_dump({
+    "version": 1,
+    "input": {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {"greeting": {"type": "string"}},
+        "required": ["greeting"],
+    },
+    "output": {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {"banner": {"type": "string"}},
+        "required": ["banner"],
+    },
+})
+
+
+def _make_shell_folder(
+    tmp_path: Path,
+    tool_sh_body: str,
+    *,
+    executable: bool = True,
+    input_doc: dict | None = None,
+) -> Path:
+    """Materialise a task folder with a `tool.sh` shim.
+
+    The shim body is dropped verbatim after a `#!/usr/bin/env bash`
+    shebang line; the caller supplies the whole script.
+    """
+    folder = tmp_path / "banner-sh"
+    folder.mkdir()
+    (folder / "io.yaml").write_text(_SHELL_IO_YAML)
+    tool_sh = folder / "tool.sh"
+    tool_sh.write_text(tool_sh_body)
+    if executable:
+        mode = tool_sh.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+        tool_sh.chmod(mode)
+    input_yaml = folder / "input.yaml"
+    input_yaml.write_text(yaml.safe_dump(input_doc or {"greeting": "hello"}))
+    return folder
+
+
+def test_shell_happy_path_argv_and_output(tmp_path):
+    """tool.sh receives input/output paths as $1/$2, reads input.yaml,
+    writes output.yaml, and dispatch treats the shim's output as
+    engine-facing."""
+    shim = (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "INPUT=\"$1\"\n"
+        "OUTPUT=\"$2\"\n"
+        "greeting=$(python3 -c '\n"
+        "import sys, yaml\n"
+        "print(yaml.safe_load(open(sys.argv[1]))[\"greeting\"])\n"
+        "' \"$INPUT\")\n"
+        "python3 -c '\n"
+        "import sys, yaml\n"
+        "yaml.safe_dump({\"banner\": f\"*** {sys.argv[1]} ***\"}, "
+        "open(sys.argv[2], \"w\"), sort_keys=False)\n"
+        "' \"$greeting\" \"$OUTPUT\"\n"
+    )
+    folder = _make_shell_folder(
+        tmp_path, shim, input_doc={"greeting": "Ada"}
+    )
+    dispatch_tool(Task(id="banner-sh", kind="tool"), folder)
+    assert yaml.safe_load((folder / "output.yaml").read_text()) == {
+        "banner": "*** Ada ***"
+    }
+
+
+def test_shell_cwd_is_task_workdir(tmp_path):
+    """The shim's cwd inside the subprocess equals the engine-picked
+    task workdir. The shim writes `pwd` into a sentinel file and the
+    test asserts it matches the folder passed to dispatch_tool."""
+    shim = (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "pwd > cwd-sentinel.txt\n"
+        "python3 -c 'import yaml; yaml.safe_dump({\"banner\": \"ok\"}, "
+        "open(\"'\"$2\"'\", \"w\"), sort_keys=False)'\n"
+    )
+    folder = _make_shell_folder(tmp_path, shim)
+    dispatch_tool(Task(id="banner-sh", kind="tool"), folder)
+    sentinel = (folder / "cwd-sentinel.txt").read_text().strip()
+    assert Path(sentinel).resolve() == folder.resolve()
+
+
+def test_shell_nonzero_exit_becomes_tool_task_error_with_stderr_tail(tmp_path):
+    """Non-zero exit surfaces as ToolTaskError; the message carries the
+    task id and the LAST 2000 characters of the shim's stderr. Prints
+    3000 chars of stderr so the tail is exactly 2000 chars."""
+    # 3000 distinct chars of stderr, then exit non-zero.
+    shim = (
+        "#!/usr/bin/env bash\n"
+        "python3 -c 'import sys; sys.stderr.write(\"x\" * 3000)'\n"
+        "exit 7\n"
+    )
+    folder = _make_shell_folder(tmp_path, shim)
+    with pytest.raises(ToolTaskError) as exc:
+        dispatch_tool(Task(id="banner-sh", kind="tool"), folder)
+    msg = str(exc.value)
+    assert "banner-sh" in msg
+    assert "exited 7" in msg
+    # Extract the tail: everything after "stderr tail: " in the message.
+    tail = msg.split("stderr tail: ", 1)[1]
+    assert tail == "x" * 2000
+    # error.yaml and stderr.yaml were both written, matching python
+    # branch failure surface.
+    assert (folder / "error.yaml").exists()
+    stderr_doc = yaml.safe_load((folder / "stderr.yaml").read_text())
+    assert stderr_doc["text"] == "x" * 3000
+
+
+def test_shell_dispatch_does_not_require_io_types_py(tmp_path):
+    """Shell branch skips io_types.py load / version-pin logic entirely."""
+    shim = (
+        "#!/usr/bin/env bash\n"
+        "python3 -c 'import yaml; yaml.safe_dump({\"banner\": \"ok\"}, "
+        "open(\"'\"$2\"'\", \"w\"), sort_keys=False)'\n"
+    )
+    folder = _make_shell_folder(tmp_path, shim)
+    # Precondition: no io_types.py on disk.
+    assert not (folder / "io_types.py").exists()
+    dispatch_tool(Task(id="banner-sh", kind="tool"), folder)
+    assert yaml.safe_load((folder / "output.yaml").read_text()) == {
+        "banner": "ok"
+    }
+
+
+def test_shell_dispatch_leaves_sys_modules_io_types_untouched(tmp_path):
+    """The shell path never touches sys.modules['io_types']."""
+    sentinel = type("Sentinel", (), {})()
+    sys.modules["io_types"] = sentinel  # type: ignore[assignment]
+    try:
+        shim = (
+            "#!/usr/bin/env bash\n"
+            "python3 -c 'import yaml; yaml.safe_dump({\"banner\": \"ok\"}, "
+            "open(\"'\"$2\"'\", \"w\"), sort_keys=False)'\n"
+        )
+        folder = _make_shell_folder(tmp_path, shim)
+        dispatch_tool(Task(id="banner-sh", kind="tool"), folder)
+        assert sys.modules["io_types"] is sentinel
+    finally:
+        sys.modules.pop("io_types", None)
+
+    # And when no pre-existing entry, the shell path leaves it absent.
+    sys.modules.pop("io_types", None)
+    shim = (
+        "#!/usr/bin/env bash\n"
+        "python3 -c 'import yaml; yaml.safe_dump({\"banner\": \"ok\"}, "
+        "open(\"'\"$2\"'\", \"w\"), sort_keys=False)'\n"
+    )
+    folder2 = tmp_path / "banner-sh-2"
+    folder2.mkdir()
+    (folder2 / "io.yaml").write_text(_SHELL_IO_YAML)
+    tool_sh = folder2 / "tool.sh"
+    tool_sh.write_text(shim)
+    mode = tool_sh.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+    tool_sh.chmod(mode)
+    (folder2 / "input.yaml").write_text(yaml.safe_dump({"greeting": "hi"}))
+    dispatch_tool(Task(id="banner-sh", kind="tool"), folder2)
     assert "io_types" not in sys.modules

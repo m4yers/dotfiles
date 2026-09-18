@@ -33,9 +33,12 @@ init/extend lifecycle because both passes run before any workdir writes.
 """
 from __future__ import annotations
 
-import re
 from typing import Any
 
+from loom.engine.jmespath_grammar import (
+    INDEX_RE as _INDEX_RE,
+    SEGMENT_RE as _SEGMENT_RE,
+)
 from loom.engine.models import LoomPlan, Task
 from loom.engine.reserved import RESERVED_FIELDS
 from loom.errors import SchemaError, TypeMismatchError
@@ -43,12 +46,12 @@ from loom.validate.references import iter_task_refs
 from loom.validate.schemas import SchemaCache
 
 
-# Path segment: identifier optionally followed by any number of
-# ``[<integer>]`` index accessors. Anything else — filters, wildcards,
-# functions, string keys with quotes, arithmetic — is deliberately
-# outside the statically-projectable subset and fails closed.
-_SEGMENT_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_\-]*)((?:\[\d+\])*)$")
-_INDEX_RE = re.compile(r"\[(\d+)\]")
+# Shared JMESPath grammar (identifier optionally followed by ``[<int>]``
+# accessors) lives in ``engine/jmespath_grammar.py`` so the projectable
+# subset stays in lock step with the dispatch-time walker in
+# ``engine/mapping.py``. Anything else — filters, wildcards, functions,
+# quoted keys, arithmetic — is deliberately outside this subset and
+# fails closed.
 
 
 # JSON Schema keys that carry conditional / negation semantics we cannot

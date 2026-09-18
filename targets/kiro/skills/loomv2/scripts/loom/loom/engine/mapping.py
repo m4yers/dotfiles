@@ -73,9 +73,13 @@ _FULL_TASK_REF_RE = re.compile(
 # accessors. Mirrors the projectable subset in ``validate/subtype.py``;
 # anything the mapping walk sees outside this shape falls back to
 # jmespath.search's evaluation and its None result is treated as
-# unresolved (case (b)).
-_PATH_SEGMENT_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_\-]*)((?:\[\d+\])*)$")
-_PATH_INDEX_RE = re.compile(r"\[(\d+)\]")
+# unresolved (case (b)). Shared grammar lives in
+# ``engine/jmespath_grammar.py`` so the static-vs-runtime subsets stay
+# in lock step.
+from loom.engine.jmespath_grammar import (
+    INDEX_RE as _PATH_INDEX_RE,
+    SEGMENT_RE as _PATH_SEGMENT_RE,
+)
 
 
 _SENTINEL = object()  # Distinguishes present-but-null from missing.

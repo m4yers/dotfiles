@@ -6,8 +6,20 @@ from pathlib import Path
 import pytest
 import yaml
 
-from loom.discovery import detect_kind, load_graph_yaml, load_io_yaml, resolve_task_folder
-from loom.errors import GraphYamlError, IOYamlError, KindMismatchError, TaskFolderError
+from loom.discovery import (
+    detect_kind,
+    load_graph_yaml,
+    load_io_yaml,
+    resolve_task_folder,
+    resolve_tool_entry,
+)
+from loom.errors import (
+    AmbiguousToolEntryError,
+    GraphYamlError,
+    IOYamlError,
+    KindMismatchError,
+    TaskFolderError,
+)
 
 
 def test_resolve_task_folder_missing(tmp_path):
@@ -25,6 +37,41 @@ def test_detect_kind_multiple(tmp_path):
     (tmp_path / "prompt.md.j2").write_text("")
     with pytest.raises(KindMismatchError):
         detect_kind(tmp_path)
+
+
+def test_detect_kind_tool_sh_only_classifies_as_tool(tmp_path):
+    """A folder with only tool.sh (executable, shebang) is a tool task."""
+    tool_sh = tmp_path / "tool.sh"
+    tool_sh.write_text("#!/usr/bin/env bash\nexit 0\n")
+    tool_sh.chmod(0o755)
+    assert detect_kind(tmp_path) == "tool"
+
+
+def test_detect_kind_both_tool_py_and_tool_sh_raises_ambiguous(tmp_path):
+    """A folder that carries BOTH tool.py and tool.sh raises
+    AmbiguousToolEntryError; the two entry files are mutually
+    exclusive."""
+    (tmp_path / "tool.py").write_text("")
+    (tmp_path / "tool.sh").write_text("#!/usr/bin/env bash\n")
+    with pytest.raises(AmbiguousToolEntryError):
+        detect_kind(tmp_path)
+
+
+def test_resolve_tool_entry_python(tmp_path):
+    (tmp_path / "tool.py").write_text("")
+    assert resolve_tool_entry(tmp_path) == "python"
+
+
+def test_resolve_tool_entry_shell(tmp_path):
+    (tmp_path / "tool.sh").write_text("#!/usr/bin/env bash\n")
+    assert resolve_tool_entry(tmp_path) == "shell"
+
+
+def test_resolve_tool_entry_ambiguous(tmp_path):
+    (tmp_path / "tool.py").write_text("")
+    (tmp_path / "tool.sh").write_text("#!/usr/bin/env bash\n")
+    with pytest.raises(AmbiguousToolEntryError):
+        resolve_tool_entry(tmp_path)
 
 
 def test_load_io_yaml_missing_version(tmp_path):

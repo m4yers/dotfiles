@@ -29,6 +29,14 @@ of both sides is declared, so that:
 - Author-facing tooling (`$LOOM task io-python`) can generate typed
   Python dataclasses from the schema.
 
+`io_types.py` codegen (and the `<TaskName>Input` / `<TaskName>Output`
+dataclasses) is a Python-facing aid — a convenience for `tool.py` bodies so
+they receive strongly-typed inputs and return strongly-typed outputs. `tool.sh`
+tasks fulfil the same io contract by reading `input.yaml` and writing
+`output.yaml` directly at the argv paths the engine passes (see
+[guide.md §2a](guide.md#2a-shell-shim-toolsh) for the argv contract); the
+engine's output-schema validation applies identically to both entry kinds.
+
 ## 2. The `input` and `output` blocks
 
 Each block is a JSON Schema (draft 2020-12) fragment. Root MUST be an object;

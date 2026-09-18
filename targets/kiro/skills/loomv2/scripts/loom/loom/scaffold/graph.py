@@ -101,7 +101,7 @@ def _restamp_versions(raw: str, expected: list[int]) -> str:
 
 def _guess_kind(folder: Path) -> str:
     """Inspect the folder for a body file to guess kind. Default: tool."""
-    if (folder / "tool.py").exists():
+    if (folder / "tool.py").exists() or (folder / "tool.sh").exists():
         return "tool"
     if (folder / "prompt.md.j2").exists():
         return "agent"

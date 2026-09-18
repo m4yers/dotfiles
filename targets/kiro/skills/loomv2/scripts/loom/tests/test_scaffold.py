@@ -218,6 +218,26 @@ def test_graph_new_scaffolds_when_absent(tmp_path, capsys):
     assert "scaffolded" in capsys.readouterr().out
 
 
+def test_graph_new_scaffolds_tool_sh_as_kind_tool(tmp_path, capsys):
+    """A loom-root whose only task folder carries `tool.sh` (with
+    io.yaml) scaffolds a `graph.yaml` entry with `kind: tool` and the
+    io.yaml's pinned `version`."""
+    loom_root = tmp_path / "loom"
+    loom_root.mkdir()
+    folder = new_task(loom_root, "banner-sh")
+    (folder / "io.yaml").write_text(_TOOL_IO_YAML)
+    (folder / "tool.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+    (folder / "tool.sh").chmod(0o755)
+
+    new_graph(loom_root)
+
+    doc = yaml.safe_load((loom_root / "graph.yaml").read_text())
+    assert doc["tasks"][0] == {
+        "id": "banner-sh", "kind": "tool", "version": 1
+    }
+    assert "scaffolded" in capsys.readouterr().out
+
+
 # ---- graph new: refresh (graph.yaml present) ----
 
 def _write_authored_graph(loom_root: Path, text: str) -> Path:

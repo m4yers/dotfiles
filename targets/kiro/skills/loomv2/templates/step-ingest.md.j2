@@ -21,19 +21,23 @@
    ```bash
    ${{ prefix }}_TILING activity set "{{ skill_name }}({{ target }}): Ingest"
    ```
-2. Run the DEFAULT single-call ingest — wipe any existing workdir,
-   init fresh, and seed the entry task's `input.yaml` in one shot:
+2. Run the DEFAULT single-call ingest — the loomv2 CLI picks a fresh
+   engine-owned workdir under `/tmp/<skill>/<uuid>/`, wipes and
+   recreates it unconditionally, and seeds the entry task's
+   `input.yaml` in one shot. Capture the printed path on stdout:
    ```bash
-   ${{ prefix }}_{{ shim }} runtime init "${{ prefix }}_WD" \
+   ${{ prefix }}_WD=$(${{ prefix }}_{{ shim }} runtime init \
        --loom-root "${{ prefix }}_{{ loom_root_var }}" \
-       --force {{ set_assignments }}
+       {{ set_assignments }})
    ```
    No per-skill Python or wrapper logic is required — the loomv2 CLI
-   owns wipe, init, and entry-task seeding. If the entry task cannot
-   be seeded via `--set` (for example, the graph's entry task has an
-   `input:` mapping in `graph.yaml`), the host skill drops
-   `--force --set` and writes `input.yaml` by hand before the first
-   `runtime next` — supported as the escape hatch, not the default.
+   owns workdir naming, wipe, init, and entry-task seeding, and never
+   needs a `--force` flag. If the entry task cannot be seeded via
+   `--set` (for example, the graph's entry task has an `input:`
+   mapping in `graph.yaml`), the host skill drops `--set`, passes an
+   explicit workdir path (`runtime init "$WD" --loom-root ...`), and
+   writes `input.yaml` by hand before the first `runtime next` —
+   supported as the escape hatch, not the default.
 3. Set tiling activity to Ingest done:
    ```bash
    ${{ prefix }}_TILING activity set "{{ skill_name }}({{ target }}): Ingest done"

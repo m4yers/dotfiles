@@ -97,6 +97,8 @@ def test_hello_graph_visualise_labels_addresses(hello_graph: Path, tmp_workdir: 
     # Inlined child tasks appear under their instance addresses.
     assert "child-lint/lint-text" in out
     assert "child-relint/lint-text" in out
+    # banner-sh (tool.sh shell shim) appears alongside the python tools.
+    assert "banner-sh" in out
     # Loop latch annotation for confirm → summarise.
     assert "↻ loop → summarise" in out
     # Rail-renderer legend line is present.
@@ -168,6 +170,16 @@ def test_hello_graph_cli_end_to_end(hello_graph: Path, tmp_path: Path, capsys):
         (lint_folder / "input.yaml").read_text()
     ) == {"greeting": greeting}
     assert runtime.task_output("child-lint/lint-text")["issues_found"] == 0
+    # banner-sh (tool.sh shell shim) also ran internally in the same
+    # tool-batch; its output.yaml was written by the shim itself and
+    # validated against banner-sh/io.yaml/output by runtime complete.
+    banner_folder = task_folder(workdir, runtime.plan, "banner-sh")
+    assert yaml.safe_load(
+        (banner_folder / "input.yaml").read_text()
+    ) == {"greeting": greeting}
+    assert runtime.task_output("banner-sh") == {
+        "banner": f"*** {greeting} ***"
+    }
 
     # ---- loop round 0: summary rejected ----
     draft = "Some greeting."

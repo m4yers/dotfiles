@@ -153,7 +153,7 @@ def test_cli_complete_reports_schema_error(cli_loom_root: Path, tmp_path: Path, 
         main(["runtime", "complete", str(workdir), "ask"])
 
 
-# --- runtime init --force / --set coverage -----------------------------------
+# --- runtime init auto-workdir / wipe / --set coverage -----------------------
 
 
 @pytest.fixture
@@ -243,15 +243,16 @@ def mapping_loom_root(tmp_path: Path) -> Path:
     return root
 
 
-def test_cli_init_force_wipes_existing_workdir(
+def test_cli_init_wipes_existing_explicit_workdir(
     cli_loom_root: Path, tmp_path: Path, capsys
 ):
+    """Explicit-workdir form wipes-and-recreates unconditionally, no flag."""
     workdir = tmp_path / "run"
     workdir.mkdir()
     (workdir / "leftover.txt").write_text("stale contents")
     rc, out, _ = _run(
         capsys, "runtime", "init", str(workdir),
-        "--loom-root", str(cli_loom_root), "--force",
+        "--loom-root", str(cli_loom_root),
     )
     assert rc == 0
     assert out.strip() == str(workdir)
@@ -259,16 +260,220 @@ def test_cli_init_force_wipes_existing_workdir(
     assert (workdir / "plan.yaml").exists()
 
 
-def test_cli_init_force_on_missing_workdir_is_no_op(
+def test_cli_init_force_flag_rejected(
     cli_loom_root: Path, tmp_path: Path, capsys
 ):
-    workdir = tmp_path / "does_not_exist_yet"
+    """--force is no longer a recognised flag; argparse rejects it."""
+    workdir = tmp_path / "run"
+    with pytest.raises(SystemExit) as excinfo:
+        main([
+            "runtime", "init", str(workdir),
+            "--loom-root", str(cli_loom_root), "--force",
+        ])
+    assert excinfo.value.code != 0
+    err = capsys.readouterr().err
+    assert "--force" in err or "unrecognized" in err.lower()
+
+
+def test_cli_init_auto_workdir_creates_tmp_path(
+    cli_loom_root: Path, capsys
+):
+    """Omitting the workdir positional creates /tmp/<skill>/<12-hex>/."""
+    import shutil
+
     rc, out, _ = _run(
-        capsys, "runtime", "init", str(workdir),
-        "--loom-root", str(cli_loom_root), "--force",
+        capsys, "runtime", "init",
+        "--loom-root", str(cli_loom_root),
     )
     assert rc == 0
-    assert (workdir / "plan.yaml").exists()
+    printed = out.strip()
+    auto_path = Path(printed)
+    try:
+        assert auto_path.exists()
+        assert auto_path.parent == Path("/tmp") / cli_loom_root.parent.name
+        assert len(auto_path.name) == 12
+        assert all(c in "0123456789abcdef" for c in auto_path.name)
+        assert (auto_path / "plan.yaml").exists()
+    finally:
+        if auto_path.exists():
+            shutil.rmtree(auto_path)
+
+
+def test_cli_init_auto_workdir_skill_name_from_loom_dir(
+    tmp_path: Path, capsys
+):
+    """loom_root basename == 'loom' -> parent dir name is the skill."""
+    import shutil
+
+    skill_dir = tmp_path / "my-skill-alpha"
+    skill_dir.mkdir()
+    loom_root = skill_dir / "loom"
+    _build_minimal_loom(loom_root)
+
+    rc, out, _ = _run(
+        capsys, "runtime", "init", "--loom-root", str(loom_root),
+    )
+    assert rc == 0
+    auto_path = Path(out.strip())
+    try:
+        assert auto_path.parent == Path("/tmp") / "my-skill-alpha"
+    finally:
+        if auto_path.exists():
+            shutil.rmtree(auto_path)
+
+
+def test_cli_init_auto_workdir_skill_name_from_root_basename(
+    tmp_path: Path, capsys
+):
+    """loom_root basename != 'loom' -> that basename is the skill."""
+    import shutil
+
+    loom_root = tmp_path / "hello-graph"
+    _build_minimal_loom(loom_root)
+
+    rc, out, _ = _run(
+        capsys, "runtime", "init", "--loom-root", str(loom_root),
+    )
+    assert rc == 0
+    auto_path = Path(out.strip())
+    try:
+        assert auto_path.parent == Path("/tmp") / "hello-graph"
+    finally:
+        if auto_path.exists():
+            shutil.rmtree(auto_path)
+
+
+def test_cli_init_auto_workdir_wipes_collision(
+    cli_loom_root: Path, monkeypatch, capsys
+):
+    """A pre-existing auto path is wiped, not preserved."""
+    import shutil
+    import uuid as _uuid
+
+    fixed_hex = "abcdef012345"
+
+    class _FixedUUID:
+        hex = fixed_hex + "0" * 20  # matches uuid4().hex layout (32 chars)
+
+    monkeypatch.setattr(_uuid, "uuid4", lambda: _FixedUUID())
+
+    skill_name = cli_loom_root.parent.name
+    collision = Path("/tmp") / skill_name / fixed_hex
+    collision.mkdir(parents=True, exist_ok=True)
+    (collision / "stale.txt").write_text("old contents")
+
+    try:
+        rc, out, _ = _run(
+            capsys, "runtime", "init", "--loom-root", str(cli_loom_root),
+        )
+        assert rc == 0
+        assert out.strip() == str(collision)
+        assert not (collision / "stale.txt").exists()
+        assert (collision / "plan.yaml").exists()
+    finally:
+        if collision.exists():
+            shutil.rmtree(collision)
+
+
+def test_cli_init_auto_workdir_cleans_up_on_plan_failure(
+    tmp_path: Path, monkeypatch, capsys
+):
+    """Auto path is deleted when static validation fails."""
+    import uuid as _uuid
+
+    fixed_hex = "cafebabe0000"
+
+    class _FixedUUID:
+        hex = fixed_hex + "0" * 20
+
+    monkeypatch.setattr(_uuid, "uuid4", lambda: _FixedUUID())
+
+    # A loom_root whose graph.yaml has multiple entries -> MultipleEntriesError
+    # from validate_single_entry_exit; init aborts post-mkdir.
+    bad_root = tmp_path / "bad-graph"
+    bad_root.mkdir()
+    for name in ("a", "b"):
+        t = bad_root / name
+        t.mkdir()
+        (t / "io.yaml").write_text(yaml.safe_dump({
+            "version": 1,
+            "input": {"type": "object", "additionalProperties": False},
+            "output": {
+                "type": "object", "additionalProperties": False,
+                "properties": {"x": {"type": "integer"}},
+                "required": ["x"],
+            },
+        }))
+        (t / "prompt.md.j2").write_text("hi\n")
+    (bad_root / "graph.yaml").write_text(yaml.safe_dump({
+        "tasks": [
+            {"id": "a", "kind": "agent", "version": 1},
+            {"id": "b", "kind": "agent", "version": 1},
+        ],
+    }))
+
+    auto_path = Path("/tmp") / "bad-graph" / fixed_hex
+    if auto_path.exists():
+        import shutil
+        shutil.rmtree(auto_path)
+
+    rc, _, _ = _run(
+        capsys, "runtime", "init", "--loom-root", str(bad_root),
+    )
+    assert rc == 1
+    assert not auto_path.exists()
+
+
+def test_cli_init_auto_workdir_cleans_up_on_seed_not_allowed(
+    mapping_loom_root: Path, monkeypatch, capsys
+):
+    """Auto path is deleted when --set hits a mapping-bearing entry."""
+    import uuid as _uuid
+
+    fixed_hex = "deadbeef1234"
+
+    class _FixedUUID:
+        hex = fixed_hex + "0" * 20
+
+    monkeypatch.setattr(_uuid, "uuid4", lambda: _FixedUUID())
+
+    skill_name = mapping_loom_root.name  # basename != 'loom'
+    auto_path = Path("/tmp") / skill_name / fixed_hex
+    if auto_path.exists():
+        import shutil
+        shutil.rmtree(auto_path)
+
+    rc, _, err = _run(
+        capsys, "runtime", "init",
+        "--loom-root", str(mapping_loom_root),
+        "--set", "anything=x",
+    )
+    assert rc == 1
+    assert not auto_path.exists()
+    assert "input" in err and "mapping" in err
+
+
+def _build_minimal_loom(loom_root: Path) -> None:
+    """Write a one-agent-task loom rooted at ``loom_root`` for auto tests."""
+    loom_root.mkdir(parents=True)
+    task = loom_root / "greet"
+    task.mkdir()
+    (task / "io.yaml").write_text(yaml.safe_dump({
+        "version": 1,
+        "input": {"type": "object", "additionalProperties": False},
+        "output": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"greeting": {"type": "string"}},
+            "required": ["greeting"],
+        },
+    }))
+    (task / "prompt.md.j2").write_text("Hi\n")
+    (loom_root / "graph.yaml").write_text(yaml.safe_dump({
+        "tasks": [
+            {"id": "greet", "kind": "agent", "version": 1},
+        ],
+    }))
 
 
 def test_cli_init_set_seeds_entry_input(

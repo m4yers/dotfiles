@@ -7,16 +7,60 @@ SKILL.md `## API`; sections below are ordered to match those tables:
 `task new` → `task io-python`; `graph new`; `output init` → `output add`;
 `validate`; `visualise`.
 
+## Contents
+
+- [runtime init](#runtime-init)
+- [runtime next](#runtime-next)
+- [runtime complete](#runtime-complete)
+- [runtime fail](#runtime-fail)
+- [runtime reset](#runtime-reset)
+- [runtime status](#runtime-status)
+- [task new](#task-new)
+- [task io-python](#task-io-python)
+- [graph new](#graph-new)
+- [output init](#output-init)
+- [output add](#output-add)
+- [validate](#validate)
+- [visualise](#visualise)
+
 ## runtime init
 
+Two equivalent shapes.
+
+**Default (auto workdir)** — omit the workdir positional, let the
+engine name and create it under `/tmp`, capture the printed path:
+
 ```bash
-$LOOM runtime init "$WORKDIR" --loom-root "$LOOM_ROOT" --force \
-    --set K=V ...
+WD=$($LOOM runtime init --loom-root "$LOOM_ROOT" [--set K=V ...])
 ```
 
-Creates a fresh workdir on top of `<loom-root>/graph.yaml`. Loads the graph via
-the internal plan API, inlines subgraphs, runs static validation, then writes
-`plan.yaml` and per-task folders. Prints the workdir path on success.
+- `<skill_name>` is derived from `<loom-root>`: if
+  `basename(<loom-root>) == "loom"` (the conventional child folder of
+  a skill directory, e.g. `.../skills/aws/diagnostics/rca/loom`),
+  `<skill_name>` is the parent directory's basename (`rca`).
+  Otherwise `<skill_name>` is `basename(<loom-root>)` itself.
+- The auto workdir is `/tmp/<skill_name>/<uuid4.hex[:12]>/`. The
+  resolved path is printed on stdout — capture it with `$( )`.
+- Init-time failures on the auto form (plan validation,
+  `SeedNotAllowedError`, `--set` grammar error, `--set` schema
+  error) delete the auto workdir before the CLI exits non-zero, so
+  a failed auto init leaves nothing behind.
+
+**Explicit workdir** — for callers that need to name the path themselves (test
+harnesses, scripts that stage the workdir elsewhere):
+
+```bash
+$LOOM runtime init "$WORKDIR" --loom-root "$LOOM_ROOT" [--set K=V ...]
+```
+
+- The caller owns the path; the engine does not clean it up on
+  init-time failure.
+
+**Common to both shapes.** Loads the graph via the internal plan API, inlines
+subgraphs, runs static validation, then writes `plan.yaml` and per-task folders.
+Prints the (resolved) workdir path on success. If the target workdir already
+contains files, they are unconditionally wiped (`shutil.rmtree`) and the workdir
+is recreated — there is no `--force` flag and no error on pre-existing contents.
 
 Static validation includes the sound-alignment passes `validate_subtype` and
 `validate_required_wiring` — every `input_mapping` field projects the producer's
@@ -28,18 +72,15 @@ JMESPath subset fails closed.
 - Full contract and subset spec:
   [io.md §6b](io.md#6b-static-alignment-subtype-projection--required-wiring).
 
-The single-call `--force --set` form is the DEFAULT ingest pattern: workdir
+The DEFAULT ingest pattern is the auto-workdir shape above: workdir naming,
 wipe, init, and entry-task input seeding fold into one `runtime init`
-invocation, so host skills carry only a trivial bash shim. Caller-seeded
-`input.yaml` (hand-written before the first `runtime next` when `--set` is
-omitted) is the supported escape hatch.
+invocation, so host skills carry only a trivial bash shim (`WD=$($LOOM runtime
+init ...)`). Caller-seeded `input.yaml` (hand-written before the first `runtime
+next` when `--set` is omitted) is the supported escape hatch — pair it with the
+explicit-workdir shape when a mapping-bound entry blocks `--set`.
 
-- `<workdir>` — target folder.
+- `<workdir>` — target folder (optional; omit to use the auto shape).
 - `--loom-root PATH` — folder containing `graph.yaml` and task folders.
-- `--force` — if `<workdir>` already exists, wipe it (`shutil.rmtree`) before
-  the usual precondition checks so `WorkdirExistsError` /
-  `WorkdirNotEmptyError` never fire. Idempotent when the workdir does not
-  exist — callers can pass it unconditionally from a shim.
 - `--set key=value` (repeatable) — after plan validation, resolves the
   plan's single entry task (in-degree 0 in the composed plan; the same
   predicate `validate_single_entry_exit` enforces at init), then:
@@ -61,7 +102,8 @@ omitted) is the supported escape hatch.
      `output add`'s partial validation), so typos and missing fields
      fail at init, not mid-run.
   4. Success writes `<workdir>/tasks/<NN>-<entry>/input.yaml`
-     atomically; failure writes nothing.
+     atomically; failure writes nothing (auto form: the auto workdir
+     itself is wiped as part of the cleanup contract above).
 
   See `## runtime reset` below for the caller-seeded-preservation
   semantics that carry through when the entry is re-run after seeding.
@@ -82,6 +124,13 @@ execution is finished; otherwise execute each entry in `ready` — dispatch
 entries from `message_path` — write each task's `output.yaml`, then call
 `$LOOM runtime complete`. The surfaced batch is committed to `running` before
 `next` returns; tool tasks never appear in `ready`.
+
+Tool tasks whose entry is `tool.sh` are dispatched via subprocess with the argv
+contract documented in [guide.md §2a](guide.md#2a-shell-shim-toolsh):
+`tool.sh <input.yaml> <output.yaml>` (positional argv, in that order), with
+`cwd = <task workdir for the round>`. Non-zero exit raises `ToolTaskError`
+carrying the last 2000 chars of stderr; the same output-schema validation runs
+on the shim's `output.yaml`.
 
 At every dispatch (once per activation; per round for loop bodies):
 
@@ -119,16 +168,15 @@ marks the task done, and persists the plan. Prints `ok` on success.
   A `<task_workdir>/schema-error.yaml` (`phase: output`) is written alongside.
 
 Loop latches: completing a latch task also runs the loop decision. `fuel` is
-decremented and persisted on the latch; `while_` is evaluated against the
-round that just finished. On continue, the loop body (header through latch)
-is reset to pending and the next `runtime next` re-dispatches it — each
-activation of a loop-body task gets a fresh `iter-NN/` round dir under its
-task folder. On stop, the latch stays done and the region's exit edge
-releases downstream tasks. The latest completed round is what
-`${task:<addr>}` references and downstream consumers see; earlier rounds
-stay addressable via `${task:<addr>@<k>}`, and `${task:<addr>@prev}` gives
-each round the previous iteration's output (null on the very first
-iteration).
+decremented and persisted on the latch; `while_` is evaluated against the round
+that just finished. On continue, the loop body (header through latch) is reset
+to pending and the next `runtime next` re-dispatches it — each activation of a
+loop-body task gets a fresh `iter-NN/` round dir under its task folder. On stop,
+the latch stays done and the region's exit edge releases downstream tasks. The
+latest completed round is what `${task:<addr>}` references and downstream
+consumers see; earlier rounds stay addressable via `${task:<addr>@<k>}`, and
+`${task:<addr>@prev}` gives each round the previous iteration's output (null on
+the very first iteration).
 
 ## runtime fail
 
@@ -149,13 +197,13 @@ $LOOM runtime reset "$WORKDIR" "$TASK_ADDRESS"
 
 Flips the task back to `pending` and clears its generated artifacts —
 `output.yaml`, `error.yaml`, diagnostic YAMLs (`skip-reason.yaml`,
-`schema-error.yaml`, `stderr.yaml`), rendered `prompt.md` / `message.md`,
-and every `iter-NN/` round dir. Region-aware: resetting any task inside a
-loop body resets the whole region so round indexing restarts at `iter-00`.
-Latch `fuel` is NOT restored — it reflects rounds already consumed.
-Caller-seeded `input.yaml` (entries without an `input:` mapping) is
-preserved so the entry can be re-run without rewriting the seed; mapping-
-driven `input.yaml` is deleted and re-materialised on the next dispatch.
+`schema-error.yaml`, `stderr.yaml`), rendered `prompt.md` / `message.md`, and
+every `iter-NN/` round dir. Region-aware: resetting any task inside a loop body
+resets the whole region so round indexing restarts at `iter-00`. Latch `fuel`
+is NOT restored — it reflects rounds already consumed. Caller-seeded
+`input.yaml` (entries without an `input:` mapping) is preserved so the entry can
+be re-run without rewriting the seed; mapping-driven `input.yaml` is deleted
+and re-materialised on the next dispatch.
 
 ## runtime status
 
@@ -190,16 +238,23 @@ $LOOM task io-python greet-user --loom-root ./loom
 ```
 
 Reads `<loom-root>/<name>/io.yaml` and (re)writes
-`<loom-root>/<name>/io_types.py` — a generator-owned file with a header
-comment `# generated from io.yaml vN by $LOOM task io-python — do not edit`
-carrying `<TaskName>Input` / `<TaskName>Output` dataclasses. Each dataclass
-has `VERSION: ClassVar[int] = <io.yaml version>`, fields derived from
-top-level `properties` via the JSON→Python type map (`string→str`,
+`<loom-root>/<name>/io_types.py` — a generator-owned file with a header comment
+`# generated from io.yaml vN by $LOOM task io-python — do not edit` carrying
+`<TaskName>Input` / `<TaskName>Output` dataclasses. Each dataclass has
+`VERSION: ClassVar[int] = <io.yaml version>`, fields derived from top-level
+`properties` via the JSON→Python type map (`string→str`,
 `integer→int`, `number→float`, `boolean→bool`, `array→list`,
 `object→dict`), and `from_dict` / `to_dict` helpers. The whole file is
 overwritten on every regenerate; prints `wrote io_types.py (vN)`.
 
 - Only meaningful for tool tasks; not gated on kind.
+- Entry-kind-agnostic — the command reads `io.yaml` and writes
+  `io_types.py` next to whichever entry file exists (`tool.py` or
+  `tool.sh`). Dispatch treats `io_types.py` as optional for shell tools
+  (`tool.sh` fulfils its io contract by reading `input.yaml` and writing
+  `output.yaml` directly via the argv contract), so a packaged shell
+  tool's Python project may import the generated types if it wants
+  but the engine never requires them for the shell branch.
 - `--loom-root PATH` — override the default (`./loom`).
 - Raises `TaskFolderError` if the task folder is missing; `IOYamlError` if
   `io.yaml` is missing or fails the meta-schema.
@@ -232,11 +287,11 @@ Idempotent. Two modes:
 $LOOM output init "$WORKDIR" --task greet-user
 ```
 
-Seeds `<workdir>/tasks/<id>/output.yaml` from the task's `io.yaml/output` schema
-with the schema defaults.
+Seeds `<workdir>/tasks/<task-address>/output.yaml` from the task's
+`io.yaml/output` schema with the schema defaults.
 
 - `<workdir>` — the run's workdir.
-- `--task <id>` — canonical task address.
+- `--task <task-address>` — canonical task address.
 - Non-zero exit if the task or workdir is missing.
 
 ## output add
@@ -247,11 +302,11 @@ $LOOM output add "$WORKDIR" --task greet-user \
     --set meta.tone='cheerful'
 ```
 
-Applies dotted-path assignments to the task's `output.yaml`, coerces each
-value, validates, and writes atomically. Validation is PARTIAL: wrong field
-names (`additionalProperties`) and wrong types fail immediately, but
-`required` obligations are deferred so a document can be built across multiple
-calls — completeness is enforced by `runtime complete`.
+Applies dotted-path assignments to the task's `output.yaml`, coerces each value,
+validates, and writes atomically. Validation is PARTIAL: wrong field names
+(`additionalProperties`) and wrong types fail immediately, but `required`
+obligations are deferred so a document can be built across multiple calls —
+completeness is enforced by `runtime complete`.
 
 - `--set path=value` — repeatable; supports `field`, `field.sub`, explicit
   indices (`field.0` / `field[0]`), and `field[]` for list append
@@ -274,10 +329,10 @@ $LOOM validate <skill-root> [--graph PATH]
 
 Runs the static validation set (see the `Rules` section) against a skill's
 `loom/` folder without touching a workdir. The set includes the
-subtype-projection pass and the required-wiring pass (see
-[io.md §6b](io.md#6b-static-alignment-subtype-projection--required-wiring))
-alongside the composition, DAG, single-entry/exit, reference,
-mapping-reserved-shadow, template, and loop-admission checks.
+subtype-projection and required-wiring passes described in the io.md section
+[6b](io.md#6b-static-alignment-subtype-projection--required-wiring) alongside
+composition, DAG, single-entry/exit, reference, mapping-reserved-shadow,
+template, loop-admission, and tool-entry (`validate_tool_entry`) checks.
 
 - `<skill-root>` — the skill root.
 - `--graph PATH` — optional path to a `graph.yaml` to validate; when omitted,

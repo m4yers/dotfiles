@@ -17,33 +17,26 @@ from loom.engine.inline import expand_subgraphs
 from loom.engine.models import LoomPlan
 from loom.engine.runner import LoomRuntime
 from loom.engine.store import read_plan_yaml, write_plan_yaml
-from loom.errors import WorkdirExistsError, WorkdirNotEmptyError
 
 
-def init(workdir: Path, *, loom_root: Path, force: bool = False) -> LoomRuntime:
+def init(workdir: Path, *, loom_root: Path) -> LoomRuntime:
     """Initialise a fresh workdir from ``<loom_root>/graph.yaml``.
 
     Preconditions:
-      - ``workdir`` does not exist, or is an empty directory.
       - ``<loom_root>/graph.yaml`` exists and validates.
 
     Side effects:
+      - If ``workdir`` exists it is unconditionally wiped
+        (``shutil.rmtree``) before recreation — existing contents are
+        deleted, whether the workdir carries a stale ``plan.yaml`` or
+        arbitrary unrelated files. There is no error path for
+        non-empty or plan.yaml-bearing workdirs; wipe-and-recreate is
+        the sole shape.
       - Loads and validates the plan (internal ``loom.plan`` API).
       - Runs static validation on the composed (post-inlining) plan.
       - Writes plan.yaml atomically.
-      - When ``force=True``: if ``workdir`` exists, wipe it
-        (``shutil.rmtree``) before the usual precondition checks so
-        ``WorkdirExistsError`` / ``WorkdirNotEmptyError`` never fire;
-        if it does not exist, proceed silently — ``--force`` is purely
-        an alternative to the "already-exists" errors and is
-        idempotent on a missing workdir. ``force=False`` behaviour is
-        unchanged.
 
     Raises:
-      - WorkdirExistsError if workdir already contains plan.yaml (only
-        when ``force=False``).
-      - WorkdirNotEmptyError if workdir has unrecognised contents
-        (only when ``force=False``).
       - LoomPlanError subclasses on validation failure (no state written).
 
     Returns a LoomRuntime bound to workdir.
@@ -51,12 +44,8 @@ def init(workdir: Path, *, loom_root: Path, force: bool = False) -> LoomRuntime:
     from loom.plan import from_graph_yaml
 
     workdir = Path(workdir)
-    if force and workdir.exists():
+    if workdir.exists():
         shutil.rmtree(workdir)
-    if (workdir / "plan.yaml").exists():
-        raise WorkdirExistsError(f"workdir already has plan.yaml: {workdir}")
-    if workdir.exists() and any(workdir.iterdir()):
-        raise WorkdirNotEmptyError(f"workdir has unexpected contents: {workdir}")
     workdir.mkdir(parents=True, exist_ok=True)
 
     plan = from_graph_yaml(Path(loom_root))
@@ -113,11 +102,17 @@ def _static_validate(plan: LoomPlan, pinning_graph: Path | None) -> None:
     from loom.validate.references import validate_references
     from loom.validate.subtype import validate_required_wiring, validate_subtype
     from loom.validate.templates import validate_templates
+    from loom.validate.tool_entry import validate_tool_entry
     from loom.validate.versions import check_versions
 
     validate_composition(plan)
     validate_dag(plan)
     validate_single_entry_exit(plan)
+    # validate_tool_entry runs before any pass that would try to load
+    # a tool task's io.yaml or project through its output schema, so
+    # an ambiguous or non-executable shim fails fast without any
+    # workdir write.
+    validate_tool_entry(plan)
     validate_references(plan)
     # validate_mapping runs BEFORE the subtype / required-wiring passes
     # so that reserved-shadow keys (`__loom` / `__task` in an

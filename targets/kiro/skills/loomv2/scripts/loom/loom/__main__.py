@@ -50,9 +50,8 @@ def main(argv: list[str] | None = None) -> int:
     p_runtime = sub.add_parser("runtime")
     p_runtime_sub = p_runtime.add_subparsers(dest="runtime_cmd", required=True)
     p_init = p_runtime_sub.add_parser("init")
-    p_init.add_argument("workdir", type=Path)
+    p_init.add_argument("workdir", type=Path, nargs="?", default=None)
     p_init.add_argument("--loom-root", type=Path, required=True)
-    p_init.add_argument("--force", action="store_true")
     p_init.add_argument("--set", dest="assignments", action="append", default=[])
 
     p_next = p_runtime_sub.add_parser("next")
@@ -133,7 +132,6 @@ def _dispatch(args) -> int:
             return cmd_init(
                 args.workdir,
                 args.loom_root,
-                force=args.force,
                 assignments=args.assignments,
             )
         elif args.cmd == "runtime" and args.runtime_cmd == "next":

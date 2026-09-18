@@ -1,0 +1,13 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    greeting: {type: string}
+  required: [greeting]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    banner: {type: string}
+  required: [banner]

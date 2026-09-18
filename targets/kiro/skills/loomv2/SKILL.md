@@ -40,7 +40,7 @@ Consumer surface is the CLI, grouped by command family.
 
 | Command            | Args                                                   | Output             |
 |--------------------|--------------------------------------------------------|--------------------|
-| `runtime init`     | `<workdir> --loom-root PATH [--force] [--set K=V ...]` | workdir path       |
+| `runtime init`     | `[<workdir>] --loom-root PATH [--set K=V ...]`         | workdir path       |
 | `runtime next`     | `<workdir>`                                            | YAML: done + ready |
 | `runtime complete` | `<workdir> <task-address>`                             | validates output   |
 | `runtime fail`     | `<workdir> <task-address> --message T`                 | writes error.yaml  |
@@ -62,10 +62,10 @@ Consumer surface is the CLI, grouped by command family.
 
 ### output
 
-| Command       | Args                                                | Output                    |
-|---------------|-----------------------------------------------------|---------------------------|
-| `output init` | `<workdir> --task <id>`                             | seeds `output.yaml`       |
-| `output add`  | `<workdir> --task <id> --set K=V [--set-json K=V]`  | writes + validates output |
+| Command       | Args                                                         | Output            |
+|---------------|--------------------------------------------------------------|-------------------|
+| `output init` | `<workdir> --task <task-address>`                            | seeds output.yaml |
+| `output add`  | `<workdir> --task <task-address> --set K=V [--set-json K=V]` | validated write   |
 
 `output add` accepts `--set` (scalar with bool/int/float coercion) and
 `--set-json` (value parsed as JSON) — use `--set-json` for explicit empty values
@@ -76,41 +76,122 @@ required field.
 
 ### misc
 
-| Command     | Args                                                                | Output    |
-|-------------|---------------------------------------------------------------------|-----------|
-| `validate`  | `<skill-root> [--graph PATH]`                                       | non-zero  |
-| `visualise` | `[<workdir>] [--plan PATH] [--no-when] [--no-loops] [--ascii-only]` | ASCII DAG |
+| Command     | Args                              | Output    |
+|-------------|-----------------------------------|-----------|
+| `validate`  | `<skill-root> [--graph PATH]`     | non-zero  |
+| `visualise` | `<workdir>|--plan PATH [options]` | ASCII DAG |
 
 `validate --graph PATH` targets a `graph.yaml`; `visualise --plan PATH` targets
 a `plan.yaml`. The flag names are distinct so callers cannot cross-feed the two
 file shapes. `visualise` takes exactly one of `<workdir>` or `--plan PATH`; the
-full flag list (including `-o/--output PATH`) is documented under `visualise`
-in [references/commands.md](references/commands.md).
+`[options]` placeholder covers `-o PATH` (write to file), `--no-when` /
+`--no-loops` (omit annotations), and `--ascii-only` (7-bit output). Full
+per-flag semantics live under `visualise` in
+[references/commands.md](references/commands.md).
 
 ## Commands
 
 Per-command contracts, flags, error paths, and edge-case notes live in
-[references/commands.md](references/commands.md). High-level dispatch notes
-for the runtime loop:
+[references/commands.md](references/commands.md). The ### subsections below
+name each command in the API table; follow the link for the full contract.
 
-- `runtime init` builds the workdir. The single-call
-  `runtime init --force --set K=V ...` form is the DEFAULT ingest — wipe,
-  init, and entry-task seeding fold into one invocation. Omitting `--set`
-  leaves the entry task caller-seeded (hand-written `input.yaml` before
-  the first `runtime next`) — still supported as the escape hatch.
-- `runtime next` prints a [`schemas/next.yaml`](schemas/next.yaml)
-  document to stdout. If `done: true`, execution is finished; otherwise
-  the surfaced `ready` batch is committed to `running` before `next`
-  returns. Loop through `ready`: dispatch `kind: agent` entries to a
-  sub-agent using `prompt_path` (in parallel — see Parallel-dispatch
-  above), drive `kind: human` entries from `message_path`, write each
-  task's `output.yaml` via `output add`, then call `runtime complete`.
-- `runtime complete` validates `output.yaml` against the task's
-  `io.yaml/output` and persists the plan; loop latches also run the
-  loop decision here.
-- `runtime fail`, `runtime reset`, and `runtime status` handle
-  out-of-band failure, region-aware resets, and read-only progress
-  reporting respectively — see commands.md for the full contracts.
+### runtime init
+
+- Purpose: builds the workdir on top of `<loom-root>/graph.yaml`.
+- Default form: `WD=$($LOOM runtime init --loom-root "$LOOM_ROOT"
+  [--set K=V ...])` — workdir positional omitted, engine picks
+  `/tmp/<skill_name>/<uuid4-hex-12>/` and prints it on stdout.
+- Explicit form: `$LOOM runtime init "$WORKDIR" --loom-root
+  "$LOOM_ROOT" [--set K=V ...]` — the caller names the workdir; the
+  engine still wipes and recreates it.
+- Contract: [commands.md#runtime-init](references/commands.md#runtime-init).
+
+### runtime next
+
+- Purpose: runs tool tasks internally and prints a
+  [`schemas/next.yaml`](schemas/next.yaml) doc with the next `ready` batch.
+- Contract: [commands.md#runtime-next](references/commands.md#runtime-next).
+
+### runtime complete
+
+- Purpose: validates `output.yaml` against `io.yaml/output`, marks done,
+  and runs any loop-latch decision.
+- Contract:
+  [commands.md#runtime-complete](references/commands.md#runtime-complete).
+
+### runtime fail
+
+- Purpose: marks a task failed and writes `error.yaml` from a
+  caller-supplied message.
+- Contract: [commands.md#runtime-fail](references/commands.md#runtime-fail).
+
+### runtime reset
+
+- Purpose: region-aware reset — flips a task to `pending`, clears
+  generated artefacts, resets the loop region when inside a body.
+- Contract: [commands.md#runtime-reset](references/commands.md#runtime-reset).
+
+### runtime status
+
+- Purpose: read-only YAML summary — `total`, `is_done`, `is_stuck`, and
+  per-status counts.
+- Contract:
+  [commands.md#runtime-status](references/commands.md#runtime-status).
+
+### task new
+
+- Purpose: creates an empty task folder for author-written body files.
+- Contract: [commands.md#task-new](references/commands.md#task-new).
+
+### task io-python
+
+- Purpose: regenerates `io_types.py` from the task's `io.yaml`.
+- Contract:
+  [commands.md#task-io-python](references/commands.md#task-io-python).
+
+### graph new
+
+- Purpose: scaffolds `graph.yaml` from task folders or restamps every
+  entry's `version` from the current `io.yaml` (idempotent).
+- Contract: [commands.md#graph-new](references/commands.md#graph-new).
+
+### output init
+
+- Purpose: seeds `<workdir>/tasks/<task-address>/output.yaml` from the
+  task's `io.yaml/output` defaults.
+- Contract: [commands.md#output-init](references/commands.md#output-init).
+
+### output add
+
+- Purpose: applies dotted-path assignments to `output.yaml`;
+  partial-validates so callers can build the document across many calls.
+- Contract: [commands.md#output-add](references/commands.md#output-add).
+
+### validate
+
+- Purpose: runs static validation (references, subtype, DAG,
+  single-entry/exit, templates, tool-entry, loop admission) against a
+  skill's `loom/` folder.
+- Contract: [commands.md#validate](references/commands.md#validate).
+
+### visualise
+
+- Purpose: renders `plan.yaml` (or a stand-alone `--plan PATH`) as an
+  ASCII DAG.
+- Contract: [commands.md#visualise](references/commands.md#visualise).
+
+## Defaults
+
+| Command family                            | `--loom-root` default |
+|-------------------------------------------|-----------------------|
+| `task new`, `task io-python`, `graph new` | `./loom`              |
+| `runtime init`                            | required (no default) |
+
+`runtime init` has no default because the initial workdir MUST be pinned to an
+explicit source graph — the flag is unbracketed in the API table. Auto-workdir
+path derivation and the unconditional wipe-and-recreate contract live under
+### runtime init above and in
+[references/commands.md](references/commands.md#runtime-init).
 
 ## References
 
@@ -128,8 +209,8 @@ for the runtime loop:
 - `templates/step-drive-loop.md.j2` — host-skill workflow step: the
   next/dispatch/complete loop.
 - `templates/step-ingest.md.j2` — host-skill workflow Step 1: the
-  single-call `runtime init --force --set K=V` ingest step
-  (wipe + init + entry-task seed).
+  DEFAULT single-call `WD=$(runtime init --loom-root ... --set K=V)`
+  ingest step (auto workdir + unconditional wipe + entry-task seed).
 - `templates/helper-dispatch-agent.md.j2` — host-skill helper: dispatch
   a surfaced agent task via `subagent`.
 - `templates/helper-drive-human-gate.md.j2` — host-skill helper: drive
@@ -163,13 +244,13 @@ authoring, ingest, runtime, and diagnostic callers all know when to move on.
 
 Per-family `DONE` evidence:
 
-| Command family         | Evidence                                                     |
-|------------------------|--------------------------------------------------------------|
-| `runtime`              | `next` returned `done: true` and `plan.yaml` validates       |
-| `task new`             | Task folder exists (empty; author writes bodies next)        |
-| `task io-python`       | `io_types.py` regenerated at the current `io.yaml/version`   |
-| `graph new`            | Prints `scaffolded ...`, `repinned ...`, or `unchanged`      |
-| `output init` / `add`  | Task `output.yaml` validates against `io.yaml/output`        |
+| Command family           | Evidence                                                      |
+|--------------------------|---------------------------------------------------------------|
+| `runtime`                | `next` returned `done: true` and `plan.yaml` validates        |
+| `task new`               | Task folder exists (empty; author writes bodies next)         |
+| `task io-python`         | `io_types.py` regenerated at the current `io.yaml/version`    |
+| `graph new`              | Prints `scaffolded ...`, `repinned ...`, or `unchanged`       |
+| `output init` / `add`    | Task `output.yaml` validates against `io.yaml/output`         |
 | `validate` / `visualise` | Exit 0 (validate: no `LoomPlanError`; visualise: DAG printed) |
 
 Escalation: any failure surfaces the exception unchanged; there is no retry.

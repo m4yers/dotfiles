@@ -20,44 +20,82 @@ Version pinning invariant: ``<TaskName>Input.VERSION ==
 <TaskName>Output.VERSION == <io.yaml on disk>.version``. A drift raises
 :class:`ToolIOVersionMismatchError` whose remedy is
 ``$LOOM task io-python <id>``.
+
+Shell shim entry (``tool.sh``): when the task folder's entry is
+``tool.sh`` (resolved by :func:`loom.discovery.resolve_tool_entry`),
+dispatch invokes the executable subprocess with the argv contract
+documented in ``references/guide.md`` §2:
+``tool.sh <input.yaml> <output.yaml>`` (positional argv, in that
+order) with ``cwd = <task workdir for the round>``. The shim reads
+the input path, writes the output path itself, and the engine's
+downstream ``runtime complete`` runs the same output-schema
+validation as for python tool tasks. Non-zero exit raises
+:class:`ToolTaskError` with the last 2000 characters of captured
+stderr; ``io_types.py`` load / version-pin logic is skipped entirely
+for shell tools.
 """
 from __future__ import annotations
 
 import contextlib
 import importlib.util
 import io
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from loom.discovery import load_io_yaml
+from loom.discovery import load_io_yaml, resolve_tool_entry
 from loom.engine.models import Task
 from loom.engine.store import write_error_yaml, write_output_yaml, write_stderr_yaml
 from loom.errors import ToolIOVersionMismatchError, ToolTaskError
 from loom.naming import pascal_case_task_name, snake_case_task_name
 
 
+# Last N characters of captured stderr surfaced on non-zero exit.
+_STDERR_TAIL_CHARS = 2000
+
+
 def dispatch_tool(task: Task, task_folder: Path, *, source_folder: Path | None = None) -> None:
-    """Run the tool.py for ``task``.
+    """Run the tool body for ``task``.
 
     Reads input.yaml + writes output.yaml/error.yaml in ``task_folder``.
     Captured stderr from the tool body lands in ``stderr.yaml`` when
-    non-empty or when the body fails. Loads ``io_types.py`` and
-    ``tool.py`` from ``source_folder`` (defaults to ``task_folder``) so
-    the CLI can point at the loom-root definition while reading and
+    non-empty or when the body fails. Loads the entry (``tool.py`` or
+    ``tool.sh``) from ``source_folder`` (defaults to ``task_folder``)
+    so the CLI can point at the loom-root definition while reading and
     writing under the workdir.
 
+    Splits on the entry kind returned by
+    :func:`loom.discovery.resolve_tool_entry`:
+
+    - ``python`` — load ``io_types.py``, version-check the classes,
+      import ``tool.py``, invoke the function, serialise the returned
+      dataclass.
+    - ``shell`` — invoke the executable ``tool.sh`` subprocess with
+      the materialised input.yaml and expected output.yaml absolute
+      paths as positional argv, cwd = ``task_folder``. Non-zero exit
+      raises :class:`ToolTaskError` after writing ``error.yaml`` and
+      ``stderr.yaml``.
+
     Raises:
-      - :class:`ToolTaskError` if ``io_types.py`` is missing, if the
-        Input/Output classes are missing, if the tool function is
-        missing, if the body raises, or if the returned value is not an
-        instance of ``<TaskName>Output``.
-      - :class:`ToolIOVersionMismatchError` if the classes' ``VERSION``
-        differs from the current io.yaml version.
+      - :class:`ToolTaskError` for entry-load, invocation, or
+        return-type failures on either branch; shell branch also
+        raises on non-zero exit.
+      - :class:`ToolIOVersionMismatchError` (python branch only) when
+        the classes' ``VERSION`` differs from the current io.yaml.
     """
     src = source_folder if source_folder is not None else task_folder
+    entry = resolve_tool_entry(src)
+    if entry == "shell":
+        _dispatch_shell(task, task_folder, src)
+    else:
+        _dispatch_python(task, task_folder, src)
+
+
+def _dispatch_python(task: Task, task_folder: Path, src: Path) -> None:
+    """Python branch: load io_types.py + tool.py, invoke the function."""
     local_id = task.id.rsplit("/", 1)[-1]
     fn_name = snake_case_task_name(local_id)
     pascal = pascal_case_task_name(local_id)
@@ -143,6 +181,43 @@ def dispatch_tool(task: Task, task_folder: Path, *, source_folder: Path | None =
         raise exc
 
     write_output_yaml(task_folder, result.to_dict())
+
+
+def _dispatch_shell(task: Task, task_folder: Path, src: Path) -> None:
+    """Shell branch: subprocess ``tool.sh <input.yaml> <output.yaml>``.
+
+    ``cwd = task_folder`` — the round workdir the argv paths live in.
+    The shim writes output.yaml itself; ``runtime complete`` validates
+    it against ``io.yaml/output`` the same as for python tool tasks.
+    Non-zero exit raises :class:`ToolTaskError` with the last
+    :data:`_STDERR_TAIL_CHARS` characters of captured stderr; the
+    error surface matches the python branch (``error.yaml`` +
+    ``stderr.yaml`` both written).
+
+    Skips ``io_types.py`` load and version-pin logic entirely — shell
+    tools do not need generated Python types on disk.
+    """
+    tool_sh = (src / "tool.sh").resolve()
+    input_path = (task_folder / "input.yaml").resolve()
+    output_path = (task_folder / "output.yaml").resolve()
+    completed = subprocess.run(
+        [str(tool_sh), str(input_path), str(output_path)],
+        cwd=str(task_folder),
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        stderr_text = completed.stderr or ""
+        tail = stderr_text[-_STDERR_TAIL_CHARS:]
+        write_stderr_yaml(task_folder, task.id, "tool", stderr_text)
+        exc = ToolTaskError(
+            task.id,
+            f"tool.sh exited {completed.returncode}; stderr tail: {tail}",
+        )
+        write_error_yaml(task_folder, task.id, "tool", exc)
+        raise exc
+    if completed.stderr:
+        write_stderr_yaml(task_folder, task.id, "tool", completed.stderr)
 
 
 def _load_module(path: Path, module_name: str) -> Any:

@@ -1,11 +1,13 @@
 # hello-graph
 
 Reference skill for loom v2. A root graph with all task kinds — tool
-(`greet-user`, `finalise`), agent (`summarise`), human (`confirm`) — plus a
-child skill tree (`child/loom/`) embedded TWICE via `kind: subgraph` entries
-(`child-lint` lints the greeting, `child-relint` re-lints after the human
-gate), and a revise loop: `confirm` is a latch back onto `summarise`
-(`fuel: 3`, `while_` the human's decision is not `accept`).
+(`greet-user`, `finalise`), agent (`summarise`), human (`confirm`), and a
+`tool.sh` shell shim (`banner-sh`, exercising the argv-based dispatch path
+documented in `../guide.md` §2) — plus a child skill tree (`child/loom/`)
+embedded TWICE via `kind: subgraph` entries (`child-lint` lints the greeting,
+`child-relint` re-lints after the human gate), and a revise loop: `confirm`
+is a latch back onto `summarise` (`fuel: 3`, `while_` the human's decision is
+not `accept`).
 Walked step by step in `references/guide.md`; executed by the test suite.
 
 Run it:

@@ -78,6 +78,24 @@ class KindMismatchError(LoomPlanError):
     remedy = "Exactly one of tool.py, prompt.md.j2, message.md.j2 per task folder."
 
 
+class AmbiguousToolEntryError(LoomPlanError):
+    """Task folder carries BOTH `tool.py` and `tool.sh`."""
+
+    remedy = (
+        "delete whichever entry file is not the intended one; a tool "
+        "task has exactly one entry body."
+    )
+
+
+class ToolShimNotExecutableError(LoomPlanError):
+    """`tool.sh` is not executable or lacks a `#!` shebang."""
+
+    remedy = (
+        "`chmod +x tool.sh` and start the file with a `#!` interpreter "
+        "line (e.g. `#!/usr/bin/env bash`)."
+    )
+
+
 # ---- Schema / references / types ----
 
 class SchemaError(LoomPlanError):
@@ -239,18 +257,6 @@ class ToolIOVersionMismatchError(LoomPlanError):
 
 
 # ---- Workdir ----
-
-class WorkdirExistsError(LoomPlanError):
-    """`loom.init` called on a workdir that already contains plan.yaml."""
-
-    remedy = "Use loom.resume() to re-attach or pick a fresh workdir."
-
-
-class WorkdirNotEmptyError(LoomPlanError):
-    """`loom.init` called on a workdir with unrecognised contents."""
-
-    remedy = "Empty the workdir or point at a fresh path."
-
 
 class SeedNotAllowedError(LoomPlanError):
     """`runtime init --set` used on an entry task that has an `input:`

@@ -7,11 +7,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 
 from loom.errors import (
+    AmbiguousToolEntryError,
     GraphYamlError,
     IOYamlError,
     KindMismatchError,
@@ -44,20 +45,55 @@ def resolve_task_folder(loom_root: Path, task_id: str) -> Path:
 def detect_kind(folder: Path) -> str:
     """Return one of 'tool', 'agent', 'human' based on the folder body file.
 
-    Raises KindMismatchError if zero or multiple body files are present.
+    A folder with either ``tool.py`` or ``tool.sh`` classifies as
+    ``tool``. Carrying BOTH raises :class:`AmbiguousToolEntryError`;
+    the two entry files are mutually exclusive so the engine never
+    silently prefers one. The zero-body and cross-kind-body cases
+    still raise :class:`KindMismatchError`.
     """
+    tool_py = folder / "tool.py"
+    tool_sh = folder / "tool.sh"
+    if tool_py.exists() and tool_sh.exists():
+        raise AmbiguousToolEntryError(
+            f"folder {folder} contains both tool.py and tool.sh"
+        )
     body_files = {
-        "tool": folder / "tool.py",
-        "agent": folder / "prompt.md.j2",
-        "human": folder / "message.md.j2",
+        "tool": tool_py.exists() or tool_sh.exists(),
+        "agent": (folder / "prompt.md.j2").exists(),
+        "human": (folder / "message.md.j2").exists(),
     }
-    present = [k for k, p in body_files.items() if p.exists()]
+    present = [k for k, v in body_files.items() if v]
     if len(present) != 1:
         raise KindMismatchError(
             f"folder {folder} contains body files for kinds {present!r}; "
             "exactly one required"
         )
     return present[0]
+
+
+def resolve_tool_entry(folder: Path) -> Literal["python", "shell"]:
+    """Return ``'python'`` or ``'shell'`` for the tool task in ``folder``.
+
+    Sole owner of the "which entry file backs this tool task" decision.
+    Consumed by :mod:`loom.engine.tool_dispatch` and
+    :mod:`loom.validate.tool_entry`.
+
+    Raises :class:`AmbiguousToolEntryError` if both entry files
+    coexist, :class:`KindMismatchError` if neither does.
+    """
+    tool_py = folder / "tool.py"
+    tool_sh = folder / "tool.sh"
+    if tool_py.exists() and tool_sh.exists():
+        raise AmbiguousToolEntryError(
+            f"folder {folder} contains both tool.py and tool.sh"
+        )
+    if tool_sh.exists():
+        return "shell"
+    if tool_py.exists():
+        return "python"
+    raise KindMismatchError(
+        f"folder {folder} has no tool.py or tool.sh entry"
+    )
 
 
 _META_SCHEMA_IO: dict | None = None

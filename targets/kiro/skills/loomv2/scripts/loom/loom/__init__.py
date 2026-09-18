@@ -48,8 +48,6 @@ from loom.errors import (
     ToolIOVersionMismatchError,
     ToolTaskError,
     TypeMismatchError,
-    WorkdirExistsError,
-    WorkdirNotEmptyError,
 )
 
 __version__ = "0.2.0"
@@ -83,8 +81,6 @@ __all__ = [
     "NamespaceCollisionError",
     "TaskVersionMismatchError",
     "ToolIOVersionMismatchError",
-    "WorkdirExistsError",
-    "WorkdirNotEmptyError",
     "RunFailed",
     "RunAborted",
     "OutputSchemaError",
