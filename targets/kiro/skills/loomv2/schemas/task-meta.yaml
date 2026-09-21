@@ -24,7 +24,7 @@ description: >-
   ``references/io.md`` §5 for the author-facing declaration recipe.
 type: object
 additionalProperties: false
-required: [id, kind, iter, namespace, workdir]
+required: [id, kind, iter, namespace, workdir, source_folder]
 properties:
   id:
     type: string
@@ -43,6 +43,14 @@ properties:
   workdir:
     type: string
     description: Absolute path to the current task's dispatch folder.
+  source_folder:
+    type: string
+    description: >-
+      Absolute path to the task's DEFINITION folder (io.yaml + body)
+      on the loom-root side, resolved via the same rules the engine
+      uses for dispatch (honours ref-instancing and subgraph
+      source_root). Lets templates reference sibling data files next
+      to their prompt.
 
 examples:
   - id: "review-docs/lint"
@@ -50,3 +58,4 @@ examples:
     iter: 0
     namespace: "review-docs"
     workdir: "/tmp/loom-workdir/tasks/04-review-docs__lint"
+    source_folder: "/home/user/child/loom/lint"

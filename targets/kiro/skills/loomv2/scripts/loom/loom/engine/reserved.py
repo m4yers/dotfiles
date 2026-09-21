@@ -72,6 +72,7 @@ class TaskMeta:
     iter: int
     namespace: str
     workdir: str
+    source_folder: str
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise to a wire dict (values are JSON/YAML-compatible)."""
@@ -86,6 +87,7 @@ class TaskMeta:
             iter=d["iter"],
             namespace=d["namespace"],
             workdir=d["workdir"],
+            source_folder=d["source_folder"],
         )
 
 
@@ -93,6 +95,7 @@ def build_reserved_values(
     task: Task,
     workdir: Path,
     task_folder: Path,
+    source_folder: Path,
 ) -> dict[str, dict[str, Any]]:
     """Return the reserved wire dict for ``task``'s dispatch.
 
@@ -108,6 +111,7 @@ def build_reserved_values(
         iter=task.iter,
         namespace=task.namespace,
         workdir=str(task_folder),
+        source_folder=str(source_folder),
     )
     return {
         "__loom": loom.to_dict(),

@@ -188,11 +188,17 @@ def resolve_task_input(
         # Terminal present, value is null. Pass through unchanged.
         resolved[field] = None
 
-    reserved = build_reserved_values(task, workdir, task_folder)
     declared = input_schema.get("properties") or {}
-    for name in RESERVED_FIELDS:
-        if name in declared:
-            resolved[name] = reserved[name]
+    if RESERVED_FIELDS & declared.keys():
+        from loom.engine.runner import task_source_folder
+
+        source_folder = task_source_folder(plan.loom_root, task)
+        reserved = build_reserved_values(
+            task, workdir, task_folder, source_folder
+        )
+        for name in RESERVED_FIELDS:
+            if name in declared:
+                resolved[name] = reserved[name]
 
     _strict_validate(task.id, resolved, input_schema)
     return resolved

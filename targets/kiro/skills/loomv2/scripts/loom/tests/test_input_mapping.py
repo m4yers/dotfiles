@@ -735,6 +735,65 @@ def test_reserved_field_engine_filled(tmp_path: Path):
     assert doc["__loom"]["workdir"] == str(workdir)
 
 
+def test_reserved_task_source_folder_points_at_definition(tmp_path: Path):
+    """``__task.source_folder`` resolves to the task's DEFINITION
+    folder on the loom-root side, so templates can reference sibling
+    data files shipped next to the prompt."""
+    from loom.__main__ import main
+    from loom._lifecycle import resume as _resume
+    from loom.engine.store import task_folder
+
+    root = tmp_path / "loom"
+    root.mkdir()
+    _write_tool_task(
+        root / "seed", "seed",
+        {"type": "object", "additionalProperties": False},
+        _MAP_LOOM_YAML["seed_output"],
+        "from io_types import SeedInput, SeedOutput\n"
+        "def seed(inp: SeedInput) -> SeedOutput:\n"
+        "    return SeedOutput(n=1)\n",
+    )
+    _write_agent_task(
+        root / "ask",
+        "ask",
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "n": {"type": "integer"},
+                "__task": {},
+            },
+            "required": ["n", "__task"],
+        },
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"a": {"type": "string"}},
+            "required": ["a"],
+        },
+        "sibling at {{ input.__task.source_folder }}/data.md\n",
+    )
+    (root / "graph.yaml").write_text(yaml.safe_dump({
+        "tasks": [
+            {"id": "seed", "kind": "tool", "version": 1},
+            {"id": "ask", "kind": "agent", "version": 1,
+             "depends_on_all": ["seed"],
+             "input": {"n": "${task:seed:n}"}},
+        ],
+    }))
+
+    workdir = tmp_path / "run"
+    assert main(["runtime", "init", str(workdir), "--loom-root", str(root)]) == 0
+    assert main(["runtime", "next", str(workdir)]) == 0
+
+    runtime = _resume(workdir)
+    folder = task_folder(workdir, runtime.plan, "ask")
+    doc = yaml.safe_load((folder / "input.yaml").read_text())
+    assert doc["__task"]["source_folder"] == str(root / "ask")
+    prompt = (folder / "prompt.md").read_text()
+    assert f"sibling at {root / 'ask'}/data.md" in prompt
+
+
 def test_reserved_field_shadow_rejected_dispatch(tmp_path: Path):
     """A plan built in Python that bypasses static validate must still
     have dispatch reject a reserved mapping key."""

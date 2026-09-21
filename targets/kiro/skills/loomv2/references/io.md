@@ -147,13 +147,16 @@ input:
 
 - **Mirror:** [../schemas/task-meta.yaml](../schemas/task-meta.yaml) /
   `TaskMeta` (in `scripts/loom/loom/engine/reserved.py`).
-- **Fields:** `id`, `kind`, `iter`, `namespace`, `workdir`.
+- **Fields:** `id`, `kind`, `iter`, `namespace`, `workdir`,
+  `source_folder` (absolute path to the task's definition folder —
+  honours `ref:` instancing and subgraph roots; use it to reference
+  sibling data files shipped next to the prompt).
 - **Template access:** `{{ input.__task.id }}`.
 - **Tool access:** aliased to `task`, typed `TaskMeta` — `inp.task.id`.
 
 **Narrowing note.** The previous ambient `task` dict was
 `dataclasses.asdict(Task)` over all 15 Task fields. The new `__task` object
-exposes four identity/metadata fields plus `workdir`; anything else (e.g.
+exposes five identity/metadata fields plus `workdir`; anything else (e.g.
 `status`, `depends_on_all`, `inlined_from_subgraph`, `pinned_version`) is
 engine-internal state and intentionally out of scope. Extending the surface
 is a two-file commit: add the field to

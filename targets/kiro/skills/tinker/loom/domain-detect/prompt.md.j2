@@ -70,11 +70,7 @@ file into a prompt): `{{ input.symbol_index_path }}`
 
 ## Task
 
-Judge the TWO broad domains this codebase operates in — for
-example: finance, compilers, databases, distributed systems,
-tooling, medical, scientific computing, networking, graphics,
-machine learning, embedded systems, gaming, cryptography, web
-frameworks, developer tooling, and so on.
+Judge the TWO broad domains this codebase operates in.
 
 Constraints:
 
@@ -87,11 +83,44 @@ Constraints:
    MAY sample the symbol index at `symbol_index_path` for
    supporting evidence.
 4. `slug` MUST be short and kebab-case (`^[a-z][a-z0-9-]*$`).
-5. `reviewer_role` MUST be a full role-priming sentence rendered
-   verbatim by the downstream reviewer prompts. Use the shape:
-   `"You are a <domain-name> domain expert reviewing for <one or
-   two domain-specific concerns such as correctness, safety,
-   idioms, or invariants>."`.
+5. Match against the known-domain catalog below FIRST: a catalog
+   entry matches when at least 2 of its signals are observed in
+   the evidence. On a match, use the catalog `slug`, `name`, and
+   `reviewer_role` VERBATIM (rationale is always your own,
+   evidence-grounded).
+
+## Known domains
+
+Read the catalog with `fs_read` from:
+
+`{{ input.__task.source_folder }}/known-domains.md`
+
+Each row is `slug | name | signals | reviewer_role`. A row matches
+when at least 2 of its signals are observed in the evidence.
+
+**Fallback:** if fewer than 2 catalog entries match with at least
+2 strong signals each, author the missing domain(s) free-form
+using the same schema. `reviewer_role` MUST follow the sentence
+shape:
+
+`You are a <domain> domain expert reviewing for <2-4
+domain-specific concerns>.`
+
+Concerns MUST be reviewer-checkable predicates: invariants,
+budgets, protocol/standard conformance, regulatory regimes,
+precision, idempotency, determinism. Concerns MUST NOT be
+"quality", "correctness", "best practices", "maintainability",
+"API design", "error handling", or "operational safety" — those
+are the SWE reviewer's slot and would waste a reviewer instance.
+
+Good free-form example: `You are a robotics domain expert
+reviewing for control-loop stability under sensor noise,
+real-time scheduling determinism, coordinate-frame consistency,
+and E-stop/safe-state invariants.`
+
+Rejected example: `You are an X domain expert reviewing for
+quality and best practices.` — generic, not reviewer-checkable,
+overlaps the SWE role.
 
 Order the two entries by evidence strength (strongest first). If
 the codebase is narrow enough that only one clear domain

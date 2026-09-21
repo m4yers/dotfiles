@@ -302,7 +302,7 @@ def _materialise_input(runtime, workdir: Path, task_id: str, folder: Path) -> No
     input_path = folder / "input.yaml"
     source = _source_folder(runtime, task)
     io = load_io_yaml(source)
-    reserved = build_reserved_values(task, workdir, folder)
+    reserved = build_reserved_values(task, workdir, folder, source)
     declared_reserved = {
         name: reserved[name]
         for name in RESERVED_FIELDS

@@ -71,11 +71,12 @@ LOOM=$TK_SKILLS/home/loomv2/scripts/loom.sh
    `review-fix`) cap at fuel=5. Fuel exhaustion terminates the run
    with `DONE_WITH_CONCERNS`. The loop MUST NOT be extended without
    explicit user direction because latch expansion bypasses the
-   fuel-based runaway-cutoff. See `references/graph-topology.md` for
-   the latch-header mapping.
-4. The `review-diffs-*` reviewers and merge follow the contract in
-   `references/review-diffs-contract.md` (per-reviewer guards and
-   merge unanimity semantics).
+   fuel-based runaway-cutoff. Latch headers live in
+   `loom/graph.yaml` `latches:`.
+4. Review guards are enforced in their sites: each `review-diffs-*`
+   prompt carries the three approval guards, and
+   `review-diffs-merge` approves only on unanimous reviewer
+   approval.
 
 ## Workflow
 
