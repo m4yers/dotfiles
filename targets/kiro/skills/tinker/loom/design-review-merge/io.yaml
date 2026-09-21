@@ -1,4 +1,4 @@
-version: 2
+version: 3
 input:
   type: object
   additionalProperties: false
@@ -29,17 +29,41 @@ input:
     decision_d3:
       type: string
       enum: [accept, revise]
+    decision_d4:
+      type: string
+      enum: [accept, revise]
+    decision_d5:
+      type: string
+      enum: [accept, revise]
+    decision_d6:
+      type: string
+      enum: [accept, revise]
     revise_reason_d3:
       type: string
+    revise_reason_d4:
+      type: string
+    revise_reason_d5:
+      type: string
+    revise_reason_d6:
+      type: string
     role_d3:
+      type: string
+    role_d4:
+      type: string
+    role_d5:
+      type: string
+    role_d6:
       type: string
   required:
     - decision_swe
     - revise_reason_swe
     - role_swe
     - decision_d1
+    - decision_d2
     - revise_reason_d1
+    - revise_reason_d2
     - role_d1
+    - role_d2
 output:
   type: object
   additionalProperties: false

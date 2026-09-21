@@ -1,4 +1,4 @@
-version: 2
+version: 3
 input:
   type: object
   additionalProperties: false
@@ -57,7 +57,52 @@ input:
     verdict_d3:
       type: string
       enum: [approved, revise]
+    verdict_d4:
+      type: string
+      enum: [approved, revise]
+    verdict_d5:
+      type: string
+      enum: [approved, revise]
+    verdict_d6:
+      type: string
+      enum: [approved, revise]
     findings_d3:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          file: {type: string}
+          severity:
+            type: string
+            enum: [low, medium, high]
+          message: {type: string}
+        required: [file, severity, message]
+    findings_d4:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          file: {type: string}
+          severity:
+            type: string
+            enum: [low, medium, high]
+          message: {type: string}
+        required: [file, severity, message]
+    findings_d5:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          file: {type: string}
+          severity:
+            type: string
+            enum: [low, medium, high]
+          message: {type: string}
+        required: [file, severity, message]
+    findings_d6:
       type: array
       items:
         type: object
@@ -72,16 +117,26 @@ input:
     summary_d2: {type: string}
     role_d2: {type: string}
     summary_d3: {type: string}
+    summary_d4: {type: string}
+    summary_d5: {type: string}
+    summary_d6: {type: string}
     role_d3: {type: string}
+    role_d4: {type: string}
+    role_d5: {type: string}
+    role_d6: {type: string}
   required:
     - verdict_swe
     - findings_swe
     - summary_swe
     - role_swe
     - verdict_d1
+    - verdict_d2
     - findings_d1
+    - findings_d2
     - summary_d1
+    - summary_d2
     - role_d1
+    - role_d2
 output:
   type: object
   additionalProperties: false

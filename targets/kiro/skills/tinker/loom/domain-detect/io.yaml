@@ -1,4 +1,4 @@
-version: 2
+version: 3
 input:
   type: object
   additionalProperties: false
@@ -8,7 +8,7 @@ input:
       type: string
       description: |
         Tier capacity from the graph variant: identify at most this
-        many real domains (the array itself is always 3 entries;
+        many real domains (the array itself is always 6 entries;
         unused trailing slots carry empty strings).
     total_files: {type: integer}
     top_dirs:
@@ -76,10 +76,10 @@ output:
   properties:
     domains:
       type: array
-      minItems: 3
-      maxItems: 3
+      minItems: 6
+      maxItems: 6
       description: |
-        Exactly 3 fixed slots. The first `max_domains` carry real
+        Exactly 6 fixed slots. The first `max_domains` carry real
         major domains the codebase operates in, NOT counting general
         software engineering (always implied, reviewed by the SWE
         reviewer instance); unused trailing slots carry empty

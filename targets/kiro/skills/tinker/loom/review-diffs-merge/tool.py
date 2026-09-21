@@ -25,20 +25,22 @@ def _reviewer_slots(
     inp: ReviewDiffsMergeInput,
 ) -> list[tuple[str, list[dict[str, Any]], str, str]]:
     """Return [(verdict, findings, summary, role), ...] for the
-    PRESENT reviewers in swe/d1/d2/d3 order. d2/d3 are optional — a
+    PRESENT reviewers in swe/d1/d2/d3 order. d3..d6 are optional — a
     graph variant with fewer domain reviewers does not wire them."""
     slots = [
         (inp.verdict_swe, inp.findings_swe, inp.summary_swe, inp.role_swe),
         (inp.verdict_d1, inp.findings_d1, inp.summary_d1, inp.role_d1),
+        (inp.verdict_d2, inp.findings_d2, inp.summary_d2, inp.role_d2),
     ]
-    for v, f, s, r in [
-        (getattr(inp, "verdict_d2", None), getattr(inp, "findings_d2", None),
-         getattr(inp, "summary_d2", None), getattr(inp, "role_d2", None)),
-        (getattr(inp, "verdict_d3", None), getattr(inp, "findings_d3", None),
-         getattr(inp, "summary_d3", None), getattr(inp, "role_d3", None)),
-    ]:
+    for i in range(3, 7):
+        v = getattr(inp, f"verdict_d{i}", None)
         if v is not None:
-            slots.append((v, f or [], s or "", r or ""))
+            slots.append((
+                v,
+                getattr(inp, f"findings_d{i}", None) or [],
+                getattr(inp, f"summary_d{i}", None) or "",
+                getattr(inp, f"role_d{i}", None) or "",
+            ))
     return slots
 
 

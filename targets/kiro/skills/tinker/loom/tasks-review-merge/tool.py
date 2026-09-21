@@ -2,7 +2,7 @@
 
 Same aggregation rule as `design-review-merge`: unanimous accept →
 accept; any revise → revise, with dissenter reasons concatenated
-under `[<reviewer_role>]` headers in swe/d1/d2/d3 order. Also echoes
+under `[<reviewer_role>]` headers in swe/d1..d6 order. Also echoes
 `num_tasks` verbatim so downstream fan-out predicates gate off a
 single bare ref.
 """
@@ -14,20 +14,21 @@ from io_types import TasksReviewMergeInput, TasksReviewMergeOutput
 
 def _reviewer_slots(inp: TasksReviewMergeInput) -> list[tuple[str, str, str]]:
     """Return [(decision, revise_reason, role), ...] for the PRESENT
-    reviewers in swe/d1/d2/d3 order. d2/d3 are optional — a graph
+    reviewers in swe/d1..d6 order. d3..d6 are optional — a graph
     variant with fewer domain reviewers simply does not wire them."""
     slots = [
         (inp.decision_swe, inp.revise_reason_swe, inp.role_swe),
         (inp.decision_d1, inp.revise_reason_d1, inp.role_d1),
+        (inp.decision_d2, inp.revise_reason_d2, inp.role_d2),
     ]
-    for dec, reason, role in [
-        (getattr(inp, "decision_d2", None), getattr(inp, "revise_reason_d2", None),
-         getattr(inp, "role_d2", None)),
-        (getattr(inp, "decision_d3", None), getattr(inp, "revise_reason_d3", None),
-         getattr(inp, "role_d3", None)),
-    ]:
+    for i in range(3, 7):
+        dec = getattr(inp, f"decision_d{i}", None)
         if dec is not None:
-            slots.append((dec, reason or "", role or ""))
+            slots.append((
+                dec,
+                getattr(inp, f"revise_reason_d{i}", None) or "",
+                getattr(inp, f"role_d{i}", None) or "",
+            ))
     return slots
 
 
