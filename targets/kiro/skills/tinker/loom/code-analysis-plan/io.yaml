@@ -1,4 +1,4 @@
-version: 2
+version: 3
 input:
   type: object
   additionalProperties: false
@@ -29,6 +29,12 @@ input:
     cache_mode:
       type: string
       enum: [read-write, read-only, write-only, bypass]
+    max_batches:
+      type: string
+      description: |
+        Tier capacity from the graph variant: distribute files across
+        at most this many batches (the array itself is always 6
+        entries; surplus slots carry empty file lists).
     symbol_index_path:
       type: string
       description: |
@@ -41,6 +47,7 @@ input:
     - entrypoints
     - cache_dir
     - cache_mode
+    - max_batches
     - symbol_index_path
 output:
   type: object
@@ -68,10 +75,10 @@ output:
         required: [path, purpose]
     batches:
       type: array
-      minItems: 4
-      maxItems: 4
+      minItems: 6
+      maxItems: 6
       description: |
-        Exactly 4 fixed fan-out slots. Unused slots carry an empty
+        Exactly 6 fixed fan-out slots. Unused slots carry an empty
         files list (the slot completes as a no-op).
       items:
         type: object

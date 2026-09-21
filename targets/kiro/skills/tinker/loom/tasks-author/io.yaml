@@ -1,4 +1,4 @@
-version: 2
+version: 3
 input:
   type: object
   additionalProperties: false
@@ -20,6 +20,11 @@ input:
         required: [name, path, description, scripts]
     fallback_build_cmd: {type: string}
     fallback_test_cmd: {type: string}
+    max_tasks:
+      type: string
+      description: |
+        Tier capacity from the graph variant: fill at most this many
+        real tasks (the array itself is always 5 entries).
     revise_reason:
       type: [string, "null"]
       description: |
@@ -32,6 +37,7 @@ input:
     - installed_skills
     - fallback_build_cmd
     - fallback_test_cmd
+    - max_tasks
     - revise_reason
     - __loom
 output:
@@ -40,8 +46,8 @@ output:
   properties:
     tasks:
       type: array
-      minItems: 3
-      maxItems: 3
+      minItems: 5
+      maxItems: 5
       items:
         type: object
         additionalProperties: false
@@ -59,5 +65,5 @@ output:
     num_tasks:
       type: integer
       minimum: 1
-      maximum: 3
+      maximum: 5
   required: [tasks, num_tasks]

@@ -76,16 +76,16 @@ $LOOM output add  "{{ input.__loom.workdir }}" --task research-plan \
     --set num_questions=1
 ```
 
-The `questions` array MUST always contain exactly 3 entries
-(`id=q1..q3`). Fill the first `num_questions` entries with real
-questions; set `prompt` to the empty string (`--set-json`) on unused
+The `questions` array MUST always contain exactly 5 entries
+(`id=q1..q5`). Fill the first `num_questions` entries — at most
+{{ input.max_questions }} for this run — with real questions; set `prompt` to the empty string (`--set-json`) on unused
 trailing slots. Unused slots run as no-ops (the slot agent emits empty findings for
 an empty prompt); the contract requires explicit empty values, never
 omission:
 
 ```bash
 $LOOM output add  "{{ input.__loom.workdir }}" --task research-plan \
-    --set 'questions[].id=q3' --set-json 'questions[-1].prompt=""'
+    --set 'questions[].id=q5' --set-json 'questions[-1].prompt=""'
 ```
 
 Then set `num_questions` to the real-question count.

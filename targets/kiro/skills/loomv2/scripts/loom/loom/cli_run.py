@@ -41,6 +41,7 @@ def cmd_init(
     workdir: Path | None,
     loom_root: Path,
     *,
+    graph: Path | str | None = None,
     assignments: list[str] | None = None,
 ) -> int:
     """Initialise a fresh workdir from ``<loom_root>/graph.yaml``.
@@ -96,7 +97,7 @@ def cmd_init(
         workdir = Path("/tmp") / skill_name / uuid.uuid4().hex[:12]
 
     try:
-        _init(workdir, loom_root=loom_root)
+        _init(workdir, loom_root=loom_root, graph=graph)
         print(str(workdir))
         if not assignments:
             return 0

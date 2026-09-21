@@ -1,11 +1,11 @@
-# generated from io.yaml v1 by $LOOM task io-python — do not edit
+# generated from io.yaml v2 by $LOOM task io-python — do not edit
 from dataclasses import dataclass
 from typing import ClassVar
 
 
 @dataclass
 class WorkspaceBriefInput:
-    VERSION: ClassVar[int] = 1
+    VERSION: ClassVar[int] = 2
     workspace_abs: str
     cache_dir: str
     cache_mode: str
@@ -25,8 +25,10 @@ class WorkspaceBriefInput:
     cached_summaries: list
     summaries_b1: list
     summaries_b2: list
-    summaries_b3: list
-    summaries_b4: list
+    summaries_b3: list | None = None
+    summaries_b4: list | None = None
+    summaries_b5: list | None = None
+    summaries_b6: list | None = None
 
     @classmethod
     def from_dict(cls, d: dict) -> "WorkspaceBriefInput":
@@ -50,8 +52,10 @@ class WorkspaceBriefInput:
             cached_summaries=d["cached_summaries"],
             summaries_b1=d["summaries_b1"],
             summaries_b2=d["summaries_b2"],
-            summaries_b3=d["summaries_b3"],
-            summaries_b4=d["summaries_b4"],
+            summaries_b3=d.get("summaries_b3"),
+            summaries_b4=d.get("summaries_b4"),
+            summaries_b5=d.get("summaries_b5"),
+            summaries_b6=d.get("summaries_b6"),
         )
 
     def to_dict(self) -> dict:
@@ -75,14 +79,20 @@ class WorkspaceBriefInput:
         out["cached_summaries"] = self.cached_summaries
         out["summaries_b1"] = self.summaries_b1
         out["summaries_b2"] = self.summaries_b2
-        out["summaries_b3"] = self.summaries_b3
-        out["summaries_b4"] = self.summaries_b4
+        if self.summaries_b3 is not None:
+            out["summaries_b3"] = self.summaries_b3
+        if self.summaries_b4 is not None:
+            out["summaries_b4"] = self.summaries_b4
+        if self.summaries_b5 is not None:
+            out["summaries_b5"] = self.summaries_b5
+        if self.summaries_b6 is not None:
+            out["summaries_b6"] = self.summaries_b6
         return out
 
 
 @dataclass
 class WorkspaceBriefOutput:
-    VERSION: ClassVar[int] = 1
+    VERSION: ClassVar[int] = 2
     brief: str
     file_summaries_total: int
 

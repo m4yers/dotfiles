@@ -1,4 +1,4 @@
-version: 3
+version: 4
 input:
   type: object
   additionalProperties: false
@@ -21,6 +21,11 @@ input:
         required: [name, path, description, scripts]
     fallback_build_cmd: {type: string}
     fallback_test_cmd: {type: string}
+    max_questions:
+      type: string
+      description: |
+        Tier capacity from the graph variant: fill at most this many
+        real questions (the array itself is always 5 entries).
     workspace_brief:
       type: string
       description: |
@@ -34,6 +39,7 @@ input:
     - installed_skills
     - fallback_build_cmd
     - fallback_test_cmd
+    - max_questions
     - workspace_brief
     - __loom
 output:
@@ -42,8 +48,8 @@ output:
   properties:
     questions:
       type: array
-      minItems: 3
-      maxItems: 3
+      minItems: 5
+      maxItems: 5
       items:
         type: object
         additionalProperties: false
@@ -58,5 +64,5 @@ output:
     num_questions:
       type: integer
       minimum: 1
-      maximum: 3
+      maximum: 5
   required: [questions, num_questions]

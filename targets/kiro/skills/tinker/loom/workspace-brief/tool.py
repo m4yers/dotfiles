@@ -40,7 +40,8 @@ def _persist_file_summaries(cache_dir: str, cache_mode: str,
 
 def workspace_brief(inp: WorkspaceBriefInput) -> WorkspaceBriefOutput:
     fresh = (list(inp.summaries_b1) + list(inp.summaries_b2)
-             + list(inp.summaries_b3) + list(inp.summaries_b4))
+             + list(inp.summaries_b3 or []) + list(inp.summaries_b4 or [])
+             + list(inp.summaries_b5 or []) + list(inp.summaries_b6 or []))
     _persist_file_summaries(inp.cache_dir, inp.cache_mode, fresh)
 
     file_purposes = sorted(

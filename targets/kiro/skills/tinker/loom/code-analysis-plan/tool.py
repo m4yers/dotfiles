@@ -24,7 +24,7 @@ from io_types import CodeAnalysisPlanInput, CodeAnalysisPlanOutput
 _AUTO_GATE_FILES = 5000
 _HOT_SET_MAX = 48
 _FILE_BYTE_CAP = 128 * 1024
-_BATCH_SLOTS = 4
+_BATCH_SLOTS = 6
 _SOURCE_LANGS = frozenset(["python", "c", "cpp", "cython"])
 
 
@@ -103,12 +103,17 @@ def code_analysis_plan(inp: CodeAnalysisPlanInput) -> CodeAnalysisPlanOutput:
             "symbols": symbols_map.get(f["path"], [])[:10],
         })
 
+    try:
+        active = max(1, min(int(inp.max_batches), _BATCH_SLOTS))
+    except (TypeError, ValueError):
+        active = _BATCH_SLOTS
+
     if not to_summarise:
         mode = "skipped-empty"
         batches = empty_batches
     else:
         mode = "llm"
-        batches = [{"files": to_summarise[i::_BATCH_SLOTS]}
+        batches = [{"files": to_summarise[i::active] if i < active else []}
                    for i in range(_BATCH_SLOTS)]
 
     return CodeAnalysisPlanOutput(

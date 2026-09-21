@@ -61,8 +61,9 @@ Acceptance criteria MUST reference skill-driven build/test verbs
 when installed skills teach them. Fall back to the raw commands
 only when no matching skill exists.
 
-The `tasks` array MUST always contain exactly 3 entries
-(`id=t1..t3`). Fill the first `num_tasks` entries with real tasks; on
+The `tasks` array MUST always contain exactly 5 entries
+(`id=t1..t5`). Fill the first `num_tasks` entries — at most
+{{ input.max_tasks }} for this run — with real tasks; on
 unused trailing slots set `title` to the empty string (`--set-json`)
 and `acceptance_criteria` to the empty list. Unused slots run as no-ops (the slot agent emits empty outputs for an
 empty title); the contract requires explicit empty values, never
@@ -70,7 +71,7 @@ omission:
 
 ```bash
 $LOOM output add "{{ input.__loom.workdir }}" --task tasks-author \
-    --set 'tasks[].id=t3' --set-json 'tasks[-1].title=""' \
+    --set 'tasks[].id=t5' --set-json 'tasks[-1].title=""' \
     --set-json 'tasks[-1].acceptance_criteria=[]'
 ```
 

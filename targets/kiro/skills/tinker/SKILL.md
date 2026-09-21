@@ -44,6 +44,10 @@ final-gate.
   resolved build system.
 - **cache-mode** (optional): `read-write` (default), `read-only`,
   `write-only`, or `bypass` for the workspace-intelligence cache.
+- **scale** (optional): `s`, `m` (default), or `l` — selects the
+  graph variant (`loom/graph-<scale>.yaml`) controlling fan-out
+  width: research questions / implementation tasks / file-summary
+  batches are 2/2/2 (s), 3/3/4 (m), 5/5/6 (l).
 
 ## Commands
 
@@ -60,20 +64,27 @@ LOOM=$TK_SKILLS/home/loomv2/scripts/loom.sh
 
 ## Rules
 
-1. Skill-driven build/test verbs win over the static fallback matrix.
+1. The three graph variants (`loom/graph-s.yaml`, `graph-m.yaml`,
+   `graph-l.yaml`) MUST stay wiring-identical except for fan-out
+   arity and capacity literals; a wiring change applied to one MUST
+   be applied to all three and each validated with
+   `$LOOM validate <skill-root> --graph loom/graph-<x>.yaml`,
+   because variant drift silently forks pipeline behavior across
+   scales.
+2. Skill-driven build/test verbs win over the static fallback matrix.
    Prompts and `verify-tests` MUST prefer an installed skill's
    `scripts/test.sh` / `scripts/build.sh` shim when one exists for the
    resolved build system.
-2. Brazil and other AWS-internal build systems are supported strictly
+3. Brazil and other AWS-internal build systems are supported strictly
    via `--build-system <name>` at ingest — never through manifest
    detection.
-3. Loop latches (`design-review-merge`, `tasks-review-merge`,
+4. Loop latches (`design-review-merge`, `tasks-review-merge`,
    `review-fix`) cap at fuel=5. Fuel exhaustion terminates the run
    with `DONE_WITH_CONCERNS`. The loop MUST NOT be extended without
    explicit user direction because latch expansion bypasses the
    fuel-based runaway-cutoff. Latch headers live in
    `loom/graph.yaml` `latches:`.
-4. Review guards are enforced in their sites: each `review-diffs-*`
+5. Review guards are enforced in their sites: each `review-diffs-*`
    prompt carries the three approval guards, and
    `review-diffs-merge` approves only on unanimous reviewer
    approval.
@@ -92,6 +103,7 @@ LOOM=$TK_SKILLS/home/loomv2/scripts/loom.sh
    always set, empty when no override was given:
    ```bash
    TK_WD=$($LOOM runtime init --loom-root "$TK_LOOM_ROOT" \
+       --graph "graph-<scale>.yaml" \
        --set "description=<description>" \
        --set "workspace=<absolute-workspace-path>" \
        --set "build_system_override=<name-or-empty>" \

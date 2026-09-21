@@ -285,19 +285,29 @@ def _resolve_local_refs(
     return schema
 
 
-def resolve_graph_yaml(loom_root: Path) -> Path:
-    """Return the expected path to ``<loom_root>/graph.yaml``."""
-    return Path(loom_root) / "graph.yaml"
+def resolve_graph_yaml(loom_root: Path, graph: Path | str | None = None) -> Path:
+    """Return the graph file path for ``loom_root``.
+
+    ``graph`` selects a variant: absolute paths are used verbatim,
+    relative names resolve against ``loom_root``. ``None`` selects
+    the default ``<loom_root>/graph.yaml``. Multi-graph scenarios
+    (static scale variants sharing one loom root) are documented in
+    ``references/guide-advanced.md``.
+    """
+    if graph is None:
+        return Path(loom_root) / "graph.yaml"
+    graph = Path(graph)
+    return graph if graph.is_absolute() else Path(loom_root) / graph
 
 
-def load_graph_yaml(loom_root: Path) -> dict[str, Any]:
-    """Load and meta-validate ``<loom_root>/graph.yaml``.
+def load_graph_yaml(loom_root: Path, graph: Path | str | None = None) -> dict[str, Any]:
+    """Load and meta-validate the graph file (default ``graph.yaml``).
 
     Raises GraphYamlError on schema failure. Returns the parsed dict.
     """
     import jsonschema
 
-    path = resolve_graph_yaml(loom_root)
+    path = resolve_graph_yaml(loom_root, graph)
     if not path.exists():
         raise GraphYamlError(f"graph.yaml missing at {path}")
     try:

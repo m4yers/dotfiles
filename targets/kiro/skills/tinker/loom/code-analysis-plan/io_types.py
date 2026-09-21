@@ -1,17 +1,18 @@
-# generated from io.yaml v2 by $LOOM task io-python — do not edit
+# generated from io.yaml v3 by $LOOM task io-python — do not edit
 from dataclasses import dataclass
 from typing import ClassVar
 
 
 @dataclass
 class CodeAnalysisPlanInput:
-    VERSION: ClassVar[int] = 2
+    VERSION: ClassVar[int] = 3
     workspace_abs: str
     total_files: int
     files: list
     entrypoints: list
     cache_dir: str
     cache_mode: str
+    max_batches: str
     symbol_index_path: str
 
     @classmethod
@@ -23,6 +24,7 @@ class CodeAnalysisPlanInput:
             entrypoints=d["entrypoints"],
             cache_dir=d["cache_dir"],
             cache_mode=d["cache_mode"],
+            max_batches=d["max_batches"],
             symbol_index_path=d["symbol_index_path"],
         )
 
@@ -34,13 +36,14 @@ class CodeAnalysisPlanInput:
         out["entrypoints"] = self.entrypoints
         out["cache_dir"] = self.cache_dir
         out["cache_mode"] = self.cache_mode
+        out["max_batches"] = self.max_batches
         out["symbol_index_path"] = self.symbol_index_path
         return out
 
 
 @dataclass
 class CodeAnalysisPlanOutput:
-    VERSION: ClassVar[int] = 2
+    VERSION: ClassVar[int] = 3
     summarize_mode: str
     cached_summaries: list
     batches: list

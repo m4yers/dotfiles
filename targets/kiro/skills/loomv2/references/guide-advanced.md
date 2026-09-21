@@ -205,3 +205,40 @@ Cross-refs: [`../schemas/graph.yaml`](../schemas/graph.yaml) for the
 `task_entry.ref` field and the instancing example; [§5 in guide.md](guide.md#5-wire-graphyaml)
 for the base `graph.yaml` shape; [§8](#8-embed-a-subgraph) for the contrast
 with subgraph embedding.
+
+## 12. Multiple graph variants in one loom root
+
+A loom root may carry several static graph files (e.g.
+`graph-s.yaml`, `graph-m.yaml`, `graph-l.yaml`) sharing the same
+task folders. Select one at init:
+
+```bash
+$LOOM runtime init --loom-root ./loom --graph graph-l.yaml ...
+$LOOM validate <skill-root> --graph ./loom/graph-l.yaml
+```
+
+The graph file is read ONCE at `runtime init`; the composed plan is
+persisted to `plan.yaml`, so no other command needs the flag.
+
+Rules of the shape:
+
+1. Every variant is a complete, static, independently valid graph —
+   variants differ in fan-out arity (how many `ref:` instances of a
+   shared definition they declare) and in literal input values,
+   never in the behavior of shared tasks.
+2. Contracts are SHARED: `io.yaml` lives in the task folder, so one
+   schema serves every variant. Size producer fixed-slot arrays to
+   the LARGEST arity any variant wires (static projection of
+   `arr[i]` requires `minItems > i`). Consumer fields above the
+   smallest variant's arity leave `required` — a smaller graph
+   simply does not wire them, and templates guard them with
+   `| default('')`.
+3. Per-variant capacity flows as literal graph inputs (e.g.
+   `max_questions: "3"` in graph-m vs `"5"` in graph-l), so shared
+   prompts read their cap from input instead of hardcoding it.
+4. Drift is the failure mode: a wiring edit must land in EVERY
+   variant. Put a sync-warning comment at the top of each file and
+   run `$LOOM validate --graph` for each variant in CI/pre-commit.
+5. When no `graph.yaml` exists (variants only), every `runtime
+   init` MUST pass `--graph`; bare `validate <skill-root>` will
+   fail — validate each variant explicitly.

@@ -43,7 +43,7 @@ Consumer surface is the CLI, grouped by command family.
 
 | Command            | Args                                                   | Output             |
 |--------------------|--------------------------------------------------------|--------------------|
-| `runtime init`     | `[<workdir>] --loom-root PATH [--set K=V ...]`         | workdir path       |
+| `runtime init`     | `[<workdir>] --loom-root PATH [--graph FILE] [--set K=V ...]` | workdir path       |
 | `runtime next`     | `<workdir>`                                            | YAML: done + ready |
 | `runtime complete` | `<workdir> <task-address>`                             | validates output   |
 | `runtime fail`     | `<workdir> <task-address> --message T`                 | writes error.yaml  |
@@ -104,9 +104,16 @@ Two equivalent shapes.
 and create it under `/tmp`, capture the printed path:
 
 ```bash
-WD=$($LOOM runtime init --loom-root "$LOOM_ROOT" [--set K=V ...])
+WD=$($LOOM runtime init --loom-root "$LOOM_ROOT" [--graph FILE] [--set K=V ...])
 ```
 
+- `--graph FILE` selects a graph variant: an absolute path, or a
+  filename resolved against `--loom-root` (default `graph.yaml`).
+  The graph is read once at init and the composed plan persists to
+  `plan.yaml`, so no later command needs the flag. Multi-graph loom
+  roots (static scale variants sharing task folders) are documented
+  in [references/guide-advanced.md](references/guide-advanced.md)
+  §12.
 - `<skill_name>` is derived from `<loom-root>`: if
   `basename(<loom-root>) == "loom"` (the conventional child folder of
   a skill directory, e.g. `.../skills/aws/diagnostics/rca/loom`),

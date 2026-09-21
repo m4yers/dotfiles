@@ -1,4 +1,4 @@
-version: 2
+version: 3
 input:
   type: object
   additionalProperties: false
@@ -12,11 +12,19 @@ input:
       type: array
       items: {type: string}
     q3_findings: {type: string}
+    q4_findings: {type: string}
+    q5_findings: {type: string}
     q3_citations:
       type: array
       items: {type: string}
+    q4_citations:
+      type: array
+      items: {type: string}
+    q5_citations:
+      type: array
+      items: {type: string}
     __loom: {}
-  required: [q1_findings, q1_citations, __loom]
+  required: [q1_findings, q1_citations, q2_findings, q2_citations, __loom]
 output:
   type: object
   additionalProperties: false

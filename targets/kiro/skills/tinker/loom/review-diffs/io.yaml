@@ -1,4 +1,4 @@
-version: 2
+version: 3
 input:
   type: object
   additionalProperties: false
@@ -8,6 +8,8 @@ input:
       description: Diff from impl slot t1; empty when the slot was unused.
     diff_t2: {type: string}
     diff_t3: {type: string}
+    diff_t4: {type: string}
+    diff_t5: {type: string}
     verify_test_cmd_used: {type: string}
     verify_exit_code: {type: integer}
     verify_passed: {type: boolean}
@@ -37,6 +39,12 @@ input:
     cmds_used_t3:
       type: array
       items: {type: string}
+    cmds_used_t4:
+      type: array
+      items: {type: string}
+    cmds_used_t5:
+      type: array
+      items: {type: string}
     reviewer_role:
       type: string
       description: |
@@ -48,7 +56,6 @@ input:
   required:
     - diff_t1
     - diff_t2
-    - diff_t3
     - verify_test_cmd_used
     - verify_exit_code
     - verify_passed
@@ -58,7 +65,6 @@ input:
     - installed_skills
     - cmds_used_t1
     - cmds_used_t2
-    - cmds_used_t3
     - reviewer_role
     - __loom
     - __task

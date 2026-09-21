@@ -1,4 +1,4 @@
-version: 1
+version: 2
 input:
   type: object
   additionalProperties: false
@@ -26,6 +26,8 @@ input:
     summaries_b2: {type: array}
     summaries_b3: {type: array}
     summaries_b4: {type: array}
+    summaries_b5: {type: array}
+    summaries_b6: {type: array}
   required:
     - workspace_abs
     - cache_dir
@@ -46,8 +48,6 @@ input:
     - cached_summaries
     - summaries_b1
     - summaries_b2
-    - summaries_b3
-    - summaries_b4
 output:
   type: object
   additionalProperties: false

@@ -175,8 +175,8 @@ class _LoomPlanClassmethods:
     """
 
 
-def from_graph_yaml(loom_root: Path) -> LoomPlan:
-    """Load ``<loom_root>/graph.yaml`` into a LoomPlan.
+def from_graph_yaml(loom_root: Path, graph: Path | str | None = None) -> LoomPlan:
+    """Load a graph file (default ``<loom_root>/graph.yaml``) into a LoomPlan.
 
     Validates the file against schemas/graph.yaml and stamps each task's
     ``pinned_version`` from the graph entry. Raises GraphYamlError on
@@ -192,7 +192,7 @@ def from_graph_yaml(loom_root: Path) -> LoomPlan:
     from loom.discovery import load_graph_yaml, resolve_ref_folder
     from loom.errors import TaskRefError
 
-    entries = load_graph_yaml(Path(loom_root))
+    entries = load_graph_yaml(Path(loom_root), graph)
     tasks: list[Task | SubgraphSpec] = []
     for entry in entries["tasks"]:
         kind = entry["kind"]

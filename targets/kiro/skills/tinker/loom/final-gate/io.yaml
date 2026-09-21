@@ -1,4 +1,4 @@
-version: 2
+version: 3
 input:
   type: object
   additionalProperties: false
@@ -15,10 +15,12 @@ input:
     diff_t1: {type: string}
     diff_t2: {type: string}
     diff_t3: {type: string}
+    diff_t4: {type: string}
+    diff_t5: {type: string}
     verify_stdout_tail: {type: string}
     verify_stderr_tail: {type: string}
     __loom: {}
-  required: [verdict, diff_t1, diff_t2, diff_t3, verify_stdout_tail, verify_stderr_tail, __loom]
+  required: [verdict, diff_t1, diff_t2, verify_stdout_tail, verify_stderr_tail, __loom]
 output:
   type: object
   additionalProperties: false

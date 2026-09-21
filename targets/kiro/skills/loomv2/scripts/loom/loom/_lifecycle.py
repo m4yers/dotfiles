@@ -19,7 +19,7 @@ from loom.engine.runner import LoomRuntime
 from loom.engine.store import read_plan_yaml, write_plan_yaml
 
 
-def init(workdir: Path, *, loom_root: Path) -> LoomRuntime:
+def init(workdir: Path, *, loom_root: Path, graph: Path | str | None = None) -> LoomRuntime:
     """Initialise a fresh workdir from ``<loom_root>/graph.yaml``.
 
     Preconditions:
@@ -48,7 +48,7 @@ def init(workdir: Path, *, loom_root: Path) -> LoomRuntime:
         shutil.rmtree(workdir)
     workdir.mkdir(parents=True, exist_ok=True)
 
-    plan = from_graph_yaml(Path(loom_root))
+    plan = from_graph_yaml(Path(loom_root), graph)
     composed = expand_subgraphs(plan)
     _static_validate(composed, pinning_graph=None)
     write_plan_yaml(workdir, composed)

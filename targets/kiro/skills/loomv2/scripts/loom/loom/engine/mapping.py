@@ -135,11 +135,17 @@ def resolve_task_input(
     for field, placeholder in task.input_mapping.items():
         m = _FULL_TASK_REF_RE.match(placeholder)
         if not m:
-            raise InputSchemaError(
-                task.id,
-                f"field {field!r}: mapping value {placeholder!r} is not a "
-                "single ${task:...} reference",
-            )
+            if "${" in placeholder.replace("$${", ""):
+                raise InputSchemaError(
+                    task.id,
+                    f"field {field!r}: mapping value {placeholder!r} is "
+                    "neither a single ${task:...} reference nor a literal",
+                )
+            # LITERAL mapping value: passed through verbatim (after the
+            # $${...} escape rewrite). Statically schema-checked by
+            # loom.validate.subtype against the consumer field.
+            resolved[field] = placeholder.replace("$${", "${")
+            continue
         addr = m.group(1)
         sel = m.group(2)
         path = m.group(3)

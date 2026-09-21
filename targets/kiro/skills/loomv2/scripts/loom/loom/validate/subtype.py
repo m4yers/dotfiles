@@ -84,12 +84,29 @@ def validate_subtype(plan: LoomPlan) -> None:
         consumer_required = set(consumer_schema.get("required") or [])
         for field, placeholder in consumer_mapping_items(consumer):
             refs = list(iter_task_refs(placeholder))
+            if len(refs) == 0:
+                # LITERAL mapping value: dispatch passes the string
+                # through verbatim. Statically require the consumer
+                # field to accept a string literal.
+                consumer_field_schema = consumer_props.get(field)
+                if consumer_field_schema is None:
+                    continue
+                import jsonschema as _js
+                literal = placeholder.replace("$${", "${")
+                try:
+                    _js.validate(literal, consumer_field_schema)
+                except _js.ValidationError as exc:
+                    _fail(
+                        f"literal mapping value does not satisfy the "
+                        f"consumer field schema: {exc.message}",
+                        "(literal)", placeholder, consumer.id, field,
+                    )
+                continue
             if len(refs) != 1:
-                # Zero refs isn't a task ref; the strict FULL match is
-                # enforced at dispatch. Multi-ref mapping values are not
-                # supported by the placeholder grammar; leave the runtime
-                # to reject with InputSchemaError. Static subtype has
-                # nothing sound to say.
+                # Multi-ref mapping values are not supported by the
+                # placeholder grammar; leave the runtime to reject with
+                # InputSchemaError. Static subtype has nothing sound to
+                # say.
                 continue
             addr, jmespath, selector = refs[0]
             producer = by_id.get(addr)

@@ -26,7 +26,7 @@ invent a value — halt and report the missing field via
 Aggregated diff:
 
 ```diff
-{{ input.diff_t1 }}{{ input.diff_t2 }}{{ input.diff_t3 }}
+{{ input.diff_t1 }}{{ input.diff_t2 }}{{ input.diff_t3 | default('') }}{{ input.diff_t4 | default('') }}{{ input.diff_t5 | default('') }}
 ```
 
 Verify-tests result:
@@ -60,7 +60,7 @@ Installed skills (with scripts/ inventory):
 
 Commands the impl slots recorded as run:
 
-{% for c in input.cmds_used_t1 + input.cmds_used_t2 + input.cmds_used_t3 %}
+{% for c in input.cmds_used_t1 + input.cmds_used_t2 + (input.cmds_used_t3 | default([])) + (input.cmds_used_t4 | default([])) + (input.cmds_used_t5 | default([])) %}
 - `{{ c }}`
 {% endfor %}
 

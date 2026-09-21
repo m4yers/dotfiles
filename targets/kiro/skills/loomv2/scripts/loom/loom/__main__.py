@@ -52,6 +52,10 @@ def main(argv: list[str] | None = None) -> int:
     p_init = p_runtime_sub.add_parser("init")
     p_init.add_argument("workdir", type=Path, nargs="?", default=None)
     p_init.add_argument("--loom-root", type=Path, required=True)
+    p_init.add_argument("--graph", type=Path, default=None,
+                        help="graph file variant: absolute path or a "
+                             "filename relative to --loom-root "
+                             "(default: graph.yaml)")
     p_init.add_argument("--set", dest="assignments", action="append", default=[])
 
     p_next = p_runtime_sub.add_parser("next")
@@ -132,6 +136,7 @@ def _dispatch(args) -> int:
             return cmd_init(
                 args.workdir,
                 args.loom_root,
+                graph=args.graph,
                 assignments=args.assignments,
             )
         elif args.cmd == "runtime" and args.runtime_cmd == "next":
@@ -202,13 +207,17 @@ def _run_visualise(args) -> None:
 
 
 def _validate_cli(args) -> None:
+    from loom.discovery import resolve_graph_yaml
     from loom.plan import from_graph_yaml
     from loom._lifecycle import _static_validate
     from loom.engine.inline import expand_subgraphs
 
-    plan = from_graph_yaml(args.skill_root)
+    plan = from_graph_yaml(args.skill_root, args.graph)
     composed = expand_subgraphs(plan)
-    _static_validate(composed, pinning_graph=args.skill_root / "graph.yaml")
+    _static_validate(
+        composed,
+        pinning_graph=resolve_graph_yaml(args.skill_root, args.graph),
+    )
 
 
 if __name__ == "__main__":

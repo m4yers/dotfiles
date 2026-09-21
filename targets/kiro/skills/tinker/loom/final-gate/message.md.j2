@@ -9,7 +9,7 @@ Review the aggregate change.
 ## Diff (git diff --stat-style summary + unified diff)
 
 ```diff
-{{ input.diff_t1 }}{{ input.diff_t2 }}{{ input.diff_t3 }}
+{{ input.diff_t1 }}{{ input.diff_t2 }}{{ input.diff_t3 | default('') }}{{ input.diff_t4 | default('') }}{{ input.diff_t5 | default('') }}
 ```
 
 ## Verify-tests output

@@ -31,7 +31,7 @@ Each `qN_findings` / `qN_citations` slot is only present when
 research question N was activated. Skipped slots are absent from
 your input.
 
-{% for n in [1, 2, 3] %}
+{% for n in [1, 2, 3, 4, 5] %}
 {% set findings_key = "q" ~ n ~ "_findings" %}
 {% set citations_key = "q" ~ n ~ "_citations" %}
 {% if input[findings_key] is defined %}
