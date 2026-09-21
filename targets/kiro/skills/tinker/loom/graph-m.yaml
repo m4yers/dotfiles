@@ -1,5 +1,5 @@
 # ============================================================
-# SCALE VARIANT (M): research=3 impl=3 file-summary=4
+# SCALE VARIANT (M): domains=2 research=3 impl=3 file-summary=4
 # graph-s.yaml / graph-m.yaml / graph-l.yaml are three views of
 # ONE pipeline over shared task folders. When you modify the
 # wiring in THIS file, apply the same change to the other two
@@ -76,7 +76,7 @@ tasks:
     max_batches: '4'
 - id: domain-detect
   kind: agent
-  version: 1
+  version: 2
   depends_on_all:
   - code-inventory
   - dep-analysis
@@ -90,6 +90,7 @@ tasks:
     dependencies: ${task:dep-analysis:dependencies}
     unresolved_imports: ${task:dep-analysis:unresolved_imports}
     symbol_index_path: ${task:symbol-index:index_path}
+    max_domains: '2'
 - id: file-summary-b1
   kind: agent
   version: 1
@@ -268,7 +269,7 @@ tasks:
     reviewer_role: ${task:domain-detect:domains[1].reviewer_role}
 - id: design-review-merge
   kind: tool
-  version: 1
+  version: 2
   depends_on_all:
   - design-review-swe
   - design-review-d1
@@ -333,12 +334,12 @@ tasks:
     reviewer_role: ${task:domain-detect:domains[1].reviewer_role}
 - id: tasks-review-merge
   kind: tool
-  version: 2
+  version: 3
   depends_on_all:
   - tasks-review-swe
   - tasks-review-d1
-  - tasks-review-d2
   - tasks-author
+  - tasks-review-d2
   input:
     decision_swe: ${task:tasks-review-swe:decision}
     revise_reason_swe: ${task:tasks-review-swe:revise_reason}
@@ -347,10 +348,10 @@ tasks:
     decision_d1: ${task:tasks-review-d1:decision}
     revise_reason_d1: ${task:tasks-review-d1:revise_reason}
     role_d1: ${task:domain-detect:domains[0].reviewer_role}
+    num_tasks: ${task:tasks-author:num_tasks}
     decision_d2: ${task:tasks-review-d2:decision}
     revise_reason_d2: ${task:tasks-review-d2:revise_reason}
     role_d2: ${task:domain-detect:domains[1].reviewer_role}
-    num_tasks: ${task:tasks-author:num_tasks}
 - id: impl-t1
   kind: agent
   version: 1
@@ -468,7 +469,7 @@ tasks:
     cmds_used_t3: ${task:impl-t3:cmds_used}
 - id: review-diffs-merge
   kind: tool
-  version: 1
+  version: 2
   depends_on_all:
   - review-diffs-swe
   - review-diffs-d1

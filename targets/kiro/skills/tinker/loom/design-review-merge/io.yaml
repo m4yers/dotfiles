@@ -1,4 +1,4 @@
-version: 1
+version: 2
 input:
   type: object
   additionalProperties: false
@@ -26,6 +26,13 @@ input:
       type: string
     role_d2:
       type: string
+    decision_d3:
+      type: string
+      enum: [accept, revise]
+    revise_reason_d3:
+      type: string
+    role_d3:
+      type: string
   required:
     - decision_swe
     - revise_reason_swe
@@ -33,9 +40,6 @@ input:
     - decision_d1
     - revise_reason_d1
     - role_d1
-    - decision_d2
-    - revise_reason_d2
-    - role_d2
 output:
   type: object
   additionalProperties: false

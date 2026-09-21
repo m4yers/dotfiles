@@ -1,9 +1,15 @@
-version: 1
+version: 2
 input:
   type: object
   additionalProperties: false
   properties:
     workspace_abs: {type: string}
+    max_domains:
+      type: string
+      description: |
+        Tier capacity from the graph variant: identify at most this
+        many real domains (the array itself is always 3 entries;
+        unused trailing slots carry empty strings).
     total_files: {type: integer}
     top_dirs:
       type: array
@@ -70,19 +76,21 @@ output:
   properties:
     domains:
       type: array
-      minItems: 2
-      maxItems: 2
+      minItems: 3
+      maxItems: 3
       description: |
-        Exactly two major domains the codebase operates in, NOT
-        counting general software engineering (that is always
-        implied and reviewed by the SWE reviewer instance).
+        Exactly 3 fixed slots. The first `max_domains` carry real
+        major domains the codebase operates in, NOT counting general
+        software engineering (always implied, reviewed by the SWE
+        reviewer instance); unused trailing slots carry empty
+        strings and are never consumed.
       items:
         type: object
         additionalProperties: false
         properties:
           slug:
             type: string
-            pattern: "^[a-z][a-z0-9-]*$"
+            pattern: "^([a-z][a-z0-9-]*)?$"
             description: Short kebab-case identifier for the domain.
           name:
             type: string

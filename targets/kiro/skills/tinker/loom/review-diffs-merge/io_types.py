@@ -1,11 +1,11 @@
-# generated from io.yaml v1 by $LOOM task io-python — do not edit
+# generated from io.yaml v2 by $LOOM task io-python — do not edit
 from dataclasses import dataclass
 from typing import ClassVar
 
 
 @dataclass
 class ReviewDiffsMergeInput:
-    VERSION: ClassVar[int] = 1
+    VERSION: ClassVar[int] = 2
     verdict_swe: str
     findings_swe: list
     summary_swe: str
@@ -14,10 +14,14 @@ class ReviewDiffsMergeInput:
     findings_d1: list
     summary_d1: str
     role_d1: str
-    verdict_d2: str
-    findings_d2: list
-    summary_d2: str
-    role_d2: str
+    verdict_d2: str | None = None
+    findings_d2: list | None = None
+    verdict_d3: str | None = None
+    findings_d3: list | None = None
+    summary_d2: str | None = None
+    role_d2: str | None = None
+    summary_d3: str | None = None
+    role_d3: str | None = None
 
     @classmethod
     def from_dict(cls, d: dict) -> "ReviewDiffsMergeInput":
@@ -30,10 +34,14 @@ class ReviewDiffsMergeInput:
             findings_d1=d["findings_d1"],
             summary_d1=d["summary_d1"],
             role_d1=d["role_d1"],
-            verdict_d2=d["verdict_d2"],
-            findings_d2=d["findings_d2"],
-            summary_d2=d["summary_d2"],
-            role_d2=d["role_d2"],
+            verdict_d2=d.get("verdict_d2"),
+            findings_d2=d.get("findings_d2"),
+            verdict_d3=d.get("verdict_d3"),
+            findings_d3=d.get("findings_d3"),
+            summary_d2=d.get("summary_d2"),
+            role_d2=d.get("role_d2"),
+            summary_d3=d.get("summary_d3"),
+            role_d3=d.get("role_d3"),
         )
 
     def to_dict(self) -> dict:
@@ -46,16 +54,28 @@ class ReviewDiffsMergeInput:
         out["findings_d1"] = self.findings_d1
         out["summary_d1"] = self.summary_d1
         out["role_d1"] = self.role_d1
-        out["verdict_d2"] = self.verdict_d2
-        out["findings_d2"] = self.findings_d2
-        out["summary_d2"] = self.summary_d2
-        out["role_d2"] = self.role_d2
+        if self.verdict_d2 is not None:
+            out["verdict_d2"] = self.verdict_d2
+        if self.findings_d2 is not None:
+            out["findings_d2"] = self.findings_d2
+        if self.verdict_d3 is not None:
+            out["verdict_d3"] = self.verdict_d3
+        if self.findings_d3 is not None:
+            out["findings_d3"] = self.findings_d3
+        if self.summary_d2 is not None:
+            out["summary_d2"] = self.summary_d2
+        if self.role_d2 is not None:
+            out["role_d2"] = self.role_d2
+        if self.summary_d3 is not None:
+            out["summary_d3"] = self.summary_d3
+        if self.role_d3 is not None:
+            out["role_d3"] = self.role_d3
         return out
 
 
 @dataclass
 class ReviewDiffsMergeOutput:
-    VERSION: ClassVar[int] = 1
+    VERSION: ClassVar[int] = 2
     verdict: str
     findings: list
     summary: str

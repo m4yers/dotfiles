@@ -1,20 +1,23 @@
-# generated from io.yaml v1 by $LOOM task io-python — do not edit
+# generated from io.yaml v2 by $LOOM task io-python — do not edit
 from dataclasses import dataclass
 from typing import ClassVar
 
 
 @dataclass
 class DesignReviewMergeInput:
-    VERSION: ClassVar[int] = 1
+    VERSION: ClassVar[int] = 2
     decision_swe: str
     revise_reason_swe: str
     role_swe: str
     decision_d1: str
     revise_reason_d1: str
     role_d1: str
-    decision_d2: str
-    revise_reason_d2: str
-    role_d2: str
+    decision_d2: str | None = None
+    revise_reason_d2: str | None = None
+    role_d2: str | None = None
+    decision_d3: str | None = None
+    revise_reason_d3: str | None = None
+    role_d3: str | None = None
 
     @classmethod
     def from_dict(cls, d: dict) -> "DesignReviewMergeInput":
@@ -25,9 +28,12 @@ class DesignReviewMergeInput:
             decision_d1=d["decision_d1"],
             revise_reason_d1=d["revise_reason_d1"],
             role_d1=d["role_d1"],
-            decision_d2=d["decision_d2"],
-            revise_reason_d2=d["revise_reason_d2"],
-            role_d2=d["role_d2"],
+            decision_d2=d.get("decision_d2"),
+            revise_reason_d2=d.get("revise_reason_d2"),
+            role_d2=d.get("role_d2"),
+            decision_d3=d.get("decision_d3"),
+            revise_reason_d3=d.get("revise_reason_d3"),
+            role_d3=d.get("role_d3"),
         )
 
     def to_dict(self) -> dict:
@@ -38,15 +44,24 @@ class DesignReviewMergeInput:
         out["decision_d1"] = self.decision_d1
         out["revise_reason_d1"] = self.revise_reason_d1
         out["role_d1"] = self.role_d1
-        out["decision_d2"] = self.decision_d2
-        out["revise_reason_d2"] = self.revise_reason_d2
-        out["role_d2"] = self.role_d2
+        if self.decision_d2 is not None:
+            out["decision_d2"] = self.decision_d2
+        if self.revise_reason_d2 is not None:
+            out["revise_reason_d2"] = self.revise_reason_d2
+        if self.role_d2 is not None:
+            out["role_d2"] = self.role_d2
+        if self.decision_d3 is not None:
+            out["decision_d3"] = self.decision_d3
+        if self.revise_reason_d3 is not None:
+            out["revise_reason_d3"] = self.revise_reason_d3
+        if self.role_d3 is not None:
+            out["role_d3"] = self.role_d3
         return out
 
 
 @dataclass
 class DesignReviewMergeOutput:
-    VERSION: ClassVar[int] = 1
+    VERSION: ClassVar[int] = 2
     decision: str
     revise_reason: str
 

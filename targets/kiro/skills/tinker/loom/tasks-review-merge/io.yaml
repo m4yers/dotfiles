@@ -1,4 +1,4 @@
-version: 2
+version: 3
 input:
   type: object
   additionalProperties: false
@@ -24,6 +24,13 @@ input:
       type: string
     role_d2:
       type: string
+    decision_d3:
+      type: string
+      enum: [accept, revise]
+    revise_reason_d3:
+      type: string
+    role_d3:
+      type: string
     num_tasks:
       type: integer
       minimum: 1
@@ -39,9 +46,6 @@ input:
     - decision_d1
     - revise_reason_d1
     - role_d1
-    - decision_d2
-    - revise_reason_d2
-    - role_d2
     - num_tasks
 output:
   type: object

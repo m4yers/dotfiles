@@ -70,11 +70,15 @@ file into a prompt): `{{ input.symbol_index_path }}`
 
 ## Task
 
-Judge the TWO broad domains this codebase operates in.
+Judge the {{ input.max_domains }} broadest domain(s) this codebase
+operates in.
 
 Constraints:
 
-1. Emit EXACTLY 2 domains — no more, no less.
+1. The `domains` array MUST always contain exactly 3 entries. Fill
+   the first {{ input.max_domains }} with real domains; set every
+   field of unused trailing slots to the empty string
+   (`--set-json`).
 2. Do NOT count "general software engineering" as one of them —
    that is always implied and reviewed separately by the SWE
    reviewer instance downstream.
@@ -98,8 +102,9 @@ Read the catalog with `fs_read` from:
 Each row is `slug | name | signals | reviewer_role`. A row matches
 when at least 2 of its signals are observed in the evidence.
 
-**Fallback:** if fewer than 2 catalog entries match with at least
-2 strong signals each, author the missing domain(s) free-form
+**Fallback:** if fewer than {{ input.max_domains }} catalog
+entries match with at least 2 strong signals each, author the
+missing real domain(s) free-form
 using the same schema. `reviewer_role` MUST follow the sentence
 shape:
 
@@ -122,10 +127,10 @@ Rejected example: `You are an X domain expert reviewing for
 quality and best practices.` — generic, not reviewer-checkable,
 overlaps the SWE role.
 
-Order the two entries by evidence strength (strongest first). If
-the codebase is narrow enough that only one clear domain
-dominates, still emit two: pick the strongest secondary signal
-for the second slot rather than fabricating a match.
+Order real entries by evidence strength (strongest first). If the
+codebase is narrower than {{ input.max_domains }} clear domains,
+still fill all {{ input.max_domains }} real slots: pick the
+strongest secondary signals rather than fabricating matches.
 
 ## Output
 
@@ -141,4 +146,12 @@ $LOOM output add  "{{ input.__loom.workdir }}" --task '{{ input.__task.id }}' \
     --set 'domains[-1].name=<human-readable-2>' \
     --set 'domains[-1].rationale=<one-sentence evidence-grounded rationale>' \
     --set 'domains[-1].reviewer_role=You are a <domain-2> domain expert reviewing for <concerns>.'
+```
+
+For unused trailing slots (index >= max_domains):
+
+```bash
+$LOOM output add "{{ input.__loom.workdir }}" --task '{{ input.__task.id }}' \
+    --set-json 'domains[].slug=""' --set-json 'domains[-1].name=""' \
+    --set-json 'domains[-1].rationale=""' --set-json 'domains[-1].reviewer_role=""'
 ```

@@ -46,8 +46,9 @@ final-gate.
   `write-only`, or `bypass` for the workspace-intelligence cache.
 - **scale** (optional): `s`, `m` (default), or `l` — selects the
   graph variant (`loom/graph-<scale>.yaml`) controlling fan-out
-  width: research questions / implementation tasks / file-summary
-  batches are 2/2/2 (s), 3/3/4 (m), 5/5/6 (l).
+  width: domains / research questions / implementation tasks /
+  file-summary batches are 1/2/2/2 (s), 2/3/3/4 (m), 3/5/5/6 (l);
+  each review point runs 1 SWE + <domains> domain reviewers.
 
 ## Commands
 

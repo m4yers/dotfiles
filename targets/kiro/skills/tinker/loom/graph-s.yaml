@@ -1,5 +1,5 @@
 # ============================================================
-# SCALE VARIANT (S): research=2 impl=2 file-summary=2
+# SCALE VARIANT (S): domains=1 research=2 impl=2 file-summary=2
 # graph-s.yaml / graph-m.yaml / graph-l.yaml are three views of
 # ONE pipeline over shared task folders. When you modify the
 # wiring in THIS file, apply the same change to the other two
@@ -76,7 +76,7 @@ tasks:
     max_batches: '2'
 - id: domain-detect
   kind: agent
-  version: 1
+  version: 2
   depends_on_all:
   - code-inventory
   - dep-analysis
@@ -90,6 +90,7 @@ tasks:
     dependencies: ${task:dep-analysis:dependencies}
     unresolved_imports: ${task:dep-analysis:unresolved_imports}
     symbol_index_path: ${task:symbol-index:index_path}
+    max_domains: '1'
 - id: file-summary-b1
   kind: agent
   version: 1
@@ -222,24 +223,12 @@ tasks:
     decisions: ${task:design-author:decisions}
     open_risks: ${task:design-author:open_risks}
     reviewer_role: ${task:domain-detect:domains[0].reviewer_role}
-- id: design-review-d2
-  kind: agent
-  version: 2
-  ref: design-review
-  depends_on_all:
-  - design-author
-  input:
-    design: ${task:design-author:design}
-    decisions: ${task:design-author:decisions}
-    open_risks: ${task:design-author:open_risks}
-    reviewer_role: ${task:domain-detect:domains[1].reviewer_role}
 - id: design-review-merge
   kind: tool
-  version: 1
+  version: 2
   depends_on_all:
   - design-review-swe
   - design-review-d1
-  - design-review-d2
   input:
     decision_swe: ${task:design-review-swe:decision}
     revise_reason_swe: ${task:design-review-swe:revise_reason}
@@ -248,9 +237,6 @@ tasks:
     decision_d1: ${task:design-review-d1:decision}
     revise_reason_d1: ${task:design-review-d1:revise_reason}
     role_d1: ${task:domain-detect:domains[0].reviewer_role}
-    decision_d2: ${task:design-review-d2:decision}
-    revise_reason_d2: ${task:design-review-d2:revise_reason}
-    role_d2: ${task:domain-detect:domains[1].reviewer_role}
 - id: tasks-author
   kind: agent
   version: 3
@@ -288,23 +274,12 @@ tasks:
     tasks: ${task:tasks-author:tasks}
     num_tasks: ${task:tasks-author:num_tasks}
     reviewer_role: ${task:domain-detect:domains[0].reviewer_role}
-- id: tasks-review-d2
-  kind: agent
-  version: 3
-  ref: tasks-review
-  depends_on_all:
-  - tasks-author
-  input:
-    tasks: ${task:tasks-author:tasks}
-    num_tasks: ${task:tasks-author:num_tasks}
-    reviewer_role: ${task:domain-detect:domains[1].reviewer_role}
 - id: tasks-review-merge
   kind: tool
-  version: 2
+  version: 3
   depends_on_all:
   - tasks-review-swe
   - tasks-review-d1
-  - tasks-review-d2
   - tasks-author
   input:
     decision_swe: ${task:tasks-review-swe:decision}
@@ -314,9 +289,6 @@ tasks:
     decision_d1: ${task:tasks-review-d1:decision}
     revise_reason_d1: ${task:tasks-review-d1:revise_reason}
     role_d1: ${task:domain-detect:domains[0].reviewer_role}
-    decision_d2: ${task:tasks-review-d2:decision}
-    revise_reason_d2: ${task:tasks-review-d2:revise_reason}
-    role_d2: ${task:domain-detect:domains[1].reviewer_role}
     num_tasks: ${task:tasks-author:num_tasks}
 - id: impl-t1
   kind: agent
@@ -394,32 +366,12 @@ tasks:
     cmds_used_t1: ${task:impl-t1:cmds_used}
     diff_t2: ${task:impl-t2:diff}
     cmds_used_t2: ${task:impl-t2:cmds_used}
-- id: review-diffs-d2
-  kind: agent
-  version: 3
-  ref: review-diffs
-  depends_on_all:
-  - verify-tests
-  input:
-    verify_test_cmd_used: ${task:verify-tests:test_cmd_used}
-    verify_exit_code: ${task:verify-tests:exit_code}
-    verify_passed: ${task:verify-tests:passed}
-    verify_stdout_tail: ${task:verify-tests:stdout_tail}
-    verify_stderr_tail: ${task:verify-tests:stderr_tail}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    reviewer_role: ${task:domain-detect:domains[1].reviewer_role}
-    diff_t1: ${task:impl-t1:diff}
-    cmds_used_t1: ${task:impl-t1:cmds_used}
-    diff_t2: ${task:impl-t2:diff}
-    cmds_used_t2: ${task:impl-t2:cmds_used}
 - id: review-diffs-merge
   kind: tool
-  version: 1
+  version: 2
   depends_on_all:
   - review-diffs-swe
   - review-diffs-d1
-  - review-diffs-d2
   input:
     verdict_swe: ${task:review-diffs-swe:verdict}
     findings_swe: ${task:review-diffs-swe:findings}
@@ -430,10 +382,6 @@ tasks:
     findings_d1: ${task:review-diffs-d1:findings}
     summary_d1: ${task:review-diffs-d1:summary}
     role_d1: ${task:domain-detect:domains[0].reviewer_role}
-    verdict_d2: ${task:review-diffs-d2:verdict}
-    findings_d2: ${task:review-diffs-d2:findings}
-    summary_d2: ${task:review-diffs-d2:summary}
-    role_d2: ${task:domain-detect:domains[1].reviewer_role}
 - id: review-fix
   kind: agent
   version: 1
