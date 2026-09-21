@@ -1,0 +1,67 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    task:
+      type: object
+      additionalProperties: false
+      properties:
+        id: {type: string}
+        title:
+          type: string
+          description: |
+            Task title. Empty string marks an unused fan-out slot:
+            the task MUST then emit empty outputs without touching
+            the workspace (the host may complete it directly).
+        acceptance_criteria:
+          type: array
+          items: {type: string}
+      required: [id, title, acceptance_criteria]
+    build_system: {type: string}
+    installed_skills:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name: {type: string}
+          path: {type: string}
+          description: {type: string}
+          scripts:
+            type: array
+            items: {type: string}
+        required: [name, path, description, scripts]
+    fallback_build_cmd: {type: string}
+    fallback_test_cmd: {type: string}
+    workspace_abs: {type: string}
+    __loom: {}
+    __task: {}
+  required:
+    - task
+    - build_system
+    - installed_skills
+    - fallback_build_cmd
+    - fallback_test_cmd
+    - workspace_abs
+    - __loom
+    - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    diff:
+      type: string
+      description: |
+        Unified diff of the changes applied by this slot; empty
+        string when the slot was unused.
+    files_changed:
+      type: array
+      items: {type: string}
+    notes:
+      type: string
+    cmds_used:
+      type: array
+      items: {type: string}
+      description: Skill invocations or raw commands the agent actually ran.
+  required: [diff, files_changed, notes, cmds_used]

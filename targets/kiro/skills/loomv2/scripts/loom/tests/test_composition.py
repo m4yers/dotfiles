@@ -117,3 +117,136 @@ def test_latch_exit_child_embeds(tmp_path):
     assert "c1/lint" in ids
     lint = next(t for t in composed.tasks if isinstance(t, Task) and t.id == "c1/lint")
     assert lint.latch is not None and lint.latch.fuel == 2
+
+
+
+# ---- ref-instancing composition invariants -----------------------
+
+
+def _write_agent_task(root: Path, name: str) -> None:
+    folder = root / name
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "io.yaml").write_text(yaml.safe_dump({
+        "version": 1,
+        "input": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"q": {"type": "string"}},
+            "required": ["q"],
+        },
+        "output": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"a": {"type": "string"}},
+            "required": ["a"],
+        },
+    }))
+    (folder / "prompt.md.j2").write_text("Q: {{ input.q }}\n")
+
+
+def _write_tool_task(root: Path, name: str) -> None:
+    from loom.naming import pascal_case_task_name
+
+    folder = root / name
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "io.yaml").write_text(yaml.safe_dump({
+        "version": 1,
+        "input": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"q": {"type": "string"}},
+            "required": ["q"],
+        },
+        "output": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"a": {"type": "string"}},
+            "required": ["a"],
+        },
+    }))
+    pascal = pascal_case_task_name(name)
+    (folder / "io_types.py").write_text(
+        "from dataclasses import dataclass\n"
+        "from typing import ClassVar\n"
+        "\n\n"
+        f"@dataclass\nclass {pascal}Input:\n"
+        "    VERSION: ClassVar[int] = 1\n"
+        "    q: str\n"
+        "    @classmethod\n"
+        "    def from_dict(cls, d): return cls(q=d['q'])\n"
+        "    def to_dict(self): return {'q': self.q}\n"
+        "\n\n"
+        f"@dataclass\nclass {pascal}Output:\n"
+        "    VERSION: ClassVar[int] = 1\n"
+        "    a: str\n"
+        "    @classmethod\n"
+        "    def from_dict(cls, d): return cls(a=d['a'])\n"
+        "    def to_dict(self): return {'a': self.a}\n"
+    )
+    snake = name.replace("-", "_")
+    (folder / "tool.py").write_text(
+        f"from io_types import {pascal}Input, {pascal}Output\n"
+        "\n"
+        f"def {snake}(inp: {pascal}Input) -> {pascal}Output:\n"
+        f"    return {pascal}Output(a=inp.q)\n"
+    )
+
+
+def test_composition_accepts_two_instances_sharing_ref(tmp_path):
+    """Two distinct-id entries sharing the same `ref` pass composition
+    cleanly — shared folder → distinct instances."""
+    from loom.plan import from_graph_yaml
+    from loom.validate.composition import validate_composition
+
+    root = tmp_path / "loom"
+    _write_tool_task(root, "seed")
+    _write_agent_task(root, "research")
+    (root / "graph.yaml").write_text(yaml.safe_dump({
+        "tasks": [
+            {"id": "seed", "kind": "tool", "version": 1},
+            {"id": "research-q1", "kind": "agent", "version": 1,
+             "ref": "research", "depends_on_all": ["seed"],
+             "input": {"q": "${task:seed:a}"}},
+            {"id": "research-q2", "kind": "agent", "version": 1,
+             "ref": "research", "depends_on_all": ["seed"],
+             "input": {"q": "${task:seed:a}"}},
+        ],
+    }))
+    plan = from_graph_yaml(root)
+    # Both ref-instanced tasks carry a `folder` decoupled from `id`.
+    from loom.engine.models import Task
+
+    instances = [
+        t for t in plan.tasks
+        if isinstance(t, Task) and t.id.startswith("research-q")
+    ]
+    assert len(instances) == 2
+    for t in instances:
+        assert t.folder == root / "research"
+    # Composition passes.
+    validate_composition(plan)
+
+
+def test_composition_rejects_kind_mismatch_on_shared_folder(tmp_path):
+    """A ref-shared folder whose detected kind differs from the entry's
+    declared kind trips :class:`TaskRefError`."""
+    from loom.plan import from_graph_yaml
+    from loom.validate.composition import validate_composition
+    from loom.errors import TaskRefError
+
+    root = tmp_path / "loom"
+    _write_tool_task(root, "seed")
+    _write_tool_task(root, "shared")  # tool folder
+    (root / "graph.yaml").write_text(yaml.safe_dump({
+        "tasks": [
+            {"id": "seed", "kind": "tool", "version": 1},
+            # Declared kind is `agent`, but the shared folder has
+            # `tool.py` — mismatch.
+            {"id": "one", "kind": "agent", "version": 1,
+             "ref": "shared", "depends_on_all": ["seed"],
+             "input": {"q": "${task:seed:a}"}},
+        ],
+    }))
+    plan = from_graph_yaml(root)
+    with pytest.raises(TaskRefError, match="detected kind"):
+        validate_composition(plan)

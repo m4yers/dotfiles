@@ -1,0 +1,50 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    workspace_abs: {type: string}
+    build_system: {type: string}
+    installed_skills:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name: {type: string}
+          path: {type: string}
+          description: {type: string}
+          scripts:
+            type: array
+            items: {type: string}
+        required: [name, path, description, scripts]
+    fallback_test_cmd: {type: string}
+  required:
+    - workspace_abs
+    - build_system
+    - installed_skills
+    - fallback_test_cmd
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    test_cmd_used:
+      type: string
+      description: |
+        The command actually executed. Resolved from installed_skills
+        via the well-known test-shim convention in
+        the installed skill's test shim when available; falls back to
+        fallback_test_cmd when no matching skill exposes one. Empty
+        string when neither exists — in that case `passed` is false
+        and `stderr_tail` notes the unresolved build system.
+    exit_code: {type: integer}
+    passed:
+      type: boolean
+      description: True iff exit_code == 0 AND test_cmd_used is non-empty.
+    stdout_tail:
+      type: string
+      description: Last 4 KiB of stdout.
+    stderr_tail:
+      type: string
+      description: Last 4 KiB of stderr.
+  required: [test_cmd_used, exit_code, passed, stdout_tail, stderr_tail]

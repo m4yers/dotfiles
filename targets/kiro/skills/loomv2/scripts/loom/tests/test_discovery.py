@@ -93,3 +93,47 @@ def test_load_io_yaml_error_quotes_description(tmp_path):
         load_io_yaml(tmp_path)
     # Description of `version` field should be quoted into the message.
     assert "revision" in str(exc_info.value) or "version" in str(exc_info.value)
+
+
+
+# ---- resolve_ref_folder --------------------------------------------
+
+
+def test_resolve_ref_folder_happy_path(tmp_path):
+    from loom.discovery import resolve_ref_folder
+
+    (tmp_path / "research").mkdir()
+    folder = resolve_ref_folder(tmp_path, "research")
+    assert folder == (tmp_path / "research").resolve()
+
+
+def test_resolve_ref_folder_missing_folder(tmp_path):
+    from loom.discovery import resolve_ref_folder
+    from loom.errors import TaskRefError
+
+    with pytest.raises(TaskRefError, match="missing folder"):
+        resolve_ref_folder(tmp_path, "nope")
+
+
+def test_resolve_ref_folder_escapes_loom_root(tmp_path):
+    from loom.discovery import resolve_ref_folder
+    from loom.errors import TaskRefError
+
+    # Create a sibling directory outside the loom root.
+    outside = tmp_path.parent / "escape"
+    outside.mkdir(exist_ok=True)
+    # A `..` prefix would escape; kebab check rejects it first.
+    with pytest.raises(TaskRefError, match="kebab"):
+        resolve_ref_folder(tmp_path, "../escape")
+
+
+def test_resolve_ref_folder_rejects_non_kebab(tmp_path):
+    from loom.discovery import resolve_ref_folder
+    from loom.errors import TaskRefError
+
+    (tmp_path / "Shared").mkdir()
+    with pytest.raises(TaskRefError, match="kebab"):
+        resolve_ref_folder(tmp_path, "Shared")
+    (tmp_path / "sh_ared").mkdir()
+    with pytest.raises(TaskRefError, match="kebab"):
+        resolve_ref_folder(tmp_path, "sh_ared")

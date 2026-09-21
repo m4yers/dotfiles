@@ -1,0 +1,104 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    verdict_swe:
+      type: string
+      enum: [approved, revise]
+    findings_swe:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          file: {type: string}
+          severity:
+            type: string
+            enum: [low, medium, high]
+          message: {type: string}
+        required: [file, severity, message]
+    summary_swe: {type: string}
+    role_swe:
+      type: string
+      description: Reviewer-role breadcrumb for labelling merged findings/summaries.
+    verdict_d1:
+      type: string
+      enum: [approved, revise]
+    findings_d1:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          file: {type: string}
+          severity:
+            type: string
+            enum: [low, medium, high]
+          message: {type: string}
+        required: [file, severity, message]
+    summary_d1: {type: string}
+    role_d1: {type: string}
+    verdict_d2:
+      type: string
+      enum: [approved, revise]
+    findings_d2:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          file: {type: string}
+          severity:
+            type: string
+            enum: [low, medium, high]
+          message: {type: string}
+        required: [file, severity, message]
+    summary_d2: {type: string}
+    role_d2: {type: string}
+  required:
+    - verdict_swe
+    - findings_swe
+    - summary_swe
+    - role_swe
+    - verdict_d1
+    - findings_d1
+    - summary_d1
+    - role_d1
+    - verdict_d2
+    - findings_d2
+    - summary_d2
+    - role_d2
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    verdict:
+      type: string
+      enum: [approved, revise]
+      description: |
+        `approved` iff all three reviewer verdicts equal `approved`;
+        `revise` otherwise (any reviewer revise → merged revise).
+    findings:
+      type: array
+      description: |
+        Concatenated union of all reviewer findings, in swe/d1/d2
+        order. Each entry's `message` is prefixed with a
+        `[<reviewer_role>]` breadcrumb so review-fix can attribute
+        the finding. No dedup — every reviewer voice is preserved.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          file: {type: string}
+          severity:
+            type: string
+            enum: [low, medium, high]
+          message: {type: string}
+        required: [file, severity, message]
+    summary:
+      type: string
+      description: |
+        The three reviewer summaries concatenated under
+        `### <reviewer_role>` markdown headers, in swe/d1/d2 order.
+  required: [verdict, findings, summary]

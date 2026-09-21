@@ -1,0 +1,63 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    workspace_abs: {type: string}
+    cache_dir: {type: string}
+    cache_mode:
+      type: string
+      enum: [read-write, read-only, write-only, bypass]
+    total_files: {type: integer}
+    total_bytes: {type: integer}
+    languages: {type: array}
+    top_dirs: {type: array}
+    entrypoints: {type: array}
+    dependencies: {type: array}
+    unresolved_imports: {type: array}
+    build_system: {type: string}
+    build_provenance: {type: string}
+    fallback_build_cmd: {type: string}
+    test_system: {type: string}
+    fallback_test_cmd: {type: string}
+    summarize_mode: {type: string}
+    cached_summaries: {type: array}
+    summaries_b1: {type: array}
+    summaries_b2: {type: array}
+    summaries_b3: {type: array}
+    summaries_b4: {type: array}
+  required:
+    - workspace_abs
+    - cache_dir
+    - cache_mode
+    - total_files
+    - total_bytes
+    - languages
+    - top_dirs
+    - entrypoints
+    - dependencies
+    - unresolved_imports
+    - build_system
+    - build_provenance
+    - fallback_build_cmd
+    - test_system
+    - fallback_test_cmd
+    - summarize_mode
+    - cached_summaries
+    - summaries_b1
+    - summaries_b2
+    - summaries_b3
+    - summaries_b4
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    brief:
+      type: string
+      description: |
+        Compact YAML document (as a string) merging inventory,
+        file purposes, dependencies, and build/test resolution.
+        Bounded to ~25 KB; injected verbatim into downstream
+        prompts (research-plan and beyond).
+    file_summaries_total: {type: integer}
+  required: [brief, file_summaries_total]

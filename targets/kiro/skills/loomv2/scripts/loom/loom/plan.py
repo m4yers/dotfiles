@@ -181,13 +181,22 @@ def from_graph_yaml(loom_root: Path) -> LoomPlan:
     Validates the file against schemas/graph.yaml and stamps each task's
     ``pinned_version`` from the graph entry. Raises GraphYamlError on
     schema failure.
+
+    Entries carrying a ``ref: <folder-name>`` field populate the
+    resulting Task's ``folder`` with the resolved shared folder under
+    ``loom_root``, so the id and the backing folder decouple. ``ref``
+    on ``kind: subgraph`` entries is rejected via
+    :class:`TaskRefError` (defense-in-depth alongside the schema
+    check).
     """
-    from loom.discovery import load_graph_yaml
+    from loom.discovery import load_graph_yaml, resolve_ref_folder
+    from loom.errors import TaskRefError
 
     entries = load_graph_yaml(Path(loom_root))
     tasks: list[Task | SubgraphSpec] = []
     for entry in entries["tasks"]:
         kind = entry["kind"]
+        ref = entry.get("ref")
         common = {
             "id": entry["id"],
             "depends_on_all": entry.get("depends_on_all"),
@@ -196,6 +205,12 @@ def from_graph_yaml(loom_root: Path) -> LoomPlan:
             "input_mapping": entry.get("input"),
         }
         if kind == "subgraph":
+            if ref is not None:
+                raise TaskRefError(
+                    f"subgraph entry {entry['id']!r} declares `ref: "
+                    f"{ref!r}`; `ref` is not valid on kind=subgraph "
+                    "(use the entry's own `root:` for cross-graph reuse)."
+                )
             raw_root = Path(entry["root"])
             child_root = raw_root if raw_root.is_absolute() else (Path(loom_root) / raw_root).resolve()
             task = subgraph(root=child_root, **common)
@@ -203,6 +218,8 @@ def from_graph_yaml(loom_root: Path) -> LoomPlan:
             factory = {"tool": tool, "agent": agent, "human": human}[kind]
             task = factory(**common)
             task.pinned_version = entry["version"]
+            if ref is not None:
+                task.folder = resolve_ref_folder(Path(loom_root), ref)
         tasks.append(task)
     # Attach latch blocks to their tasks.
     for latch_entry in entries.get("latches", []):
@@ -218,12 +235,17 @@ def from_graph_yaml(loom_root: Path) -> LoomPlan:
 def to_graph_yaml(plan: LoomPlan, path: Path) -> None:
     """Emit ``plan`` as a graph.yaml at ``path``.
 
-    Stamps each entry with the CURRENT io.yaml version by reading each
-    task folder's io.yaml. Atomic write.
+    Stamps each entry with the CURRENT io.yaml version by resolving
+    each task's io.yaml/body source folder via
+    :func:`loom.engine.runner.task_source_folder`, so ref-instanced
+    tasks (whose backing folder differs from the id) restamp against
+    the shared folder. Tasks loaded with a ``ref:`` emit that field
+    back on the entry (``ref = t.folder.name``). Atomic write.
     """
     import yaml
 
     from loom.discovery import load_io_yaml
+    from loom.engine.runner import task_source_folder
     from loom.engine.store import atomic_write
 
     task_entries: list[dict] = []
@@ -237,8 +259,13 @@ def to_graph_yaml(plan: LoomPlan, path: Path) -> None:
                 "root": str(t.root_path),
             }
         else:
-            io = load_io_yaml(plan.loom_root / t.id)
+            io = load_io_yaml(task_source_folder(plan.loom_root, t))
             entry = {"id": t.id, "kind": t.kind, "version": io.version}
+            if t.folder is not None:
+                # Emit `ref` when the backing folder differs from the
+                # id; the field's whole reason to exist is decoupling
+                # instance-id from shared folder.
+                entry["ref"] = t.folder.name
             if t.latch:
                 latch_entries.append({
                     "task": t.id,

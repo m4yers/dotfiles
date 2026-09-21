@@ -11,6 +11,13 @@ Two modes:
   io.yaml. Subgraph entries restamp per the pinning logic in
   ``plan.to_graph_yaml`` / ``validate.versions.check_versions``.
 
+Ref-instancing note: scaffold mode stays strictly 1:1 folder→task and
+NEVER emits a ``ref`` field — ``ref`` is a hand-authoring surface
+applied after scaffold. In refresh mode, authored ``ref`` fields are
+preserved verbatim (``plan.to_graph_yaml`` round-trips ``t.folder`` →
+``ref`` and only the ``version`` line is restamped here); the
+scaffold code below therefore needs no ref awareness itself.
+
 Writes are atomic (temp + rename). Prints ``scaffolded ...``,
 ``repinned N task(s)``, or ``unchanged``.
 """
@@ -75,7 +82,9 @@ def _current_version(loom_root: Path, entry: dict) -> int:
     """Current pinned version for an entry, mirroring `to_graph_yaml`."""
     if entry["kind"] == "subgraph":
         return _SUBGRAPH_VERSION
-    return load_io_yaml(loom_root / entry["id"]).version
+    # Ref-instanced entries restamp against the SHARED folder, not the id.
+    folder_name = entry.get("ref", entry["id"])
+    return load_io_yaml(loom_root / folder_name).version
 
 
 def _restamp_versions(raw: str, expected: list[int]) -> str:

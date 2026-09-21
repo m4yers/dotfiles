@@ -52,6 +52,18 @@ $defs:
         description: >-
           Pinned io.yaml version at authoring time. `$LOOM graph new`
           re-stamps this to the current version on disk.
+      ref:
+        type: string
+        pattern: "^[a-z][a-z0-9-]*$"
+        description: >-
+          Optional. Folder name (kebab-case) under the SAME loom root
+          whose io.yaml and body file back this entry. When omitted,
+          the folder name defaults to `id`. Multiple entries MAY share
+          the same `ref` — each entry is still a distinct instance
+          addressed by its unique `id` (used for workdirs,
+          placeholders, and output CLI writes). MUST NOT appear on
+          `kind: subgraph` entries — subgraph carries its own `root:`
+          field and owns cross-graph reuse.
       depends_on_all:
         type: array
         minItems: 1
@@ -81,6 +93,9 @@ $defs:
           this entry's declared deps (depends_on_all / depends_on_any).
           Entries without `input` are caller-seeded (entry-task
           pattern).
+    allOf:
+      - if: {properties: {kind: {const: subgraph}}}
+        then: {not: {required: [ref]}}
 
   latch_entry:
     type: object
@@ -123,3 +138,33 @@ examples:
       - {id: fetch, kind: tool, version: 1}
       - {id: child-lint, kind: subgraph, version: 1, root: ../other/loom, depends_on_all: [fetch]}
       - {id: publish, kind: tool, version: 1, depends_on_all: [child-lint]}
+  - # Instancing via `ref` — one shared `research` folder backs three
+    # distinct graph entries; an aggregator wires input from all three.
+    tasks:
+      - {id: seed, kind: tool, version: 1}
+      - id: research-q1
+        kind: agent
+        version: 1
+        ref: research
+        depends_on_all: [seed]
+        input: {question: "${task:seed:q1}"}
+      - id: research-q2
+        kind: agent
+        version: 1
+        ref: research
+        depends_on_all: [seed]
+        input: {question: "${task:seed:q2}"}
+      - id: research-q3
+        kind: agent
+        version: 1
+        ref: research
+        depends_on_all: [seed]
+        input: {question: "${task:seed:q3}"}
+      - id: aggregate
+        kind: tool
+        version: 1
+        depends_on_all: [research-q1, research-q2, research-q3]
+        input:
+          a1: "${task:research-q1:answer}"
+          a2: "${task:research-q2:answer}"
+          a3: "${task:research-q3:answer}"

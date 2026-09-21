@@ -60,6 +60,20 @@ class TaskFolderError(LoomPlanError):
     remedy = "Use `$LOOM task new` to scaffold task folders."
 
 
+class TaskRefError(LoomPlanError):
+    """`graph.yaml` `ref` on a task entry is invalid: folder missing,
+    ref escapes the loom root, ref appears on a `kind: subgraph`
+    entry, or the referenced folder's detected kind differs from the
+    entry's declared kind."""
+
+    remedy = (
+        "Ensure `ref` names a real kebab-cased folder directly under "
+        "the same loom root, is only used on kind ∈ {tool, agent, "
+        "human}, and the shared folder's body file matches the "
+        "declared kind."
+    )
+
+
 class IOYamlError(LoomPlanError):
     """`io.yaml` missing, malformed, or fails the io.yaml meta-schema."""
 

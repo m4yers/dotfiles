@@ -1,0 +1,63 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    design: {type: string}
+    build_system: {type: string}
+    installed_skills:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name: {type: string}
+          path: {type: string}
+          description: {type: string}
+          scripts:
+            type: array
+            items: {type: string}
+        required: [name, path, description, scripts]
+    fallback_build_cmd: {type: string}
+    fallback_test_cmd: {type: string}
+    revise_reason:
+      type: [string, "null"]
+      description: |
+        Null on iteration 0 (no previous review); populated by
+        tasks-review-merge on revise.
+    __loom: {}
+  required:
+    - design
+    - build_system
+    - installed_skills
+    - fallback_build_cmd
+    - fallback_test_cmd
+    - revise_reason
+    - __loom
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    tasks:
+      type: array
+      minItems: 3
+      maxItems: 3
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          id: {type: string}
+          title:
+            type: string
+            description: |
+              Task title; empty string on unused trailing slots (an
+              empty title makes the slot a no-op).
+          acceptance_criteria:
+            type: array
+            items: {type: string}
+        required: [id, title, acceptance_criteria]
+    num_tasks:
+      type: integer
+      minimum: 1
+      maximum: 3
+  required: [tasks, num_tasks]

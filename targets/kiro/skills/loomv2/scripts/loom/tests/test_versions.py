@@ -84,3 +84,137 @@ def test_inlined_subgraph_version_drift(hello_graph: Path):
     # child-relint/lint-text — either is a valid first-detected drift).
     assert exc.value.canonical_address.endswith("/lint-text")
     assert exc.value.current_version == 2
+
+
+
+# ---- ref-instanced version pin --------------------------------------
+
+
+def _write_agent_task(root: Path, name: str) -> None:
+    folder = root / name
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "io.yaml").write_text(yaml.safe_dump({
+        "version": 1,
+        "input": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"q": {"type": "string"}},
+            "required": ["q"],
+        },
+        "output": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"a": {"type": "string"}},
+            "required": ["a"],
+        },
+    }))
+    (folder / "prompt.md.j2").write_text("Q: {{ input.q }}\n")
+
+
+def _write_tool_seed(root: Path) -> None:
+    from loom.naming import pascal_case_task_name
+
+    folder = root / "seed"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "io.yaml").write_text(yaml.safe_dump({
+        "version": 1,
+        "input": {"type": "object", "additionalProperties": False},
+        "output": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"a": {"type": "string"}},
+            "required": ["a"],
+        },
+    }))
+    pascal = pascal_case_task_name("seed")
+    (folder / "io_types.py").write_text(
+        "from dataclasses import dataclass\n"
+        "from typing import ClassVar\n"
+        "\n\n"
+        f"@dataclass\nclass {pascal}Input:\n"
+        "    VERSION: ClassVar[int] = 1\n"
+        "    @classmethod\n"
+        "    def from_dict(cls, d): return cls()\n"
+        "    def to_dict(self): return {}\n"
+        "\n\n"
+        f"@dataclass\nclass {pascal}Output:\n"
+        "    VERSION: ClassVar[int] = 1\n"
+        "    a: str\n"
+        "    @classmethod\n"
+        "    def from_dict(cls, d): return cls(a=d['a'])\n"
+        "    def to_dict(self): return {'a': self.a}\n"
+    )
+    (folder / "tool.py").write_text(
+        f"from io_types import {pascal}Input, {pascal}Output\n"
+        "\n"
+        f"def seed(inp: {pascal}Input) -> {pascal}Output:\n"
+        f"    return {pascal}Output(a='seed')\n"
+    )
+
+
+def _ref_instanced_loom(tmp_path: Path) -> Path:
+    """Build a fan-out loom with three ref-instanced agent tasks."""
+    root = tmp_path / "loom"
+    _write_tool_seed(root)
+    _write_agent_task(root, "research")
+    (root / "graph.yaml").write_text(yaml.safe_dump({
+        "tasks": [
+            {"id": "seed", "kind": "tool", "version": 1},
+            {"id": "research-q1", "kind": "agent", "version": 1,
+             "ref": "research", "depends_on_all": ["seed"],
+             "input": {"q": "${task:seed:a}"}},
+            {"id": "research-q2", "kind": "agent", "version": 1,
+             "ref": "research", "depends_on_all": ["seed"],
+             "input": {"q": "${task:seed:a}"}},
+        ],
+    }))
+    return root
+
+
+def test_ref_instances_pin_shared_version(tmp_path: Path):
+    """Each ref-instanced entry pins the SHARED io.yaml version."""
+    root = _ref_instanced_loom(tmp_path)
+    plan = from_graph_yaml(root)
+    # Both ref instances have pinned_version=1 (from graph.yaml) and
+    # folder pointing at the shared `research/` directory.
+    instances = [
+        t for t in plan.tasks
+        if isinstance(t, Task) and t.id.startswith("research-q")
+    ]
+    assert len(instances) == 2
+    for t in instances:
+        assert t.pinned_version == 1
+        assert t.folder == root / "research"
+    # Round-trip clean: shared v1 == pinned v1.
+    check_versions(plan, root / "graph.yaml")
+
+
+def test_ref_instance_shared_drift_trips_each_instance(tmp_path: Path):
+    """Bumping the SHARED folder's io.yaml version trips
+    ``TaskVersionMismatchError`` on the first ref instance encountered.
+    Each instance would trip independently if the earlier ones didn't
+    already halt the check."""
+    root = _ref_instanced_loom(tmp_path)
+    plan = from_graph_yaml(root)
+    bump_io_version(root / "research", 2)
+    with pytest.raises(TaskVersionMismatchError) as exc:
+        check_versions(plan, root / "graph.yaml")
+    assert exc.value.canonical_address.startswith("research-q")
+    assert exc.value.pinned_version == 1
+    assert exc.value.current_version == 2
+
+
+def test_graph_new_repins_all_ref_instances(tmp_path: Path):
+    """`$LOOM graph new` restamp mode re-pins every ref-instanced
+    entry against the SHARED folder's current version."""
+    from loom.scaffold.graph import new_graph
+    import yaml as _yaml
+
+    root = _ref_instanced_loom(tmp_path)
+    bump_io_version(root / "research", 3)
+    new_graph(root)
+    parsed = _yaml.safe_load((root / "graph.yaml").read_text())
+    for entry in parsed["tasks"]:
+        if entry["id"].startswith("research-q"):
+            assert entry["version"] == 3
+            assert entry["ref"] == "research"

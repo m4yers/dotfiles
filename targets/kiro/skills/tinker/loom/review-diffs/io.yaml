@@ -1,0 +1,85 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    diff_t1:
+      type: string
+      description: Diff from impl slot t1; empty when the slot was unused.
+    diff_t2: {type: string}
+    diff_t3: {type: string}
+    verify_test_cmd_used: {type: string}
+    verify_exit_code: {type: integer}
+    verify_passed: {type: boolean}
+    verify_stdout_tail: {type: string}
+    verify_stderr_tail: {type: string}
+    build_system: {type: string}
+    installed_skills:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name: {type: string}
+          path: {type: string}
+          description: {type: string}
+          scripts:
+            type: array
+            items: {type: string}
+        required: [name, path, description, scripts]
+    cmds_used_t1:
+      type: array
+      items: {type: string}
+      description: cmds_used from impl slot t1; empty when unused.
+    cmds_used_t2:
+      type: array
+      items: {type: string}
+    cmds_used_t3:
+      type: array
+      items: {type: string}
+    reviewer_role:
+      type: string
+      description: |
+        Full role-priming sentence rendered verbatim at the top of
+        the reviewer body. SWE literal for review-diffs-swe or a
+        domain-detect-emitted sentence for review-diffs-d1/d2.
+    __loom: {}
+    __task: {}
+  required:
+    - diff_t1
+    - diff_t2
+    - diff_t3
+    - verify_test_cmd_used
+    - verify_exit_code
+    - verify_passed
+    - verify_stdout_tail
+    - verify_stderr_tail
+    - build_system
+    - installed_skills
+    - cmds_used_t1
+    - cmds_used_t2
+    - cmds_used_t3
+    - reviewer_role
+    - __loom
+    - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    verdict:
+      type: string
+      enum: [approved, revise]
+    findings:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          file: {type: string}
+          severity:
+            type: string
+            enum: [low, medium, high]
+          message: {type: string}
+        required: [file, severity, message]
+    summary: {type: string}
+  required: [verdict, findings, summary]

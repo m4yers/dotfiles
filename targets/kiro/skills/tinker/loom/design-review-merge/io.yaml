@@ -1,0 +1,55 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    decision_swe:
+      type: string
+      enum: [accept, revise]
+    revise_reason_swe:
+      type: string
+      description: Empty on accept; non-empty on revise.
+    role_swe:
+      type: string
+      description: Reviewer-role breadcrumb for labelling the merged reason.
+    decision_d1:
+      type: string
+      enum: [accept, revise]
+    revise_reason_d1:
+      type: string
+    role_d1:
+      type: string
+    decision_d2:
+      type: string
+      enum: [accept, revise]
+    revise_reason_d2:
+      type: string
+    role_d2:
+      type: string
+  required:
+    - decision_swe
+    - revise_reason_swe
+    - role_swe
+    - decision_d1
+    - revise_reason_d1
+    - role_d1
+    - decision_d2
+    - revise_reason_d2
+    - role_d2
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    decision:
+      type: string
+      enum: [accept, revise]
+      description: |
+        `accept` iff all three reviewer decisions equal `accept`;
+        `revise` otherwise (any reviewer revise → merged revise).
+    revise_reason:
+      type: string
+      description: |
+        Empty on unanimous accept. On revise, the concatenated
+        dissenter reasons under `[<reviewer_role>]` headers — one
+        block per dissenter, in swe/d1/d2 order.
+  required: [decision, revise_reason]

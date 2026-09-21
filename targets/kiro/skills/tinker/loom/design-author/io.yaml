@@ -1,0 +1,60 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    report: {type: string}
+    open_questions:
+      type: array
+      items: {type: string}
+    build_system: {type: string}
+    installed_skills:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name: {type: string}
+          path: {type: string}
+          description: {type: string}
+          scripts:
+            type: array
+            items: {type: string}
+        required: [name, path, description, scripts]
+    fallback_build_cmd: {type: string}
+    fallback_test_cmd: {type: string}
+    revise_reason:
+      type: [string, "null"]
+      description: |
+        Null on iteration 0 (no previous review); populated by
+        design-review-merge on revise.
+    __loom: {}
+  required:
+    - report
+    - open_questions
+    - build_system
+    - installed_skills
+    - fallback_build_cmd
+    - fallback_test_cmd
+    - revise_reason
+    - __loom
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    design:
+      type: string
+      description: Feature design markdown.
+    decisions:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          decision: {type: string}
+          rationale: {type: string}
+        required: [decision, rationale]
+    open_risks:
+      type: array
+      items: {type: string}
+  required: [design, decisions, open_risks]

@@ -84,19 +84,20 @@ def iter_task_refs(text: str) -> Iterator[tuple[str, str | None, str | None]]:
 
 def _check_refs(text: str, ids: set[str], loom_root, cache: SchemaCache,
                 by_id: dict[str, Task]) -> None:
+    from loom.engine.runner import task_source_folder
+
     for match in _TASK_REF_RE.finditer(text):
         addr = match.group(1)
         if addr not in ids:
             raise ReferenceError(
                 f"reference {match.group(0)!r} targets unknown task {addr!r}"
             )
-        # Schema presence check: loading it validates it. Inlined tasks
-        # live under the child loom root, not the composed plan's root.
+        # Schema presence check: loading it validates it. Folder
+        # resolution goes through ``task_source_folder`` so
+        # subgraph-inlined tasks (source_root) and ref-instanced
+        # tasks (folder) both read their SHARED io.yaml.
         target = by_id[addr]
-        root_for_target = (
-            target.source_root if target.source_root is not None else loom_root
-        )
-        cache.get(root_for_target, addr)
+        cache.get(task_source_folder(loom_root, target))
 
 
 def _check_mapping_locality(

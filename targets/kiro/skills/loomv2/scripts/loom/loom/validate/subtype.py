@@ -169,13 +169,17 @@ def consumer_mapping_items(task: Task):
 def _schema_for(cache: SchemaCache, plan: LoomPlan, task: Task):
     """Load a task's cached io.yaml through the shared schema cache.
 
-    Inlined subgraph tasks re-anchor through ``source_root`` so we read
-    the child skill's io.yaml, not the composed plan's root.
+    Delegates folder resolution to
+    :func:`loom.engine.runner.task_source_folder` — the single call
+    site that handles both subgraph-inlined tasks (which re-anchor via
+    ``source_root``) and ref-instanced tasks (which pin ``folder`` at
+    graph.yaml load time). Ref instances sharing one folder share one
+    cache entry, so the SHARED output schema is projected against and
+    the SHARED input schema is checked.
     """
-    root_for_target = (
-        task.source_root if task.source_root is not None else plan.loom_root
-    )
-    return cache.get(root_for_target, task.id)
+    from loom.engine.runner import task_source_folder
+
+    return cache.get(task_source_folder(plan.loom_root, task))
 
 
 def _project(

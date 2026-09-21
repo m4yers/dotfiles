@@ -1,0 +1,64 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    design: {type: string}
+    decisions:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          decision: {type: string}
+          rationale: {type: string}
+        required: [decision, rationale]
+    open_risks:
+      type: array
+      items: {type: string}
+    reviewer_role:
+      type: string
+      description: |
+        Full role-priming sentence rendered verbatim at the top of
+        the reviewer body. Set to the SWE literal for design-review-swe
+        or to a domain-detect-emitted sentence for design-review-d1/d2.
+    __loom: {}
+    __task: {}
+  required:
+    - design
+    - decisions
+    - open_risks
+    - reviewer_role
+    - __loom
+    - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    decision:
+      type: string
+      enum: [accept, revise]
+    revise_reason:
+      type: string
+      description: |
+        Required (non-empty) when decision == revise; empty on
+        accept. The merge task concatenates dissenter reasons
+        labelled by reviewer role.
+    findings:
+      type: array
+      description: |
+        Auditable findings emitted alongside the decision. NOT
+        consumed by design-review-merge (the merge propagates only
+        decision + revise_reason forward), but persisted with each
+        reviewer's output.yaml for later inspection.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          file: {type: string}
+          severity:
+            type: string
+            enum: [low, medium, high]
+          message: {type: string}
+        required: [file, severity, message]
+  required: [decision, revise_reason, findings]

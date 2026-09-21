@@ -1,0 +1,28 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    question:
+      type: string
+      description: |
+        Research question text. Empty string marks an unused fan-out
+        slot: the task MUST then emit empty findings and citations
+        without doing any work (the host may complete it directly).
+    __loom: {}
+    __task: {}
+  required: [question, __loom, __task]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    findings:
+      type: string
+      description: |
+        Markdown answer to the assigned question; empty string when
+        the question was an unused slot.
+    citations:
+      type: array
+      items: {type: string}
+      description: Source strings supporting the findings.
+  required: [findings, citations]

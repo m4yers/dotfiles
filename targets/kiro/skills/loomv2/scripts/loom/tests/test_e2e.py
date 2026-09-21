@@ -97,6 +97,10 @@ def test_hello_graph_visualise_labels_addresses(hello_graph: Path, tmp_workdir: 
     # Inlined child tasks appear under their instance addresses.
     assert "child-lint/lint-text" in out
     assert "child-relint/lint-text" in out
+    # Ref-instanced tasks carry an inline suffix pointing at the
+    # shared folder (`<instance-id> → <ref>`).
+    assert "summarise-quick → summarise" in out
+    assert "summarise-formal → summarise" in out
     # banner-sh (tool.sh shell shim) appears alongside the python tools.
     assert "banner-sh" in out
     # Loop latch annotation for confirm → summarise.
@@ -152,14 +156,33 @@ def test_hello_graph_cli_end_to_end(hello_graph: Path, tmp_path: Path, capsys):
     seed_input("greet-user", {"name": "Ada"})
 
     ready = next_ready()
-    assert [e["id"] for e in ready] == ["summarise"]
-    assert ready[0]["kind"] == "agent"
+    assert {e["id"] for e in ready} == {"summarise", "summarise-quick", "summarise-formal"}
+    ready_by_id = {e["id"]: e for e in ready}
+    # All three ready entries are agent kind.
+    assert all(e["kind"] == "agent" for e in ready)
     # Mapping materialised: summarise.input.yaml carries greeting and
     # the reserved __loom object (declared in summarise/io.yaml).
-    summarise_input = yaml.safe_load(Path(ready[0]["input_path"]).read_text())
+    summarise_entry = ready_by_id["summarise"]
+    summarise_input = yaml.safe_load(Path(summarise_entry["input_path"]).read_text())
     assert summarise_input["greeting"] == greeting
     assert summarise_input["__loom"] == {"workdir": str(workdir), "runtime": str(_RUNTIME_SH)}
-    assert greeting in Path(ready[0]["prompt_path"]).read_text()
+    assert greeting in Path(summarise_entry["prompt_path"]).read_text()
+    # The two ref-instanced entries share `summarise/io.yaml` and
+    # `summarise/prompt.md.j2` but land in per-instance workdirs with
+    # per-instance materialised input.yaml drawn from their own
+    # `input:` mappings.
+    for inst_id in ("summarise-quick", "summarise-formal"):
+        inst = ready_by_id[inst_id]
+        inst_input = yaml.safe_load(Path(inst["input_path"]).read_text())
+        assert inst_input["greeting"] == greeting
+        assert inst_input["__loom"] == {
+            "workdir": str(workdir),
+            "runtime": str(_RUNTIME_SH),
+        }
+        # The prompt_path is a rendered copy under the instance's own
+        # workdir (task_folder("<inst_id>")), not under summarise/.
+        prompt_path = Path(inst["prompt_path"])
+        assert f"{inst_id}" in str(prompt_path) or prompt_path.parent.name.endswith(inst_id)
 
     runtime = resume(workdir)
     assert runtime.task_output("greet-user") == {"greeting": greeting}
@@ -180,6 +203,17 @@ def test_hello_graph_cli_end_to_end(hello_graph: Path, tmp_path: Path, capsys):
     assert runtime.task_output("banner-sh") == {
         "banner": f"*** {greeting} ***"
     }
+
+    # Complete the two ref instances up-front — they're independent of
+    # the loop body and drive the downstream aggregate-summaries tool.
+    quick_summary = "hi Ada"
+    formal_summary = "Greeting acknowledged."
+    output_add(workdir, "summarise-quick", [f"summary={quick_summary}"])
+    rc, _ = run("runtime", "complete", str(workdir), "summarise-quick")
+    assert rc == 0
+    output_add(workdir, "summarise-formal", [f"summary={formal_summary}"])
+    rc, _ = run("runtime", "complete", str(workdir), "summarise-formal")
+    assert rc == 0
 
     # ---- loop round 0: summary rejected ----
     draft = "Some greeting."
@@ -256,3 +290,216 @@ def test_hello_graph_cli_end_to_end(hello_graph: Path, tmp_path: Path, capsys):
     assert runtime.task_output("finalise") == {"message": f"[accept] {summary}"}
     relint = runtime.task_output("child-relint/lint-text")
     assert relint["notes"] == f"Linted {len(summary)} chars."
+
+
+
+# ---- ref-instancing end-to-end fan-out ------------------------------
+
+
+def _write_fanout_tool(
+    folder: Path,
+    name: str,
+    input_schema: dict,
+    output_schema: dict,
+    body: str,
+) -> None:
+    from loom.naming import pascal_case_task_name
+
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "io.yaml").write_text(yaml.safe_dump({
+        "version": 1,
+        "input": input_schema,
+        "output": output_schema,
+    }))
+    pascal = pascal_case_task_name(name)
+    in_fields = list(input_schema.get("properties", {}).keys())
+    out_fields = list(output_schema.get("properties", {}).keys())
+    lines = [
+        "from dataclasses import dataclass",
+        "from typing import ClassVar",
+        "",
+        "",
+        f"@dataclass",
+        f"class {pascal}Input:",
+        "    VERSION: ClassVar[int] = 1",
+    ]
+    for f in in_fields:
+        lines.append(f"    {f}: str")
+    if not in_fields:
+        lines.append("    pass")
+    lines += [
+        "    @classmethod",
+        f"    def from_dict(cls, d): return cls(**{{k: d[k] for k in {in_fields!r}}})",
+        f"    def to_dict(self): return {{k: getattr(self, k) for k in {in_fields!r}}}",
+        "",
+        "",
+        f"@dataclass",
+        f"class {pascal}Output:",
+        "    VERSION: ClassVar[int] = 1",
+    ]
+    for f in out_fields:
+        lines.append(f"    {f}: str")
+    lines += [
+        "    @classmethod",
+        f"    def from_dict(cls, d): return cls(**{{k: d[k] for k in {out_fields!r}}})",
+        f"    def to_dict(self): return {{k: getattr(self, k) for k in {out_fields!r}}}",
+    ]
+    (folder / "io_types.py").write_text("\n".join(lines) + "\n")
+    (folder / "tool.py").write_text(body)
+
+
+def test_ref_instancing_fanout_end_to_end(tmp_path: Path):
+    """Fan-out graph: three ref-instanced agent tasks in parallel, each
+    with its own input seed, a downstream aggregator that reads all
+    three, and a final assertion that each instance's output.yaml
+    lives under its own instance-id workdir with correct content.
+    """
+    from loom.__main__ import main
+    from loom._lifecycle import resume
+    from loom.builders import output_add
+    from loom.engine.store import task_folder
+
+    root = tmp_path / "loom"
+    # seed → emits q1/q2/q3.
+    _write_fanout_tool(
+        root / "seed",
+        "seed",
+        {"type": "object", "additionalProperties": False},
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "q1": {"type": "string"},
+                "q2": {"type": "string"},
+                "q3": {"type": "string"},
+            },
+            "required": ["q1", "q2", "q3"],
+        },
+        "from io_types import SeedInput, SeedOutput\n"
+        "def seed(inp: SeedInput) -> SeedOutput:\n"
+        "    return SeedOutput(q1='alpha', q2='beta', q3='gamma')\n",
+    )
+    # Shared agent folder.
+    research = root / "research"
+    research.mkdir()
+    (research / "io.yaml").write_text(yaml.safe_dump({
+        "version": 1,
+        "input": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"question": {"type": "string"}},
+            "required": ["question"],
+        },
+        "output": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"answer": {"type": "string"}},
+            "required": ["answer"],
+        },
+    }))
+    (research / "prompt.md.j2").write_text("Q: {{ input.question }}\n")
+
+    # Aggregator reads all three instances.
+    _write_fanout_tool(
+        root / "aggregate",
+        "aggregate",
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "a1": {"type": "string"},
+                "a2": {"type": "string"},
+                "a3": {"type": "string"},
+            },
+            "required": ["a1", "a2", "a3"],
+        },
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"combined": {"type": "string"}},
+            "required": ["combined"],
+        },
+        "from io_types import AggregateInput, AggregateOutput\n"
+        "def aggregate(inp: AggregateInput) -> AggregateOutput:\n"
+        "    return AggregateOutput(combined=f'{inp.a1}|{inp.a2}|{inp.a3}')\n",
+    )
+
+    (root / "graph.yaml").write_text(yaml.safe_dump({
+        "tasks": [
+            {"id": "seed", "kind": "tool", "version": 1},
+            {"id": "research-q1", "kind": "agent", "version": 1,
+             "ref": "research", "depends_on_all": ["seed"],
+             "input": {"question": "${task:seed:q1}"}},
+            {"id": "research-q2", "kind": "agent", "version": 1,
+             "ref": "research", "depends_on_all": ["seed"],
+             "input": {"question": "${task:seed:q2}"}},
+            {"id": "research-q3", "kind": "agent", "version": 1,
+             "ref": "research", "depends_on_all": ["seed"],
+             "input": {"question": "${task:seed:q3}"}},
+            {"id": "aggregate", "kind": "tool", "version": 1,
+             "depends_on_all": ["research-q1", "research-q2", "research-q3"],
+             "input": {
+                 "a1": "${task:research-q1:answer}",
+                 "a2": "${task:research-q2:answer}",
+                 "a3": "${task:research-q3:answer}",
+             }},
+        ],
+    }))
+
+    workdir = tmp_path / "run"
+    assert main(["runtime", "init", str(workdir), "--loom-root", str(root)]) == 0
+    # First next(): seed runs internally, three agents surface in parallel.
+    from loom.__main__ import main as _main
+    from io import StringIO
+    import sys
+
+    buf = StringIO()
+    stdout = sys.stdout
+    sys.stdout = buf
+    try:
+        rc = _main(["runtime", "next", str(workdir)])
+    finally:
+        sys.stdout = stdout
+    assert rc == 0
+    doc = yaml.safe_load(buf.getvalue())
+    assert doc["done"] is False
+    surfaced = {e["id"] for e in doc["ready"]}
+    assert surfaced == {"research-q1", "research-q2", "research-q3"}
+    # Each instance's input.yaml was materialised from its OWN mapping.
+    runtime = resume(workdir)
+    for inst_id, seed_val in (
+        ("research-q1", "alpha"),
+        ("research-q2", "beta"),
+        ("research-q3", "gamma"),
+    ):
+        folder = task_folder(workdir, runtime.plan, inst_id)
+        got = yaml.safe_load((folder / "input.yaml").read_text())
+        assert got == {"question": seed_val}
+
+    # Complete each instance with a distinct answer.
+    answers = {"research-q1": "A1", "research-q2": "A2", "research-q3": "A3"}
+    for inst_id, answer in answers.items():
+        output_add(workdir, inst_id, [f"answer={answer}"])
+        assert main(["runtime", "complete", str(workdir), inst_id]) == 0
+
+    # Second next(): aggregate runs internally (tool). done=True.
+    buf2 = StringIO()
+    sys.stdout = buf2
+    try:
+        rc = _main(["runtime", "next", str(workdir)])
+    finally:
+        sys.stdout = stdout
+    assert rc == 0
+    final = yaml.safe_load(buf2.getvalue())
+    assert final == {"done": True, "ready": []}
+
+    runtime = resume(workdir)
+    # Each instance's output.yaml lives under its own instance-id workdir.
+    for inst_id, expected in answers.items():
+        folder = task_folder(workdir, runtime.plan, inst_id)
+        assert (folder / "output.yaml").exists()
+        assert yaml.safe_load((folder / "output.yaml").read_text()) == {"answer": expected}
+        # The workdir name is anchored on the instance id, not the shared folder.
+        assert folder.name.endswith(inst_id)
+    # Aggregator saw all three instance outputs.
+    assert runtime.task_output("aggregate") == {"combined": "A1|A2|A3"}

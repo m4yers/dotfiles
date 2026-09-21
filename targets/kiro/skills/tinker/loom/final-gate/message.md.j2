@@ -1,0 +1,48 @@
+# Final gate
+
+Review the aggregate change.
+
+## Merged review verdict
+
+`{{ input.verdict }}`
+
+## Diff (git diff --stat-style summary + unified diff)
+
+```diff
+{{ input.diff_t1 }}{{ input.diff_t2 }}{{ input.diff_t3 }}
+```
+
+## Verify-tests output
+
+stdout tail:
+
+```
+{{ input.verify_stdout_tail }}
+```
+
+stderr tail:
+
+```
+{{ input.verify_stderr_tail }}
+```
+
+## Decide
+
+Accept the change (run completes as `DONE`) or abandon (exit
+with `DONE_WITH_CONCERNS`).
+
+```bash
+LOOM=~/.kiro/skills/home/loomv2/scripts/loom.sh
+$LOOM output init "{{ input.__loom.workdir }}" --task final-gate
+$LOOM output add  "{{ input.__loom.workdir }}" --task final-gate \
+    --set decision=accept \
+    --set note=''
+```
+
+To abandon:
+
+```bash
+$LOOM output add "{{ input.__loom.workdir }}" --task final-gate \
+    --set decision=abandon \
+    --set note='<why>'
+```

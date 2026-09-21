@@ -11,7 +11,7 @@ from typing import Any
 import jsonschema
 import yaml
 
-from loom.discovery import load_io_yaml, resolve_task_folder
+from loom.discovery import load_io_yaml
 from loom.engine.models import LoomPlan, Task
 from loom.engine.store import (
     read_plan_yaml,
@@ -44,7 +44,9 @@ def output_init(workdir: Path, task_id: str) -> None:
     """Seed ``output.yaml`` from the task's io.yaml/output."""
     plan = read_plan_yaml(Path(workdir))
     task = _task(plan, task_id)
-    folder = task.folder if task.folder else resolve_task_folder(plan.loom_root, task_id)
+    from loom.engine.runner import task_source_folder
+
+    folder = task_source_folder(plan.loom_root, task)
     io = load_io_yaml(folder)
     write_output_yaml(_target_folder(workdir, plan, task_id), _seed_from_schema(io.output_schema))
 
@@ -80,7 +82,9 @@ def output_add(
 
     plan = read_plan_yaml(Path(workdir))
     task = _task(plan, task_id)
-    folder = task.folder if task.folder else resolve_task_folder(plan.loom_root, task_id)
+    from loom.engine.runner import task_source_folder
+
+    folder = task_source_folder(plan.loom_root, task)
     io = load_io_yaml(folder)
     target_folder = _target_folder(workdir, plan, task_id)
     target = target_folder / "output.yaml"

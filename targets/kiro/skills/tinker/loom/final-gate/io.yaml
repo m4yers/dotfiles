@@ -1,0 +1,32 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    verdict:
+      type: string
+      description: |
+        Merged review verdict from review-diffs-merge (unanimous
+        `approved` across the three review-diffs reviewers, or
+        `revise` when any reviewer dissented). Sourced from
+        `${task:review-diffs-merge:verdict}` — review-fix's own
+        verdict feeds the review-fix latch predicate and is
+        intentionally not surfaced here.
+    diff_t1: {type: string}
+    diff_t2: {type: string}
+    diff_t3: {type: string}
+    verify_stdout_tail: {type: string}
+    verify_stderr_tail: {type: string}
+    __loom: {}
+  required: [verdict, diff_t1, diff_t2, diff_t3, verify_stdout_tail, verify_stderr_tail, __loom]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    decision:
+      type: string
+      enum: [accept, abandon]
+    note:
+      type: string
+      description: Optional free-text note; empty string when the user leaves it blank.
+  required: [decision, note]

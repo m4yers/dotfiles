@@ -1,7 +1,9 @@
 """Static Jinja template reference validation.
 
 For every task's ``prompt.md.j2`` / ``message.md.j2``, parse the Jinja
-AST and enforce contract-locality:
+AST (delegating to the ``template`` skill's ``--parse-only`` mode so
+this package does not vendor ``jinja2`` directly) and enforce
+contract-locality:
 
   1. Every top-level undeclared identifier is a subset of ``{"input"}``
      (the only in-scope Jinja name — the validated ``input.yaml``).
@@ -19,9 +21,10 @@ write.
 """
 from __future__ import annotations
 
-import jinja2
-from jinja2 import meta as jinja_meta
-from jinja2 import nodes
+import json
+import os
+import subprocess
+from pathlib import Path
 
 from loom.engine.models import LoomPlan, Task
 from loom.engine.reserved import (
@@ -32,12 +35,16 @@ from loom.engine.reserved import (
 from loom.errors import TemplateReferenceError
 
 
+TEMPLATE_RENDER_SH = Path(
+    os.path.expanduser("~/.kiro/skills/home/template/scripts/render.sh")
+)
+
+
 def validate_templates(plan: LoomPlan) -> None:
     """Enforce Jinja-template contract-locality for every task."""
     from loom.discovery import load_io_yaml
     from loom.engine.runner import task_source_folder
 
-    env = jinja2.Environment(undefined=jinja2.StrictUndefined)
     for t in plan.tasks:
         if not isinstance(t, Task):
             continue
@@ -51,51 +58,72 @@ def validate_templates(plan: LoomPlan) -> None:
         if not template_path.exists():
             # io.yaml / kind validators flag missing body files separately.
             continue
-        source = template_path.read_text()
-        try:
-            ast = env.parse(source)
-        except jinja2.TemplateSyntaxError as exc:
-            raise TemplateReferenceError(
-                t.id, str(exc), str(template_path)
-            ) from exc
+        info = _parse_template(t.id, template_path)
         # (1) Top-level names must be ⊆ {"input"}.
-        for name in jinja_meta.find_undeclared_variables(ast):
+        for name in info["undeclared"]:
             if name != "input":
                 raise TemplateReferenceError(
                     t.id, name, str(template_path)
                 )
         io = load_io_yaml(source_folder)
         properties = io.input_schema.get("properties") or {}
-        # (2) First-level input.<attr>.
-        for node in ast.find_all(nodes.Getattr):
-            inner = node.node
-            if isinstance(inner, nodes.Name) and inner.name == "input":
-                attr = node.attr
-                if attr not in properties:
-                    raise TemplateReferenceError(
-                        t.id, f"input.{attr}", str(template_path)
-                    )
-        # (3) Second-level on reserved: input.__loom.<attr> / input.__task.<attr>.
-        for node in ast.find_all(nodes.Getattr):
-            inner = node.node
-            if not isinstance(inner, nodes.Getattr):
+        for chain in info["getattr_chains"]:
+            if not chain or chain[0] != "input" or len(chain) < 2:
                 continue
-            innermost = inner.node
-            if not (
-                isinstance(innermost, nodes.Name)
-                and innermost.name == "input"
-            ):
-                continue
-            first_attr = inner.attr
-            if first_attr not in RESERVED_FIELDS:
-                continue
-            alias = RESERVED_ALIASES[first_attr]
-            meta_schema = load_meta_schema(alias)
-            meta_props = meta_schema.get("properties") or {}
-            second_attr = node.attr
-            if second_attr not in meta_props:
+            first_attr = chain[1]
+            # (2) First-level input.<attr>.
+            if first_attr not in properties:
                 raise TemplateReferenceError(
-                    t.id,
-                    f"input.{first_attr}.{second_attr}",
-                    str(template_path),
+                    t.id, f"input.{first_attr}", str(template_path)
                 )
+            # (3) Second-level on reserved: input.__loom.<attr> /
+            #     input.__task.<attr>.
+            if first_attr in RESERVED_FIELDS and len(chain) >= 3:
+                alias = RESERVED_ALIASES[first_attr]
+                meta_schema = load_meta_schema(alias)
+                meta_props = meta_schema.get("properties") or {}
+                second_attr = chain[2]
+                if second_attr not in meta_props:
+                    raise TemplateReferenceError(
+                        t.id,
+                        f"input.{first_attr}.{second_attr}",
+                        str(template_path),
+                    )
+
+
+def _parse_template(task_id: str, template_path: Path) -> dict:
+    """Delegate template AST parsing to the ``template`` skill.
+
+    Calls ``render.sh --parse-only`` and returns the decoded JSON
+    summary (``{"undeclared": [...], "getattr_chains": [...]}``).
+    Raises :class:`TemplateReferenceError` on any parse-side failure
+    (script missing, syntax error, malformed JSON) with the task id
+    and template path in the exception.
+    """
+    try:
+        proc = subprocess.run(
+            [
+                str(TEMPLATE_RENDER_SH),
+                "--template", str(template_path),
+                "--parse-only",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        raise TemplateReferenceError(
+            task_id, str(exc), str(template_path)
+        ) from exc
+    if proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout).strip()
+        raise TemplateReferenceError(
+            task_id, detail, str(template_path)
+        )
+    try:
+        return json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        raise TemplateReferenceError(
+            task_id, f"parse-only emitted invalid JSON: {exc}",
+            str(template_path),
+        ) from exc

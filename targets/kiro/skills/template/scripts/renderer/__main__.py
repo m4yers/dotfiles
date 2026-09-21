@@ -13,7 +13,16 @@ Loader mode (``--include-dir`` supplied, repeatable):
     undeclared/unused variables across the full include tree.
   - Honours optional ``--trim-blocks`` and ``--lstrip-blocks``.
 
-Both modes use ``StrictUndefined`` and ``keep_trailing_newline``.
+Parse-only mode (``--parse-only``):
+  - Parses the template AST and emits a JSON summary to stdout with
+    ``undeclared`` (top-level free variable names) and
+    ``getattr_chains`` (each attribute chain rooted at a ``Name``
+    node as a list of strings, e.g. ``["input", "__loom", "workdir"]``).
+  - Does NOT render; ``--var`` / ``--json-vars`` / ``--include-dir``
+    are ignored. Callers use this to run their own contract-locality
+    checks without vendoring jinja2 directly.
+
+All modes use ``StrictUndefined`` and ``keep_trailing_newline``.
 """
 import argparse
 import json
@@ -21,7 +30,7 @@ import sys
 from pathlib import Path
 
 import jinja2
-from jinja2 import meta
+from jinja2 import meta, nodes
 
 
 def _load_vars(args):
@@ -89,6 +98,48 @@ def _resolve_template_path(template_arg, include_dirs):
     )
 
 
+def _getattr_chain(node):
+    """Walk a ``nodes.Getattr`` back to its innermost ``nodes.Name``.
+
+    Returns the chain as a list of strings (root name followed by the
+    attribute path), or ``None`` when the innermost node is not a
+    plain ``Name``.
+    """
+    attrs = [node.attr]
+    inner = node.node
+    while isinstance(inner, nodes.Getattr):
+        attrs.append(inner.attr)
+        inner = inner.node
+    if isinstance(inner, nodes.Name):
+        return [inner.name] + list(reversed(attrs))
+    return None
+
+
+def _emit_parse_only(template_arg):
+    """Parse a single template file and emit the AST summary as JSON."""
+    with open(template_arg) as f:
+        tpl_text = f.read()
+    env = jinja2.Environment(
+        undefined=jinja2.StrictUndefined,
+        keep_trailing_newline=True,
+    )
+    try:
+        ast = env.parse(tpl_text)
+    except jinja2.TemplateSyntaxError as exc:
+        sys.exit(f"ERROR: template syntax error: {exc}")
+    undeclared = sorted(meta.find_undeclared_variables(ast))
+    chains = []
+    for node in ast.find_all(nodes.Getattr):
+        chain = _getattr_chain(node)
+        if chain is not None:
+            chains.append(chain)
+    json.dump(
+        {"undeclared": undeclared, "getattr_chains": chains},
+        sys.stdout,
+    )
+    sys.stdout.write("\n")
+
+
 def main():
     p = argparse.ArgumentParser(prog="render")
     p.add_argument("--template", required=True)
@@ -117,7 +168,16 @@ def main():
                         "callers pass a deliberate superset of vars "
                         "across many templates (e.g. dispatch-style "
                         "rendering); not for hand-typed invocations.")
+    p.add_argument("--parse-only", action="store_true",
+                   help="skip rendering; emit a JSON summary of the "
+                        "template AST (undeclared names and Getattr "
+                        "chains) to stdout. --var/--json-vars/"
+                        "--include-dir are ignored in this mode.")
     args = p.parse_args()
+
+    if args.parse_only:
+        _emit_parse_only(args.template)
+        return
 
     variables = _load_vars(args)
 

@@ -37,6 +37,10 @@ TEMPLATE_RENDER_SH = Path(
     os.path.expanduser("~/.kiro/skills/home/template/scripts/render.sh")
 )
 
+SECURE_LLM_TEMPLATES = Path(
+    os.path.expanduser("~/.kiro/skills/home/secure-llm/templates")
+)
+
 
 def render_task_body(
     task: Task,
@@ -60,12 +64,25 @@ def render_task_body(
         json.dump(variables, fh, default=str)
         vars_path = fh.name
 
+    # Include dirs enable ``{% include %}`` resolution against the
+    # task folder (for the template itself), the containing skill's
+    # ``references/`` directory (for skill-local shared partials),
+    # and the shared secure-llm templates directory (for the
+    # security frame partial).
+    include_dirs = [task_folder, task_folder.parent.parent / "references"]
+    if SECURE_LLM_TEMPLATES.is_dir():
+        include_dirs.append(SECURE_LLM_TEMPLATES)
+    include_args: list[str] = []
+    for d in include_dirs:
+        include_args += ["--include-dir", str(d)]
+
     try:
         proc = subprocess.run(
             [
                 str(TEMPLATE_RENDER_SH),
                 "--template", str(template_path),
                 "--json-vars", vars_path,
+                *include_args,
             ],
             capture_output=True,
             text=True,

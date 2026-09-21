@@ -86,7 +86,20 @@ def render(
                if d in id_set]
         )
         glyph = node_glyph(task, ascii_only=ascii_only)
-        label = f"{index[task_id]:02d} {task.id}" + annotation(
+        label = f"{index[task_id]:02d} {task.id}"
+        # Ref-instanced tasks (folder decoupled from id via graph.yaml
+        # `ref:`) surface an inline suffix so multiple instances of one
+        # shared folder are visually obvious. Subgraph-inlined tasks
+        # also populate `folder`; skip them since their instance
+        # relationship is already encoded in the namespaced id.
+        if (
+            task.folder is not None
+            and not task.inlined_from_subgraph
+            and task.folder.name != task.id
+        ):
+            arrow = "->" if ascii_only else "→"
+            label += f" {arrow} {task.folder.name}"
+        label += annotation(
             task, show_when=show_when, show_loops=show_loops,
             ascii_only=ascii_only,
         )

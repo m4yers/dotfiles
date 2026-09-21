@@ -27,7 +27,28 @@ class LoopBlock:
 
 @dataclass
 class Task:
-    """A single tool/agent/human task."""
+    """A single tool/agent/human task.
+
+    ``folder`` decouples the task's on-disk io.yaml + body location
+    from its ``id``. Two writers populate it:
+
+    - Subgraph inlining (:mod:`loom.engine.inline`) preserves the
+      child task's original ``folder`` alongside ``source_root`` so
+      the child's schemas and bodies keep loading from the child
+      loom tree.
+    - graph.yaml ``ref: <folder-name>`` (parsed in
+      :func:`loom.plan.from_graph_yaml`) points a graph entry at a
+      shared kebab-cased folder under the SAME loom root, so
+      multiple entries can share one task-folder definition while
+      keeping distinct ``id``s for addressing, workdirs, and
+      placeholders.
+
+    In both cases every downstream consumer that resolves the
+    io.yaml / body location through
+    :func:`loom.engine.runner.task_source_folder` (runner, builders,
+    versions, tool_entry, templates, validators) picks up the
+    decoupled folder for free.
+    """
 
     id: str
     kind: Kind

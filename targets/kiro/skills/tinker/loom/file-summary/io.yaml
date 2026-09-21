@@ -1,0 +1,46 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    workspace_abs: {type: string}
+    files:
+      type: array
+      description: |
+        Files this slot summarises. Empty list marks an unused
+        fan-out slot: the task MUST then emit an empty summaries
+        list without doing any work (the host may complete it
+        directly).
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path: {type: string}
+          blob_sha: {type: string}
+          symbols:
+            type: array
+            items: {type: string}
+        required: [path, blob_sha, symbols]
+    __loom: {}
+    __task: {}
+  required: [workspace_abs, files, __loom, __task]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    summaries:
+      type: array
+      description: |
+        One entry per input file (empty when the slot was unused).
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path: {type: string}
+          blob_sha: {type: string}
+          purpose:
+            type: string
+            maxLength: 400
+            description: 1-2 sentence summary of what the file does/is for.
+        required: [path, blob_sha, purpose]
+  required: [summaries]

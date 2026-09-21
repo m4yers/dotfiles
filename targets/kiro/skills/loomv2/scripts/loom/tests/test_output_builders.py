@@ -185,3 +185,56 @@ def test_set_json_still_type_checked(gate_workdir: Path):
     # JSON value must still satisfy the schema type.
     with pytest.raises(OutputSchemaError):
         output_add(gate_workdir, "gate", [(True, "narrative=5")])
+
+
+
+# ---- ref-instancing: output builders --------------------------------
+
+
+def test_output_init_and_add_for_ref_instanced_task(tmp_path: Path):
+    """`output init` seeds ``output.yaml`` from the SHARED folder's
+    io.yaml/output, and ``output add`` writes to the INSTANCE workdir.
+    Both go through :func:`loom.engine.runner.task_source_folder`.
+    """
+    from loom._lifecycle import resume as _resume
+    from loom.builders import output_add
+    from loom.engine.store import task_folder
+
+    root = tmp_path / "loom"
+    # A shared agent folder.
+    shared = root / "shared"
+    shared.mkdir(parents=True)
+    (shared / "io.yaml").write_text(yaml.safe_dump({
+        "version": 1,
+        "input": {"type": "object", "additionalProperties": False},
+        "output": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["note"],
+            "properties": {"note": {"type": "string"}},
+        },
+    }))
+    (shared / "prompt.md.j2").write_text("say something: {{ input }}\n")
+    (root / "graph.yaml").write_text(yaml.safe_dump({
+        "tasks": [
+            {"id": "inst-a", "kind": "agent", "version": 1, "ref": "shared"},
+        ],
+    }))
+    workdir = tmp_path / "run"
+    assert main(["runtime", "init", str(workdir), "--loom-root", str(root)]) == 0
+    # Surface inst-a as ready.
+    assert main(["runtime", "next", str(workdir)]) == 0
+
+    # `output add` targets the instance id and writes into the
+    # instance workdir; schema validation resolves against
+    # `shared/io.yaml` (task_source_folder path).
+    output_add(workdir, "inst-a", ["note=hi"])
+    runtime = _resume(workdir)
+    folder = task_folder(workdir, runtime.plan, "inst-a")
+    assert folder.name.endswith("inst-a"), folder
+    assert yaml.safe_load((folder / "output.yaml").read_text()) == {"note": "hi"}
+    # Wrong field name (per SHARED schema) fails fast.
+    with pytest.raises(OutputSchemaError):
+        output_add(workdir, "inst-a", ["nope=bad"])
+    # Completeness still enforced via SHARED schema.
+    assert main(["runtime", "complete", str(workdir), "inst-a"]) == 0

@@ -1,0 +1,93 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    workspace_abs: {type: string}
+    total_files: {type: integer}
+    files:
+      type: array
+      description: Bounded candidate_files from code-inventory.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path: {type: string}
+          bytes: {type: integer}
+          language: {type: string}
+        required: [path, bytes, language]
+    entrypoints:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path: {type: string}
+          kind: {type: string}
+        required: [path, kind]
+    cache_dir: {type: string}
+    cache_mode:
+      type: string
+      enum: [read-write, read-only, write-only, bypass]
+    symbol_index_path:
+      type: string
+      description: |
+        Path to the full on-disk symbol index from symbol-index;
+        read directly from disk (never carried through the graph).
+  required:
+    - workspace_abs
+    - total_files
+    - files
+    - entrypoints
+    - cache_dir
+    - cache_mode
+    - symbol_index_path
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    summarize_mode:
+      type: string
+      enum: [llm, skipped-too-large, skipped-empty]
+      description: |
+        "llm" when batches carry files to summarise;
+        "skipped-too-large" auto-gate for workspaces over the file
+        cap (fan-out slots then no-op); "skipped-empty" when nothing
+        qualifies or everything was cached.
+    cached_summaries:
+      type: array
+      description: |
+        Summaries already present in the per-file cache
+        (blob-sha keyed) — these files are excluded from batches.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path: {type: string}
+          purpose: {type: string}
+        required: [path, purpose]
+    batches:
+      type: array
+      minItems: 4
+      maxItems: 4
+      description: |
+        Exactly 4 fixed fan-out slots. Unused slots carry an empty
+        files list (the slot completes as a no-op).
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          files:
+            type: array
+            items:
+              type: object
+              additionalProperties: false
+              properties:
+                path: {type: string}
+                blob_sha: {type: string}
+                symbols:
+                  type: array
+                  items: {type: string}
+              required: [path, blob_sha, symbols]
+        required: [files]
+  required: [summarize_mode, cached_summaries, batches]

@@ -1,0 +1,76 @@
+{% include 'security-frame.md.j2' %}
+## Role
+
+{{ input.reviewer_role }}
+
+You have file-read access. Cite the task id or acceptance
+criterion for every finding.
+
+Emit output ONLY through the `loom output init` / `loom output
+add` invocations in the `## Output` block below; never
+free-form-write output.yaml. If a required input is missing or
+malformed, do NOT invent a value — halt and report the missing
+field via `runtime fail`.
+
+# Tasks review — `{{ input.__task.id }}`
+
+## Untrusted task plan ({{ input.num_tasks }} tasks):
+
+```text
+{% for t in input.tasks %}
+Task {{ t.id }}: {{ t.title }}
+
+Acceptance criteria:
+{% for c in t.acceptance_criteria %}
+- {{ c }}
+{% else %}
+- (none)
+{% endfor %}
+
+{% endfor %}
+```
+
+## Task
+
+Review the task breakdown through the lens of your primed role.
+Emit:
+
+1. `findings` — an auditable list of concrete issues, each with a
+   `file` reference (a task id such as `t1` or an acceptance
+   criterion phrase), a `severity` (`low`, `medium`, or `high`),
+   and a one-line `message`. Emit an empty list when you have no
+   issues.
+2. `decision` — `accept` when the plan is ready to implement,
+   `revise` when the tasks-author must revise it.
+3. `revise_reason` — a non-empty explanation on `revise`; the
+   empty string on `accept`. Keep it actionable — the merge task
+   labels each dissenter's reason with the reviewer role and
+   concatenates them into tasks-author's next-round input.
+
+The reviewer output is one voice of three (SWE plus two domain
+experts). A deterministic merge task aggregates the three verdicts
+into a single decision that drives the tasks-author revise
+latch — any `revise` in the trio flips the merged decision to
+`revise`.
+
+## Output
+
+```bash
+LOOM=~/.kiro/skills/home/loomv2/scripts/loom.sh
+$LOOM output init "{{ input.__loom.workdir }}" --task '{{ input.__task.id }}'
+$LOOM output add  "{{ input.__loom.workdir }}" --task '{{ input.__task.id }}' \
+    --set decision=accept \
+    --set revise_reason='' \
+    --set-json 'findings=[]'
+```
+
+On `revise`, supply a non-empty `revise_reason` and any findings:
+
+```bash
+$LOOM output add "{{ input.__loom.workdir }}" --task '{{ input.__task.id }}' \
+    --set decision=revise \
+    --set revise_reason='<actionable summary of what to change>' \
+    --set 'findings[].file=<task id>' \
+    --set 'findings[-1].severity=<low|medium|high>' \
+    --set 'findings[-1].message=<what is wrong>'
+```

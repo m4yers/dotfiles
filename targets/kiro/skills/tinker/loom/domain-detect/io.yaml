@@ -1,0 +1,106 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    workspace_abs: {type: string}
+    total_files: {type: integer}
+    top_dirs:
+      type: array
+      description: |
+        Depth<=2 directories by bytes desc (from code-inventory).
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path: {type: string}
+          files: {type: integer}
+          bytes: {type: integer}
+        required: [path, files, bytes]
+    entrypoints:
+      type: array
+      description: Heuristic entrypoints (from code-inventory).
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path: {type: string}
+          kind: {type: string}
+        required: [path, kind]
+    languages:
+      type: array
+      description: Per-language rollup (from code-inventory).
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          language: {type: string}
+          files: {type: integer}
+          loc: {type: integer}
+          bytes: {type: integer}
+        required: [language, files, loc, bytes]
+    dependencies:
+      type: array
+      description: Declared dependencies (from dep-analysis).
+    unresolved_imports:
+      type: array
+      description: Unresolved top-level imports (from dep-analysis).
+    symbol_index_path:
+      type: string
+      description: |
+        Absolute path to the on-disk symbol index YAML from
+        symbol-index. The agent MAY sample it directly via fs_read;
+        the full index never crosses the graph.
+    __loom: {}
+    __task: {}
+  required:
+    - workspace_abs
+    - total_files
+    - top_dirs
+    - entrypoints
+    - languages
+    - dependencies
+    - unresolved_imports
+    - symbol_index_path
+    - __loom
+    - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    domains:
+      type: array
+      minItems: 2
+      maxItems: 2
+      description: |
+        Exactly two major domains the codebase operates in, NOT
+        counting general software engineering (that is always
+        implied and reviewed by the SWE reviewer instance).
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          slug:
+            type: string
+            pattern: "^[a-z][a-z0-9-]*$"
+            description: Short kebab-case identifier for the domain.
+          name:
+            type: string
+            description: Human-readable domain name.
+          rationale:
+            type: string
+            description: |
+              One-sentence justification grounded in observed
+              evidence (files, dependencies, symbols, entrypoints).
+          reviewer_role:
+            type: string
+            description: |
+              Full role-priming sentence rendered verbatim by the
+              shared reviewer prompts (e.g. "You are a <domain>
+              domain expert reviewing for domain-specific
+              correctness, safety, and idioms."). Used as-is via
+              `${task:domain-detect:domains[i].reviewer_role}` in
+              the graph mapping for design-review-d1/d2,
+              tasks-review-d1/d2, and review-diffs-d1/d2.
+        required: [slug, name, rationale, reviewer_role]
+  required: [domains]

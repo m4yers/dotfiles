@@ -1,0 +1,72 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    tasks:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          id: {type: string}
+          title: {type: string}
+          acceptance_criteria:
+            type: array
+            items: {type: string}
+        required: [id, title, acceptance_criteria]
+    num_tasks:
+      type: integer
+      minimum: 1
+      maximum: 3
+      description: |
+        Echo from tasks-author, threaded through so the reviewer
+        prompt can render the plan size. The tasks-review-merge
+        task re-echoes it downstream so fan-out predicates gate
+        off a single bare ref.
+    reviewer_role:
+      type: string
+      description: |
+        Full role-priming sentence rendered verbatim at the top of
+        the reviewer body. SWE literal for tasks-review-swe or a
+        domain-detect-emitted sentence for tasks-review-d1/d2.
+    __loom: {}
+    __task: {}
+  required:
+    - tasks
+    - num_tasks
+    - reviewer_role
+    - __loom
+    - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    decision:
+      type: string
+      enum: [accept, revise]
+    revise_reason:
+      type: string
+      description: |
+        Required (non-empty) when decision == revise; empty on
+        accept. The merge task concatenates dissenter reasons
+        labelled by reviewer role. The `num_tasks` echo moves off
+        the reviewer output and onto tasks-review-merge (each
+        reviewer instance would otherwise double-echo).
+    findings:
+      type: array
+      description: |
+        Auditable findings emitted alongside the decision. NOT
+        consumed by tasks-review-merge, but persisted with each
+        reviewer's output.yaml for later inspection.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          file: {type: string}
+          severity:
+            type: string
+            enum: [low, medium, high]
+          message: {type: string}
+        required: [file, severity, message]
+  required: [decision, revise_reason, findings]

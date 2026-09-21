@@ -5,6 +5,7 @@ return shape, and raises list.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -17,6 +18,7 @@ from loom.errors import (
     IOYamlError,
     KindMismatchError,
     TaskFolderError,
+    TaskRefError,
 )
 
 
@@ -39,6 +41,43 @@ def resolve_task_folder(loom_root: Path, task_id: str) -> Path:
     folder = Path(loom_root) / local_id
     if not folder.is_dir():
         raise TaskFolderError(f"task folder not found: {folder}")
+    return folder
+
+
+# Kebab-case pattern shared with schemas/graph.yaml `ref` field.
+_REF_KEBAB_RE = re.compile(r"^[a-z][a-z0-9-]*$")
+
+
+def resolve_ref_folder(loom_root: Path, ref: str) -> Path:
+    """Return the folder named by ``ref`` under ``loom_root``.
+
+    ``ref`` MUST be a bare kebab-cased folder name (``^[a-z][a-z0-9-]*$``)
+    and MUST resolve to a real directory that is a DIRECT child of
+    ``loom_root``. Any deviation — malformed ref, ref that escapes the
+    loom root via ``..``, or missing folder — raises
+    :class:`TaskRefError`.
+
+    Kept separate from :func:`resolve_task_folder` because ``ref`` is a
+    hand-authored graph.yaml surface with stricter validation than the
+    id → folder mapping (which accepts the last segment of a canonical
+    address).
+    """
+    if not isinstance(ref, str) or not _REF_KEBAB_RE.match(ref):
+        raise TaskRefError(
+            f"ref {ref!r} is not a bare kebab-cased folder name "
+            f"(pattern: ^[a-z][a-z0-9-]*$)"
+        )
+    loom_root_resolved = Path(loom_root).resolve()
+    folder = (Path(loom_root) / ref).resolve()
+    if folder.parent != loom_root_resolved:
+        raise TaskRefError(
+            f"ref {ref!r} resolves to {folder} which is not a direct "
+            f"child of loom root {loom_root_resolved}"
+        )
+    if not folder.is_dir():
+        raise TaskRefError(
+            f"ref {ref!r} points at missing folder {folder}"
+        )
     return folder
 
 

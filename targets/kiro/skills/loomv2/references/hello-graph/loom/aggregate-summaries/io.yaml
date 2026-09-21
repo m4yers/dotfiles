@@ -1,0 +1,14 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    a: {type: string}
+    b: {type: string}
+  required: [a, b]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    combined: {type: string}
+  required: [combined]

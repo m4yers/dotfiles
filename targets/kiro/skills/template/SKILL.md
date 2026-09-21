@@ -27,9 +27,10 @@ fails.
 
 ## API
 
-| Command     | Args                                                  | Output                  |
-|-------------|-------------------------------------------------------|-------------------------|
-| `render.sh` | `--template` + `--var k=v` and/or `--json-vars PATH`  | rendered text on stdout |
+| Command     | Args                                                  | Output                       |
+|-------------|-------------------------------------------------------|------------------------------|
+| `render.sh` | `--template` + `--var k=v` and/or `--json-vars PATH`  | rendered text on stdout      |
+| `render.sh` | `--template` + `--parse-only`                         | AST summary JSON on stdout   |
 
 ## Commands
 
@@ -59,6 +60,12 @@ $SKILLS/home/template/scripts/render.sh \
   structured data use `--json-vars`.
 - `--json-vars PATH` — JSON object whose keys become template variables.
   Merged with `--var` (later `--var` wins on conflict).
+- `--parse-only` — skip rendering; emit a JSON summary of the template AST
+  to stdout. The summary carries `undeclared` (top-level free variable names,
+  sorted) and `getattr_chains` (each attribute chain rooted at a `Name` node
+  as a list of strings, e.g. `["input", "__loom", "workdir"]`). Callers use
+  this to run their own contract-locality checks without vendoring `jinja2`.
+  `--var`, `--json-vars`, and `--include-dir` are ignored in this mode.
 
 ## Rules
 

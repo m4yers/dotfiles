@@ -6,6 +6,30 @@ tasks:
     depends_on_all: [greet-user]
     input:
       greeting: "${task:greet-user:greeting}"
+  # Two ref-instanced agents backed by the same `summarise` folder.
+  # Each is a distinct graph node with its own id, workdir, input, and
+  # output, but they share `summarise/io.yaml` and `prompt.md.j2`.
+  - id: summarise-quick
+    kind: agent
+    version: 1
+    ref: summarise
+    depends_on_all: [greet-user]
+    input:
+      greeting: "${task:greet-user:greeting}"
+  - id: summarise-formal
+    kind: agent
+    version: 1
+    ref: summarise
+    depends_on_all: [greet-user]
+    input:
+      greeting: "${task:greet-user:greeting}"
+  - id: aggregate-summaries
+    kind: tool
+    version: 1
+    depends_on_all: [summarise-quick, summarise-formal]
+    input:
+      a: "${task:summarise-quick:summary}"
+      b: "${task:summarise-formal:summary}"
   - id: confirm
     kind: human
     version: 1
@@ -35,7 +59,12 @@ tasks:
   - id: finalise
     kind: tool
     version: 1
-    depends_on_all: [confirm, child-lint, child-relint, banner-sh]
+    depends_on_all:
+      - confirm
+      - child-lint
+      - child-relint
+      - banner-sh
+      - aggregate-summaries
     input:
       summary: "${task:summarise:summary}"
       decision: "${task:confirm:decision}"

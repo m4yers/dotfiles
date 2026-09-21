@@ -1,0 +1,31 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    q1_findings: {type: string}
+    q1_citations:
+      type: array
+      items: {type: string}
+    q2_findings: {type: string}
+    q2_citations:
+      type: array
+      items: {type: string}
+    q3_findings: {type: string}
+    q3_citations:
+      type: array
+      items: {type: string}
+    __loom: {}
+  required: [q1_findings, q1_citations, __loom]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    report:
+      type: string
+      description: Consolidated markdown research report.
+    open_questions:
+      type: array
+      items: {type: string}
+      description: Questions the design-author must resolve or defer.
+  required: [report, open_questions]

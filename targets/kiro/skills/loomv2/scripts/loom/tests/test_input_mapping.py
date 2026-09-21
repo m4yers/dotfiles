@@ -821,3 +821,119 @@ def test_reserved_field_shadow_rejected_static(tmp_path: Path):
     workdir = tmp_path / "run"
     with pytest.raises(ReservedShadowError):
         init(workdir, loom_root=root)
+
+
+
+# ---- ref-instancing: per-instance input mappings ------------------
+
+
+def test_ref_instances_get_per_instance_materialised_input(tmp_path: Path):
+    """Two ref instances of the same agent folder get their own
+    materialised ``input.yaml`` from distinct upstream refs; each
+    instance's ``output.yaml`` writes to its own workdir under the
+    instance id."""
+    from loom.__main__ import main
+    from loom._lifecycle import resume as _resume
+    from loom.builders import output_add
+    from loom.engine.store import task_folder
+
+    root = tmp_path / "loom"
+    root.mkdir()
+    # Seed emits two distinct values.
+    _write_tool_task(
+        root / "seed", "seed",
+        {"type": "object", "additionalProperties": False},
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"q1": {"type": "string"}, "q2": {"type": "string"}},
+            "required": ["q1", "q2"],
+        },
+        "from io_types import SeedInput, SeedOutput\n"
+        "def seed(inp: SeedInput) -> SeedOutput:\n"
+        "    return SeedOutput(q1='one', q2='two')\n",
+    )
+    # Shared agent folder — one io.yaml + one prompt.md.j2.
+    research = root / "research"
+    research.mkdir()
+    (research / "io.yaml").write_text(yaml.safe_dump({
+        "version": 1,
+        "input": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"question": {"type": "string"}},
+            "required": ["question"],
+        },
+        "output": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"answer": {"type": "string"}},
+            "required": ["answer"],
+        },
+    }))
+    (research / "prompt.md.j2").write_text("Answer: {{ input.question }}\n")
+
+    (root / "graph.yaml").write_text(yaml.safe_dump({
+        "tasks": [
+            {"id": "seed", "kind": "tool", "version": 1},
+            {"id": "research-a", "kind": "agent", "version": 1,
+             "ref": "research", "depends_on_all": ["seed"],
+             "input": {"question": "${task:seed:q1}"}},
+            {"id": "research-b", "kind": "agent", "version": 1,
+             "ref": "research", "depends_on_all": ["seed"],
+             "input": {"question": "${task:seed:q2}"}},
+            # A trivial fan-in tool so the graph has a single exit.
+            {"id": "collect", "kind": "tool", "version": 1,
+             "depends_on_all": ["research-a", "research-b"],
+             "input": {
+                 "a": "${task:research-a:answer}",
+                 "b": "${task:research-b:answer}",
+             }},
+        ],
+    }))
+    _write_tool_task(
+        root / "collect", "collect",
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"a": {"type": "string"}, "b": {"type": "string"}},
+            "required": ["a", "b"],
+        },
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"combined": {"type": "string"}},
+            "required": ["combined"],
+        },
+        "from io_types import CollectInput, CollectOutput\n"
+        "def collect(inp: CollectInput) -> CollectOutput:\n"
+        "    return CollectOutput(combined=f'{inp.a}|{inp.b}')\n",
+    )
+
+    workdir = tmp_path / "run"
+    assert main(["runtime", "init", str(workdir), "--loom-root", str(root)]) == 0
+    assert main(["runtime", "next", str(workdir)]) == 0
+
+    runtime = _resume(workdir)
+    # Each instance has its own workdir under the instance id.
+    a_folder = task_folder(workdir, runtime.plan, "research-a")
+    b_folder = task_folder(workdir, runtime.plan, "research-b")
+    assert a_folder != b_folder
+    # Per-instance materialised input.yaml drawn from each entry's
+    # own `input:` mapping.
+    assert yaml.safe_load((a_folder / "input.yaml").read_text()) == {"question": "one"}
+    assert yaml.safe_load((b_folder / "input.yaml").read_text()) == {"question": "two"}
+
+    # Complete each instance with a distinct output — the output.yaml
+    # lands under the instance workdir.
+    output_add(workdir, "research-a", ["answer=A1"])
+    assert main(["runtime", "complete", str(workdir), "research-a"]) == 0
+    output_add(workdir, "research-b", ["answer=B2"])
+    assert main(["runtime", "complete", str(workdir), "research-b"]) == 0
+
+    runtime = _resume(workdir)
+    assert runtime.task_output("research-a") == {"answer": "A1"}
+    assert runtime.task_output("research-b") == {"answer": "B2"}
+    # Output files live under distinct instance workdirs.
+    assert (a_folder / "output.yaml").exists()
+    assert (b_folder / "output.yaml").exists()
