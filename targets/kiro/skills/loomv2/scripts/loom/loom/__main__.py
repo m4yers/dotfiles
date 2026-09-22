@@ -212,11 +212,20 @@ def _validate_cli(args) -> None:
     from loom._lifecycle import _static_validate
     from loom.engine.inline import expand_subgraphs
 
-    plan = from_graph_yaml(args.skill_root, args.graph)
+    # `validate <skill-root>` (docs) and `validate <loom-root>` (tests)
+    # both work: when no --graph is given and the positional has no
+    # graph.yaml of its own, fall back to the conventional
+    # `<skill-root>/loom/graph.yaml`.
+    root, graph = args.skill_root, args.graph
+    if graph is None and not (root / "graph.yaml").exists() \
+            and (root / "loom" / "graph.yaml").exists():
+        graph = root / "loom" / "graph.yaml"
+
+    plan = from_graph_yaml(root, graph)
     composed = expand_subgraphs(plan)
     _static_validate(
         composed,
-        pinning_graph=resolve_graph_yaml(args.skill_root, args.graph),
+        pinning_graph=resolve_graph_yaml(plan.loom_root, graph),
     )
 
 

@@ -1,0 +1,29 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    decision:
+      type: string
+      description: branch-gate decision (proceed | abort).
+    workspace_abs: {type: string}
+    proposed_branch:
+      type: string
+      description: |
+        Branch name proposed by workspace-guard. Empty for non-git
+        workspaces (branch creation is skipped).
+  required: [decision, workspace_abs, proposed_branch]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    branch:
+      type: string
+      description: |
+        Branch the implementation will run on. The proposed name,
+        uniquified with a numeric suffix when a ref with that name
+        already exists. Empty for non-git workspaces.
+    created:
+      type: boolean
+      description: True iff a new branch was created by this task.
+  required: [branch, created]

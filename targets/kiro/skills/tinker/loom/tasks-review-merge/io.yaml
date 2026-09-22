@@ -1,4 +1,4 @@
-version: 4
+version: 5
 input:
   type: object
   additionalProperties: false
@@ -55,7 +55,6 @@ input:
     num_tasks:
       type: integer
       minimum: 1
-      maximum: 5
       description: |
         Passthrough from tasks-author so the merged output echoes
         it downstream with one bare ref (impl fan-out predicates
@@ -90,6 +89,5 @@ output:
     num_tasks:
       type: integer
       minimum: 1
-      maximum: 5
       description: Verbatim passthrough of the input num_tasks.
   required: [decision, revise_reason, num_tasks]

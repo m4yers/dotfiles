@@ -1,0 +1,58 @@
+# Design gate
+
+Human review of the approved design before task decomposition and
+implementation. ALWAYS STOP and wait for the user at this gate.
+
+## Reviewer verdict
+
+`{{ input.review_decision }}`
+{% if input.review_decision == 'revise' %}
+
+⚠ The design review latch exhausted its fuel with reviewers still
+dissenting. Remaining objections:
+
+```text
+{{ input.revise_reason }}
+```
+{% endif %}
+
+## Open risks
+
+{% for r in input.open_risks %}
+- {{ r }}
+{% else %}
+- (none recorded)
+{% endfor %}
+
+## Design
+
+Write the design to a file and show it in the editor pane:
+
+```bash
+printf '%s' <design-body> > /tmp/tinker-design-gate.md
+$TK_EDITOR show file /tmp/tinker-design-gate.md
+```
+
+```text
+{{ input.design }}
+```
+
+## Decide
+
+Present the design to the user. They can accept (optionally with
+guidance for task decomposition), or abort the run.
+
+```bash
+LOOM=~/.kiro/skills/home/loomv2/scripts/loom.sh
+$LOOM output init "{{ input.__loom.workdir }}" --task design-gate
+$LOOM output add  "{{ input.__loom.workdir }}" --task design-gate \
+    --set decision=proceed \
+    --set note='<operator guidance for tasks-author, or empty>'
+```
+
+To abort (host stops driving the run; status BLOCKED):
+
+```bash
+$LOOM output add "{{ input.__loom.workdir }}" --task design-gate \
+    --set decision=abort --set note='<why>'
+```

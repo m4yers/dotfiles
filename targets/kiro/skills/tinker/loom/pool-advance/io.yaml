@@ -1,0 +1,104 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    cursor: {type: integer}
+    total: {type: integer}
+    current_task:
+      type: object
+      additionalProperties: false
+      properties:
+        id: {type: string}
+        title: {type: string}
+        acceptance_criteria:
+          type: array
+          items: {type: string}
+      required: [id, title, acceptance_criteria]
+    applied: {}
+    error: {type: string}
+    diff: {type: string}
+    files_changed:
+      type: array
+      items: {type: string}
+    notes: {type: string}
+    cmds_used:
+      type: array
+      items: {type: string}
+    prev:
+      type: [object, "null"]
+      description: |
+        Previous round's pool-advance output (null on the first
+        iteration). retries / diff_bundle / cmds_bundle /
+        failed_task_ids are carried forward from it.
+    retry_budget:
+      type: string
+      description: |
+        Max retries per task before the fail policy applies
+        (string literal from graph.yaml, e.g. "2").
+    on_task_fail:
+      type: string
+      description: |
+        "skip": record the task in failed_task_ids and move on.
+        "abort": raise, failing the graph (run surfaces BLOCKED).
+  required:
+    - cursor
+    - total
+    - current_task
+    - applied
+    - error
+    - diff
+    - files_changed
+    - notes
+    - cmds_used
+    - prev
+    - retry_budget
+    - on_task_fail
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    next_cursor:
+      type: integer
+      description: |
+        Index pool-draw draws next round: cursor+1 on success or
+        skip, cursor again on a retry.
+    remaining:
+      type: integer
+      description: |
+        total - next_cursor, PLUS one when the current task is
+        being retried. The latch predicate `remaining > 0` keeps
+        the loop alive until the pool is exhausted.
+    retries:
+      type: object
+      additionalProperties: {type: integer}
+      description: Per-task-id retry counts so far.
+    failed_task_ids:
+      type: array
+      items: {type: string}
+      description: Tasks skipped after exhausting their retry budget.
+    applied_count: {type: integer}
+    diff_bundle:
+      type: string
+      description: |
+        Accumulated per-round diff sections
+        ("## <id>: <title> (applied|FAILED)" + diff), in pool
+        order. Consumed by review-diffs and final-gate.
+    cmds_bundle:
+      type: array
+      items: {type: string}
+      description: Accumulated cmds_used across all rounds.
+    prior_diffs_summary:
+      type: string
+      description: |
+        Bounded (tail-capped) rendering of diff_bundle fed to the
+        NEXT round's coding agent as read-only context.
+  required:
+    - next_cursor
+    - remaining
+    - retries
+    - failed_task_ids
+    - applied_count
+    - diff_bundle
+    - cmds_bundle
+    - prior_diffs_summary

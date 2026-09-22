@@ -100,6 +100,7 @@ def _static_validate(plan: LoomPlan, pinning_graph: Path | None) -> None:
     from loom.validate.loops import validate_loops
     from loom.validate.mapping import validate_mapping
     from loom.validate.references import validate_references
+    from loom.validate.skip_output import validate_skip_output
     from loom.validate.subtype import validate_required_wiring, validate_subtype
     from loom.validate.templates import validate_templates
     from loom.validate.tool_entry import validate_tool_entry
@@ -122,6 +123,9 @@ def _static_validate(plan: LoomPlan, pinning_graph: Path | None) -> None:
     validate_mapping(plan)
     validate_subtype(plan)
     validate_required_wiring(plan)
+    # skip_output defaults must be statically schema-valid (and gated
+    # on a `when:`), so a default can never fail at dispatch time.
+    validate_skip_output(plan)
     validate_templates(plan)
     validate_loops(plan)
     if pinning_graph is not None:

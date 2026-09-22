@@ -1,0 +1,40 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    design:
+      type: string
+      description: The design markdown from design-author (final round).
+    open_risks:
+      type: array
+      items: {type: string}
+      description: Open risks from design-author.
+    review_decision:
+      type: string
+      description: |
+        design-review-merge's final decision: "accept" on unanimous
+        reviewer approval; "revise" when the latch exhausted fuel
+        with dissent.
+    revise_reason:
+      type: string
+      description: Concatenated dissenter reasons; empty on accept.
+    __loom: {}
+  required: [design, open_risks, review_decision, revise_reason, __loom]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    decision:
+      type: string
+      enum: [proceed, abort]
+      description: |
+        proceed: continue to task decomposition. abort: stop the
+        run (the host stops driving; run surfaces BLOCKED).
+    note:
+      type: string
+      description: |
+        Operator guidance carried into tasks-author (scope trims,
+        priorities, corrections to apply during decomposition).
+        Empty string when the user has none.
+  required: [decision, note]

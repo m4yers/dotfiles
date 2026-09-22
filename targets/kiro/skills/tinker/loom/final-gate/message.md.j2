@@ -6,10 +6,18 @@ Review the aggregate change.
 
 `{{ input.verdict }}`
 
-## Diff (git diff --stat-style summary + unified diff)
+## Pool result
+
+Applied tasks: {{ input.applied_count }}
+{% if input.failed_task_ids %}
+**Skipped after retry exhaustion:** {{ input.failed_task_ids | join(', ') }} —
+the aggregate change is INCOMPLETE.
+{% endif %}
+
+## Diff (accumulated pool rounds)
 
 ```diff
-{{ input.diff_t1 }}{{ input.diff_t2 }}{{ input.diff_t3 | default('') }}{{ input.diff_t4 | default('') }}{{ input.diff_t5 | default('') }}
+{{ input.diff_bundle }}
 ```
 
 ## Verify-tests output

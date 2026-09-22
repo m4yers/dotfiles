@@ -77,6 +77,14 @@ $defs:
       when:
         type: string
         description: Predicate string; ${task:...} refs allowed.
+      skip_output:
+        type: object
+        description: >-
+          Default output written by the engine when `when` evaluates
+          false: the task completes as `done` with this document
+          (validated against its io.yaml output schema) instead of
+          being skipped, so AND-dependents and ${task:...} refs keep
+          working. Requires `when`.
       root:
         type: string
         description: >-

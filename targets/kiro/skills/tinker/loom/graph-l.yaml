@@ -100,6 +100,9 @@ tasks:
   input:
     workspace_abs: ${task:ingest:workspace_abs}
     files: ${task:code-analysis-plan:batches[0].files}
+  when: length(${task:code-analysis-plan:batches[0].files}) > `0`
+  skip_output:
+    summaries: []
 - id: file-summary-b2
   kind: agent
   version: 1
@@ -109,6 +112,9 @@ tasks:
   input:
     workspace_abs: ${task:ingest:workspace_abs}
     files: ${task:code-analysis-plan:batches[1].files}
+  when: length(${task:code-analysis-plan:batches[1].files}) > `0`
+  skip_output:
+    summaries: []
 - id: file-summary-b3
   kind: agent
   version: 1
@@ -118,6 +124,9 @@ tasks:
   input:
     workspace_abs: ${task:ingest:workspace_abs}
     files: ${task:code-analysis-plan:batches[2].files}
+  when: length(${task:code-analysis-plan:batches[2].files}) > `0`
+  skip_output:
+    summaries: []
 - id: file-summary-b4
   kind: agent
   version: 1
@@ -127,6 +136,9 @@ tasks:
   input:
     workspace_abs: ${task:ingest:workspace_abs}
     files: ${task:code-analysis-plan:batches[3].files}
+  when: length(${task:code-analysis-plan:batches[3].files}) > `0`
+  skip_output:
+    summaries: []
 - id: file-summary-b5
   kind: agent
   version: 1
@@ -136,6 +148,9 @@ tasks:
   input:
     workspace_abs: ${task:ingest:workspace_abs}
     files: ${task:code-analysis-plan:batches[4].files}
+  when: length(${task:code-analysis-plan:batches[4].files}) > `0`
+  skip_output:
+    summaries: []
 - id: file-summary-b6
   kind: agent
   version: 1
@@ -145,6 +160,9 @@ tasks:
   input:
     workspace_abs: ${task:ingest:workspace_abs}
     files: ${task:code-analysis-plan:batches[5].files}
+  when: length(${task:code-analysis-plan:batches[5].files}) > `0`
+  skip_output:
+    summaries: []
 - id: workspace-brief
   kind: tool
   version: 2
@@ -209,6 +227,10 @@ tasks:
   - research-plan
   input:
     question: ${task:research-plan:questions[0].prompt}
+  when: ${task:research-plan:questions[0].prompt} != ''
+  skip_output:
+    findings: ''
+    citations: []
 - id: research-q2
   kind: agent
   version: 1
@@ -217,6 +239,10 @@ tasks:
   - research-plan
   input:
     question: ${task:research-plan:questions[1].prompt}
+  when: ${task:research-plan:questions[1].prompt} != ''
+  skip_output:
+    findings: ''
+    citations: []
 - id: research-q3
   kind: agent
   version: 1
@@ -225,6 +251,10 @@ tasks:
   - research-plan
   input:
     question: ${task:research-plan:questions[2].prompt}
+  when: ${task:research-plan:questions[2].prompt} != ''
+  skip_output:
+    findings: ''
+    citations: []
 - id: research-q4
   kind: agent
   version: 1
@@ -233,6 +263,10 @@ tasks:
   - research-plan
   input:
     question: ${task:research-plan:questions[3].prompt}
+  when: ${task:research-plan:questions[3].prompt} != ''
+  skip_output:
+    findings: ''
+    citations: []
 - id: research-q5
   kind: agent
   version: 1
@@ -241,6 +275,10 @@ tasks:
   - research-plan
   input:
     question: ${task:research-plan:questions[4].prompt}
+  when: ${task:research-plan:questions[4].prompt} != ''
+  skip_output:
+    findings: ''
+    citations: []
 - id: research-merge
   kind: agent
   version: 3
@@ -355,10 +393,19 @@ tasks:
     decisions: ${task:design-author:decisions}
     open_risks: ${task:design-author:open_risks}
     reviewer_role: ${task:domain-detect:domains[5].reviewer_role}
+- id: citation-check
+  kind: tool
+  version: 1
+  depends_on_all:
+  - design-author
+  input:
+    design: ${task:design-author:design}
+    workspace_abs: ${task:ingest:workspace_abs}
 - id: design-review-merge
   kind: tool
-  version: 3
+  version: 4
   depends_on_all:
+  - citation-check
   - design-review-swe
   - design-review-d1
   - design-review-d2
@@ -367,6 +414,8 @@ tasks:
   - design-review-d5
   - design-review-d6
   input:
+    citation_ok: ${task:citation-check:ok}
+    citation_report: ${task:citation-check:report}
     decision_swe: ${task:design-review-swe:decision}
     revise_reason_swe: ${task:design-review-swe:revise_reason}
     role_swe: You are a principal software engineer reviewing for correctness, maintainability, API design,
@@ -389,25 +438,35 @@ tasks:
     decision_d6: ${task:design-review-d6:decision}
     revise_reason_d6: ${task:design-review-d6:revise_reason}
     role_d6: ${task:domain-detect:domains[5].reviewer_role}
-- id: tasks-author
-  kind: agent
-  version: 3
+- id: design-gate
+  kind: human
+  version: 1
   depends_on_all:
   - design-review-merge
+  input:
+    design: ${task:design-author:design}
+    open_risks: ${task:design-author:open_risks}
+    review_decision: ${task:design-review-merge:decision}
+    revise_reason: ${task:design-review-merge:revise_reason}
+- id: tasks-author
+  kind: agent
+  version: 5
+  depends_on_all:
+  - design-gate
   - domain-detect
   - build-detect
   - test-detect
   input:
     design: ${task:design-author:design}
+    human_note: ${task:design-gate:note}
     build_system: ${task:build-detect:build_system}
     installed_skills: ${task:build-detect:installed_skills}
     fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
     fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
     revise_reason: ${task:tasks-review-merge@prev:revise_reason}
-    max_tasks: '5'
 - id: tasks-review-swe
   kind: agent
-  version: 3
+  version: 4
   ref: tasks-review
   depends_on_all:
   - tasks-author
@@ -418,7 +477,7 @@ tasks:
       design, error handling, and operational safety.
 - id: tasks-review-d1
   kind: agent
-  version: 3
+  version: 4
   ref: tasks-review
   depends_on_all:
   - tasks-author
@@ -428,7 +487,7 @@ tasks:
     reviewer_role: ${task:domain-detect:domains[0].reviewer_role}
 - id: tasks-review-d2
   kind: agent
-  version: 3
+  version: 4
   ref: tasks-review
   depends_on_all:
   - tasks-author
@@ -438,7 +497,7 @@ tasks:
     reviewer_role: ${task:domain-detect:domains[1].reviewer_role}
 - id: tasks-review-d3
   kind: agent
-  version: 3
+  version: 4
   ref: tasks-review
   depends_on_all:
   - tasks-author
@@ -448,7 +507,7 @@ tasks:
     reviewer_role: ${task:domain-detect:domains[2].reviewer_role}
 - id: tasks-review-d4
   kind: agent
-  version: 3
+  version: 4
   ref: tasks-review
   depends_on_all:
   - tasks-author
@@ -458,7 +517,7 @@ tasks:
     reviewer_role: ${task:domain-detect:domains[3].reviewer_role}
 - id: tasks-review-d5
   kind: agent
-  version: 3
+  version: 4
   ref: tasks-review
   depends_on_all:
   - tasks-author
@@ -468,7 +527,7 @@ tasks:
     reviewer_role: ${task:domain-detect:domains[4].reviewer_role}
 - id: tasks-review-d6
   kind: agent
-  version: 3
+  version: 4
   ref: tasks-review
   depends_on_all:
   - tasks-author
@@ -478,7 +537,7 @@ tasks:
     reviewer_role: ${task:domain-detect:domains[5].reviewer_role}
 - id: tasks-review-merge
   kind: tool
-  version: 4
+  version: 5
   depends_on_all:
   - tasks-review-swe
   - tasks-author
@@ -512,80 +571,80 @@ tasks:
     decision_d6: ${task:tasks-review-d6:decision}
     revise_reason_d6: ${task:tasks-review-d6:revise_reason}
     role_d6: ${task:domain-detect:domains[5].reviewer_role}
-- id: impl-t1
-  kind: agent
+- id: workspace-guard
+  kind: tool
   version: 1
-  ref: coding
   depends_on_all:
   - tasks-review-merge
   input:
-    task: ${task:tasks-author:tasks[0]}
+    workspace_abs: ${task:ingest:workspace_abs}
+    feature_slug: ${task:ingest:feature_slug}
+- id: branch-gate
+  kind: human
+  version: 1
+  depends_on_all:
+  - workspace-guard
+  input:
+    dirty: ${task:workspace-guard:dirty}
+    status_tail: ${task:workspace-guard:status_tail}
+    current_branch: ${task:workspace-guard:current_branch}
+    proposed_branch: ${task:workspace-guard:proposed_branch}
+- id: branch-create
+  kind: tool
+  version: 1
+  depends_on_all:
+  - branch-gate
+  input:
+    decision: ${task:branch-gate:decision}
+    workspace_abs: ${task:ingest:workspace_abs}
+    proposed_branch: ${task:workspace-guard:proposed_branch}
+- id: pool-draw
+  kind: tool
+  version: 1
+  depends_on_all:
+  - branch-create
+  input:
+    tasks: ${task:tasks-author:tasks}
+    prev: ${task:pool-advance@prev}
+- id: impl-round
+  kind: agent
+  version: 2
+  ref: coding
+  depends_on_all:
+  - pool-draw
+  input:
+    task: ${task:pool-draw:current_task}
+    cursor: ${task:pool-draw:cursor}
+    total: ${task:pool-draw:total}
+    prior_diffs: ${task:pool-advance@prev:prior_diffs_summary}
     build_system: ${task:build-detect:build_system}
     installed_skills: ${task:build-detect:installed_skills}
     fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
     fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
     workspace_abs: ${task:ingest:workspace_abs}
-- id: impl-t2
-  kind: agent
+- id: pool-advance
+  kind: tool
   version: 1
-  ref: coding
   depends_on_all:
-  - tasks-review-merge
+  - impl-round
   input:
-    task: ${task:tasks-author:tasks[1]}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
-    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
-    workspace_abs: ${task:ingest:workspace_abs}
-- id: impl-t3
-  kind: agent
-  version: 1
-  ref: coding
-  depends_on_all:
-  - tasks-review-merge
-  input:
-    task: ${task:tasks-author:tasks[2]}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
-    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
-    workspace_abs: ${task:ingest:workspace_abs}
-- id: impl-t4
-  kind: agent
-  version: 1
-  ref: coding
-  depends_on_all:
-  - tasks-review-merge
-  input:
-    task: ${task:tasks-author:tasks[3]}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
-    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
-    workspace_abs: ${task:ingest:workspace_abs}
-- id: impl-t5
-  kind: agent
-  version: 1
-  ref: coding
-  depends_on_all:
-  - tasks-review-merge
-  input:
-    task: ${task:tasks-author:tasks[4]}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
-    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
-    workspace_abs: ${task:ingest:workspace_abs}
+    cursor: ${task:pool-draw:cursor}
+    total: ${task:pool-draw:total}
+    current_task: ${task:pool-draw:current_task}
+    applied: ${task:impl-round:applied}
+    error: ${task:impl-round:error}
+    diff: ${task:impl-round:diff}
+    files_changed: ${task:impl-round:files_changed}
+    notes: ${task:impl-round:notes}
+    cmds_used: ${task:impl-round:cmds_used}
+    prev: ${task:pool-advance@prev}
+    retry_budget: '2'
+    on_task_fail: skip
 - id: verify-tests
   kind: tool
   version: 1
   depends_on_all:
-  - impl-t1
-  - impl-t2
-  - impl-t3
-  - impl-t4
-  - impl-t5
+  - pool-advance
   input:
     workspace_abs: ${task:ingest:workspace_abs}
     build_system: ${task:test-detect:test_system}
@@ -593,7 +652,7 @@ tasks:
     fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
 - id: review-diffs-swe
   kind: agent
-  version: 3
+  version: 4
   ref: review-diffs
   depends_on_all:
   - verify-tests
@@ -607,19 +666,12 @@ tasks:
     installed_skills: ${task:build-detect:installed_skills}
     reviewer_role: You are a principal software engineer reviewing for correctness, maintainability, API
       design, error handling, and operational safety.
-    diff_t1: ${task:impl-t1:diff}
-    cmds_used_t1: ${task:impl-t1:cmds_used}
-    diff_t2: ${task:impl-t2:diff}
-    cmds_used_t2: ${task:impl-t2:cmds_used}
-    diff_t3: ${task:impl-t3:diff}
-    cmds_used_t3: ${task:impl-t3:cmds_used}
-    diff_t4: ${task:impl-t4:diff}
-    cmds_used_t4: ${task:impl-t4:cmds_used}
-    diff_t5: ${task:impl-t5:diff}
-    cmds_used_t5: ${task:impl-t5:cmds_used}
+    diff_bundle: ${task:pool-advance:diff_bundle}
+    failed_task_ids: ${task:pool-advance:failed_task_ids}
+    cmds_bundle: ${task:pool-advance:cmds_bundle}
 - id: review-diffs-d1
   kind: agent
-  version: 3
+  version: 4
   ref: review-diffs
   depends_on_all:
   - verify-tests
@@ -632,19 +684,12 @@ tasks:
     build_system: ${task:build-detect:build_system}
     installed_skills: ${task:build-detect:installed_skills}
     reviewer_role: ${task:domain-detect:domains[0].reviewer_role}
-    diff_t1: ${task:impl-t1:diff}
-    cmds_used_t1: ${task:impl-t1:cmds_used}
-    diff_t2: ${task:impl-t2:diff}
-    cmds_used_t2: ${task:impl-t2:cmds_used}
-    diff_t3: ${task:impl-t3:diff}
-    cmds_used_t3: ${task:impl-t3:cmds_used}
-    diff_t4: ${task:impl-t4:diff}
-    cmds_used_t4: ${task:impl-t4:cmds_used}
-    diff_t5: ${task:impl-t5:diff}
-    cmds_used_t5: ${task:impl-t5:cmds_used}
+    diff_bundle: ${task:pool-advance:diff_bundle}
+    failed_task_ids: ${task:pool-advance:failed_task_ids}
+    cmds_bundle: ${task:pool-advance:cmds_bundle}
 - id: review-diffs-d2
   kind: agent
-  version: 3
+  version: 4
   ref: review-diffs
   depends_on_all:
   - verify-tests
@@ -657,19 +702,12 @@ tasks:
     build_system: ${task:build-detect:build_system}
     installed_skills: ${task:build-detect:installed_skills}
     reviewer_role: ${task:domain-detect:domains[1].reviewer_role}
-    diff_t1: ${task:impl-t1:diff}
-    cmds_used_t1: ${task:impl-t1:cmds_used}
-    diff_t2: ${task:impl-t2:diff}
-    cmds_used_t2: ${task:impl-t2:cmds_used}
-    diff_t3: ${task:impl-t3:diff}
-    cmds_used_t3: ${task:impl-t3:cmds_used}
-    diff_t4: ${task:impl-t4:diff}
-    cmds_used_t4: ${task:impl-t4:cmds_used}
-    diff_t5: ${task:impl-t5:diff}
-    cmds_used_t5: ${task:impl-t5:cmds_used}
+    diff_bundle: ${task:pool-advance:diff_bundle}
+    failed_task_ids: ${task:pool-advance:failed_task_ids}
+    cmds_bundle: ${task:pool-advance:cmds_bundle}
 - id: review-diffs-d3
   kind: agent
-  version: 3
+  version: 4
   ref: review-diffs
   depends_on_all:
   - verify-tests
@@ -682,19 +720,12 @@ tasks:
     build_system: ${task:build-detect:build_system}
     installed_skills: ${task:build-detect:installed_skills}
     reviewer_role: ${task:domain-detect:domains[2].reviewer_role}
-    diff_t1: ${task:impl-t1:diff}
-    cmds_used_t1: ${task:impl-t1:cmds_used}
-    diff_t2: ${task:impl-t2:diff}
-    cmds_used_t2: ${task:impl-t2:cmds_used}
-    diff_t3: ${task:impl-t3:diff}
-    cmds_used_t3: ${task:impl-t3:cmds_used}
-    diff_t4: ${task:impl-t4:diff}
-    cmds_used_t4: ${task:impl-t4:cmds_used}
-    diff_t5: ${task:impl-t5:diff}
-    cmds_used_t5: ${task:impl-t5:cmds_used}
+    diff_bundle: ${task:pool-advance:diff_bundle}
+    failed_task_ids: ${task:pool-advance:failed_task_ids}
+    cmds_bundle: ${task:pool-advance:cmds_bundle}
 - id: review-diffs-d4
   kind: agent
-  version: 3
+  version: 4
   ref: review-diffs
   depends_on_all:
   - verify-tests
@@ -707,19 +738,12 @@ tasks:
     build_system: ${task:build-detect:build_system}
     installed_skills: ${task:build-detect:installed_skills}
     reviewer_role: ${task:domain-detect:domains[3].reviewer_role}
-    diff_t1: ${task:impl-t1:diff}
-    cmds_used_t1: ${task:impl-t1:cmds_used}
-    diff_t2: ${task:impl-t2:diff}
-    cmds_used_t2: ${task:impl-t2:cmds_used}
-    diff_t3: ${task:impl-t3:diff}
-    cmds_used_t3: ${task:impl-t3:cmds_used}
-    diff_t4: ${task:impl-t4:diff}
-    cmds_used_t4: ${task:impl-t4:cmds_used}
-    diff_t5: ${task:impl-t5:diff}
-    cmds_used_t5: ${task:impl-t5:cmds_used}
+    diff_bundle: ${task:pool-advance:diff_bundle}
+    failed_task_ids: ${task:pool-advance:failed_task_ids}
+    cmds_bundle: ${task:pool-advance:cmds_bundle}
 - id: review-diffs-d5
   kind: agent
-  version: 3
+  version: 4
   ref: review-diffs
   depends_on_all:
   - verify-tests
@@ -732,19 +756,12 @@ tasks:
     build_system: ${task:build-detect:build_system}
     installed_skills: ${task:build-detect:installed_skills}
     reviewer_role: ${task:domain-detect:domains[4].reviewer_role}
-    diff_t1: ${task:impl-t1:diff}
-    cmds_used_t1: ${task:impl-t1:cmds_used}
-    diff_t2: ${task:impl-t2:diff}
-    cmds_used_t2: ${task:impl-t2:cmds_used}
-    diff_t3: ${task:impl-t3:diff}
-    cmds_used_t3: ${task:impl-t3:cmds_used}
-    diff_t4: ${task:impl-t4:diff}
-    cmds_used_t4: ${task:impl-t4:cmds_used}
-    diff_t5: ${task:impl-t5:diff}
-    cmds_used_t5: ${task:impl-t5:cmds_used}
+    diff_bundle: ${task:pool-advance:diff_bundle}
+    failed_task_ids: ${task:pool-advance:failed_task_ids}
+    cmds_bundle: ${task:pool-advance:cmds_bundle}
 - id: review-diffs-d6
   kind: agent
-  version: 3
+  version: 4
   ref: review-diffs
   depends_on_all:
   - verify-tests
@@ -757,16 +774,9 @@ tasks:
     build_system: ${task:build-detect:build_system}
     installed_skills: ${task:build-detect:installed_skills}
     reviewer_role: ${task:domain-detect:domains[5].reviewer_role}
-    diff_t1: ${task:impl-t1:diff}
-    cmds_used_t1: ${task:impl-t1:cmds_used}
-    diff_t2: ${task:impl-t2:diff}
-    cmds_used_t2: ${task:impl-t2:cmds_used}
-    diff_t3: ${task:impl-t3:diff}
-    cmds_used_t3: ${task:impl-t3:cmds_used}
-    diff_t4: ${task:impl-t4:diff}
-    cmds_used_t4: ${task:impl-t4:cmds_used}
-    diff_t5: ${task:impl-t5:diff}
-    cmds_used_t5: ${task:impl-t5:cmds_used}
+    diff_bundle: ${task:pool-advance:diff_bundle}
+    failed_task_ids: ${task:pool-advance:failed_task_ids}
+    cmds_bundle: ${task:pool-advance:cmds_bundle}
 - id: review-diffs-merge
   kind: tool
   version: 3
@@ -824,18 +834,16 @@ tasks:
     verify_test_cmd_used: ${task:verify-tests:test_cmd_used}
 - id: final-gate
   kind: human
-  version: 3
+  version: 4
   depends_on_all:
   - review-fix
   input:
     verdict: ${task:review-diffs-merge:verdict}
     verify_stdout_tail: ${task:verify-tests:stdout_tail}
     verify_stderr_tail: ${task:verify-tests:stderr_tail}
-    diff_t1: ${task:impl-t1:diff}
-    diff_t2: ${task:impl-t2:diff}
-    diff_t3: ${task:impl-t3:diff}
-    diff_t4: ${task:impl-t4:diff}
-    diff_t5: ${task:impl-t5:diff}
+    diff_bundle: ${task:pool-advance:diff_bundle}
+    failed_task_ids: ${task:pool-advance:failed_task_ids}
+    applied_count: ${task:pool-advance:applied_count}
 latches:
 - task: design-review-merge
   header: design-author
@@ -845,6 +853,10 @@ latches:
   header: tasks-author
   fuel: 5
   while_: ${task:tasks-review-merge:decision} == 'revise'
+- task: pool-advance
+  header: pool-draw
+  fuel: 200
+  while_: ${task:pool-advance:remaining} > `0`
 - task: review-fix
   header: verify-tests
   fuel: 5

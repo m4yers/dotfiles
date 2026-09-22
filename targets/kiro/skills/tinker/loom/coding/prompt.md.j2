@@ -27,7 +27,19 @@ invent a value — halt and report the missing field via
 
 Workspace: `{{ input.workspace_abs }}`
 
-Task id: `{{ input.task.id }}`
+Task id: `{{ input.task.id }}` (pool position {{ input.cursor + 1 }} of {{ input.total }})
+
+{% if input.prior_diffs %}
+## Prior pool rounds (already applied to the workspace)
+
+The workspace ALREADY contains the changes below from earlier pool
+rounds on this branch. Build on top of them; do not revert or
+re-apply them.
+
+```text
+{{ input.prior_diffs }}
+```
+{% endif %}
 
 ## Untrusted task input:
 
@@ -67,9 +79,12 @@ Make only changes directly required by the assigned task; no
 speculative helpers, abstractions, or defensive code for
 hypothetical scenarios.
 
-If the task title above is the empty string, this is an unused
-fan-out slot: emit empty outputs (see below) without touching the
-workspace, and stop.
+Report honestly via `applied`: set `applied=true` ONLY when every
+acceptance criterion is met and the build/tests you were instructed
+to run pass. If you ran out of budget, hit an unresolvable blocker,
+or delivered a partial change, set `applied=false` and put the
+reason in `error` — the pool loop will retry or skip the task per
+its retry policy. Do NOT weaken criteria to claim success.
 
 Record every command or skill invocation actually run into
 `cmds_used` — this list is reviewed to prevent gaming the
@@ -82,16 +97,22 @@ available skill shim.
 LOOM=~/.kiro/skills/home/loomv2/scripts/loom.sh
 $LOOM output init "{{ input.__loom.workdir }}" --task '{{ input.__task.id }}'
 $LOOM output add  "{{ input.__loom.workdir }}" --task '{{ input.__task.id }}' \
+    --set applied=true \
+    --set-json 'error=""' \
     --set diff='<unified diff>' \
     --set 'files_changed[]=<path>' \
     --set notes='<notes markdown>' \
     --set 'cmds_used[]=<command or skill invocation>'
 ```
 
-For an unused slot, instead:
+On a failed/partial round, instead set:
 
 ```bash
 $LOOM output add "{{ input.__loom.workdir }}" --task '{{ input.__task.id }}' \
-    --set-json 'diff=""' --set-json 'files_changed=[]' \
-    --set-json 'notes=""' --set-json 'cmds_used=[]'
+    --set applied=false \
+    --set error='<why the task could not be completed>' \
+    --set diff='<unified diff of whatever was changed, or empty>' \
+    --set-json 'files_changed=[]' \
+    --set notes='<notes markdown>' \
+    --set 'cmds_used[]=<command or skill invocation>'
 ```

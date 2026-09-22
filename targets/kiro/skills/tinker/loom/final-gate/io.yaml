@@ -1,4 +1,4 @@
-version: 3
+version: 4
 input:
   type: object
   additionalProperties: false
@@ -12,15 +12,17 @@ input:
         `${task:review-diffs-merge:verdict}` — review-fix's own
         verdict feeds the review-fix latch predicate and is
         intentionally not surfaced here.
-    diff_t1: {type: string}
-    diff_t2: {type: string}
-    diff_t3: {type: string}
-    diff_t4: {type: string}
-    diff_t5: {type: string}
+    diff_bundle:
+      type: string
+      description: Accumulated pool-loop diff sections (pool-advance).
+    failed_task_ids:
+      type: array
+      items: {type: string}
+    applied_count: {type: integer}
     verify_stdout_tail: {type: string}
     verify_stderr_tail: {type: string}
     __loom: {}
-  required: [verdict, diff_t1, diff_t2, verify_stdout_tail, verify_stderr_tail, __loom]
+  required: [verdict, diff_bundle, failed_task_ids, applied_count, verify_stdout_tail, verify_stderr_tail, __loom]
 output:
   type: object
   additionalProperties: false

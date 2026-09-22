@@ -19,8 +19,7 @@ output:
     findings:
       type: string
       description: |
-        Markdown answer to the assigned question; empty string when
-        the question was an unused slot.
+        Markdown answer to the assigned question; empty string when the slot was defaulted in-engine.
     citations:
       type: array
       items: {type: string}

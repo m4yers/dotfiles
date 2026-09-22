@@ -1,4 +1,4 @@
-version: 3
+version: 5
 input:
   type: object
   additionalProperties: false
@@ -20,11 +20,10 @@ input:
         required: [name, path, description, scripts]
     fallback_build_cmd: {type: string}
     fallback_test_cmd: {type: string}
-    max_tasks:
+    human_note:
       type: string
       description: |
-        Tier capacity from the graph variant: fill at most this many
-        real tasks (the array itself is always 5 entries).
+        Operator guidance captured at design-gate; empty when none.
     revise_reason:
       type: [string, "null"]
       description: |
@@ -37,7 +36,7 @@ input:
     - installed_skills
     - fallback_build_cmd
     - fallback_test_cmd
-    - max_tasks
+    - human_note
     - revise_reason
     - __loom
 output:
@@ -46,8 +45,12 @@ output:
   properties:
     tasks:
       type: array
-      minItems: 5
-      maxItems: 5
+      minItems: 1
+      description: |
+        Ordered implementation pool. Each entry MUST be sized to a
+        single coding sub-agent session; the pool loop draws them
+        one by one in order, so a task may assume every earlier
+        task has already been applied to the workspace.
       items:
         type: object
         additionalProperties: false
@@ -55,15 +58,14 @@ output:
           id: {type: string}
           title:
             type: string
-            description: |
-              Task title; empty string on unused trailing slots (an
-              empty title makes the slot a no-op).
+            minLength: 1
           acceptance_criteria:
             type: array
+            minItems: 1
             items: {type: string}
         required: [id, title, acceptance_criteria]
     num_tasks:
       type: integer
       minimum: 1
-      maximum: 5
+      description: Must equal len(tasks).
   required: [tasks, num_tasks]

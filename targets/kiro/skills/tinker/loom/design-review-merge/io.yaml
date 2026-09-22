@@ -1,8 +1,14 @@
-version: 3
+version: 4
 input:
   type: object
   additionalProperties: false
   properties:
+    citation_ok:
+      type: boolean
+      description: citation-check verdict for this design revision.
+    citation_report:
+      type: string
+      description: Human-readable citation miss list; empty when ok.
     decision_swe:
       type: string
       enum: [accept, revise]
@@ -55,6 +61,8 @@ input:
     role_d6:
       type: string
   required:
+    - citation_ok
+    - citation_report
     - decision_swe
     - revise_reason_swe
     - role_swe

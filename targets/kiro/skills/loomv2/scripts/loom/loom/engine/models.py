@@ -55,6 +55,7 @@ class Task:
     depends_on_all: list[str] = field(default_factory=list)
     depends_on_any: list[str] = field(default_factory=list)
     when: str | None = None
+    skip_output: dict | None = None
     latch: LoopBlock | None = None
     input_mapping: dict[str, str] | None = None
     # Optional post-composition metadata:

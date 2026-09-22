@@ -1,0 +1,50 @@
+# Branch gate
+
+Pre-implementation workspace check for `{{ input.current_branch }}`.
+
+{% if not input.dirty %}
+## Workspace is CLEAN — auto-proceed
+
+The workspace has no uncommitted changes. The host MUST complete this
+gate immediately with `decision=proceed` and an empty note. Do NOT
+stop or ask the user.
+
+```bash
+LOOM=~/.kiro/skills/home/loomv2/scripts/loom.sh
+$LOOM output init "{{ input.__loom.workdir }}" --task branch-gate
+$LOOM output add  "{{ input.__loom.workdir }}" --task branch-gate \
+    --set decision=proceed --set-json 'note=""'
+```
+
+branch-create will then create `{{ input.proposed_branch }}` and
+implementation proceeds on it.
+{% else %}
+## Workspace is DIRTY — STOP and ask the user
+
+Current branch: `{{ input.current_branch }}`
+Proposed feature branch: `{{ input.proposed_branch }}`
+
+Uncommitted changes:
+
+```
+{{ input.status_tail }}
+```
+
+The host MUST stop and ask the user how to proceed. Options:
+
+1. User cleans up first (stash / commit / discard — user or host runs
+   the git commands the user asks for), then `decision=proceed`.
+2. Proceed carrying the dirty changes onto the new feature branch
+   (`git checkout -b` preserves the working tree): `decision=proceed`
+   with a note saying so.
+3. `decision=abort` — the run stops (BLOCKED).
+
+Record the choice:
+
+```bash
+LOOM=~/.kiro/skills/home/loomv2/scripts/loom.sh
+$LOOM output init "{{ input.__loom.workdir }}" --task branch-gate
+$LOOM output add  "{{ input.__loom.workdir }}" --task branch-gate \
+    --set decision=<proceed|abort> --set note='<what was done>'
+```
+{% endif %}

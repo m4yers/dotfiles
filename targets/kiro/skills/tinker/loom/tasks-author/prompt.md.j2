@@ -51,31 +51,47 @@ Revise reason (empty on iter 0):
 {{ input.revise_reason }}
 ```
 
+{% if input.human_note %}
+## Operator guidance (from design-gate)
+
+```text
+{{ input.human_note }}
+```
+Honor this guidance during decomposition.
+{% endif %}
+
 ## Task
 
-Decompose the approved design into between 1 and 3 implementation
-tasks. Each task carries an `id`, a short `title`, and a list of
-`acceptance_criteria` bullets.
+Decompose the approved design into an ORDERED list of
+implementation tasks. Each task carries an `id`, a short `title`,
+and a list of `acceptance_criteria` bullets. Emit as many tasks as
+the design needs — there is no upper bound.
 
 Acceptance criteria MUST reference skill-driven build/test verbs
 when installed skills teach them. Fall back to the raw commands
 only when no matching skill exists.
 
-The `tasks` array MUST always contain exactly 5 entries
-(`id=t1..t5`). Fill the first `num_tasks` entries — at most
-{{ input.max_tasks }} for this run — with real tasks; on
-unused trailing slots set `title` to the empty string (`--set-json`)
-and `acceptance_criteria` to the empty list. Unused slots run as no-ops (the slot agent emits empty outputs for an
-empty title); the contract requires explicit empty values, never
-omission:
+Test-coverage rule: every task that changes behavior MUST carry at
+least one acceptance criterion that adds or extends an automated
+test exercising that behavior (unit or integration, using the
+project's existing test framework). Pure-refactor or docs-only
+tasks may skip it, but must say so explicitly in the title or a
+criterion.
 
-```bash
-$LOOM output add "{{ input.__loom.workdir }}" --task tasks-author \
-    --set 'tasks[].id=t5' --set-json 'tasks[-1].title=""' \
-    --set-json 'tasks[-1].acceptance_criteria=[]'
-```
+Sizing rule (load-bearing): each task MUST fit ONE coding
+sub-agent session. Target roughly ≤5 files touched and ≤6
+acceptance criteria per task; split any larger unit of work (a
+whole CR, a subsystem migration) into several tasks. A task that
+cannot be completed in one session will be delivered partially —
+prefer many small tasks over few large ones.
 
-Set `num_tasks` to the real-task count.
+Ordering rule: tasks are applied strictly in array order by a
+single implementation lane in one shared workspace. A task MAY
+assume every earlier task has already been applied and build on
+its changes; it MUST NOT depend on any later task.
+
+Every entry is a real task — no placeholder/empty-title slots.
+Set `num_tasks` to `len(tasks)`.
 
 ## Output
 

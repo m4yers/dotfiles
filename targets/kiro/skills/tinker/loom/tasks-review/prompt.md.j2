@@ -33,6 +33,14 @@ Acceptance criteria:
 ## Task
 
 Review the task breakdown through the lens of your primed role.
+
+Regardless of role, also check test coverage: every task that
+changes behavior MUST carry at least one acceptance criterion
+adding or extending an automated test for that behavior; a task
+without one must declare itself pure-refactor/docs-only. Flag
+violations as findings (severity `medium` or higher) and vote
+`revise` when behavior-changing tasks ship untested.
+
 Emit:
 
 1. `findings` — an auditable list of concrete issues, each with a

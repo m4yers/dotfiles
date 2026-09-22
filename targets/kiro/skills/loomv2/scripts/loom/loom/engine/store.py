@@ -155,6 +155,8 @@ def _plan_to_dict(plan: LoomPlan) -> dict[str, Any]:
             entry["depends_on_any"] = list(t.depends_on_any)
         if t.when:
             entry["when"] = t.when
+        if t.skip_output is not None:
+            entry["skip_output"] = t.skip_output
         if t.latch:
             entry["latch"] = {
                 "header": t.latch.header,
@@ -195,6 +197,7 @@ def _dict_to_plan(doc: dict[str, Any]) -> LoomPlan:
             depends_on_all=entry.get("depends_on_all", []),
             depends_on_any=entry.get("depends_on_any", []),
             when=entry.get("when"),
+            skip_output=entry.get("skip_output"),
             latch=latch,
             input_mapping=entry.get("input_mapping"),
             folder=Path(entry["folder"]) if entry.get("folder") else None,

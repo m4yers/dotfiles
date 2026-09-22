@@ -1,0 +1,48 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    tasks:
+      type: array
+      minItems: 1
+      description: Ordered implementation pool from tasks-author.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          id: {type: string}
+          title: {type: string}
+          acceptance_criteria:
+            type: array
+            items: {type: string}
+        required: [id, title, acceptance_criteria]
+    prev:
+      type: [object, "null"]
+      description: |
+        Previous round's pool-advance output (null on the first
+        iteration). Only next_cursor and retries are read.
+  required: [tasks, prev]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    cursor:
+      type: integer
+      minimum: 0
+      description: 0-based index of the task drawn this round.
+    total:
+      type: integer
+      minimum: 1
+      description: len(tasks).
+    current_task:
+      type: object
+      additionalProperties: false
+      properties:
+        id: {type: string}
+        title: {type: string}
+        acceptance_criteria:
+          type: array
+          items: {type: string}
+      required: [id, title, acceptance_criteria]
+  required: [cursor, total, current_task]

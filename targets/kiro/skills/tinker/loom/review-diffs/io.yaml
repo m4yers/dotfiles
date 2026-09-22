@@ -1,15 +1,20 @@
-version: 3
+version: 4
 input:
   type: object
   additionalProperties: false
   properties:
-    diff_t1:
+    diff_bundle:
       type: string
-      description: Diff from impl slot t1; empty when the slot was unused.
-    diff_t2: {type: string}
-    diff_t3: {type: string}
-    diff_t4: {type: string}
-    diff_t5: {type: string}
+      description: |
+        Accumulated per-round diff sections from the implementation
+        pool loop (pool-advance output), in pool order. Each section
+        is headed "## <task id>: <title> (applied|FAILED (skipped))".
+    failed_task_ids:
+      type: array
+      items: {type: string}
+      description: |
+        Pool tasks skipped after exhausting their retry budget; a
+        non-empty list means the aggregate change is incomplete.
     verify_test_cmd_used: {type: string}
     verify_exit_code: {type: integer}
     verify_passed: {type: boolean}
@@ -29,22 +34,10 @@ input:
             type: array
             items: {type: string}
         required: [name, path, description, scripts]
-    cmds_used_t1:
+    cmds_bundle:
       type: array
       items: {type: string}
-      description: cmds_used from impl slot t1; empty when unused.
-    cmds_used_t2:
-      type: array
-      items: {type: string}
-    cmds_used_t3:
-      type: array
-      items: {type: string}
-    cmds_used_t4:
-      type: array
-      items: {type: string}
-    cmds_used_t5:
-      type: array
-      items: {type: string}
+      description: Accumulated cmds_used across all pool rounds.
     reviewer_role:
       type: string
       description: |
@@ -54,8 +47,8 @@ input:
     __loom: {}
     __task: {}
   required:
-    - diff_t1
-    - diff_t2
+    - diff_bundle
+    - failed_task_ids
     - verify_test_cmd_used
     - verify_exit_code
     - verify_passed
@@ -63,8 +56,7 @@ input:
     - verify_stderr_tail
     - build_system
     - installed_skills
-    - cmds_used_t1
-    - cmds_used_t2
+    - cmds_bundle
     - reviewer_role
     - __loom
     - __task

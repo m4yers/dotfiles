@@ -26,7 +26,7 @@
    recreates it unconditionally, and seeds the entry task's
    `input.yaml` in one shot. Capture the printed path on stdout:
    ```bash
-   ${{ prefix }}_WD=$(${{ prefix }}_{{ shim }} runtime init \
+   {{ prefix }}_WD=$(${{ prefix }}_{{ shim }} runtime init \
        --loom-root "${{ prefix }}_{{ loom_root_var }}" \
        {{ set_assignments }})
    ```

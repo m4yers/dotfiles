@@ -220,5 +220,20 @@ def _render_dataclass(class_name: str, version: int, schema: dict) -> str:
 
 
 def _py_type(json_type) -> str:
-    """Map a JSON Schema top-level ``type`` to a Python annotation."""
+    """Map a JSON Schema top-level ``type`` to a Python annotation.
+
+    Accepts the union-list form (``type: [object, "null"]``) and maps
+    it to an ``X | Y`` annotation, with ``null`` rendered as ``None``.
+    """
+    if isinstance(json_type, list):
+        parts = [
+            "None" if t == "null" else _PY_TYPE.get(t, "object")
+            for t in json_type
+        ]
+        # Stable de-dup preserving order.
+        seen: list[str] = []
+        for p in parts:
+            if p not in seen:
+                seen.append(p)
+        return " | ".join(seen) if seen else "object"
     return _PY_TYPE.get(json_type, "object")

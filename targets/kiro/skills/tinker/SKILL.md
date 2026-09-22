@@ -6,23 +6,15 @@ description: Loomv2-driven feature development pipeline — plan-driven research
 
 # Tinker
 
-Drives the full feature development pipeline as a loomv2 graph: ingest →
-workspace-intelligence prelude (code-inventory, build/test detection, dependency
-map, symbol index, `domain-detect`, LLM file summaries, workspace brief) →
-research fan-out (3 slots) → design → tasks → implementation fan-out (3 slots) →
-verify-tests → review loop → final gate. Project and language agnostic —
-build/test verbs are learned from installed `<build_system>-*` skills discovered
-by build-detect and test-detect, with a static fallback matrix for Python and
-C/C++ toolchains and `--build-system` / `--test-system` overrides for anything
-else (Brazil and other AWS-internal systems reach the pipeline only via
-override). Prelude results are cached per workspace+commit under
-`/tmp/tinker-cache` so re-runs retrieve instead of recompute.
-
-The design/tasks/review-diffs reviews are fully agent-driven: each subject is
-reviewed in parallel by one SWE-primed instance plus two domain-primed instances
-(roles emitted by `domain-detect`), then aggregated by a deterministic tool
-merge that owns the loop's latch role. The human touches the pipeline ONLY at
-final-gate.
+Drives a feature end-to-end as a loomv2 graph: ingest → workspace
+intelligence (cached per workspace+commit under `/tmp/tinker-cache`) →
+research fan-out → design → tasks (unbounded ordered pool) → branch
+gate → implementation pool loop (single serial lane, one sub-agent
+session per task) → verify-tests → review loop → final gate. Design,
+tasks, and diff reviews are agent-driven (1 SWE + N domain reviewers,
+deterministic tool merge); the human touches the run at
+`design-gate` (always), `branch-gate` (dirty tree only), and
+`final-gate`.
 
 ## Dependencies
 
@@ -36,74 +28,62 @@ final-gate.
 ## Parameters
 
 - **description** (required): free-text feature request.
-- **workspace** (required): absolute path to the target
-  repository/workspace.
-- **build-system** (optional): family name override (e.g. `brazil`,
-  `uv`, `makefile`) that wins over manifest-based detection.
-- **test-system** (optional): test family override; defaults to the
-  resolved build system.
+- **workspace** (required): absolute path to the target workspace.
+- **build-system** / **test-system** (optional): family overrides
+  (e.g. `brazil`, `uv`) that win over manifest detection;
+  test-system defaults to build-system.
 - **cache-mode** (optional): `read-write` (default), `read-only`,
-  `write-only`, or `bypass` for the workspace-intelligence cache.
-- **scale** (optional): `s`, `m` (default), or `l` — selects the
-  graph variant (`loom/graph-<scale>.yaml`) controlling fan-out
-  width: domains / research questions / implementation tasks /
-  file-summary batches are 2/2/2/2 (s), 4/3/3/4 (m), 6/5/5/6 (l);
-  each review point runs 1 SWE + <domains> domain reviewers.
+  `write-only`, or `bypass`.
+- **scale** (optional): `s`, `m` (default), or `l` — selects
+  `loom/graph-<scale>.yaml`. Controls domains / research questions /
+  file-summary batches: 2/2/2 (s), 4/3/4 (m), 6/5/6 (l). The
+  implementation pool loop is identical across scales.
 
 ## Commands
 
-Bind these aliases once at the top of the session so every step below can
-reference them:
+Bind these aliases once at the top of the session:
 
 ```bash
 TK_SKILLS=~/.kiro/skills
 TK_LOOM_ROOT=$TK_SKILLS/home/tinker/loom
 TK_TILING=$TK_SKILLS/home/tiling/scripts/run-ttm.sh
 TK_EDITOR=$TK_SKILLS/home/editor/scripts/run-editor.sh
-LOOM=$TK_SKILLS/home/loomv2/scripts/loom.sh
+TK_LOOM=$TK_SKILLS/home/loomv2/scripts/loom.sh
+eval "$($TK_TILING layout build)"
 ```
 
 ## Rules
 
-1. The three graph variants (`loom/graph-s.yaml`, `graph-m.yaml`,
-   `graph-l.yaml`) MUST stay wiring-identical except for fan-out
-   arity and capacity literals; a wiring change applied to one MUST
-   be applied to all three and each validated with
-   `$LOOM validate <skill-root> --graph loom/graph-<x>.yaml`,
-   because variant drift silently forks pipeline behavior across
-   scales.
-2. Skill-driven build/test verbs win over the static fallback matrix.
-   Prompts and `verify-tests` MUST prefer an installed skill's
-   `scripts/test.sh` / `scripts/build.sh` shim when one exists for the
-   resolved build system.
-3. Brazil and other AWS-internal build systems are supported strictly
-   via `--build-system <name>` at ingest — never through manifest
-   detection.
-4. Loop latches (`design-review-merge`, `tasks-review-merge`,
-   `review-fix`) cap at fuel=5. Fuel exhaustion terminates the run
-   with `DONE_WITH_CONCERNS`. The loop MUST NOT be extended without
-   explicit user direction because latch expansion bypasses the
-   fuel-based runaway-cutoff. Latch headers live in
-   `loom/graph.yaml` `latches:`.
-5. Review guards are enforced in their sites: each `review-diffs-*`
-   prompt carries the three approval guards, and
-   `review-diffs-merge` approves only on unanimous reviewer
-   approval.
+1. The graph variants (`loom/graph-{s,m,l}.yaml`) MUST stay
+   wiring-identical except for fan-out arity; validate every variant
+   after any wiring change:
+   `$TK_LOOM validate <skill-root> --graph loom/graph-<x>.yaml`.
+2. Skill-taught build/test verbs win over the static fallback matrix.
+3. Brazil and other AWS-internal build systems enter only via
+   `--build-system <name>`, never manifest detection.
+4. Review latches (`design-review-merge`, `tasks-review-merge`,
+   `review-fix`) cap at fuel=5; exhaustion ends the run
+   `DONE_WITH_CONCERNS`. The pool latch (`pool-advance`) terminates
+   on pool emptiness; its fuel=200 is a runaway net only. Do not
+   extend latches without explicit user direction.
+5. Review guards live in the `review-diffs-*` prompts;
+   `review-diffs-merge` approves only on unanimous approval.
 
 ## Workflow
 
 ### Step 1: Ingest
 
-1. Set tiling activity and build layout:
+1. Set tiling activity:
    ```bash
    $TK_TILING activity set "tinker(<workspace>): Ingest"
-   eval "$($TK_TILING layout build)"
    ```
-2. Ingest — init the loom workdir directly. `workspace` MUST be an
-   absolute path to an existing directory; `build_system_override` is
-   always set, empty when no override was given:
+2. Run the DEFAULT single-call ingest — the loomv2 CLI picks a fresh
+   engine-owned workdir under `/tmp/<skill>/<uuid>/`, wipes and
+   recreates it unconditionally, and seeds the entry task's
+   `input.yaml` in one shot. Capture the printed path on stdout:
    ```bash
-   TK_WD=$($LOOM runtime init --loom-root "$TK_LOOM_ROOT" \
+   TK_WD=$($TK_LOOM runtime init \
+       --loom-root "$TK_LOOM_ROOT" \
        --graph "graph-<scale>.yaml" \
        --set "description=<description>" \
        --set "workspace=<absolute-workspace-path>" \
@@ -111,8 +91,20 @@ LOOM=$TK_SKILLS/home/loomv2/scripts/loom.sh
        --set "test_system_override=<name-or-empty>" \
        --set "cache_mode=<mode-or-read-write>")
    ```
-3. If `runtime init` fails: NEEDS_CONTEXT.
-4. On success: proceed to Step 2.
+   No per-skill Python or wrapper logic is required — the loomv2 CLI
+   owns workdir naming, wipe, init, and entry-task seeding, and never
+   needs a `--force` flag. If the entry task cannot be seeded via
+   `--set` (for example, the graph's entry task has an `input:`
+   mapping in `graph.yaml`), the host skill drops `--set`, passes an
+   explicit workdir path (`runtime init "$WD" --loom-root ...`), and
+   writes `input.yaml` by hand before the first `runtime next` —
+   supported as the escape hatch, not the default.
+3. Set tiling activity to Ingest done:
+   ```bash
+   $TK_TILING activity set "tinker(<workspace>): Ingest done"
+   ```
+
+If `runtime init` fails: NEEDS_CONTEXT.
 
 ### Step 2: Drive the loop
 
@@ -120,66 +112,63 @@ LOOM=$TK_SKILLS/home/loomv2/scripts/loom.sh
    ```bash
    $TK_TILING activity set "tinker(<workspace>): Drive the loop"
    ```
-2. Ask loom for the next batch of ready tasks and parse the YAML
-   response:
-   ```bash
-   $LOOM runtime next "$TK_WD"
-   ```
-   If `done: true`, mark the run finished and exit the loop:
+2. Loop until done:
+   - Run `$TK_LOOM runtime next "$TK_WD"`.
+     Parse the YAML response (shape: loomv2 `schemas/next.yaml`).
+   - If the command exits non-zero → BLOCKED; stderr carries
+     `{failed_task, error_path}`.
+   - If `done: true` → break.
+   - Otherwise, handle the `ready[]` batch (all entries are
+     `kind: agent|human`; tool tasks already ran inside
+     `runtime next`). Entries in one batch are independent:
+     - Dispatch every `kind: agent` entry in parallel (see the
+       agent-dispatch helper) — these are independent sub-agent
+       calls and MUST NOT be serialized.
+     - Drive every `kind: human` entry sequentially after the
+       agent dispatches (see the human-gate helper) — user
+       interaction cannot be parallelized.
+     - After each entry finishes, call
+       `$TK_LOOM runtime complete "$TK_WD" <task-address>`.
+3. Set tiling activity to Done:
    ```bash
    $TK_TILING activity set "tinker(<workspace>): Done"
    ```
-   If `stuck: true`, return BLOCKED.
-3. For each `ready[].id`, dispatch by `kind`:
-   - `kind == human` → drive the human gate (see helper).
-   - `kind == agent` → dispatch the sub-agent (see helper).
-   - Independent ids in one batch can be dispatched in parallel.
-4. Mark each dispatched id complete after its body finishes:
-   ```bash
-   $LOOM runtime complete "$TK_WD" <id>
-   ```
-5. Return to sub-step 2.
 
 ## Helper: Dispatch agent task
 
-`$LOOM runtime next` yields ready agent tasks with their `prompt_path` already
-rendered. For each id, dispatch via the `subagent` MCP tool with `role: trusted`
-(grants file-read/write access).
-
-Unused fan-out slot short-circuit: the slot tasks (`research-q1..q3`,
-`impl-t1..t3`, `file-summary-b1..b4`) always run; when a slot's materialised
-`input.yaml` carries an empty `question` / empty `task.title` / empty `files`
-list, do NOT spawn a sub-agent — write the empty output directly (`--set-json`
-empty values per the task's io.yaml) and complete it.
+`$TK_LOOM runtime next` yields ready agent tasks with
+their `prompt_path` already rendered from the task's materialised
+`input.yaml`. For each entry, dispatch via the `subagent` MCP tool
+with `role: trusted` (grants file-read/write access).
 
 The sub-agent's `prompt_template` should instruct it to `fs_read` the
-`prompt_path` and follow it. The agent writes its output to the `output_path`
-(also in the `next` response). After dispatch returns, call `$LOOM runtime
-complete "$TK_WD" "<id>"`.
+`prompt_path` and follow it. The agent writes its output to the
+`output_path` from the same entry (or via
+`$TK_LOOM output add`). After dispatch returns, call
+`$TK_LOOM runtime complete "$TK_WD" "<task-address>"`.
 
-Dispatch independent ids in parallel via the `subagent` `stages` array with no
-`depends_on`.
+Dispatch independent entries in parallel via the `subagent` `stages`
+array with no `depends_on`.
+
+Tinker specifics:
+
+- Unused fan-out slots (`research-q*`, `file-summary-b*`) never
+  surface: their graph entries carry `when:` + `skip_output`, so the
+  engine completes them with schema-valid empty outputs in-engine.
+- Implementation pool loop: `impl-round` surfaces once per pool task
+  (the `pool-advance` latch re-materialises the region until the pool
+  drains). Only one round is ever ready; the prompt already carries
+  the current task, pool position, and prior-round diff summary. The
+  agent reports `applied: true|false` honestly; retry/skip policy is
+  enforced by the `pool-advance` tool, never by the host.
 
 ## Helper: Drive human gate
 
-Human tasks are conversational. Read the rendered prompt at `message_path`,
-follow its instructions, and write structured YAML to `output_path` against the
-gate's schema. Then call `$LOOM runtime complete "$TK_WD" "<id>"`. In the
-current graph, the ONLY human gate is `final-gate` — the design and tasks review
-loops are fully agent-driven with a deterministic tool merge at each subject's
-latch point.
-
-Construct `output_path` via loom's writer (schema-checked) rather than free-form
-`fs_write`, e.g. for `final-gate`:
-
-```bash
-$LOOM output init "$TK_WD" --task final-gate
-$LOOM output add  "$TK_WD" --task final-gate \
-    --set decision=<accept|abandon> \
-    --set note='<optional note>'
-```
-
-Do not spawn a sub-agent for human gates.
+Human tasks are conversational. Read the rendered prompt at
+`message_path`, follow its instructions, and write structured YAML to
+`output_path` against the task's `io.yaml/output` schema (use
+`$TK_LOOM output add` for validated writes). Then call
+`$TK_LOOM runtime complete "$TK_WD" "<task-address>"`.
 
 For gates that show files, use the editor:
 
@@ -187,14 +176,27 @@ For gates that show files, use the editor:
 $TK_EDITOR show file <path>
 ```
 
-STOP and wait for the user. The user can accept, edit, or decline. Capture their
-decision and any edits in the output file before completing the task.
+STOP and wait for the user. The user can accept, edit, or decline.
+Capture their decision and any edits in the output file before
+completing the task.
+
+Tinker specifics:
+
+- `design-gate`: ALWAYS STOP. Write the design body to a temp file,
+  show it via `$TK_EDITOR show file`, and wait. Capture the user's
+  decision and any decomposition guidance in `note` (it feeds
+  tasks-author). On `abort`, stop driving the run → BLOCKED.
+- `branch-gate`: when the rendered message says the workspace is
+  CLEAN, complete immediately with `decision=proceed` — do NOT stop.
+  When DIRTY, STOP and ask the user (clean up / carry changes /
+  abort; abort fails `branch-create` → BLOCKED).
+- `final-gate`: always STOP and wait for the user.
 
 ## Completion
 
 | Status               | Criteria                                                             |
 | -------------------- | -------------------------------------------------------------------- |
 | `DONE`               | `final-gate.decision == 'accept'`.                                   |
-| `DONE_WITH_CONCERNS` | Any loop latch exhausted fuel=5.                                     |
-| `BLOCKED`            | `final-gate.decision == 'abandon'`, or `runtime next` exit non-zero. |
+| `DONE_WITH_CONCERNS` | Any review latch exhausted fuel=5.                                   |
+| `BLOCKED`            | `final-gate.decision == 'abandon'`, `design-gate.decision == 'abort'`, `branch-gate.decision == 'abort'`, or `runtime next` exit non-zero. |
 | `NEEDS_CONTEXT`      | Missing description/workspace, or workspace path does not exist.     |

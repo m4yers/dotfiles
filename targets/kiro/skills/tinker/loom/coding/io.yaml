@@ -1,4 +1,4 @@
-version: 1
+version: 2
 input:
   type: object
   additionalProperties: false
@@ -10,14 +10,23 @@ input:
         id: {type: string}
         title:
           type: string
-          description: |
-            Task title. Empty string marks an unused fan-out slot:
-            the task MUST then emit empty outputs without touching
-            the workspace (the host may complete it directly).
+          minLength: 1
         acceptance_criteria:
           type: array
           items: {type: string}
       required: [id, title, acceptance_criteria]
+    cursor:
+      type: integer
+      description: 0-based position of this task in the pool.
+    total:
+      type: integer
+      description: Total number of tasks in the pool.
+    prior_diffs:
+      type: [string, "null"]
+      description: |
+        Bounded summary of the diffs applied by earlier pool rounds
+        (null on the first round). Read-only context: the workspace
+        already contains those changes; build on top of them.
     build_system: {type: string}
     installed_skills:
       type: array
@@ -39,6 +48,9 @@ input:
     __task: {}
   required:
     - task
+    - cursor
+    - total
+    - prior_diffs
     - build_system
     - installed_skills
     - fallback_build_cmd
@@ -50,11 +62,22 @@ output:
   type: object
   additionalProperties: false
   properties:
+    applied:
+      type: boolean
+      description: |
+        True iff the task's acceptance criteria were met and the
+        changes verified (build/tests as instructed). False on any
+        partial or failed round — the pool loop then retries or
+        skips per its retry policy.
+    error:
+      type: string
+      description: |
+        Why applied is false (empty string when applied is true).
     diff:
       type: string
       description: |
-        Unified diff of the changes applied by this slot; empty
-        string when the slot was unused.
+        Unified diff of the changes applied by this round; empty
+        string when nothing was changed.
     files_changed:
       type: array
       items: {type: string}
@@ -64,4 +87,4 @@ output:
       type: array
       items: {type: string}
       description: Skill invocations or raw commands the agent actually ran.
-  required: [diff, files_changed, notes, cmds_used]
+  required: [applied, error, diff, files_changed, notes, cmds_used]

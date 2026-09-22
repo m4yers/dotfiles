@@ -1,11 +1,13 @@
-# generated from io.yaml v3 by $LOOM task io-python — do not edit
+# generated from io.yaml v4 by $LOOM task io-python — do not edit
 from dataclasses import dataclass
 from typing import ClassVar
 
 
 @dataclass
 class DesignReviewMergeInput:
-    VERSION: ClassVar[int] = 3
+    VERSION: ClassVar[int] = 4
+    citation_ok: bool
+    citation_report: str
     decision_swe: str
     revise_reason_swe: str
     role_swe: str
@@ -31,6 +33,8 @@ class DesignReviewMergeInput:
     @classmethod
     def from_dict(cls, d: dict) -> "DesignReviewMergeInput":
         return cls(
+            citation_ok=d["citation_ok"],
+            citation_report=d["citation_report"],
             decision_swe=d["decision_swe"],
             revise_reason_swe=d["revise_reason_swe"],
             role_swe=d["role_swe"],
@@ -56,6 +60,8 @@ class DesignReviewMergeInput:
 
     def to_dict(self) -> dict:
         out: dict = {}
+        out["citation_ok"] = self.citation_ok
+        out["citation_report"] = self.citation_report
         out["decision_swe"] = self.decision_swe
         out["revise_reason_swe"] = self.revise_reason_swe
         out["role_swe"] = self.role_swe
@@ -94,7 +100,7 @@ class DesignReviewMergeInput:
 
 @dataclass
 class DesignReviewMergeOutput:
-    VERSION: ClassVar[int] = 3
+    VERSION: ClassVar[int] = 4
     decision: str
     revise_reason: str
 

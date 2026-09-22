@@ -27,6 +27,7 @@ def _make_task(
     when: str | None = None,
     latch: "LoopBlock | None" = None,
     input_mapping: dict[str, str] | None = None,
+    skip_output: dict | None = None,
 ) -> Task:
     """Shared task-factory body. Enforces non-empty dep lists."""
     if depends_on_all is not None and not depends_on_all:
@@ -39,6 +40,7 @@ def _make_task(
         depends_on_all=list(depends_on_all or []),
         depends_on_any=list(depends_on_any or []),
         when=when,
+        skip_output=dict(skip_output) if skip_output is not None else None,
         latch=latch,
         input_mapping=dict(input_mapping) if input_mapping is not None else None,
     )
@@ -51,6 +53,7 @@ def tool(
     when: str | None = None,
     latch: "LoopBlock | None" = None,
     input_mapping: dict[str, str] | None = None,
+    skip_output: dict | None = None,
 ) -> Task:
     """Create a tool task.
 
@@ -64,7 +67,7 @@ def tool(
 
     Raises ValueError on empty dep lists. Returns a Task with kind='tool'.
     """
-    return _make_task("tool", id, depends_on_all, depends_on_any, when, latch, input_mapping)
+    return _make_task("tool", id, depends_on_all, depends_on_any, when, latch, input_mapping, skip_output)
 
 
 def agent(
@@ -74,13 +77,14 @@ def agent(
     when: str | None = None,
     latch: "LoopBlock | None" = None,
     input_mapping: dict[str, str] | None = None,
+    skip_output: dict | None = None,
 ) -> Task:
     """Create an agent task.
 
     Body: <loom_root>/<id>/prompt.md.j2 rendered by the engine; the
     sub-agent writes output.yaml via the output CLI.
     """
-    return _make_task("agent", id, depends_on_all, depends_on_any, when, latch, input_mapping)
+    return _make_task("agent", id, depends_on_all, depends_on_any, when, latch, input_mapping, skip_output)
 
 
 def human(
@@ -90,13 +94,14 @@ def human(
     when: str | None = None,
     latch: "LoopBlock | None" = None,
     input_mapping: dict[str, str] | None = None,
+    skip_output: dict | None = None,
 ) -> Task:
     """Create a human-gate task.
 
     Body: <loom_root>/<id>/message.md.j2 rendered for the current agent
     to present to the user.
     """
-    return _make_task("human", id, depends_on_all, depends_on_any, when, latch, input_mapping)
+    return _make_task("human", id, depends_on_all, depends_on_any, when, latch, input_mapping, skip_output)
 
 
 def subgraph(
@@ -189,10 +194,23 @@ def from_graph_yaml(loom_root: Path, graph: Path | str | None = None) -> LoomPla
     :class:`TaskRefError` (defense-in-depth alongside the schema
     check).
     """
-    from loom.discovery import load_graph_yaml, resolve_ref_folder
+    from loom.discovery import (
+        load_graph_yaml,
+        resolve_graph_yaml,
+        resolve_ref_folder,
+    )
     from loom.errors import TaskRefError
 
-    entries = load_graph_yaml(Path(loom_root), graph)
+    # The loom root is the resolved graph file's own directory. Resolving
+    # it here (rather than trusting the caller's positional) keeps ref /
+    # subgraph-root resolution consistent when the caller passes a skill
+    # root with a relative --graph like `loom/graph-l.yaml` — previously
+    # the graph file resolved under `<positional>/loom/` while refs
+    # resolved under `<positional>/`, so validate rejected valid graphs.
+    graph_path = resolve_graph_yaml(Path(loom_root), graph)
+    loom_root = graph_path.parent
+
+    entries = load_graph_yaml(loom_root, graph_path)
     tasks: list[Task | SubgraphSpec] = []
     for entry in entries["tasks"]:
         kind = entry["kind"]
@@ -204,7 +222,14 @@ def from_graph_yaml(loom_root: Path, graph: Path | str | None = None) -> LoomPla
             "when": entry.get("when"),
             "input_mapping": entry.get("input"),
         }
+        skip_output = entry.get("skip_output")
         if kind == "subgraph":
+            if skip_output is not None:
+                raise TaskRefError(
+                    f"subgraph entry {entry['id']!r} declares "
+                    "`skip_output`; defaults apply to tool/agent/human "
+                    "entries only."
+                )
             if ref is not None:
                 raise TaskRefError(
                     f"subgraph entry {entry['id']!r} declares `ref: "
@@ -216,7 +241,7 @@ def from_graph_yaml(loom_root: Path, graph: Path | str | None = None) -> LoomPla
             task = subgraph(root=child_root, **common)
         else:
             factory = {"tool": tool, "agent": agent, "human": human}[kind]
-            task = factory(**common)
+            task = factory(skip_output=skip_output, **common)
             task.pinned_version = entry["version"]
             if ref is not None:
                 task.folder = resolve_ref_folder(Path(loom_root), ref)
@@ -266,6 +291,8 @@ def to_graph_yaml(plan: LoomPlan, path: Path) -> None:
                 # id; the field's whole reason to exist is decoupling
                 # instance-id from shared folder.
                 entry["ref"] = t.folder.name
+            if t.skip_output is not None:
+                entry["skip_output"] = t.skip_output
             if t.latch:
                 latch_entries.append({
                     "task": t.id,

@@ -90,9 +90,21 @@ class LoomRuntime:
                 evaluator=(t.id, self._pending_round(t.id)),
             )
             if not ok:
-                t.status = "skipped"
                 folder = _task_folder(self.workdir, self.plan, t.id)
                 folder.mkdir(parents=True, exist_ok=True)
+                if t.skip_output is not None:
+                    # Declared default output: complete as `done` so
+                    # AND-dependents and ${task:...} refs keep working
+                    # (a bare skip would cascade-skip every AND
+                    # dependent). Validation runs in complete().
+                    self._write_skip_default(t, folder)
+                    write_skip_reason_yaml(
+                        folder, t.id, "when-false-defaulted",
+                        predicate=t.when,
+                    )
+                    self.complete(t.id)
+                    continue
+                t.status = "skipped"
                 write_skip_reason_yaml(
                     folder, t.id, "when-false", predicate=t.when
                 )
@@ -120,6 +132,22 @@ class LoomRuntime:
         if task_id not in region_members(self.plan):
             return None
         return next_round_index(_task_folder(self.workdir, self.plan, task_id))
+
+    def _write_skip_default(self, task: Task, folder: Path) -> None:
+        """Write ``task.skip_output`` as the task's output document.
+
+        Loop-body tasks get a fresh ``iter-NN/output.yaml`` round dir;
+        flat tasks write ``<folder>/output.yaml``. Schema validation is
+        left to :meth:`complete`, which reads the same path back.
+        """
+        from loom.engine.loops import region_members
+        from loom.engine.store import atomic_write, begin_round
+
+        if task.id in region_members(self.plan):
+            target = begin_round(folder) / "output.yaml"
+        else:
+            target = folder / "output.yaml"
+        atomic_write(target, yaml.safe_dump(task.skip_output, sort_keys=False))
 
     def commit_running(self, task_ids: list[str]) -> None:
         """Flip ``task_ids`` to running and persist."""

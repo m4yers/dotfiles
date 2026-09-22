@@ -7,10 +7,9 @@ input:
     files:
       type: array
       description: |
-        Files this slot summarises. Empty list marks an unused
-        fan-out slot: the task MUST then emit an empty summaries
-        list without doing any work (the host may complete it
-        directly).
+        Files this slot summarises. Unused slots (empty list) are
+        completed in-engine via the graph entry's `when:` +
+        `skip_output` and never reach an agent.
       items:
         type: object
         additionalProperties: false

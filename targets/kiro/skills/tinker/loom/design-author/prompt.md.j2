@@ -63,6 +63,12 @@ Revise reason (empty on iter 0):
 {{ input.revise_reason }}
 ```
 
+Citation rule (machine-enforced): cite existing code with
+`path/to/file.ext:line` ONLY after reading that location — a
+deterministic checker verifies every line-anchored citation against
+the workspace and force-revises the design on any miss. For code you
+PROPOSE to add, never attach line numbers.
+
 ## Task
 
 Draft the feature design markdown. When installed skills are

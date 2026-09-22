@@ -34,10 +34,21 @@ def _reviewer_slots(inp: DesignReviewMergeInput) -> list[tuple[str, str, str]]:
 def design_review_merge(inp: DesignReviewMergeInput) -> DesignReviewMergeOutput:
     slots = _reviewer_slots(inp)
 
-    if all(decision == "accept" for decision, _, _ in slots):
+    citation_ok = bool(inp.citation_ok)
+    if all(decision == "accept" for decision, _, _ in slots) and citation_ok:
         return DesignReviewMergeOutput(decision="accept", revise_reason="")
 
     blocks: list[str] = []
+    if not citation_ok:
+        # Deterministic citation misses force a revise even on
+        # unanimous reviewer approval: a line-anchored citation to
+        # code that does not exist is a hallucination no downstream
+        # stage can implement against.
+        blocks.append(
+            "[citation-check]\nLine-anchored citations that do not "
+            "match the workspace — fix or remove them:\n"
+            + inp.citation_report.strip()
+        )
     for decision, reason, role in slots:
         if decision == "revise":
             label = role.strip() or "unknown reviewer"

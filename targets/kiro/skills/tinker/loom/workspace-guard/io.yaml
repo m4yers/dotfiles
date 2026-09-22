@@ -1,0 +1,37 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    workspace_abs: {type: string}
+    feature_slug:
+      type: string
+      description: Kebab-case slug from ingest; used to propose the branch name.
+  required: [workspace_abs, feature_slug]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    dirty:
+      type: boolean
+      description: |
+        True when `git status --porcelain` in the workspace is
+        non-empty at pre-implementation time. Re-checked here (not
+        reused from ingest) because prelude/research stages may have
+        run for a long time.
+    status_tail:
+      type: string
+      description: Last 4 KiB of `git status --porcelain` output; empty when clean.
+    current_branch:
+      type: string
+      description: |
+        Current branch name (`git rev-parse --abbrev-ref HEAD`), or
+        "DETACHED" for a detached HEAD, or empty for a non-git
+        workspace.
+    proposed_branch:
+      type: string
+      description: |
+        Proposed feature branch name: `tinker/<feature_slug>`
+        truncated to 60 chars. branch-create uniquifies it against
+        existing branches.
+  required: [dirty, status_tail, current_branch, proposed_branch]

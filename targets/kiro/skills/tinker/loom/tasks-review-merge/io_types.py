@@ -1,11 +1,11 @@
-# generated from io.yaml v4 by $LOOM task io-python — do not edit
+# generated from io.yaml v5 by $LOOM task io-python — do not edit
 from dataclasses import dataclass
 from typing import ClassVar
 
 
 @dataclass
 class TasksReviewMergeInput:
-    VERSION: ClassVar[int] = 4
+    VERSION: ClassVar[int] = 5
     decision_swe: str
     revise_reason_swe: str
     role_swe: str
@@ -97,7 +97,7 @@ class TasksReviewMergeInput:
 
 @dataclass
 class TasksReviewMergeOutput:
-    VERSION: ClassVar[int] = 4
+    VERSION: ClassVar[int] = 5
     decision: str
     revise_reason: str
     num_tasks: int

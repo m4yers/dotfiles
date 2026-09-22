@@ -1,0 +1,36 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    design:
+      type: string
+      description: Design markdown to scan for line-anchored citations.
+    workspace_abs: {type: string}
+  required: [design, workspace_abs]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    checked:
+      type: integer
+      description: Number of distinct line-anchored citations found.
+    misses:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          citation: {type: string}
+          kind:
+            type: string
+            enum: [missing_file, line_out_of_range]
+          detail: {type: string}
+        required: [citation, kind, detail]
+    ok:
+      type: boolean
+      description: True iff misses is empty.
+    report:
+      type: string
+      description: Human-readable miss list; empty when ok.
+  required: [checked, misses, ok, report]
