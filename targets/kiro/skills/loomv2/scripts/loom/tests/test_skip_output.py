@@ -228,3 +228,18 @@ def test_skip_output_survives_plan_yaml_roundtrip(tmp_path):
     plan = read_plan_yaml(wd)
     slot = next(t for t in plan.tasks if isinstance(t, Task) and t.id == "slot")
     assert slot.skip_output == {"findings": ""}
+
+
+def test_skip_output_survives_subgraph_inlining():
+    """Regression: _prefix_task must copy skip_output — inlined child
+    slot tasks silently lost their defaults and were skipped (cascade-
+    skipping their AND-dependents) instead of completing done."""
+    from pathlib import Path
+    from loom.engine.inline import _prefix_task
+    from loom.engine.models import Task
+
+    child = Task(id="slot", kind="agent", when="${task:plan:q} != ''",
+                 skip_output={"findings": ""})
+    prefixed = _prefix_task(child, "ov", "deadbeef", Path("/tmp"))
+    assert prefixed.skip_output == {"findings": ""}
+    assert prefixed.id == "ov/slot"

@@ -79,6 +79,10 @@ class SubgraphSpec:
     depends_on_any: list[str] = field(default_factory=list)
     when: str | None = None
     input_mapping: dict[str, str] | None = None
+    #: Specific child graph file (a scale variant); None selects the
+    #: child root's default graph.yaml. root_path is always the file's
+    #: parent directory when this is set.
+    graph_path: Path | None = None
 
 
 @dataclass

@@ -60,7 +60,18 @@ tasks:
 ```
 
 `root` is resolved relative to the declaring `graph.yaml`, or absolute for a
-cross-skill embed. Child tasks are inlined under the instance id, so a task
+cross-skill embed; it loads the child's default `graph.yaml`. To embed a
+specific child variant instead, set `graph:` (exactly one of `root`/`graph`)
+with a path to the graph FILE — the child loom root is derived as the file's
+parent directory:
+
+```yaml
+  - id: review-docs
+    kind: subgraph
+    version: 1
+    graph: ../child/loom/graph-s.yaml
+```
+ Child tasks are inlined under the instance id, so a task
 `lint` inside `review-docs` addresses as `review-docs/lint` — this is the
 canonical namespace-path surfaced by `$LOOM runtime next`. The child graph's
 entry `input` and exit `output` become the subgraph's own IO contract, so

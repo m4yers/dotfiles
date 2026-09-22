@@ -53,17 +53,26 @@ def validate_composition(plan: LoomPlan) -> None:
                 raise SubgraphContractError(
                     f"subgraph {entry.id!r}: root {child_root} not found"
                 )
-            # Meta-validate child graph.yaml.
-            load_graph_yaml(child_root)
+            child_graph = entry.graph_path
+            if child_graph is not None and not Path(child_graph).is_file():
+                raise SubgraphContractError(
+                    f"subgraph {entry.id!r}: graph {child_graph} not found"
+                )
+            # Meta-validate the selected child graph file.
+            load_graph_yaml(child_root, child_graph)
             # Load child plan and check its single-entry/exit rule.
             from loom.plan import from_graph_yaml as _child
 
-            child_plan = _child(child_root)
+            child_plan = _child(child_root, child_graph)
             validate_single_entry_exit(child_plan)
             # Recursively validate composition of the child.
             validate_composition(child_plan)
-            # Version pins per child root.
-            check_versions(child_plan, child_root / "graph.yaml")
+            # Version pins per selected child graph file.
+            check_versions(
+                child_plan,
+                Path(child_graph) if child_graph is not None
+                else child_root / "graph.yaml",
+            )
         elif isinstance(entry, Task):
             # Ref-instancing invariants — kick in only when the task
             # was loaded with a `ref:` populating `folder`. Root-level

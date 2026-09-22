@@ -1,5 +1,5 @@
 # ============================================================
-# SCALE VARIANT (M): domains=4 research=3 impl=3 file-summary=4
+# SCALE VARIANT (M): research=3 reviewers=1+4 (prelude via project-overview subgraph)
 # graph-s.yaml / graph-m.yaml / graph-l.yaml are three views of
 # ONE pipeline over shared task folders. When you modify the
 # wiring in THIS file, apply the same change to the other two
@@ -8,188 +8,23 @@
 # graph-m.yaml is the default the SKILL.md driver selects.
 # ============================================================
 tasks:
-- id: ingest
-  kind: tool
+- id: overview
+  kind: subgraph
   version: 1
-- id: code-inventory
-  kind: tool
-  version: 2
-  depends_on_all:
-  - ingest
-  input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    cache_dir: ${task:ingest:cache_dir}
-    cache_mode: ${task:ingest:cache_mode}
-- id: build-detect
-  kind: tool
-  version: 1
-  depends_on_all:
-  - ingest
-  input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    build_system_override: ${task:ingest:build_system_override}
-    cache_dir: ${task:ingest:cache_dir}
-    cache_mode: ${task:ingest:cache_mode}
-- id: test-detect
-  kind: tool
-  version: 1
-  depends_on_all:
-  - build-detect
-  input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    build_system: ${task:build-detect:build_system}
-    build_installed_skills: ${task:build-detect:installed_skills}
-    test_system_override: ${task:ingest:test_system_override}
-    cache_dir: ${task:ingest:cache_dir}
-    cache_mode: ${task:ingest:cache_mode}
-- id: dep-analysis
-  kind: tool
-  version: 1
-  depends_on_all:
-  - ingest
-  input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    cache_dir: ${task:ingest:cache_dir}
-    cache_mode: ${task:ingest:cache_mode}
-- id: symbol-index
-  kind: tool
-  version: 2
-  depends_on_all:
-  - ingest
-  input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    cache_dir: ${task:ingest:cache_dir}
-- id: code-analysis-plan
-  kind: tool
-  version: 3
-  depends_on_all:
-  - code-inventory
-  - symbol-index
-  input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    total_files: ${task:code-inventory:total_files}
-    files: ${task:code-inventory:candidate_files}
-    entrypoints: ${task:code-inventory:entrypoints}
-    cache_dir: ${task:ingest:cache_dir}
-    cache_mode: ${task:ingest:cache_mode}
-    symbol_index_path: ${task:symbol-index:index_path}
-    max_batches: '4'
-- id: domain-detect
-  kind: agent
-  version: 3
-  depends_on_all:
-  - code-inventory
-  - dep-analysis
-  - symbol-index
-  input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    total_files: ${task:code-inventory:total_files}
-    top_dirs: ${task:code-inventory:top_dirs}
-    entrypoints: ${task:code-inventory:entrypoints}
-    languages: ${task:code-inventory:languages}
-    dependencies: ${task:dep-analysis:dependencies}
-    unresolved_imports: ${task:dep-analysis:unresolved_imports}
-    symbol_index_path: ${task:symbol-index:index_path}
-    max_domains: '4'
-- id: file-summary-b1
-  kind: agent
-  version: 1
-  ref: file-summary
-  depends_on_all:
-  - code-analysis-plan
-  input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    files: ${task:code-analysis-plan:batches[0].files}
-  when: length(${task:code-analysis-plan:batches[0].files}) > `0`
-  skip_output:
-    summaries: []
-- id: file-summary-b2
-  kind: agent
-  version: 1
-  ref: file-summary
-  depends_on_all:
-  - code-analysis-plan
-  input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    files: ${task:code-analysis-plan:batches[1].files}
-  when: length(${task:code-analysis-plan:batches[1].files}) > `0`
-  skip_output:
-    summaries: []
-- id: file-summary-b3
-  kind: agent
-  version: 1
-  ref: file-summary
-  depends_on_all:
-  - code-analysis-plan
-  input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    files: ${task:code-analysis-plan:batches[2].files}
-  when: length(${task:code-analysis-plan:batches[2].files}) > `0`
-  skip_output:
-    summaries: []
-- id: file-summary-b4
-  kind: agent
-  version: 1
-  ref: file-summary
-  depends_on_all:
-  - code-analysis-plan
-  input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    files: ${task:code-analysis-plan:batches[3].files}
-  when: length(${task:code-analysis-plan:batches[3].files}) > `0`
-  skip_output:
-    summaries: []
-- id: workspace-brief
-  kind: tool
-  version: 2
-  depends_on_all:
-  - code-inventory
-  - dep-analysis
-  - build-detect
-  - test-detect
-  - code-analysis-plan
-  - file-summary-b1
-  - file-summary-b2
-  - file-summary-b3
-  - file-summary-b4
-  input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    cache_dir: ${task:ingest:cache_dir}
-    cache_mode: ${task:ingest:cache_mode}
-    total_files: ${task:code-inventory:total_files}
-    total_bytes: ${task:code-inventory:total_bytes}
-    languages: ${task:code-inventory:languages}
-    top_dirs: ${task:code-inventory:top_dirs}
-    entrypoints: ${task:code-inventory:entrypoints}
-    dependencies: ${task:dep-analysis:dependencies}
-    unresolved_imports: ${task:dep-analysis:unresolved_imports}
-    build_system: ${task:build-detect:build_system}
-    build_provenance: ${task:build-detect:provenance}
-    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
-    test_system: ${task:test-detect:test_system}
-    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
-    summarize_mode: ${task:code-analysis-plan:summarize_mode}
-    cached_summaries: ${task:code-analysis-plan:cached_summaries}
-    summaries_b1: ${task:file-summary-b1:summaries}
-    summaries_b2: ${task:file-summary-b2:summaries}
-    summaries_b3: ${task:file-summary-b3:summaries}
-    summaries_b4: ${task:file-summary-b4:summaries}
+  graph: ../../project-overview/loom/graph-m.yaml
 - id: research-plan
   kind: agent
   version: 4
   depends_on_all:
-  - ingest
-  - build-detect
-  - test-detect
-  - workspace-brief
+  - overview
   input:
-    description: ${task:ingest:description}
-    workspace_abs: ${task:ingest:workspace_abs}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
-    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
-    workspace_brief: ${task:workspace-brief:brief}
+    description: ${task:overview:envelope.description}
+    workspace_abs: ${task:overview:envelope.workspace_abs}
+    build_system: ${task:overview:envelope.build_system}
+    installed_skills: ${task:overview:envelope.build_installed_skills}
+    fallback_build_cmd: ${task:overview:envelope.fallback_build_cmd}
+    fallback_test_cmd: ${task:overview:envelope.fallback_test_cmd}
+    workspace_brief: ${task:overview:envelope.workspace_brief}
     max_questions: '3'
 - id: research-q1
   kind: agent
@@ -246,16 +81,14 @@ tasks:
   version: 1
   depends_on_all:
   - research-merge
-  - domain-detect
-  - build-detect
-  - test-detect
+  - overview
   input:
     report: ${task:research-merge:report}
     open_questions: ${task:research-merge:open_questions}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
-    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
+    build_system: ${task:overview:envelope.build_system}
+    installed_skills: ${task:overview:envelope.build_installed_skills}
+    fallback_build_cmd: ${task:overview:envelope.fallback_build_cmd}
+    fallback_test_cmd: ${task:overview:envelope.fallback_test_cmd}
     revise_reason: ${task:design-review-merge@prev:revise_reason}
 - id: design-review-swe
   kind: agent
@@ -279,7 +112,7 @@ tasks:
     design: ${task:design-author:design}
     decisions: ${task:design-author:decisions}
     open_risks: ${task:design-author:open_risks}
-    reviewer_role: ${task:domain-detect:domains[0].reviewer_role}
+    reviewer_role: ${task:overview:envelope.domains[0].reviewer_role}
 - id: design-review-d2
   kind: agent
   version: 2
@@ -290,7 +123,7 @@ tasks:
     design: ${task:design-author:design}
     decisions: ${task:design-author:decisions}
     open_risks: ${task:design-author:open_risks}
-    reviewer_role: ${task:domain-detect:domains[1].reviewer_role}
+    reviewer_role: ${task:overview:envelope.domains[1].reviewer_role}
 - id: design-review-d3
   kind: agent
   version: 2
@@ -301,7 +134,7 @@ tasks:
     design: ${task:design-author:design}
     decisions: ${task:design-author:decisions}
     open_risks: ${task:design-author:open_risks}
-    reviewer_role: ${task:domain-detect:domains[2].reviewer_role}
+    reviewer_role: ${task:overview:envelope.domains[2].reviewer_role}
 - id: design-review-d4
   kind: agent
   version: 2
@@ -312,7 +145,7 @@ tasks:
     design: ${task:design-author:design}
     decisions: ${task:design-author:decisions}
     open_risks: ${task:design-author:open_risks}
-    reviewer_role: ${task:domain-detect:domains[3].reviewer_role}
+    reviewer_role: ${task:overview:envelope.domains[3].reviewer_role}
 - id: citation-check
   kind: tool
   version: 1
@@ -320,7 +153,7 @@ tasks:
   - design-author
   input:
     design: ${task:design-author:design}
-    workspace_abs: ${task:ingest:workspace_abs}
+    workspace_abs: ${task:overview:envelope.workspace_abs}
 - id: design-review-merge
   kind: tool
   version: 4
@@ -340,16 +173,16 @@ tasks:
       error handling, and operational safety.
     decision_d1: ${task:design-review-d1:decision}
     revise_reason_d1: ${task:design-review-d1:revise_reason}
-    role_d1: ${task:domain-detect:domains[0].reviewer_role}
+    role_d1: ${task:overview:envelope.domains[0].reviewer_role}
     decision_d2: ${task:design-review-d2:decision}
     revise_reason_d2: ${task:design-review-d2:revise_reason}
-    role_d2: ${task:domain-detect:domains[1].reviewer_role}
+    role_d2: ${task:overview:envelope.domains[1].reviewer_role}
     decision_d3: ${task:design-review-d3:decision}
     revise_reason_d3: ${task:design-review-d3:revise_reason}
-    role_d3: ${task:domain-detect:domains[2].reviewer_role}
+    role_d3: ${task:overview:envelope.domains[2].reviewer_role}
     decision_d4: ${task:design-review-d4:decision}
     revise_reason_d4: ${task:design-review-d4:revise_reason}
-    role_d4: ${task:domain-detect:domains[3].reviewer_role}
+    role_d4: ${task:overview:envelope.domains[3].reviewer_role}
 - id: design-gate
   kind: human
   version: 1
@@ -365,16 +198,14 @@ tasks:
   version: 5
   depends_on_all:
   - design-gate
-  - domain-detect
-  - build-detect
-  - test-detect
+  - overview
   input:
     design: ${task:design-author:design}
     human_note: ${task:design-gate:note}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
-    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
+    build_system: ${task:overview:envelope.build_system}
+    installed_skills: ${task:overview:envelope.build_installed_skills}
+    fallback_build_cmd: ${task:overview:envelope.fallback_build_cmd}
+    fallback_test_cmd: ${task:overview:envelope.fallback_test_cmd}
     revise_reason: ${task:tasks-review-merge@prev:revise_reason}
 - id: tasks-review-swe
   kind: agent
@@ -396,7 +227,7 @@ tasks:
   input:
     tasks: ${task:tasks-author:tasks}
     num_tasks: ${task:tasks-author:num_tasks}
-    reviewer_role: ${task:domain-detect:domains[0].reviewer_role}
+    reviewer_role: ${task:overview:envelope.domains[0].reviewer_role}
 - id: tasks-review-d2
   kind: agent
   version: 4
@@ -406,7 +237,7 @@ tasks:
   input:
     tasks: ${task:tasks-author:tasks}
     num_tasks: ${task:tasks-author:num_tasks}
-    reviewer_role: ${task:domain-detect:domains[1].reviewer_role}
+    reviewer_role: ${task:overview:envelope.domains[1].reviewer_role}
 - id: tasks-review-d3
   kind: agent
   version: 4
@@ -416,7 +247,7 @@ tasks:
   input:
     tasks: ${task:tasks-author:tasks}
     num_tasks: ${task:tasks-author:num_tasks}
-    reviewer_role: ${task:domain-detect:domains[2].reviewer_role}
+    reviewer_role: ${task:overview:envelope.domains[2].reviewer_role}
 - id: tasks-review-d4
   kind: agent
   version: 4
@@ -426,7 +257,7 @@ tasks:
   input:
     tasks: ${task:tasks-author:tasks}
     num_tasks: ${task:tasks-author:num_tasks}
-    reviewer_role: ${task:domain-detect:domains[3].reviewer_role}
+    reviewer_role: ${task:overview:envelope.domains[3].reviewer_role}
 - id: tasks-review-merge
   kind: tool
   version: 5
@@ -444,25 +275,25 @@ tasks:
       error handling, and operational safety.
     decision_d1: ${task:tasks-review-d1:decision}
     revise_reason_d1: ${task:tasks-review-d1:revise_reason}
-    role_d1: ${task:domain-detect:domains[0].reviewer_role}
+    role_d1: ${task:overview:envelope.domains[0].reviewer_role}
     num_tasks: ${task:tasks-author:num_tasks}
     decision_d2: ${task:tasks-review-d2:decision}
     revise_reason_d2: ${task:tasks-review-d2:revise_reason}
-    role_d2: ${task:domain-detect:domains[1].reviewer_role}
+    role_d2: ${task:overview:envelope.domains[1].reviewer_role}
     decision_d3: ${task:tasks-review-d3:decision}
     revise_reason_d3: ${task:tasks-review-d3:revise_reason}
-    role_d3: ${task:domain-detect:domains[2].reviewer_role}
+    role_d3: ${task:overview:envelope.domains[2].reviewer_role}
     decision_d4: ${task:tasks-review-d4:decision}
     revise_reason_d4: ${task:tasks-review-d4:revise_reason}
-    role_d4: ${task:domain-detect:domains[3].reviewer_role}
+    role_d4: ${task:overview:envelope.domains[3].reviewer_role}
 - id: workspace-guard
   kind: tool
   version: 1
   depends_on_all:
   - tasks-review-merge
   input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    feature_slug: ${task:ingest:feature_slug}
+    workspace_abs: ${task:overview:envelope.workspace_abs}
+    feature_slug: ${task:overview:envelope.feature_slug}
 - id: branch-gate
   kind: human
   version: 1
@@ -480,7 +311,7 @@ tasks:
   - branch-gate
   input:
     decision: ${task:branch-gate:decision}
-    workspace_abs: ${task:ingest:workspace_abs}
+    workspace_abs: ${task:overview:envelope.workspace_abs}
     proposed_branch: ${task:workspace-guard:proposed_branch}
 - id: pool-draw
   kind: tool
@@ -501,11 +332,11 @@ tasks:
     cursor: ${task:pool-draw:cursor}
     total: ${task:pool-draw:total}
     prior_diffs: ${task:pool-advance@prev:prior_diffs_summary}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
-    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
-    workspace_abs: ${task:ingest:workspace_abs}
+    build_system: ${task:overview:envelope.build_system}
+    installed_skills: ${task:overview:envelope.build_installed_skills}
+    fallback_build_cmd: ${task:overview:envelope.fallback_build_cmd}
+    fallback_test_cmd: ${task:overview:envelope.fallback_test_cmd}
+    workspace_abs: ${task:overview:envelope.workspace_abs}
 - id: pool-advance
   kind: tool
   version: 1
@@ -530,10 +361,10 @@ tasks:
   depends_on_all:
   - pool-advance
   input:
-    workspace_abs: ${task:ingest:workspace_abs}
-    build_system: ${task:test-detect:test_system}
-    installed_skills: ${task:test-detect:installed_skills}
-    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
+    workspace_abs: ${task:overview:envelope.workspace_abs}
+    build_system: ${task:overview:envelope.test_system}
+    installed_skills: ${task:overview:envelope.test_installed_skills}
+    fallback_test_cmd: ${task:overview:envelope.fallback_test_cmd}
 - id: review-diffs-swe
   kind: agent
   version: 4
@@ -546,8 +377,8 @@ tasks:
     verify_passed: ${task:verify-tests:passed}
     verify_stdout_tail: ${task:verify-tests:stdout_tail}
     verify_stderr_tail: ${task:verify-tests:stderr_tail}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
+    build_system: ${task:overview:envelope.build_system}
+    installed_skills: ${task:overview:envelope.build_installed_skills}
     reviewer_role: You are a principal software engineer reviewing for correctness, maintainability, API
       design, error handling, and operational safety.
     diff_bundle: ${task:pool-advance:diff_bundle}
@@ -565,9 +396,9 @@ tasks:
     verify_passed: ${task:verify-tests:passed}
     verify_stdout_tail: ${task:verify-tests:stdout_tail}
     verify_stderr_tail: ${task:verify-tests:stderr_tail}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    reviewer_role: ${task:domain-detect:domains[0].reviewer_role}
+    build_system: ${task:overview:envelope.build_system}
+    installed_skills: ${task:overview:envelope.build_installed_skills}
+    reviewer_role: ${task:overview:envelope.domains[0].reviewer_role}
     diff_bundle: ${task:pool-advance:diff_bundle}
     failed_task_ids: ${task:pool-advance:failed_task_ids}
     cmds_bundle: ${task:pool-advance:cmds_bundle}
@@ -583,9 +414,9 @@ tasks:
     verify_passed: ${task:verify-tests:passed}
     verify_stdout_tail: ${task:verify-tests:stdout_tail}
     verify_stderr_tail: ${task:verify-tests:stderr_tail}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    reviewer_role: ${task:domain-detect:domains[1].reviewer_role}
+    build_system: ${task:overview:envelope.build_system}
+    installed_skills: ${task:overview:envelope.build_installed_skills}
+    reviewer_role: ${task:overview:envelope.domains[1].reviewer_role}
     diff_bundle: ${task:pool-advance:diff_bundle}
     failed_task_ids: ${task:pool-advance:failed_task_ids}
     cmds_bundle: ${task:pool-advance:cmds_bundle}
@@ -601,9 +432,9 @@ tasks:
     verify_passed: ${task:verify-tests:passed}
     verify_stdout_tail: ${task:verify-tests:stdout_tail}
     verify_stderr_tail: ${task:verify-tests:stderr_tail}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    reviewer_role: ${task:domain-detect:domains[2].reviewer_role}
+    build_system: ${task:overview:envelope.build_system}
+    installed_skills: ${task:overview:envelope.build_installed_skills}
+    reviewer_role: ${task:overview:envelope.domains[2].reviewer_role}
     diff_bundle: ${task:pool-advance:diff_bundle}
     failed_task_ids: ${task:pool-advance:failed_task_ids}
     cmds_bundle: ${task:pool-advance:cmds_bundle}
@@ -619,9 +450,9 @@ tasks:
     verify_passed: ${task:verify-tests:passed}
     verify_stdout_tail: ${task:verify-tests:stdout_tail}
     verify_stderr_tail: ${task:verify-tests:stderr_tail}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    reviewer_role: ${task:domain-detect:domains[3].reviewer_role}
+    build_system: ${task:overview:envelope.build_system}
+    installed_skills: ${task:overview:envelope.build_installed_skills}
+    reviewer_role: ${task:overview:envelope.domains[3].reviewer_role}
     diff_bundle: ${task:pool-advance:diff_bundle}
     failed_task_ids: ${task:pool-advance:failed_task_ids}
     cmds_bundle: ${task:pool-advance:cmds_bundle}
@@ -643,19 +474,19 @@ tasks:
     verdict_d1: ${task:review-diffs-d1:verdict}
     findings_d1: ${task:review-diffs-d1:findings}
     summary_d1: ${task:review-diffs-d1:summary}
-    role_d1: ${task:domain-detect:domains[0].reviewer_role}
+    role_d1: ${task:overview:envelope.domains[0].reviewer_role}
     verdict_d2: ${task:review-diffs-d2:verdict}
     findings_d2: ${task:review-diffs-d2:findings}
     summary_d2: ${task:review-diffs-d2:summary}
-    role_d2: ${task:domain-detect:domains[1].reviewer_role}
+    role_d2: ${task:overview:envelope.domains[1].reviewer_role}
     verdict_d3: ${task:review-diffs-d3:verdict}
     findings_d3: ${task:review-diffs-d3:findings}
     summary_d3: ${task:review-diffs-d3:summary}
-    role_d3: ${task:domain-detect:domains[2].reviewer_role}
+    role_d3: ${task:overview:envelope.domains[2].reviewer_role}
     verdict_d4: ${task:review-diffs-d4:verdict}
     findings_d4: ${task:review-diffs-d4:findings}
     summary_d4: ${task:review-diffs-d4:summary}
-    role_d4: ${task:domain-detect:domains[3].reviewer_role}
+    role_d4: ${task:overview:envelope.domains[3].reviewer_role}
 - id: review-fix
   kind: agent
   version: 1
@@ -664,11 +495,11 @@ tasks:
   input:
     findings: ${task:review-diffs-merge:findings}
     summary: ${task:review-diffs-merge:summary}
-    workspace_abs: ${task:ingest:workspace_abs}
-    build_system: ${task:build-detect:build_system}
-    installed_skills: ${task:build-detect:installed_skills}
-    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
-    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
+    workspace_abs: ${task:overview:envelope.workspace_abs}
+    build_system: ${task:overview:envelope.build_system}
+    installed_skills: ${task:overview:envelope.build_installed_skills}
+    fallback_build_cmd: ${task:overview:envelope.fallback_build_cmd}
+    fallback_test_cmd: ${task:overview:envelope.fallback_test_cmd}
     verify_test_cmd_used: ${task:verify-tests:test_cmd_used}
 - id: final-gate
   kind: human

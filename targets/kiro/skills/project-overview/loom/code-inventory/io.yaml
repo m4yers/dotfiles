@@ -1,0 +1,79 @@
+version: 3
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    workspace_abs: {type: string}
+    cache_prefix:
+      type: string
+      description: |
+        Composed cache prefix from overview-ingest (empty when
+        cache_mode is bypass). Passed verbatim to `cache.sh` as
+        `<cache_prefix>/code-inventory`.
+    cache_mode:
+      type: string
+      enum: [read-write, read-only, write-only, bypass]
+  required: [workspace_abs, cache_prefix, cache_mode]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    total_files: {type: integer}
+    total_bytes: {type: integer}
+    languages:
+      type: array
+      description: Per-language rollup, sorted by bytes desc.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          language: {type: string}
+          files: {type: integer}
+          loc: {type: integer}
+          bytes: {type: integer}
+        required: [language, files, loc, bytes]
+    top_dirs:
+      type: array
+      description: Depth<=2 directories by bytes desc, capped at 20.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path: {type: string}
+          files: {type: integer}
+          bytes: {type: integer}
+        required: [path, files, bytes]
+    entrypoints:
+      type: array
+      description: Heuristic entrypoints (mains, CLIs, scripts).
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path: {type: string}
+          kind: {type: string}
+        required: [path, kind]
+    candidate_files:
+      type: array
+      description: |
+        Bounded summarisation candidates (source-language files up
+        to 128 KB, entrypoints first then largest, capped at 2000).
+        The full listing never crosses the graph — multi-MB inputs
+        made engine YAML round-trips dominate wall time.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path: {type: string}
+          bytes: {type: integer}
+          language: {type: string}
+        required: [path, bytes, language]
+    cache_hit: {type: boolean}
+  required:
+    - total_files
+    - total_bytes
+    - languages
+    - top_dirs
+    - entrypoints
+    - candidate_files
+    - cache_hit

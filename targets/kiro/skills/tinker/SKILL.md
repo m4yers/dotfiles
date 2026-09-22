@@ -6,11 +6,12 @@ description: Loomv2-driven feature development pipeline — plan-driven research
 
 # Tinker
 
-Drives a feature end-to-end as a loomv2 graph: ingest → workspace
-intelligence (cached per workspace+commit under `/tmp/tinker-cache`) →
-research fan-out → design → tasks (unbounded ordered pool) → branch
-gate → implementation pool loop (single serial lane, one sub-agent
-session per task) → verify-tests → review loop → final gate. Design,
+Drives a feature end-to-end as a loomv2 graph: workspace intelligence
+(the `project-overview` skill embedded as a subgraph — cached per
+workspace+commit) → research fan-out → design → tasks (unbounded
+ordered pool) → branch gate → implementation pool loop (single serial
+lane, one sub-agent session per task) → verify-tests → review loop →
+final gate. Design,
 tasks, and diff reviews are agent-driven (1 SWE + N domain reviewers,
 deterministic tool merge); the human touches the run at
 `design-gate` (always), `branch-gate` (dirty tree only), and
@@ -19,6 +20,8 @@ deterministic tool merge); the human touches the run at
 ## Dependencies
 
 - `loomv2` — DAG execution engine driving the tinker graph.
+- `project-overview` — workspace-intelligence stage, embedded as the
+  `overview` subgraph (entry of the composed plan).
 - `tiling` — activity tracking during the run.
 - `template` — used internally by prompts (secure-llm frame + role
   prompt).
@@ -35,8 +38,10 @@ deterministic tool merge); the human touches the run at
 - **cache-mode** (optional): `read-write` (default), `read-only`,
   `write-only`, or `bypass`.
 - **scale** (optional): `s`, `m` (default), or `l` — selects
-  `loom/graph-<scale>.yaml`. Controls domains / research questions /
-  file-summary batches: 2/2/2 (s), 4/3/4 (m), 6/5/6 (l). The
+  `loom/graph-<scale>.yaml`. Controls research questions (2/3/5) and
+  reviewer panels (1 SWE + 2/4/6 domain reviewers). The embedded
+  project-overview prelude always runs at its own full width
+  (unused fan-out self-limits via `skip_output`), and the
   implementation pool loop is identical across scales.
 
 ## Commands
@@ -152,9 +157,13 @@ array with no `depends_on`.
 
 Tinker specifics:
 
-- Unused fan-out slots (`research-q*`, `file-summary-b*`) never
-  surface: their graph entries carry `when:` + `skip_output`, so the
-  engine completes them with schema-valid empty outputs in-engine.
+- Unused fan-out slots (`research-q*`, and the embedded
+  `overview/file-summary-b*`) never surface: their graph entries
+  carry `when:` + `skip_output`, so the engine completes them with
+  schema-valid empty outputs in-engine.
+- Embedded project-overview tasks surface under the `overview/`
+  namespace (e.g. `overview/domain-detect`); dispatch and complete
+  them by that canonical address exactly as any other task.
 - Implementation pool loop: `impl-round` surfaces once per pool task
   (the `pool-advance` latch re-materialises the region until the pool
   drains). Only one round is ever ready; the prompt already carries

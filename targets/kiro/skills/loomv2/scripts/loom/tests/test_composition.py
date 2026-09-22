@@ -250,3 +250,120 @@ def test_composition_rejects_kind_mismatch_on_shared_folder(tmp_path):
     plan = from_graph_yaml(root)
     with pytest.raises(TaskRefError, match="detected kind"):
         validate_composition(plan)
+
+
+def test_child_internal_refs_survive_parent_retarget(tmp_path):
+    """Regression: parent-side retargeting of ${task:<subgraph-id>...}
+    must not corrupt already-namespaced CHILD refs whose address starts
+    with the instance id (blind prefix replace turned
+    ${task:ov/entry:x} into ${task:ov/exit/entry:x})."""
+    from loom.engine.inline import _retarget_refs
+
+    # exact subgraph ref -> retargeted to exit
+    assert _retarget_refs("${task:ov:envelope.x}", "ov", "ov/exit") == \
+        "${task:ov/exit:envelope.x}"
+    assert _retarget_refs("${task:ov}", "ov", "ov/exit") == "${task:ov/exit}"
+    assert _retarget_refs("${task:ov@prev:x}", "ov", "ov/exit") == \
+        "${task:ov/exit@prev:x}"
+    # child-internal namespaced ref -> untouched
+    assert _retarget_refs("${task:ov/entry:workspace}", "ov", "ov/exit") == \
+        "${task:ov/entry:workspace}"
+
+
+def _seed_variant_child(tmp_path):
+    """Child loom root with NO default graph.yaml — only graph-s.yaml."""
+    import textwrap, yaml
+    root = tmp_path / "child" / "loom"
+    task = root / "echo"
+    task.mkdir(parents=True)
+    (task / "io.yaml").write_text(textwrap.dedent("""\
+        version: 1
+        input:
+          type: object
+          additionalProperties: false
+          properties:
+            word: {type: string}
+          required: [word]
+        output:
+          type: object
+          additionalProperties: false
+          properties:
+            echoed: {type: string}
+          required: [echoed]
+    """))
+    (task / "tool.py").write_text(
+        "from io_types import EchoInput, EchoOutput\n\n\n"
+        "def echo(inp):\n    return EchoOutput(echoed=inp.word)\n")
+    from loom.scaffold.task import io_python
+    io_python(root, "echo")
+    (root / "graph-s.yaml").write_text(yaml.safe_dump({"tasks": [
+        {"id": "echo", "kind": "tool", "version": 1,
+         "input": {"word": "hi"}},
+    ]}, sort_keys=False))
+    return root
+
+
+def test_subgraph_graph_field_selects_variant(tmp_path):
+    """A `graph:` subgraph entry loads the named child variant file and
+    derives the child root from its directory (no default graph.yaml
+    needed in the child)."""
+    import textwrap, yaml
+    from loom import init
+    from loom.engine.models import Task
+
+    child_root = _seed_variant_child(tmp_path)
+
+    parent = tmp_path / "parent" / "loom"
+    ptask = parent / "after"
+    ptask.mkdir(parents=True)
+    (ptask / "io.yaml").write_text(textwrap.dedent("""\
+        version: 1
+        input:
+          type: object
+          additionalProperties: false
+          properties:
+            echoed: {type: string}
+          required: [echoed]
+        output:
+          type: object
+          additionalProperties: false
+          properties:
+            done: {type: string}
+          required: [done]
+    """))
+    (ptask / "tool.py").write_text(
+        "from io_types import AfterInput, AfterOutput\n\n\n"
+        "def after(inp):\n    return AfterOutput(done=inp.echoed)\n")
+    from loom.scaffold.task import io_python
+    io_python(parent, "after")
+    (parent / "graph.yaml").write_text(yaml.safe_dump({"tasks": [
+        {"id": "sub", "kind": "subgraph", "version": 1,
+         "graph": "../../child/loom/graph-s.yaml"},
+        {"id": "after", "kind": "tool", "version": 1,
+         "depends_on_all": ["sub"],
+         "input": {"echoed": "${task:sub:echoed}"}},
+    ]}, sort_keys=False))
+
+    runtime = init(tmp_path / "wd", loom_root=parent)
+    ids = [t.id for t in runtime.plan.tasks if isinstance(t, Task)]
+    assert "sub/echo" in ids and "after" in ids
+
+
+def test_subgraph_requires_exactly_one_of_root_or_graph(tmp_path):
+    import yaml
+    import pytest
+    from loom.errors import TaskRefError
+    from loom.plan import from_graph_yaml
+
+    child_root = _seed_variant_child(tmp_path)
+    parent = tmp_path / "p" / "loom"
+    parent.mkdir(parents=True)
+
+    for entry in (
+        {"id": "sub", "kind": "subgraph", "version": 1},                     # neither
+        {"id": "sub", "kind": "subgraph", "version": 1,                      # both
+         "root": str(child_root), "graph": str(child_root / "graph-s.yaml")},
+    ):
+        (parent / "graph.yaml").write_text(yaml.safe_dump({"tasks": [entry]}))
+        with pytest.raises(TaskRefError, match="exactly one"):
+            from_graph_yaml(parent)

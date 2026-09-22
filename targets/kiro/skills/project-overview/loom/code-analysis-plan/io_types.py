@@ -1,0 +1,67 @@
+# generated from io.yaml v4 by $LOOM task io-python — do not edit
+from dataclasses import dataclass
+from typing import ClassVar
+
+
+@dataclass
+class CodeAnalysisPlanInput:
+    VERSION: ClassVar[int] = 4
+    workspace_abs: str
+    total_files: int
+    files: list
+    entrypoints: list
+    cache_prefix: str
+    blob_prefix: str
+    cache_mode: str
+    max_batches: str
+    symbol_index_path: str
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "CodeAnalysisPlanInput":
+        return cls(
+            workspace_abs=d["workspace_abs"],
+            total_files=d["total_files"],
+            files=d["files"],
+            entrypoints=d["entrypoints"],
+            cache_prefix=d["cache_prefix"],
+            blob_prefix=d["blob_prefix"],
+            cache_mode=d["cache_mode"],
+            max_batches=d["max_batches"],
+            symbol_index_path=d["symbol_index_path"],
+        )
+
+    def to_dict(self) -> dict:
+        out: dict = {}
+        out["workspace_abs"] = self.workspace_abs
+        out["total_files"] = self.total_files
+        out["files"] = self.files
+        out["entrypoints"] = self.entrypoints
+        out["cache_prefix"] = self.cache_prefix
+        out["blob_prefix"] = self.blob_prefix
+        out["cache_mode"] = self.cache_mode
+        out["max_batches"] = self.max_batches
+        out["symbol_index_path"] = self.symbol_index_path
+        return out
+
+
+@dataclass
+class CodeAnalysisPlanOutput:
+    VERSION: ClassVar[int] = 4
+    summarize_mode: str
+    cached_summaries: list
+    batches: list
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "CodeAnalysisPlanOutput":
+        return cls(
+            summarize_mode=d["summarize_mode"],
+            cached_summaries=d["cached_summaries"],
+            batches=d["batches"],
+        )
+
+    def to_dict(self) -> dict:
+        out: dict = {}
+        out["summarize_mode"] = self.summarize_mode
+        out["cached_summaries"] = self.cached_summaries
+        out["batches"] = self.batches
+        return out

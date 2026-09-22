@@ -61,7 +61,7 @@ def expand_subgraphs(plan: LoomPlan) -> LoomPlan:
                     f"sibling instance id {entry.id!r} used twice at the same level"
                 )
             seen_ids.add(entry.id)
-            child_plan = _load_child_plan(entry.root_path)
+            child_plan = _load_child_plan(entry.root_path, entry.graph_path)
             child_plan = expand_subgraphs(child_plan)  # recursive inline
             child_entry, child_exit = _find_entry_exit(child_plan)
             # 8 hex chars = 32 bits of entropy. Instance UIDs disambiguate
@@ -104,18 +104,31 @@ def expand_subgraphs(plan: LoomPlan) -> LoomPlan:
         t.depends_on_any = [_retarget_dep(d, remap) for d in t.depends_on_any]
         if t.when:
             for sub_id, (_entry_addr, exit_addr) in remap.items():
-                t.when = t.when.replace(
-                    "${task:" + sub_id, "${task:" + exit_addr
-                )
+                t.when = _retarget_refs(t.when, sub_id, exit_addr)
         if t.input_mapping:
             for field, placeholder in list(t.input_mapping.items()):
                 for sub_id, (_entry_addr, exit_addr) in remap.items():
-                    placeholder = placeholder.replace(
-                        "${task:" + sub_id, "${task:" + exit_addr
-                    )
+                    placeholder = _retarget_refs(placeholder, sub_id, exit_addr)
                 t.input_mapping[field] = placeholder
 
     return LoomPlan(loom_root=plan.loom_root, tasks=new_tasks)
+
+
+def _retarget_refs(text: str, sub_id: str, exit_addr: str) -> str:
+    """Rewrite ``${task:<sub_id>...}`` refs to the child exit address.
+
+    Boundary-aware: the sub_id must be the WHOLE address (followed by
+    ``:``, ``@`` or ``}``), so already-namespaced child refs like
+    ``${task:<sub_id>/<child-task>:...}`` are left untouched — a blind
+    prefix replace would corrupt them into
+    ``<sub_id>/<exit>/<child-task>``.
+    """
+    for boundary in (":", "@", "}"):
+        text = text.replace(
+            "${task:" + sub_id + boundary,
+            "${task:" + exit_addr + boundary,
+        )
+    return text
 
 
 def _prefix_task(task: Task, instance_id: str, instance_uid: str, source_root: Path) -> Task:
@@ -136,6 +149,7 @@ def _prefix_task(task: Task, instance_id: str, instance_uid: str, source_root: P
         depends_on_all=[f"{instance_id}/{d}" for d in task.depends_on_all],
         depends_on_any=[f"{instance_id}/{d}" for d in task.depends_on_any],
         when=_prefix_refs(task.when, instance_id) if task.when else None,
+        skip_output=task.skip_output,
         latch=task.latch,
         input_mapping=prefixed_mapping,
         folder=task.folder,

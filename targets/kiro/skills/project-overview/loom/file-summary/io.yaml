@@ -1,0 +1,59 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    workspace_abs: {type: string}
+    files:
+      type: array
+      description: |
+        Files this slot summarises. Unused slots (empty list) are
+        completed in-engine via the graph entry's `when:` +
+        `skip_output` and never reach an agent.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path: {type: string}
+          blob_sha: {type: string}
+          symbols:
+            type: array
+            items: {type: string}
+        required: [path, blob_sha, symbols]
+    blob_prefix:
+      type: string
+      description: |
+        Content-addressed blob prefix `<namespace-slug>/files` from
+        overview-ingest (empty when cache_mode is bypass). The agent
+        writes each summary to `<blob_prefix>/<blob_sha>` via
+        `cache.sh set`. Empty string skips the blob write.
+    cache_mode:
+      type: string
+      enum: [read-write, read-only, write-only, bypass]
+      description: |
+        Cache mode from overview-ingest. The agent MUST export it as
+        `CACHE_MODE` before invoking `cache.sh` so the cache honours
+        read-only / write-only / bypass semantics.
+    __loom: {}
+    __task: {}
+  required: [workspace_abs, files, blob_prefix, cache_mode, __loom, __task]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    summaries:
+      type: array
+      description: |
+        One entry per input file (empty when the slot was unused).
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path: {type: string}
+          blob_sha: {type: string}
+          purpose:
+            type: string
+            maxLength: 400
+            description: 1-2 sentence summary of what the file does/is for.
+        required: [path, blob_sha, purpose]
+  required: [summaries]

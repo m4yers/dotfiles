@@ -111,6 +111,7 @@ def subgraph(
     depends_on_any: list[str] | None = None,
     when: str | None = None,
     input_mapping: dict[str, str] | None = None,
+    graph: Path | None = None,
 ) -> SubgraphSpec:
     """Declare a subgraph instance.
 
@@ -133,6 +134,7 @@ def subgraph(
         depends_on_any=list(depends_on_any or []),
         when=when,
         input_mapping=dict(input_mapping) if input_mapping is not None else None,
+        graph_path=Path(graph) if graph is not None else None,
     )
 
 
@@ -236,9 +238,22 @@ def from_graph_yaml(loom_root: Path, graph: Path | str | None = None) -> LoomPla
                     f"{ref!r}`; `ref` is not valid on kind=subgraph "
                     "(use the entry's own `root:` for cross-graph reuse)."
                 )
-            raw_root = Path(entry["root"])
-            child_root = raw_root if raw_root.is_absolute() else (Path(loom_root) / raw_root).resolve()
-            task = subgraph(root=child_root, **common)
+            raw_root = entry.get("root")
+            raw_graph = entry.get("graph")
+            if (raw_root is None) == (raw_graph is None):
+                raise TaskRefError(
+                    f"subgraph entry {entry['id']!r} must set exactly one "
+                    "of `root:` (child loom root, default graph.yaml) or "
+                    "`graph:` (specific child graph file)."
+                )
+            if raw_graph is not None:
+                g = Path(raw_graph)
+                child_graph = g if g.is_absolute() else (Path(loom_root) / g).resolve()
+                task = subgraph(root=child_graph.parent, graph=child_graph, **common)
+            else:
+                r = Path(raw_root)
+                child_root = r if r.is_absolute() else (Path(loom_root) / r).resolve()
+                task = subgraph(root=child_root, **common)
         else:
             factory = {"tool": tool, "agent": agent, "human": human}[kind]
             task = factory(skip_output=skip_output, **common)
@@ -281,7 +296,8 @@ def to_graph_yaml(plan: LoomPlan, path: Path) -> None:
                 "id": t.id,
                 "kind": "subgraph",
                 "version": 1,
-                "root": str(t.root_path),
+                **({"graph": str(t.graph_path)} if t.graph_path is not None
+                   else {"root": str(t.root_path)}),
             }
         else:
             io = load_io_yaml(task_source_folder(plan.loom_root, t))

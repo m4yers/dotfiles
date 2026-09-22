@@ -1,0 +1,244 @@
+# ============================================================
+# SCALE VARIANT (L): domains=6 file-summary=6
+# graph-s.yaml / graph-m.yaml / graph-l.yaml are three views of
+# ONE pipeline over shared task folders. When you modify the
+# wiring in THIS file, apply the same change to the other two
+# variants, then validate all three:
+#   $PO_LOOM validate <skill-root> --graph loom/graph-<x>.yaml
+# graph-m.yaml is the default the SKILL.md driver selects.
+# ============================================================
+tasks:
+- id: overview-ingest
+  kind: tool
+  version: 2
+- id: code-inventory
+  kind: tool
+  version: 3
+  depends_on_all:
+  - overview-ingest
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    cache_prefix: ${task:overview-ingest:cache_prefix}
+    cache_mode: ${task:overview-ingest:cache_mode}
+- id: build-detect
+  kind: tool
+  version: 2
+  depends_on_all:
+  - overview-ingest
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    build_system_override: ${task:overview-ingest:build_system_override}
+    cache_prefix: ${task:overview-ingest:cache_prefix}
+    cache_mode: ${task:overview-ingest:cache_mode}
+- id: test-detect
+  kind: tool
+  version: 2
+  depends_on_all:
+  - build-detect
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    build_system: ${task:build-detect:build_system}
+    build_installed_skills: ${task:build-detect:installed_skills}
+    test_system_override: ${task:overview-ingest:test_system_override}
+    cache_prefix: ${task:overview-ingest:cache_prefix}
+    cache_mode: ${task:overview-ingest:cache_mode}
+- id: dep-analysis
+  kind: tool
+  version: 2
+  depends_on_all:
+  - overview-ingest
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    cache_prefix: ${task:overview-ingest:cache_prefix}
+    cache_mode: ${task:overview-ingest:cache_mode}
+- id: symbol-index
+  kind: tool
+  version: 3
+  depends_on_all:
+  - overview-ingest
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+- id: code-analysis-plan
+  kind: tool
+  version: 4
+  depends_on_all:
+  - code-inventory
+  - symbol-index
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    total_files: ${task:code-inventory:total_files}
+    files: ${task:code-inventory:candidate_files}
+    entrypoints: ${task:code-inventory:entrypoints}
+    cache_prefix: ${task:overview-ingest:cache_prefix}
+    blob_prefix: ${task:overview-ingest:blob_prefix}
+    cache_mode: ${task:overview-ingest:cache_mode}
+    symbol_index_path: ${task:symbol-index:index_path}
+    max_batches: '6'
+- id: domain-detect
+  kind: agent
+  version: 3
+  depends_on_all:
+  - code-inventory
+  - dep-analysis
+  - symbol-index
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    total_files: ${task:code-inventory:total_files}
+    top_dirs: ${task:code-inventory:top_dirs}
+    entrypoints: ${task:code-inventory:entrypoints}
+    languages: ${task:code-inventory:languages}
+    dependencies: ${task:dep-analysis:dependencies}
+    unresolved_imports: ${task:dep-analysis:unresolved_imports}
+    symbol_index_path: ${task:symbol-index:index_path}
+    max_domains: '6'
+- id: file-summary-b1
+  kind: agent
+  version: 2
+  ref: file-summary
+  depends_on_all:
+  - code-analysis-plan
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    files: ${task:code-analysis-plan:batches[0].files}
+    blob_prefix: ${task:overview-ingest:blob_prefix}
+    cache_mode: ${task:overview-ingest:cache_mode}
+  when: length(${task:code-analysis-plan:batches[0].files}) > `0`
+  skip_output:
+    summaries: []
+- id: file-summary-b2
+  kind: agent
+  version: 2
+  ref: file-summary
+  depends_on_all:
+  - code-analysis-plan
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    files: ${task:code-analysis-plan:batches[1].files}
+    blob_prefix: ${task:overview-ingest:blob_prefix}
+    cache_mode: ${task:overview-ingest:cache_mode}
+  when: length(${task:code-analysis-plan:batches[1].files}) > `0`
+  skip_output:
+    summaries: []
+- id: file-summary-b3
+  kind: agent
+  version: 2
+  ref: file-summary
+  depends_on_all:
+  - code-analysis-plan
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    files: ${task:code-analysis-plan:batches[2].files}
+    blob_prefix: ${task:overview-ingest:blob_prefix}
+    cache_mode: ${task:overview-ingest:cache_mode}
+  when: length(${task:code-analysis-plan:batches[2].files}) > `0`
+  skip_output:
+    summaries: []
+- id: file-summary-b4
+  kind: agent
+  version: 2
+  ref: file-summary
+  depends_on_all:
+  - code-analysis-plan
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    files: ${task:code-analysis-plan:batches[3].files}
+    blob_prefix: ${task:overview-ingest:blob_prefix}
+    cache_mode: ${task:overview-ingest:cache_mode}
+  when: length(${task:code-analysis-plan:batches[3].files}) > `0`
+  skip_output:
+    summaries: []
+- id: file-summary-b5
+  kind: agent
+  version: 2
+  ref: file-summary
+  depends_on_all:
+  - code-analysis-plan
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    files: ${task:code-analysis-plan:batches[4].files}
+    blob_prefix: ${task:overview-ingest:blob_prefix}
+    cache_mode: ${task:overview-ingest:cache_mode}
+  when: length(${task:code-analysis-plan:batches[4].files}) > `0`
+  skip_output:
+    summaries: []
+- id: file-summary-b6
+  kind: agent
+  version: 2
+  ref: file-summary
+  depends_on_all:
+  - code-analysis-plan
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    files: ${task:code-analysis-plan:batches[5].files}
+    blob_prefix: ${task:overview-ingest:blob_prefix}
+    cache_mode: ${task:overview-ingest:cache_mode}
+  when: length(${task:code-analysis-plan:batches[5].files}) > `0`
+  skip_output:
+    summaries: []
+- id: workspace-brief
+  kind: tool
+  version: 3
+  depends_on_all:
+  - code-inventory
+  - dep-analysis
+  - build-detect
+  - test-detect
+  - code-analysis-plan
+  - file-summary-b1
+  - file-summary-b2
+  - file-summary-b3
+  - file-summary-b4
+  - file-summary-b5
+  - file-summary-b6
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    cache_prefix: ${task:overview-ingest:cache_prefix}
+    blob_prefix: ${task:overview-ingest:blob_prefix}
+    cache_mode: ${task:overview-ingest:cache_mode}
+    total_files: ${task:code-inventory:total_files}
+    total_bytes: ${task:code-inventory:total_bytes}
+    languages: ${task:code-inventory:languages}
+    top_dirs: ${task:code-inventory:top_dirs}
+    entrypoints: ${task:code-inventory:entrypoints}
+    dependencies: ${task:dep-analysis:dependencies}
+    unresolved_imports: ${task:dep-analysis:unresolved_imports}
+    build_system: ${task:build-detect:build_system}
+    build_provenance: ${task:build-detect:provenance}
+    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
+    test_system: ${task:test-detect:test_system}
+    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
+    summarize_mode: ${task:code-analysis-plan:summarize_mode}
+    cached_summaries: ${task:code-analysis-plan:cached_summaries}
+    summaries_b1: ${task:file-summary-b1:summaries}
+    summaries_b2: ${task:file-summary-b2:summaries}
+    summaries_b3: ${task:file-summary-b3:summaries}
+    summaries_b4: ${task:file-summary-b4:summaries}
+    summaries_b5: ${task:file-summary-b5:summaries}
+    summaries_b6: ${task:file-summary-b6:summaries}
+- id: overview-exit
+  kind: tool
+  version: 3
+  depends_on_all:
+  - overview-ingest
+  - build-detect
+  - test-detect
+  - domain-detect
+  - workspace-brief
+  input:
+    workspace_abs: ${task:overview-ingest:workspace_abs}
+    feature_slug: ${task:overview-ingest:feature_slug}
+    description: ${task:overview-ingest:description}
+    build_system: ${task:build-detect:build_system}
+    build_installed_skills: ${task:build-detect:installed_skills}
+    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
+    test_system: ${task:test-detect:test_system}
+    test_installed_skills: ${task:test-detect:installed_skills}
+    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
+    workspace_brief: ${task:workspace-brief:brief}
+    domains: ${task:domain-detect:domains}
+    cache_prefix: ${task:overview-ingest:cache_prefix}
+    blob_prefix: ${task:overview-ingest:blob_prefix}
+    cache_key: ${task:overview-ingest:cache_key}
+    git_head: ${task:overview-ingest:git_head}
+    dirty: ${task:overview-ingest:dirty}
+    cache_mode: ${task:overview-ingest:cache_mode}

@@ -89,7 +89,17 @@ $defs:
         type: string
         description: >-
           Only for kind=subgraph. Path to the child skill's loom root
-          (absolute or relative to this graph.yaml).
+          (absolute or relative to this graph.yaml); the child's
+          default graph.yaml is loaded. Exactly one of `root` /
+          `graph` MUST be set on a subgraph entry.
+      graph:
+        type: string
+        description: >-
+          Only for kind=subgraph. Path to a specific child graph FILE
+          (absolute or relative to this graph.yaml) — e.g. a scale
+          variant like ../child/loom/graph-s.yaml. The child loom
+          root is derived as the file's parent directory. Exactly one
+          of `root` / `graph` MUST be set on a subgraph entry.
       input:
         type: object
         additionalProperties: {type: string}
