@@ -1,4 +1,4 @@
-version: 2
+version: 3
 input:
   type: object
   additionalProperties: false
@@ -15,10 +15,14 @@ input:
   properties: &id002
     description:
       type: string
+      description: Free-text statement of the feature/problem to design.
     workspace_abs:
       type: string
+      description: Absolute path of the workspace under design.
     build_system:
       type: string
+      description: Detected or declared build-system family (e.g. make, brazil,
+        uv).
     build_installed_skills:
       type: array
       items:
@@ -40,10 +44,14 @@ input:
         - path
         - description
         - scripts
+      description: Names of installed skills that teach building this workspace;
+        take precedence over fallback_build_cmd.
     fallback_build_cmd:
       type: string
+      description: Best-effort build command used when no build skill is installed.
     fallback_test_cmd:
       type: string
+      description: Best-effort test command used when no test skill is installed.
     domains:
       type: array
       minItems: 6
@@ -65,13 +73,15 @@ input:
         - name
         - rationale
         - reviewer_role
+      description: Six problem domains detected in the workspace; reviewer_role
+        phrases each as a design-review persona.
     summaries_store:
       type: string
-      description: Absolute directory holding one <file-sha256>.yaml per summarised
-        file.
+      description: Absolute directory of per-file purpose summaries, one <file-sha256>.yaml
+        per summarised file.
     summaries_usage:
       type: string
-      description: How to look up a file's summary from the store.
+      description: How to look up a file's summary from summaries_store.
 output:
   type: object
   additionalProperties: false

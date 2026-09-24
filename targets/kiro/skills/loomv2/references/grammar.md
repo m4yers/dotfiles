@@ -54,3 +54,11 @@ so downstream validation can flag them.
   scannable (`${task:<instance>:<field>}` always addresses a
   publish-output), and flat contracts keep every dependency visible
   and individually validated.
+- INDEPENDENCE: sibling skills MUST NOT know about each other — no
+  schema mirrors, no "produced by X" descriptions, no cross-skill
+  paths or driver steps in contracts, tools, graphs, or workflows.
+  The ONLY place skills connect is a composing parent graph that
+  embeds them as subgraph instances and wires publish-output fields
+  into ingest-input parameters; the validator's schema projection at
+  that wiring is what enforces compatibility (structural typing, not
+  shared schemas).

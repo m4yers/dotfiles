@@ -1,9 +1,9 @@
 """Entry task for project-design: exact-parameter pass-through.
 
 The subgraph contract is precisely the fields the pipeline consumes
-— no opaque wrapper object. Standalone runs seed these from a prior
-project-overview run; embedded runs wire them field-by-field from a
-sibling overview instance.
+— no opaque wrapper object. This skill does not know who produces
+them: standalone runs seed them directly; a composing parent graph
+wires them from whatever sibling produces compatible fields.
 """
 
 from io_types import IngestInputInput, IngestInputOutput

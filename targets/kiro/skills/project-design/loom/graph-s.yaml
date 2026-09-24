@@ -2,9 +2,9 @@
 # SCALE VARIANT (S): research/design/review pipeline.
 # Entry = ingest-input: EXACT parameters (description,
 # workspace_abs, build fields, domains, summaries store) — no
-# opaque wrapper object. Standalone runs seed them from a prior
-# project-overview run; project-feature wires them field-by-
-# field from a sibling overview instance. Exit = publish-output
+# opaque wrapper object. This graph does not know its producer:
+# standalone runs seed the entry directly; a composing parent
+# wires the fields from any compatible sibling. Exit = publish-output
 # (approved design artifacts only).
 # graph-s/m/l are three views of ONE pipeline over shared
 # task folders — apply wiring changes to all three, then:
@@ -13,7 +13,7 @@
 tasks:
 - id: ingest-input
   kind: tool
-  version: 2
+  version: 3
 - id: research-plan
   kind: agent
   version: 7
