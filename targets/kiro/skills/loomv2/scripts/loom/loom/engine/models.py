@@ -56,6 +56,9 @@ class Task:
     depends_on_any: list[str] = field(default_factory=list)
     when: str | None = None
     skip_output: dict | None = None
+    #: Opaque model hint (agent tasks): surfaced verbatim on the ready
+    #: descriptor for the host's sub-agent dispatcher. Never interpreted.
+    model: str | None = None
     latch: LoopBlock | None = None
     input_mapping: dict[str, str] | None = None
     # Optional post-composition metadata:

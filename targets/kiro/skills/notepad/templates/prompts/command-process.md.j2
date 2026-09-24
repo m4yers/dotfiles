@@ -1,0 +1,38 @@
+# command-process
+
+Inputs:
+
+- command-wait output: `{{ upstream["command-wait"].task_path }}` (fields
+  `kind`, `command`, `slug`); `kind` is always `action` when this task runs.
+- workdir: `{{ run.workdir }}`
+- notepad: `{{ run.workdir }}/notepad.md`
+
+## Task
+
+Set the tiling activity to the slug throughout:
+
+```bash
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh activity set "notepad(<slug>)"
+```
+
+Then:
+
+1. Compute `NN` as the next one-based, zero-padded index across the existing
+   `NN-*` sub-folders of the workdir.
+2. `mkdir "{{ run.workdir }}/${NN}-<slug>"`.
+3. Write the verbatim `command` to `${NN}-<slug>/request.md`.
+4. Do all intermediate work under `${NN}-<slug>/`.
+5. Append a `## <slug>` sub-section to `{{ run.workdir }}/notepad.md`: one
+   paragraph with the verbatim `command`, one paragraph describing the
+   outcome.
+
+## Output
+
+```bash
+LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
+$LOOM output init "{{ run.workdir }}" --task command-process
+$LOOM output add  "{{ run.workdir }}" --task command-process \
+    --set kind=action \
+    --set action_dir="{{ run.workdir }}/${NN}-<slug>" \
+    --set outcome='<short description>'
+```

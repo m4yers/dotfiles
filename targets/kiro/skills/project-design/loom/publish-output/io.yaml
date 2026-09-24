@@ -1,0 +1,51 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  required:
+  - design
+  - decisions
+  - open_risks
+  - research_report
+  - gate_note
+  properties:
+    design:
+      type: string
+      description: The approved design document (markdown).
+    decisions:
+      type: array
+      description: Design decisions list from design-author.
+    open_risks:
+      type: array
+      description: Remaining open risks acknowledged by the design.
+    research_report:
+      type: string
+      description: Consolidated research report from research-merge.
+    gate_note:
+      type: string
+      description: Human note from design-gate (may be empty; feeds downstream authors).
+output:
+  type: object
+  additionalProperties: false
+  required:
+  - design
+  - decisions
+  - open_risks
+  - research_report
+  - gate_note
+  properties:
+    design:
+      type: string
+      description: Approved design document (markdown).
+    decisions:
+      type: array
+      description: Design decisions.
+    open_risks:
+      type: array
+      description: Open risks.
+    research_report:
+      type: string
+      description: Consolidated research report.
+    gate_note:
+      type: string
+      description: Human note from design-gate (may be empty; feeds downstream authors).

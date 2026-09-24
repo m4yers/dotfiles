@@ -1,0 +1,15 @@
+# Output schema for the wait-command human gate.
+type: object
+required: [kind, command]
+additionalProperties: false
+properties:
+  kind:
+    type: string
+    enum: [question, action, end]
+    description: How to route this command.
+  command:
+    type: string
+    description: Verbatim user text of the request.
+  slug:
+    type: string
+    description: Kebab-case slug the operator picks for an action; empty for question/end.

@@ -1,0 +1,104 @@
+version: 5
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    workspace_abs:
+      type: string
+    cache_prefix:
+      type: string
+      description: 'Composed cache prefix from ingest-input (empty when
+
+        cache_mode is bypass). Passed verbatim to `cache.sh` as
+
+        `<cache_prefix>/inventory-code`.
+
+        '
+    cache_mode:
+      type: string
+      enum:
+      - read-write
+      - read-only
+      - write-only
+      - bypass
+  required:
+  - workspace_abs
+  - cache_prefix
+  - cache_mode
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    total_files:
+      type: integer
+    total_bytes:
+      type: integer
+    languages:
+      type: array
+      description: Per-language rollup, sorted by bytes desc.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          language:
+            type: string
+          files:
+            type: integer
+          loc:
+            type: integer
+          bytes:
+            type: integer
+        required:
+        - language
+        - files
+        - loc
+        - bytes
+    top_dirs:
+      type: array
+      description: Depth<=2 directories by bytes desc, capped at 20.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path:
+            type: string
+          files:
+            type: integer
+          bytes:
+            type: integer
+        required:
+        - path
+        - files
+        - bytes
+    entrypoints:
+      type: array
+      description: Heuristic entrypoints (mains, CLIs, scripts).
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path:
+            type: string
+          kind:
+            type: string
+        required:
+        - path
+        - kind
+    cache_hit:
+      type: boolean
+    candidates_path:
+      type: string
+      description: On-disk path of the ranked candidate list (cache side document);
+        bulk data never crosses the graph. Each entry carries path, bytes, language,
+        and is_test (standard test-path/basename heuristic).
+    candidates_total:
+      type: integer
+  required:
+  - total_files
+  - total_bytes
+  - languages
+  - top_dirs
+  - entrypoints
+  - cache_hit
+  - candidates_path
+  - candidates_total

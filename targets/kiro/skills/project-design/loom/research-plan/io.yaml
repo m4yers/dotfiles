@@ -1,0 +1,93 @@
+version: 7
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    description:
+      type: string
+    workspace_abs:
+      type: string
+    build_system:
+      type: string
+    installed_skills:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name:
+            type: string
+          path:
+            type: string
+          description:
+            type: string
+          scripts:
+            type: array
+            items:
+              type: string
+        required:
+        - name
+        - path
+        - description
+        - scripts
+    fallback_build_cmd:
+      type: string
+    fallback_test_cmd:
+      type: string
+    max_questions:
+      type: string
+      description: 'Tier capacity from the graph variant: fill at most this many
+
+        real questions (the array itself is always 5 entries).
+
+        '
+    __loom: {}
+    summaries_store:
+      type: string
+      description: Absolute directory holding one <file-sha256>.yaml per summarised
+        file.
+    summaries_usage:
+      type: string
+      description: How to look up a file's summary from the store.
+  required:
+  - description
+  - workspace_abs
+  - build_system
+  - installed_skills
+  - fallback_build_cmd
+  - fallback_test_cmd
+  - max_questions
+  - __loom
+  - summaries_store
+  - summaries_usage
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    questions:
+      type: array
+      minItems: 5
+      maxItems: 5
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          id:
+            type: string
+          prompt:
+            type: string
+            description: 'Question text; empty string on unused trailing slots
+
+              (an empty prompt makes the slot a no-op).
+
+              '
+        required:
+        - id
+        - prompt
+    num_questions:
+      type: integer
+      minimum: 1
+      maximum: 5
+  required:
+  - questions
+  - num_questions

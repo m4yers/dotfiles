@@ -77,6 +77,14 @@ $defs:
       when:
         type: string
         description: Predicate string; ${task:...} refs allowed.
+      model:
+        type: string
+        description: >-
+          Only for kind=agent. Opaque model identifier the host passes
+          through to its sub-agent dispatcher for this task (e.g. a
+          cheaper model for mechanical summarisation). The engine never
+          interprets it; `runtime next` surfaces it on the ready
+          descriptor when set.
       skip_output:
         type: object
         description: >-

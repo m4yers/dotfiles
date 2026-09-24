@@ -1,0 +1,142 @@
+version: 7
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    workspace_abs:
+      type: string
+    entrypoints:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path:
+            type: string
+          kind:
+            type: string
+        required:
+        - path
+        - kind
+    cache_prefix:
+      type: string
+      description: "Composed cache prefix from ingest-input (empty when\ncache_mode\
+        \ is bypass). Informational for this task \u2014 the\nper-file blob lookups\
+        \ use blob_prefix, not cache_prefix.\n"
+    blob_prefix:
+      type: string
+      description: 'Content-addressed blob prefix `<namespace-slug>/files` from
+
+        ingest-input (empty when cache_mode is bypass). Blobs are
+
+        looked up as `<blob_prefix>/<content-sha>` via `cache.sh get`.
+
+        '
+    cache_mode:
+      type: string
+      enum:
+      - read-write
+      - read-only
+      - write-only
+      - bypass
+    max_batches:
+      type: string
+      description: 'Tier capacity from the graph variant: distribute files across
+
+        at most this many batches (the array itself is always 6
+
+        entries; surplus slots carry empty file lists).
+
+        '
+    index_symbols_path:
+      type: string
+      description: 'Path to the full on-disk symbol index from index-symbols;
+
+        read directly from disk (never carried through the graph).
+
+        '
+    candidates_path:
+      type: string
+      description: Path to inventory-code's ranked candidate side document; entries
+        flagged is_test are excluded from summarisation.
+    summary_budget:
+      type: string
+      description: Max files to summarise THIS run (graph-variant literal). Coverage
+        converges across runs via the blob cache.
+  required:
+  - workspace_abs
+  - entrypoints
+  - cache_prefix
+  - blob_prefix
+  - cache_mode
+  - max_batches
+  - index_symbols_path
+  - candidates_path
+  - summary_budget
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    summarize_mode:
+      type: string
+      enum:
+      - llm
+      - skipped-empty
+      description: '"llm" when batches carry files to summarise;
+
+        "skipped-too-large" auto-gate for workspaces over the file
+
+        cap (fan-out slots then no-op); "skipped-empty" when nothing
+
+        qualifies or everything was cached.
+
+        '
+    cached_summaries:
+      type: array
+      description: "Summaries already present in the per-file cache\n(blob-sha keyed)\
+        \ \u2014 these files are excluded from batches.\n"
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          path:
+            type: string
+          purpose:
+            type: string
+        required:
+        - path
+        - purpose
+    batches:
+      type: array
+      minItems: 30
+      maxItems: 30
+      description: Exactly 30 fixed fan-out slots (variants wire 10/20/30). Unused
+        slots carry an empty files list.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          files:
+            type: array
+            items:
+              type: object
+              additionalProperties: false
+              properties:
+                path:
+                  type: string
+                blob_sha:
+                  type: string
+                symbols:
+                  type: array
+                  items:
+                    type: string
+              required:
+              - path
+              - blob_sha
+              - symbols
+        required:
+        - files
+  required:
+  - summarize_mode
+  - cached_summaries
+  - batches

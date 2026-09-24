@@ -370,4 +370,8 @@ def _ready_entry(runtime, workdir: Path, t: dict[str, Any]) -> dict[str, Any]:
         "output_path": str(folder / "output.yaml"),
     }
     entry["prompt_path" if t["kind"] == "agent" else "message_path"] = str(body_path)
+    if task.model is not None:
+        # Opaque model hint from graph.yaml — the host forwards it to
+        # its sub-agent dispatcher verbatim.
+        entry["model"] = task.model
     return entry

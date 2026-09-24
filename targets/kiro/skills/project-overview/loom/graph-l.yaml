@@ -1,244 +1,603 @@
-# ============================================================
-# SCALE VARIANT (L): domains=6 file-summary=6
-# graph-s.yaml / graph-m.yaml / graph-l.yaml are three views of
-# ONE pipeline over shared task folders. When you modify the
-# wiring in THIS file, apply the same change to the other two
-# variants, then validate all three:
-#   $PO_LOOM validate <skill-root> --graph loom/graph-<x>.yaml
-# graph-m.yaml is the default the SKILL.md driver selects.
-# ============================================================
 tasks:
-- id: overview-ingest
+- id: ingest-input
   kind: tool
   version: 2
-- id: code-inventory
+- id: inventory-code
   kind: tool
-  version: 3
+  version: 5
   depends_on_all:
-  - overview-ingest
+  - ingest-input
   input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    cache_prefix: ${task:overview-ingest:cache_prefix}
-    cache_mode: ${task:overview-ingest:cache_mode}
-- id: build-detect
-  kind: tool
-  version: 2
-  depends_on_all:
-  - overview-ingest
-  input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    build_system_override: ${task:overview-ingest:build_system_override}
-    cache_prefix: ${task:overview-ingest:cache_prefix}
-    cache_mode: ${task:overview-ingest:cache_mode}
-- id: test-detect
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    cache_prefix: ${task:ingest-input:cache_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+- id: detect-build
   kind: tool
   version: 2
   depends_on_all:
-  - build-detect
+  - ingest-input
   input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    build_system: ${task:build-detect:build_system}
-    build_installed_skills: ${task:build-detect:installed_skills}
-    test_system_override: ${task:overview-ingest:test_system_override}
-    cache_prefix: ${task:overview-ingest:cache_prefix}
-    cache_mode: ${task:overview-ingest:cache_mode}
-- id: dep-analysis
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    build_system_override: ${task:ingest-input:build_system_override}
+    cache_prefix: ${task:ingest-input:cache_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+- id: detect-tests
   kind: tool
   version: 2
   depends_on_all:
-  - overview-ingest
+  - detect-build
   input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    cache_prefix: ${task:overview-ingest:cache_prefix}
-    cache_mode: ${task:overview-ingest:cache_mode}
-- id: symbol-index
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    build_system: ${task:detect-build:build_system}
+    build_installed_skills: ${task:detect-build:installed_skills}
+    test_system_override: ${task:ingest-input:test_system_override}
+    cache_prefix: ${task:ingest-input:cache_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+- id: detect-deps
   kind: tool
-  version: 3
+  version: 2
   depends_on_all:
-  - overview-ingest
+  - ingest-input
   input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-- id: code-analysis-plan
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    cache_prefix: ${task:ingest-input:cache_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+- id: index-symbols
   kind: tool
   version: 4
   depends_on_all:
-  - code-inventory
-  - symbol-index
+  - ingest-input
   input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    total_files: ${task:code-inventory:total_files}
-    files: ${task:code-inventory:candidate_files}
-    entrypoints: ${task:code-inventory:entrypoints}
-    cache_prefix: ${task:overview-ingest:cache_prefix}
-    blob_prefix: ${task:overview-ingest:blob_prefix}
-    cache_mode: ${task:overview-ingest:cache_mode}
-    symbol_index_path: ${task:symbol-index:index_path}
-    max_batches: '6'
-- id: domain-detect
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    cache_prefix: ${task:ingest-input:cache_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+- id: plan-code-analysis
+  kind: tool
+  version: 7
+  depends_on_all:
+  - inventory-code
+  - index-symbols
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    entrypoints: ${task:inventory-code:entrypoints}
+    cache_prefix: ${task:ingest-input:cache_prefix}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+    index_symbols_path: ${task:index-symbols:index_path}
+    max_batches: '30'
+    candidates_path: ${task:inventory-code:candidates_path}
+    summary_budget: '2250'
+- id: detect-domains
   kind: agent
   version: 3
   depends_on_all:
-  - code-inventory
-  - dep-analysis
-  - symbol-index
+  - inventory-code
+  - detect-deps
+  - index-symbols
   input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    total_files: ${task:code-inventory:total_files}
-    top_dirs: ${task:code-inventory:top_dirs}
-    entrypoints: ${task:code-inventory:entrypoints}
-    languages: ${task:code-inventory:languages}
-    dependencies: ${task:dep-analysis:dependencies}
-    unresolved_imports: ${task:dep-analysis:unresolved_imports}
-    symbol_index_path: ${task:symbol-index:index_path}
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    total_files: ${task:inventory-code:total_files}
+    top_dirs: ${task:inventory-code:top_dirs}
+    entrypoints: ${task:inventory-code:entrypoints}
+    languages: ${task:inventory-code:languages}
+    dependencies: ${task:detect-deps:dependencies}
+    unresolved_imports: ${task:detect-deps:unresolved_imports}
+    index_symbols_path: ${task:index-symbols:index_path}
     max_domains: '6'
-- id: file-summary-b1
+- id: summarise-files-b1
   kind: agent
-  version: 2
-  ref: file-summary
-  depends_on_all:
-  - code-analysis-plan
-  input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    files: ${task:code-analysis-plan:batches[0].files}
-    blob_prefix: ${task:overview-ingest:blob_prefix}
-    cache_mode: ${task:overview-ingest:cache_mode}
-  when: length(${task:code-analysis-plan:batches[0].files}) > `0`
-  skip_output:
-    summaries: []
-- id: file-summary-b2
-  kind: agent
-  version: 2
-  ref: file-summary
-  depends_on_all:
-  - code-analysis-plan
-  input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    files: ${task:code-analysis-plan:batches[1].files}
-    blob_prefix: ${task:overview-ingest:blob_prefix}
-    cache_mode: ${task:overview-ingest:cache_mode}
-  when: length(${task:code-analysis-plan:batches[1].files}) > `0`
-  skip_output:
-    summaries: []
-- id: file-summary-b3
-  kind: agent
-  version: 2
-  ref: file-summary
-  depends_on_all:
-  - code-analysis-plan
-  input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    files: ${task:code-analysis-plan:batches[2].files}
-    blob_prefix: ${task:overview-ingest:blob_prefix}
-    cache_mode: ${task:overview-ingest:cache_mode}
-  when: length(${task:code-analysis-plan:batches[2].files}) > `0`
-  skip_output:
-    summaries: []
-- id: file-summary-b4
-  kind: agent
-  version: 2
-  ref: file-summary
-  depends_on_all:
-  - code-analysis-plan
-  input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    files: ${task:code-analysis-plan:batches[3].files}
-    blob_prefix: ${task:overview-ingest:blob_prefix}
-    cache_mode: ${task:overview-ingest:cache_mode}
-  when: length(${task:code-analysis-plan:batches[3].files}) > `0`
-  skip_output:
-    summaries: []
-- id: file-summary-b5
-  kind: agent
-  version: 2
-  ref: file-summary
-  depends_on_all:
-  - code-analysis-plan
-  input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    files: ${task:code-analysis-plan:batches[4].files}
-    blob_prefix: ${task:overview-ingest:blob_prefix}
-    cache_mode: ${task:overview-ingest:cache_mode}
-  when: length(${task:code-analysis-plan:batches[4].files}) > `0`
-  skip_output:
-    summaries: []
-- id: file-summary-b6
-  kind: agent
-  version: 2
-  ref: file-summary
-  depends_on_all:
-  - code-analysis-plan
-  input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    files: ${task:code-analysis-plan:batches[5].files}
-    blob_prefix: ${task:overview-ingest:blob_prefix}
-    cache_mode: ${task:overview-ingest:cache_mode}
-  when: length(${task:code-analysis-plan:batches[5].files}) > `0`
-  skip_output:
-    summaries: []
-- id: workspace-brief
-  kind: tool
   version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
   depends_on_all:
-  - code-inventory
-  - dep-analysis
-  - build-detect
-  - test-detect
-  - code-analysis-plan
-  - file-summary-b1
-  - file-summary-b2
-  - file-summary-b3
-  - file-summary-b4
-  - file-summary-b5
-  - file-summary-b6
+  - plan-code-analysis
   input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    cache_prefix: ${task:overview-ingest:cache_prefix}
-    blob_prefix: ${task:overview-ingest:blob_prefix}
-    cache_mode: ${task:overview-ingest:cache_mode}
-    total_files: ${task:code-inventory:total_files}
-    total_bytes: ${task:code-inventory:total_bytes}
-    languages: ${task:code-inventory:languages}
-    top_dirs: ${task:code-inventory:top_dirs}
-    entrypoints: ${task:code-inventory:entrypoints}
-    dependencies: ${task:dep-analysis:dependencies}
-    unresolved_imports: ${task:dep-analysis:unresolved_imports}
-    build_system: ${task:build-detect:build_system}
-    build_provenance: ${task:build-detect:provenance}
-    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
-    test_system: ${task:test-detect:test_system}
-    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
-    summarize_mode: ${task:code-analysis-plan:summarize_mode}
-    cached_summaries: ${task:code-analysis-plan:cached_summaries}
-    summaries_b1: ${task:file-summary-b1:summaries}
-    summaries_b2: ${task:file-summary-b2:summaries}
-    summaries_b3: ${task:file-summary-b3:summaries}
-    summaries_b4: ${task:file-summary-b4:summaries}
-    summaries_b5: ${task:file-summary-b5:summaries}
-    summaries_b6: ${task:file-summary-b6:summaries}
-- id: overview-exit
-  kind: tool
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[0].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[0].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b2
+  kind: agent
   version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
   depends_on_all:
-  - overview-ingest
-  - build-detect
-  - test-detect
-  - domain-detect
-  - workspace-brief
+  - plan-code-analysis
   input:
-    workspace_abs: ${task:overview-ingest:workspace_abs}
-    feature_slug: ${task:overview-ingest:feature_slug}
-    description: ${task:overview-ingest:description}
-    build_system: ${task:build-detect:build_system}
-    build_installed_skills: ${task:build-detect:installed_skills}
-    fallback_build_cmd: ${task:build-detect:fallback_build_cmd}
-    test_system: ${task:test-detect:test_system}
-    test_installed_skills: ${task:test-detect:installed_skills}
-    fallback_test_cmd: ${task:test-detect:fallback_test_cmd}
-    workspace_brief: ${task:workspace-brief:brief}
-    domains: ${task:domain-detect:domains}
-    cache_prefix: ${task:overview-ingest:cache_prefix}
-    blob_prefix: ${task:overview-ingest:blob_prefix}
-    cache_key: ${task:overview-ingest:cache_key}
-    git_head: ${task:overview-ingest:git_head}
-    dirty: ${task:overview-ingest:dirty}
-    cache_mode: ${task:overview-ingest:cache_mode}
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[1].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[1].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b3
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[2].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[2].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b4
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[3].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[3].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b5
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[4].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[4].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b6
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[5].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[5].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b7
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[6].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[6].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b8
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[7].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[7].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b9
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[8].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[8].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b10
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[9].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[9].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b11
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[10].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[10].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b12
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[11].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[11].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b13
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[12].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[12].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b14
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[13].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[13].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b15
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[14].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[14].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b16
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[15].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[15].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b17
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[16].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[16].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b18
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[17].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[17].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b19
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[18].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[18].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b20
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[19].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[19].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b21
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[20].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[20].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b22
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[21].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[21].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b23
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[22].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[22].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b24
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[23].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[23].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b25
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[24].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[24].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b26
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[25].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[25].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b27
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[26].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[26].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b28
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[27].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[27].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b29
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[28].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[28].files}) > `0`
+  skip_output:
+    summaries: []
+- id: summarise-files-b30
+  kind: agent
+  version: 3
+  ref: summarise-files
+  model: claude-haiku-4.5
+  depends_on_all:
+  - plan-code-analysis
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    files: ${task:plan-code-analysis:batches[29].files}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_mode: ${task:ingest-input:cache_mode}
+  when: length(${task:plan-code-analysis:batches[29].files}) > `0`
+  skip_output:
+    summaries: []
+- id: publish-output
+  kind: tool
+  version: 9
+  depends_on_all:
+  - summarise-files-b1
+  - summarise-files-b2
+  - summarise-files-b3
+  - summarise-files-b4
+  - summarise-files-b5
+  - summarise-files-b6
+  - summarise-files-b7
+  - summarise-files-b8
+  - summarise-files-b9
+  - summarise-files-b10
+  - summarise-files-b11
+  - summarise-files-b12
+  - summarise-files-b13
+  - summarise-files-b14
+  - summarise-files-b15
+  - summarise-files-b16
+  - summarise-files-b17
+  - summarise-files-b18
+  - summarise-files-b19
+  - summarise-files-b20
+  - summarise-files-b21
+  - summarise-files-b22
+  - summarise-files-b23
+  - summarise-files-b24
+  - summarise-files-b25
+  - summarise-files-b26
+  - summarise-files-b27
+  - summarise-files-b28
+  - summarise-files-b29
+  - summarise-files-b30
+  - plan-code-analysis
+  - detect-deps
+  - inventory-code
+  - ingest-input
+  - detect-build
+  - detect-tests
+  - detect-domains
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    feature_slug: ${task:ingest-input:feature_slug}
+    description: ${task:ingest-input:description}
+    build_system: ${task:detect-build:build_system}
+    build_installed_skills: ${task:detect-build:installed_skills}
+    fallback_build_cmd: ${task:detect-build:fallback_build_cmd}
+    test_system: ${task:detect-tests:test_system}
+    test_installed_skills: ${task:detect-tests:installed_skills}
+    fallback_test_cmd: ${task:detect-tests:fallback_test_cmd}
+    domains: ${task:detect-domains:domains}
+    cache_prefix: ${task:ingest-input:cache_prefix}
+    blob_prefix: ${task:ingest-input:blob_prefix}
+    cache_key: ${task:ingest-input:cache_key}
+    git_head: ${task:ingest-input:git_head}
+    dirty: ${task:ingest-input:dirty}
+    cache_mode: ${task:ingest-input:cache_mode}
+    total_files: ${task:inventory-code:total_files}
+    total_bytes: ${task:inventory-code:total_bytes}
+    languages: ${task:inventory-code:languages}
+    top_dirs: ${task:inventory-code:top_dirs}
+    entrypoints: ${task:inventory-code:entrypoints}
+    dependencies: ${task:detect-deps:dependencies}
+    unresolved_imports: ${task:detect-deps:unresolved_imports}
+    build_provenance: ${task:detect-build:provenance}
+    summarize_mode: ${task:plan-code-analysis:summarize_mode}

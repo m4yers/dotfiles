@@ -1,0 +1,15 @@
+# Output schema for the command-process agent task.
+type: object
+required: [kind, outcome]
+additionalProperties: false
+properties:
+  kind:
+    type: string
+    enum: [action]
+    description: Mirrors command-wait.kind; only action reaches this task.
+  action_dir:
+    type: string
+    description: Absolute path to the NN-<slug>/ sub-folder.
+  outcome:
+    type: string
+    description: Short human-readable description of what happened.

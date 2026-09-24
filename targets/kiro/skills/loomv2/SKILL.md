@@ -511,3 +511,8 @@ diagnostic callers all know when to move on.
 | `NEEDS_CONTEXT`      | Missing `<workdir>` / `<name>` / `<skill-root>` / `--loom-root`       |
 
 Escalation: any failure surfaces the exception unchanged; there is no retry.
+
+
+## Conventions
+
+- Entry task named `ingest-input`, exit task `publish-output` — see references/grammar.md.

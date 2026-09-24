@@ -1,0 +1,79 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  required: &id001
+  - description
+  - workspace_abs
+  - build_system
+  - build_installed_skills
+  - fallback_build_cmd
+  - fallback_test_cmd
+  - domains
+  - summaries_store
+  - summaries_usage
+  properties: &id002
+    description:
+      type: string
+    workspace_abs:
+      type: string
+    build_system:
+      type: string
+    build_installed_skills:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name:
+            type: string
+          path:
+            type: string
+          description:
+            type: string
+          scripts:
+            type: array
+            items:
+              type: string
+        required:
+        - name
+        - path
+        - description
+        - scripts
+    fallback_build_cmd:
+      type: string
+    fallback_test_cmd:
+      type: string
+    domains:
+      type: array
+      minItems: 6
+      maxItems: 6
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          slug:
+            type: string
+          name:
+            type: string
+          rationale:
+            type: string
+          reviewer_role:
+            type: string
+        required:
+        - slug
+        - name
+        - rationale
+        - reviewer_role
+    summaries_store:
+      type: string
+      description: Absolute directory holding one <file-sha256>.yaml per summarised
+        file.
+    summaries_usage:
+      type: string
+      description: How to look up a file's summary from the store.
+output:
+  type: object
+  additionalProperties: false
+  required: *id001
+  properties: *id002

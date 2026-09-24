@@ -1,0 +1,8 @@
+# Output schema for the editor-open tool task.
+type: object
+required: [path]
+additionalProperties: false
+properties:
+  path:
+    type: string
+    description: Absolute path to the notepad.md that was opened in the EDITOR pane.

@@ -1,0 +1,214 @@
+# ============================================================
+# SCALE VARIANT (M): research/design/review pipeline.
+# Entry = ingest-input: EXACT parameters (description,
+# workspace_abs, build fields, domains, summaries store) — no
+# opaque wrapper object. Standalone runs seed them from a prior
+# project-overview run; project-feature wires them field-by-
+# field from a sibling overview instance. Exit = publish-output
+# (approved design artifacts only).
+# graph-s/m/l are three views of ONE pipeline over shared
+# task folders — apply wiring changes to all three, then:
+#   $LOOM validate <skill-root> --graph loom/graph-<x>.yaml
+# ============================================================
+tasks:
+- id: ingest-input
+  kind: tool
+  version: 2
+- id: research-plan
+  kind: agent
+  version: 7
+  depends_on_all:
+  - ingest-input
+  input:
+    description: ${task:ingest-input:description}
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    build_system: ${task:ingest-input:build_system}
+    installed_skills: ${task:ingest-input:build_installed_skills}
+    fallback_build_cmd: ${task:ingest-input:fallback_build_cmd}
+    fallback_test_cmd: ${task:ingest-input:fallback_test_cmd}
+    max_questions: '3'
+    summaries_store: ${task:ingest-input:summaries_store}
+    summaries_usage: ${task:ingest-input:summaries_usage}
+- id: research-q1
+  kind: agent
+  version: 1
+  ref: research
+  depends_on_all:
+  - research-plan
+  input:
+    question: ${task:research-plan:questions[0].prompt}
+  when: ${task:research-plan:questions[0].prompt} != ''
+  skip_output:
+    findings: ''
+    citations: []
+- id: research-q2
+  kind: agent
+  version: 1
+  ref: research
+  depends_on_all:
+  - research-plan
+  input:
+    question: ${task:research-plan:questions[1].prompt}
+  when: ${task:research-plan:questions[1].prompt} != ''
+  skip_output:
+    findings: ''
+    citations: []
+- id: research-q3
+  kind: agent
+  version: 1
+  ref: research
+  depends_on_all:
+  - research-plan
+  input:
+    question: ${task:research-plan:questions[2].prompt}
+  when: ${task:research-plan:questions[2].prompt} != ''
+  skip_output:
+    findings: ''
+    citations: []
+- id: research-merge
+  kind: agent
+  version: 3
+  depends_on_all:
+  - research-q1
+  - research-q2
+  - research-q3
+  input:
+    q1_findings: ${task:research-q1:findings}
+    q1_citations: ${task:research-q1:citations}
+    q2_findings: ${task:research-q2:findings}
+    q2_citations: ${task:research-q2:citations}
+    q3_findings: ${task:research-q3:findings}
+    q3_citations: ${task:research-q3:citations}
+- id: design-author
+  kind: agent
+  version: 1
+  depends_on_all:
+  - research-merge
+  - ingest-input
+  input:
+    report: ${task:research-merge:report}
+    open_questions: ${task:research-merge:open_questions}
+    build_system: ${task:ingest-input:build_system}
+    installed_skills: ${task:ingest-input:build_installed_skills}
+    fallback_build_cmd: ${task:ingest-input:fallback_build_cmd}
+    fallback_test_cmd: ${task:ingest-input:fallback_test_cmd}
+    revise_reason: ${task:design-review-merge@prev:revise_reason}
+- id: design-review-swe
+  kind: agent
+  version: 2
+  ref: design-review
+  depends_on_all:
+  - design-author
+  input:
+    design: ${task:design-author:design}
+    decisions: ${task:design-author:decisions}
+    open_risks: ${task:design-author:open_risks}
+    reviewer_role: You are a principal software engineer reviewing for correctness, maintainability, API
+      design, error handling, and operational safety.
+- id: design-review-d1
+  kind: agent
+  version: 2
+  ref: design-review
+  depends_on_all:
+  - design-author
+  input:
+    design: ${task:design-author:design}
+    decisions: ${task:design-author:decisions}
+    open_risks: ${task:design-author:open_risks}
+    reviewer_role: ${task:ingest-input:domains[0].reviewer_role}
+- id: design-review-d2
+  kind: agent
+  version: 2
+  ref: design-review
+  depends_on_all:
+  - design-author
+  input:
+    design: ${task:design-author:design}
+    decisions: ${task:design-author:decisions}
+    open_risks: ${task:design-author:open_risks}
+    reviewer_role: ${task:ingest-input:domains[1].reviewer_role}
+- id: design-review-d3
+  kind: agent
+  version: 2
+  ref: design-review
+  depends_on_all:
+  - design-author
+  input:
+    design: ${task:design-author:design}
+    decisions: ${task:design-author:decisions}
+    open_risks: ${task:design-author:open_risks}
+    reviewer_role: ${task:ingest-input:domains[2].reviewer_role}
+- id: design-review-d4
+  kind: agent
+  version: 2
+  ref: design-review
+  depends_on_all:
+  - design-author
+  input:
+    design: ${task:design-author:design}
+    decisions: ${task:design-author:decisions}
+    open_risks: ${task:design-author:open_risks}
+    reviewer_role: ${task:ingest-input:domains[3].reviewer_role}
+- id: citation-check
+  kind: tool
+  version: 1
+  depends_on_all:
+  - design-author
+  input:
+    design: ${task:design-author:design}
+    workspace_abs: ${task:ingest-input:workspace_abs}
+- id: design-review-merge
+  kind: tool
+  version: 4
+  depends_on_all:
+  - citation-check
+  - design-review-swe
+  - design-review-d1
+  - design-review-d2
+  - design-review-d3
+  - design-review-d4
+  input:
+    citation_ok: ${task:citation-check:ok}
+    citation_report: ${task:citation-check:report}
+    decision_swe: ${task:design-review-swe:decision}
+    revise_reason_swe: ${task:design-review-swe:revise_reason}
+    role_swe: You are a principal software engineer reviewing for correctness, maintainability, API design,
+      error handling, and operational safety.
+    decision_d1: ${task:design-review-d1:decision}
+    revise_reason_d1: ${task:design-review-d1:revise_reason}
+    role_d1: ${task:ingest-input:domains[0].reviewer_role}
+    decision_d2: ${task:design-review-d2:decision}
+    revise_reason_d2: ${task:design-review-d2:revise_reason}
+    role_d2: ${task:ingest-input:domains[1].reviewer_role}
+    decision_d3: ${task:design-review-d3:decision}
+    revise_reason_d3: ${task:design-review-d3:revise_reason}
+    role_d3: ${task:ingest-input:domains[2].reviewer_role}
+    decision_d4: ${task:design-review-d4:decision}
+    revise_reason_d4: ${task:design-review-d4:revise_reason}
+    role_d4: ${task:ingest-input:domains[3].reviewer_role}
+- id: design-gate
+  kind: human
+  version: 1
+  depends_on_all:
+  - design-review-merge
+  input:
+    design: ${task:design-author:design}
+    open_risks: ${task:design-author:open_risks}
+    review_decision: ${task:design-review-merge:decision}
+    revise_reason: ${task:design-review-merge:revise_reason}
+- id: publish-output
+  kind: tool
+  version: 2
+  depends_on_all:
+  - design-gate
+  input:
+    design: ${task:design-author:design}
+    decisions: ${task:design-author:decisions}
+    open_risks: ${task:design-author:open_risks}
+    research_report: ${task:research-merge:report}
+    gate_note: ${task:design-gate:note}
+latches:
+- task: design-review-merge
+  header: design-author
+  fuel: 5
+  while_: ${task:design-review-merge:decision} == 'revise'

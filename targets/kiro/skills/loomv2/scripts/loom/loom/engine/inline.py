@@ -138,6 +138,19 @@ def _prefix_task(task: Task, instance_id: str, instance_uid: str, source_root: P
     intra-child references resolve inside the prefixed namespace.
     """
     prefixed_id = f"{instance_id}/{task.id}"
+    prefixed_latch = task.latch
+    if prefixed_latch is not None:
+        # Latch header ids and while_ refs are child-local: re-anchor
+        # them into the instance namespace alongside the task ids.
+        from loom.plan import latch as _mk_latch
+
+        prefixed_latch = _mk_latch(
+            header=f"{instance_id}/{prefixed_latch.header}",
+            fuel=prefixed_latch.fuel,
+            while_=_prefix_refs(prefixed_latch.while_, instance_id)
+            if prefixed_latch.while_
+            else prefixed_latch.while_,
+        )
     prefixed_mapping = (
         {k: _prefix_refs(v, instance_id) for k, v in task.input_mapping.items()}
         if task.input_mapping is not None
@@ -150,7 +163,8 @@ def _prefix_task(task: Task, instance_id: str, instance_uid: str, source_root: P
         depends_on_any=[f"{instance_id}/{d}" for d in task.depends_on_any],
         when=_prefix_refs(task.when, instance_id) if task.when else None,
         skip_output=task.skip_output,
-        latch=task.latch,
+        model=task.model,
+        latch=prefixed_latch,
         input_mapping=prefixed_mapping,
         folder=task.folder,
         status=task.status,
@@ -158,7 +172,10 @@ def _prefix_task(task: Task, instance_id: str, instance_uid: str, source_root: P
         namespace=(task.namespace + "/" + instance_id).lstrip("/"),
         inlined_from_subgraph=True,
         instance_uid=instance_uid,
-        source_root=source_root,
+        # A task arriving from a NESTED subgraph already carries its true
+        # source_root (stamped by the inner expand pass); the outer pass
+        # must not re-anchor it to the intermediate child's root.
+        source_root=task.source_root or source_root,
         pinned_version=task.pinned_version,
     )
     return new

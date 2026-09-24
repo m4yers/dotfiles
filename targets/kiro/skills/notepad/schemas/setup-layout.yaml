@@ -1,0 +1,8 @@
+# Output schema for the setup-layout tool task.
+type: object
+required: [ok]
+additionalProperties: false
+properties:
+  ok:
+    type: boolean
+    description: True once tiling layout build has run.

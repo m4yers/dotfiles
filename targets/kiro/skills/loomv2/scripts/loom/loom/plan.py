@@ -28,6 +28,7 @@ def _make_task(
     latch: "LoopBlock | None" = None,
     input_mapping: dict[str, str] | None = None,
     skip_output: dict | None = None,
+    model: str | None = None,
 ) -> Task:
     """Shared task-factory body. Enforces non-empty dep lists."""
     if depends_on_all is not None and not depends_on_all:
@@ -41,6 +42,7 @@ def _make_task(
         depends_on_any=list(depends_on_any or []),
         when=when,
         skip_output=dict(skip_output) if skip_output is not None else None,
+        model=model,
         latch=latch,
         input_mapping=dict(input_mapping) if input_mapping is not None else None,
     )
@@ -54,6 +56,7 @@ def tool(
     latch: "LoopBlock | None" = None,
     input_mapping: dict[str, str] | None = None,
     skip_output: dict | None = None,
+    model: str | None = None,
 ) -> Task:
     """Create a tool task.
 
@@ -67,7 +70,7 @@ def tool(
 
     Raises ValueError on empty dep lists. Returns a Task with kind='tool'.
     """
-    return _make_task("tool", id, depends_on_all, depends_on_any, when, latch, input_mapping, skip_output)
+    return _make_task("tool", id, depends_on_all, depends_on_any, when, latch, input_mapping, skip_output, model)
 
 
 def agent(
@@ -78,13 +81,14 @@ def agent(
     latch: "LoopBlock | None" = None,
     input_mapping: dict[str, str] | None = None,
     skip_output: dict | None = None,
+    model: str | None = None,
 ) -> Task:
     """Create an agent task.
 
     Body: <loom_root>/<id>/prompt.md.j2 rendered by the engine; the
     sub-agent writes output.yaml via the output CLI.
     """
-    return _make_task("agent", id, depends_on_all, depends_on_any, when, latch, input_mapping, skip_output)
+    return _make_task("agent", id, depends_on_all, depends_on_any, when, latch, input_mapping, skip_output, model)
 
 
 def human(
@@ -95,13 +99,14 @@ def human(
     latch: "LoopBlock | None" = None,
     input_mapping: dict[str, str] | None = None,
     skip_output: dict | None = None,
+    model: str | None = None,
 ) -> Task:
     """Create a human-gate task.
 
     Body: <loom_root>/<id>/message.md.j2 rendered for the current agent
     to present to the user.
     """
-    return _make_task("human", id, depends_on_all, depends_on_any, when, latch, input_mapping, skip_output)
+    return _make_task("human", id, depends_on_all, depends_on_any, when, latch, input_mapping, skip_output, model)
 
 
 def subgraph(
@@ -225,6 +230,12 @@ def from_graph_yaml(loom_root: Path, graph: Path | str | None = None) -> LoomPla
             "input_mapping": entry.get("input"),
         }
         skip_output = entry.get("skip_output")
+        model = entry.get("model")
+        if model is not None and kind != "agent":
+            raise TaskRefError(
+                f"task entry {entry['id']!r} declares `model:` but is "
+                f"kind={kind!r}; model hints apply to agent entries only."
+            )
         if kind == "subgraph":
             if skip_output is not None:
                 raise TaskRefError(
@@ -256,7 +267,7 @@ def from_graph_yaml(loom_root: Path, graph: Path | str | None = None) -> LoomPla
                 task = subgraph(root=child_root, **common)
         else:
             factory = {"tool": tool, "agent": agent, "human": human}[kind]
-            task = factory(skip_output=skip_output, **common)
+            task = factory(skip_output=skip_output, model=model, **common)
             task.pinned_version = entry["version"]
             if ref is not None:
                 task.folder = resolve_ref_folder(Path(loom_root), ref)
@@ -309,6 +320,8 @@ def to_graph_yaml(plan: LoomPlan, path: Path) -> None:
                 entry["ref"] = t.folder.name
             if t.skip_output is not None:
                 entry["skip_output"] = t.skip_output
+            if t.model is not None:
+                entry["model"] = t.model
             if t.latch:
                 latch_entries.append({
                     "task": t.id,

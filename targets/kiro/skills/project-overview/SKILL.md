@@ -1,21 +1,21 @@
 ---
 name: project-overview
 type: workflow
-description: Loomv2-driven workspace intelligence for any repository — code inventory, build/test-system detection, dependency map, symbol index, domain detection with reviewer roles, LLM file summaries, and a consolidated project brief, cached per workspace+commit. Use when the user says "project overview", "workspace intelligence", "analyze this repo", "analyze this workspace", "what is this project". Do NOT use for feature implementation — use tinker instead.
+description: Loomv2-driven workspace intelligence for any repository — code inventory, build/test-system detection, dependency map, symbol index, domain detection with reviewer roles, LLM file summaries, and a consolidated project brief, cached per workspace+commit. Use when the user says "project overview", "workspace intelligence", "analyze this repo", "analyze this workspace", "what is this project". Do NOT use for feature implementation — use project-feature instead.
 ---
 
 # Project Overview
 
-Drives workspace intelligence end-to-end as a loomv2 graph: overview-ingest
-→ code-inventory + build-detect + dep-analysis + symbol-index (parallel) →
-test-detect (after build-detect) → code-analysis-plan → file-summary fan-out
-(ref-instanced slots b1..bN gated by `when:` + `skip_output`) → domain-detect
-→ workspace-brief → overview-exit. The exit task aggregates the cross-cutting
-context envelope (workspace_abs, feature_slug, description echo, build_system
+Drives workspace intelligence end-to-end as a loomv2 graph: ingest-input
+→ inventory-code + detect-build + detect-deps + index-symbols (parallel) →
+detect-tests (after detect-build) → plan-code-analysis → summarise-files fan-out
+(ref-instanced slots b1..bN gated by `when:` + `skip_output`) → detect-domains
+→ publish-output. The exit task aggregates the cross-cutting
+context output (workspace_abs, feature_slug, description echo, build_system
 with installed_skills and fallback_build_cmd, test_system with installed_skills
-and fallback_test_cmd, workspace_brief, domains[] with reviewer_role sentences,
+and fallback_test_cmd, flat inventory/dependency fields, a summaries_store pointer, domains[] with reviewer_role sentences,
 cache identity) into one output document — the run's final report. All heavy
-lifting is deterministic tool work; only domain-detect and the file-summary
+lifting is deterministic tool work; only detect-domains and the summarise-files
 slots are agent tasks.
 
 ## Dependencies
@@ -35,7 +35,7 @@ slots are agent tasks.
 ## Parameters
 
 - **description** (required): free-text label for this overview run
-  (used to derive the feature slug on the envelope).
+  (used to derive the feature slug on the output).
 - **workspace** (required): absolute path to the target repository.
 - **build-system** / **test-system** (optional): family overrides
   (e.g. `brazil`, `uv`) that win over manifest detection; test-system
@@ -43,7 +43,7 @@ slots are agent tasks.
 - **cache-mode** (optional): `read-write` (default), `read-only`,
   `write-only`, or `bypass`.
 - **scale** (optional): `s`, `m` (default), or `l` — selects
-  `loom/graph-<scale>.yaml`. Controls domain capacity and file-summary
+  `loom/graph-<scale>.yaml`. Controls domain capacity and summarise-files
   batch count: 2/2 (s), 4/4 (m), 6/6 (l).
 
 ## Commands
@@ -59,8 +59,8 @@ PO_LOOM=$PO_SKILLS/home/loomv2/scripts/loom.sh
 
 ## Rules
 
-1. The graph variants (`loom/graph-{s,m,l}.yaml`) MUST stay wiring-identical except for fan-out arity (domain-detect
-   `max_domains`, code-analysis-plan `max_batches`, and the file-summary
+1. The graph variants (`loom/graph-{s,m,l}.yaml`) MUST stay wiring-identical except for fan-out arity (detect-domains
+   `max_domains`, plan-code-analysis `max_batches`, and the summarise-files
    slot count); validate every variant after any wiring change:
    `$PO_LOOM validate <skill-root> --graph loom/graph-<x>.yaml`.
 
@@ -126,13 +126,13 @@ If `runtime init` fails: NEEDS_CONTEXT. On success: proceed to Step 2.
 
 On `done: true`: proceed to Step 3.
 
-### Step 3: Read the envelope
+### Step 3: Read the output
 
 1. Set tiling activity:
    ```bash
-   $PO_TILING activity set "project-overview(<workspace>): Read the envelope"
+   $PO_TILING activity set "project-overview(<workspace>): Read the output"
    ```
-2. Read the final envelope from the overview-exit `output.yaml`
+2. Read the final output from the publish-output `output.yaml`
    under `$PO_WD/tasks/` and present it as the report: build/test
    systems and their skill shims, workspace brief, domains with
    reviewer roles, cache identity.
@@ -145,7 +145,10 @@ their `prompt_path` already rendered from the task's materialised
 with `role: trusted` (grants file-read/write access).
 
 The sub-agent's `prompt_template` should instruct it to `fs_read` the
-`prompt_path` and follow it. The agent writes its output to the
+`prompt_path` and follow it. When a ready entry carries a `model`
+field (the graph's per-task model hint — the `summarise-files-*`
+slots use a cheaper model), pass it through as the subagent stage's
+`model`. The agent writes its output to the
 `output_path` from the same entry (or via
 `$PO_LOOM output add`). After dispatch returns, call
 `$PO_LOOM runtime complete "$PO_WD" "<task-address>"`.
@@ -155,19 +158,19 @@ no `depends_on`.
 
 project-overview specifics:
 
-- The only agent tasks in the graph are `domain-detect` and the
-  ref-instanced `file-summary-b*` slots. Unused `file-summary-b*`
+- The only agent tasks in the graph are `detect-domains` and the
+  ref-instanced `summarise-files-b*` slots. Unused `summarise-files-b*`
   slots never surface as ready — their graph entries carry `when:` +
   `skip_output`, so the engine completes them with schema-valid
   empty outputs in-engine.
-- Multiple file-summary slots may be ready in the same `next` batch;
+- Multiple summarise-files slots may be ready in the same `next` batch;
   dispatch them in parallel.
 
 ## Completion
 
 | Status               | Criteria                                                         |
 | -------------------- | ---------------------------------------------------------------- |
-| `DONE`               | `runtime next` returned `done: true` and envelope produced.      |
-| `DONE_WITH_CONCERNS` | Envelope produced; a file-summary slot returned an empty output. |
+| `DONE`               | `runtime next` returned `done: true` and output produced.      |
+| `DONE_WITH_CONCERNS` | Output published; a summarise-files slot returned an empty output. |
 | `BLOCKED`            | `runtime next` exits non-zero (stderr carries `failed_task`).    |
 | `NEEDS_CONTEXT`      | Missing description/workspace or `runtime init` failed.          |

@@ -1,0 +1,364 @@
+version: 9
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    workspace_abs:
+      type: string
+    cache_prefix:
+      type: string
+      description: 'Composed cache prefix from ingest-input (empty when
+
+        cache_mode is bypass). The brief doc is written to
+
+        `<cache_prefix>/brief-workspace`.
+
+        '
+    blob_prefix:
+      type: string
+      description: 'Content-addressed blob prefix `<namespace-slug>/files` from
+
+        ingest-input (empty when cache_mode is bypass). Fresh
+
+        file summaries are persisted here under `<blob_prefix>/<sha>`
+
+        as a safety net alongside the agent''s own writes.
+
+        '
+    cache_mode:
+      type: string
+      enum:
+      - read-write
+      - read-only
+      - write-only
+      - bypass
+    total_files:
+      type: integer
+    total_bytes:
+      type: integer
+    languages:
+      type: array
+    top_dirs:
+      type: array
+    entrypoints:
+      type: array
+    dependencies:
+      type: array
+    unresolved_imports:
+      type: array
+    build_system:
+      type: string
+    build_provenance:
+      type: string
+    fallback_build_cmd:
+      type: string
+    test_system:
+      type: string
+    fallback_test_cmd:
+      type: string
+    summarize_mode:
+      type: string
+    feature_slug:
+      type: string
+      description: 'Kebab-case slug derived from the description (from
+
+        ingest-input.feature_slug).
+
+        '
+    description:
+      type: string
+      description: 'Echo of the ingest description (from
+
+        ingest-input.description).
+
+        '
+    build_installed_skills:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name:
+            type: string
+          path:
+            type: string
+          description:
+            type: string
+          scripts:
+            type: array
+            items:
+              type: string
+        required:
+        - name
+        - path
+        - description
+        - scripts
+      description: 'Installed build-* skills that teach concrete verbs (from
+
+        detect-build.installed_skills).
+
+        '
+    test_installed_skills:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name:
+            type: string
+          path:
+            type: string
+          description:
+            type: string
+          scripts:
+            type: array
+            items:
+              type: string
+        required:
+        - name
+        - path
+        - description
+        - scripts
+      description: 'Installed test-* skills (from detect-tests.installed_skills
+
+        when the detect-tests task surfaces them; otherwise empty).
+
+        '
+    domains:
+      type: array
+      description: 'Exactly 6 fixed slots (from detect-domains.domains); trailing
+
+        unused slots carry empty strings.
+
+        '
+      minItems: 6
+      maxItems: 6
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          slug:
+            type: string
+          name:
+            type: string
+          rationale:
+            type: string
+          reviewer_role:
+            type: string
+        required:
+        - slug
+        - name
+        - rationale
+        - reviewer_role
+    cache_key:
+      type: string
+      description: 'Fragment-digest portion of cache_prefix (from
+
+        ingest-input.cache_key). Empty when cache_mode is bypass.
+
+        '
+    git_head:
+      type: string
+      description: 'HEAD sha of the workspace (from ingest-input.git_head).
+
+        '
+    dirty:
+      type: boolean
+      description: 'True when the workspace tree has uncommitted changes (from
+
+        ingest-input.dirty).
+
+        '
+  required:
+  - blob_prefix
+  - build_installed_skills
+  - build_provenance
+  - build_system
+  - cache_key
+  - cache_mode
+  - cache_prefix
+  - dependencies
+  - description
+  - dirty
+  - domains
+  - entrypoints
+  - fallback_build_cmd
+  - fallback_test_cmd
+  - feature_slug
+  - git_head
+  - languages
+  - summarize_mode
+  - test_installed_skills
+  - test_system
+  - top_dirs
+  - total_bytes
+  - total_files
+  - unresolved_imports
+  - workspace_abs
+output:
+  type: object
+  additionalProperties: false
+  required:
+  - blob_prefix
+  - build_installed_skills
+  - build_provenance
+  - build_system
+  - cache_key
+  - cache_mode
+  - cache_prefix
+  - dependencies
+  - description
+  - dirty
+  - domains
+  - entrypoints
+  - fallback_build_cmd
+  - fallback_test_cmd
+  - feature_slug
+  - git_head
+  - languages
+  - summaries_mode
+  - summaries_store
+  - summaries_total
+  - summaries_usage
+  - test_installed_skills
+  - test_system
+  - top_dirs
+  - total_bytes
+  - total_files
+  - unresolved_imports
+  - workspace_abs
+  properties:
+    workspace_abs:
+      type: string
+    feature_slug:
+      type: string
+    description:
+      type: string
+    build_system:
+      type: string
+    build_installed_skills:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name:
+            type: string
+          path:
+            type: string
+          description:
+            type: string
+          scripts:
+            type: array
+            items:
+              type: string
+        required:
+        - name
+        - path
+        - description
+        - scripts
+    fallback_build_cmd:
+      type: string
+    test_system:
+      type: string
+    test_installed_skills:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name:
+            type: string
+          path:
+            type: string
+          description:
+            type: string
+          scripts:
+            type: array
+            items:
+              type: string
+        required:
+        - name
+        - path
+        - description
+        - scripts
+    fallback_test_cmd:
+      type: string
+    domains:
+      type: array
+      minItems: 6
+      maxItems: 6
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          slug:
+            type: string
+          name:
+            type: string
+          rationale:
+            type: string
+          reviewer_role:
+            type: string
+        required:
+        - slug
+        - name
+        - rationale
+        - reviewer_role
+    cache_prefix:
+      type: string
+    blob_prefix:
+      type: string
+    cache_key:
+      type: string
+    git_head:
+      type: string
+    dirty:
+      type: boolean
+    cache_mode:
+      type: string
+      enum:
+      - read-write
+      - read-only
+      - write-only
+      - bypass
+    build_provenance:
+      type: string
+      description: File that identified the build system (e.g. Makefile).
+    total_files:
+      type: integer
+      description: Files tracked or untracked-but-unignored in the workspace.
+    total_bytes:
+      type: integer
+      description: Sum of file sizes in bytes.
+    languages:
+      type: array
+      description: Per-language file/byte counts, largest first.
+    top_dirs:
+      type: array
+      description: Largest top-level directories with sizes (max 10).
+    entrypoints:
+      type: array
+      description: Detected program entrypoints (main files, CLIs).
+    dependencies:
+      type: array
+      description: External libraries/packages referenced by the build files (max
+        40).
+    unresolved_imports:
+      type: array
+      description: Import names resolving to nothing inside the workspace (external
+        packages or generated code); each entry lists importing files. Shed first
+        if the output exceeds its byte cap.
+    summaries_mode:
+      type: string
+      description: How file summaries were produced (llm | off).
+    summaries_total:
+      type: integer
+      description: File summaries available in the store for this workspace.
+    summaries_store:
+      type: string
+      description: Absolute directory holding one <file-sha256>.yaml per summarised
+        file.
+    summaries_usage:
+      type: string
+      description: How to look up a file's summary from the store.

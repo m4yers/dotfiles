@@ -1,0 +1,37 @@
+version: 4
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    workspace_abs: {type: string}
+    cache_prefix:
+      type: string
+      description: |
+        Cache key prefix from ingest-input; the full index is
+        stored at `<cache_prefix>/index-symbols` so warm runs at the
+        same workspace state skip the ctags pass entirely. Empty
+        (bypass) falls back to a stable per-workspace temp file.
+    cache_mode:
+      type: string
+      enum: [read-write, read-only, write-only, bypass]
+  required: [workspace_abs]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    index_path:
+      type: string
+      description: |
+        Absolute path to the full on-disk symbol index YAML
+        (list of {path, symbols: [{name, kind}]}) covering every
+        source file. Recomputed every run — ctags is fast enough
+        that symbol data is never cached or trimmed. Only this
+        path crosses the graph; consumers read the file directly.
+    files_indexed: {type: integer}
+    symbols_total: {type: integer}
+    tags_tool:
+      type: string
+      description: |
+        Which tier ran: ctags-json (universal-ctags), ctags-classic
+        (exuberant), or regex.
+  required: [index_path, files_indexed, symbols_total, tags_tool]

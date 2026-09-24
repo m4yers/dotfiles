@@ -37,3 +37,20 @@ mapping refs that target tasks not declared in
 Escape rule: `$${...}` survives resolution and is rewritten to literal `${...}`
 after all other tokens are substituted. Unknown placeholders are left untouched
 so downstream validation can flag them.
+
+
+## Naming conventions
+
+- The graph's ENTRY task SHOULD be named `ingest-input`: it declares
+  the graph's exact input parameters (each field schema'd and
+  described in its io.yaml/input). For subgraph-embeddable graphs it
+  is typically a pass-through tool so the contract stays explicit.
+- The graph's EXIT task SHOULD be named `publish-output`: its
+  io.yaml/output IS the graph's contract — every field the parent
+  may reference, declared flat (no opaque wrapper objects like an
+  "envelope"; parents wire exact fields, the validator projects each
+  ref against the schema).
+- Rationale: uniform entry/exit names make cross-skill embeds
+  scannable (`${task:<instance>:<field>}` always addresses a
+  publish-output), and flat contracts keep every dependency visible
+  and individually validated.

@@ -1,0 +1,27 @@
+# command-wait
+
+Inputs:
+
+- workdir: `{{ run.workdir }}`
+- notepad: `{{ run.workdir }}/notepad.md`
+
+## Task
+
+Ask the user for their next command. Classify it as `question`, `action`, or
+`end`:
+
+- `question` — the user is asking. Answer inline; no side effects.
+- `action` — the user wants work done. Propose a kebab-case slug for the
+  sub-folder name (e.g. `refactor-parser`, `add-timeout`).
+- `end` — the user is closing the session.
+
+## Output
+
+```bash
+LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
+$LOOM output init "{{ run.workdir }}" --task command-wait
+$LOOM output add  "{{ run.workdir }}" --task command-wait \
+    --set kind=<question|action|end> \
+    --set command='<verbatim user text>' \
+    --set slug='<slug-or-empty>'
+```

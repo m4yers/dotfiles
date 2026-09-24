@@ -367,3 +367,51 @@ def test_subgraph_requires_exactly_one_of_root_or_graph(tmp_path):
         (parent / "graph.yaml").write_text(yaml.safe_dump({"tasks": [entry]}))
         with pytest.raises(TaskRefError, match="exactly one"):
             from_graph_yaml(parent)
+
+
+def test_agent_model_hint_roundtrip_and_inline(tmp_path):
+    """`model:` on an agent entry survives load, plan.yaml round-trip,
+    and subgraph inlining; non-agent entries reject it."""
+    import yaml
+    import pytest
+    from pathlib import Path
+    from loom.plan import from_graph_yaml
+    from loom.engine.store import write_plan_yaml, read_plan_yaml
+    from loom.engine.inline import _prefix_task
+    from loom.engine.models import Task
+    from loom.errors import TaskRefError
+
+    root = _seed_variant_child(tmp_path)  # has agent-less tool graph; build our own
+    parent = tmp_path / "p2" / "loom"
+    slot = parent / "slot"
+    slot.mkdir(parents=True)
+    (slot / "io.yaml").write_text(
+        "version: 1\n"
+        "input:\n  type: object\n  additionalProperties: false\n"
+        "  properties: {q: {type: string}}\n  required: [q]\n"
+        "output:\n  type: object\n  additionalProperties: false\n"
+        "  properties: {a: {type: string}}\n  required: [a]\n")
+    (slot / "prompt.md.j2").write_text("{{ input.q }}\n")
+    (parent / "graph.yaml").write_text(yaml.safe_dump({"tasks": [
+        {"id": "slot", "kind": "agent", "version": 1,
+         "model": "cheap-model-x", "input": {"q": "hi"}},
+    ]}, sort_keys=False))
+
+    plan = from_graph_yaml(parent)
+    slot_task = next(t for t in plan.tasks if isinstance(t, Task))
+    assert slot_task.model == "cheap-model-x"
+
+    wd = tmp_path / "wd2"; wd.mkdir()
+    write_plan_yaml(wd, plan)
+    again = read_plan_yaml(wd)
+    assert next(t for t in again.tasks if isinstance(t, Task)).model == "cheap-model-x"
+
+    prefixed = _prefix_task(slot_task, "ns", "deadbeef", Path("/tmp"))
+    assert prefixed.model == "cheap-model-x"
+
+    # non-agent rejection
+    (parent / "graph.yaml").write_text(yaml.safe_dump({"tasks": [
+        {"id": "slot", "kind": "human", "version": 1, "model": "x"},
+    ]}, sort_keys=False))
+    with pytest.raises(TaskRefError, match="agent entries only"):
+        from_graph_yaml(parent)
