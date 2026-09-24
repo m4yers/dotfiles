@@ -80,7 +80,15 @@ $LOOM output add  "{{ input.__loom.workdir }}" --task research-plan \
 
 The `questions` array MUST always contain exactly 5 entries
 (`id=q1..q5`). Fill the first `num_questions` entries — at most
-{{ input.max_questions }} for this run — with real questions; set `prompt` to the empty string (`--set-json`) on unused
+{{ input.max_questions }} for this run — with real questions.
+Prefer USING the full budget: the slots are already paid for in the
+graph, and more, narrower questions buy parallelism and depth for
+free. Split by code territory — if a candidate question spans
+several distinct subsystems (e.g. a wire protocol AND a stats
+lookup AND a planner pass), give each subsystem its own question
+rather than packing them into one overloaded prompt. Emit fewer
+than {{ input.max_questions }} only when the feature genuinely
+touches fewer independent territories; set `prompt` to the empty string (`--set-json`) on unused
 trailing slots. Unused slots run as no-ops (the slot agent emits empty findings for
 an empty prompt); the contract requires explicit empty values, never
 omission:

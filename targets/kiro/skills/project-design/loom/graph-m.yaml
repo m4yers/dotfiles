@@ -16,7 +16,7 @@ tasks:
   version: 3
 - id: research-plan
   kind: agent
-  version: 7
+  version: 8
   depends_on_all:
   - ingest-input
   input:
