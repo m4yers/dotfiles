@@ -1,0 +1,70 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  required:
+  - applied_count
+  - branch
+  - diff_bundle
+  - diffs_verdict
+  - failed_task_ids
+  - final_decision
+  - final_note
+  - review_summary
+  - tasks_verdict
+  - total_tasks
+  - verify_passed
+  properties: &id001
+    branch:
+      type: string
+      description: Feature branch the implementation was committed on.
+    total_tasks:
+      type: integer
+      description: Tasks authored into the implementation pool.
+    applied_count:
+      type: integer
+      description: Pool tasks successfully applied (committed).
+    failed_task_ids:
+      type: array
+      items:
+        type: string
+      description: Pool tasks that exhausted retries without applying.
+    diff_bundle:
+      type: string
+      description: Concatenated diffs of all applied commits.
+    tasks_verdict:
+      type: string
+      description: "Terminal tasks-review verdict (accept | revise \u2014 revise\
+        \ means the latch exhausted fuel)."
+    diffs_verdict:
+      type: string
+      description: "Terminal code-review verdict (approved | revise \u2014 revise\
+        \ means the fix latch exhausted fuel)."
+    review_summary:
+      type: string
+      description: Merged reviewer summaries from the final review round.
+    verify_passed:
+      type: boolean
+      description: Whether the final verify-tests round passed.
+    final_decision:
+      type: string
+      description: Human final-gate decision (accept | abandon).
+    final_note:
+      type: string
+      description: Human final-gate note; empty when none.
+output:
+  type: object
+  additionalProperties: false
+  required:
+  - applied_count
+  - branch
+  - diff_bundle
+  - diffs_verdict
+  - failed_task_ids
+  - final_decision
+  - final_note
+  - review_summary
+  - tasks_verdict
+  - total_tasks
+  - verify_passed
+  properties: *id001

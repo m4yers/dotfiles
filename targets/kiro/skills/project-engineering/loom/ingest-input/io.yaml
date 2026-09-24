@@ -1,0 +1,197 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  required:
+  - build_installed_skills
+  - build_system
+  - design
+  - design_note
+  - fallback_build_cmd
+  - fallback_test_cmd
+  - feature_slug
+  - reviewer_role_d1
+  - reviewer_role_d2
+  - reviewer_role_d3
+  - reviewer_role_d4
+  - reviewer_role_d5
+  - reviewer_role_d6
+  - test_installed_skills
+  - test_system
+  - workspace_abs
+  properties:
+    design:
+      type: string
+      description: Full approved design document (markdown), verbatim.
+    design_note:
+      type: string
+      description: Human guidance note accompanying the design (scope trims, priorities);
+        empty string when none.
+    workspace_abs:
+      type: string
+      description: Absolute path of the workspace to implement in.
+    feature_slug:
+      type: string
+      description: Kebab-case feature identifier; feeds branch naming.
+    build_system:
+      type: string
+      description: Build-system family (e.g. make, brazil, uv).
+    build_installed_skills:
+      type: array
+      items: &id001
+        type: object
+        additionalProperties: false
+        properties:
+          name:
+            type: string
+          path:
+            type: string
+          description:
+            type: string
+          scripts:
+            type: array
+            items:
+              type: string
+        required:
+        - name
+        - path
+        - description
+        - scripts
+      description: Installed skill descriptors that teach this verb; take precedence
+        over the fallback command.
+    test_system:
+      type: string
+      description: Test-system family.
+    test_installed_skills:
+      type: array
+      items: *id001
+      description: Installed skill descriptors that teach this verb; take precedence
+        over the fallback command.
+    fallback_build_cmd:
+      type: string
+      description: Best-effort build command when no build skill is installed.
+    fallback_test_cmd:
+      type: string
+      description: Best-effort test command when no test skill is installed.
+    reviewer_role_d1:
+      type: string
+      description: Reviewer persona for domain slot 1 (scale variants use the first
+        2/4/6). Self-contained string; this skill does not know how it was derived.
+    reviewer_role_d2:
+      type: string
+      description: Reviewer persona for domain slot 2 (scale variants use the first
+        2/4/6). Self-contained string; this skill does not know how it was derived.
+    reviewer_role_d3:
+      type: string
+      description: Reviewer persona for domain slot 3 (scale variants use the first
+        2/4/6). Self-contained string; this skill does not know how it was derived.
+    reviewer_role_d4:
+      type: string
+      description: Reviewer persona for domain slot 4 (scale variants use the first
+        2/4/6). Self-contained string; this skill does not know how it was derived.
+    reviewer_role_d5:
+      type: string
+      description: Reviewer persona for domain slot 5 (scale variants use the first
+        2/4/6). Self-contained string; this skill does not know how it was derived.
+    reviewer_role_d6:
+      type: string
+      description: Reviewer persona for domain slot 6 (scale variants use the first
+        2/4/6). Self-contained string; this skill does not know how it was derived.
+output:
+  type: object
+  additionalProperties: false
+  required:
+  - build_installed_skills
+  - build_system
+  - design
+  - design_note
+  - fallback_build_cmd
+  - fallback_test_cmd
+  - feature_slug
+  - reviewer_role_d1
+  - reviewer_role_d2
+  - reviewer_role_d3
+  - reviewer_role_d4
+  - reviewer_role_d5
+  - reviewer_role_d6
+  - test_installed_skills
+  - test_system
+  - workspace_abs
+  properties:
+    design:
+      type: string
+      description: Full approved design document (markdown), verbatim.
+    design_note:
+      type: string
+      description: Human guidance note accompanying the design (scope trims, priorities);
+        empty string when none.
+    workspace_abs:
+      type: string
+      description: Absolute path of the workspace to implement in.
+    feature_slug:
+      type: string
+      description: Kebab-case feature identifier; feeds branch naming.
+    build_system:
+      type: string
+      description: Build-system family (e.g. make, brazil, uv).
+    build_installed_skills:
+      type: array
+      items: &id002
+        type: object
+        additionalProperties: false
+        properties:
+          name:
+            type: string
+          path:
+            type: string
+          description:
+            type: string
+          scripts:
+            type: array
+            items:
+              type: string
+        required:
+        - name
+        - path
+        - description
+        - scripts
+      description: Installed skill descriptors that teach this verb; take precedence
+        over the fallback command.
+    test_system:
+      type: string
+      description: Test-system family.
+    test_installed_skills:
+      type: array
+      items: *id002
+      description: Installed skill descriptors that teach this verb; take precedence
+        over the fallback command.
+    fallback_build_cmd:
+      type: string
+      description: Best-effort build command when no build skill is installed.
+    fallback_test_cmd:
+      type: string
+      description: Best-effort test command when no test skill is installed.
+    reviewer_role_d1:
+      type: string
+      description: Reviewer persona for domain slot 1 (scale variants use the first
+        2/4/6). Self-contained string; this skill does not know how it was derived.
+    reviewer_role_d2:
+      type: string
+      description: Reviewer persona for domain slot 2 (scale variants use the first
+        2/4/6). Self-contained string; this skill does not know how it was derived.
+    reviewer_role_d3:
+      type: string
+      description: Reviewer persona for domain slot 3 (scale variants use the first
+        2/4/6). Self-contained string; this skill does not know how it was derived.
+    reviewer_role_d4:
+      type: string
+      description: Reviewer persona for domain slot 4 (scale variants use the first
+        2/4/6). Self-contained string; this skill does not know how it was derived.
+    reviewer_role_d5:
+      type: string
+      description: Reviewer persona for domain slot 5 (scale variants use the first
+        2/4/6). Self-contained string; this skill does not know how it was derived.
+    reviewer_role_d6:
+      type: string
+      description: Reviewer persona for domain slot 6 (scale variants use the first
+        2/4/6). Self-contained string; this skill does not know how it was derived.

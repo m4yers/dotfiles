@@ -1,0 +1,291 @@
+# ============================================================
+# SCALE VARIANT (S): tasks/implementation/code-review
+# pipeline. Entry = ingest-input: EXACT parameters (design +
+# note, workspace, build/test env, reviewer_roles[2]) — this
+# graph does not know its producers; a composing parent wires
+# the fields from any compatible siblings. Exit = publish-output
+# (branch, counts, verdicts, final decision).
+# graph-s/m/l are three views of ONE pipeline over shared
+# task folders — apply wiring changes to all three, then:
+#   $LOOM validate <skill-root> --graph loom/graph-<x>.yaml
+# ============================================================
+tasks:
+- id: ingest-input
+  kind: tool
+  version: 1
+- id: tasks-author
+  kind: agent
+  version: 5
+  depends_on_all:
+  - ingest-input
+  - ingest-input
+  input:
+    design: ${task:ingest-input:design}
+    human_note: ${task:ingest-input:design_note}
+    build_system: ${task:ingest-input:build_system}
+    installed_skills: ${task:ingest-input:build_installed_skills}
+    fallback_build_cmd: ${task:ingest-input:fallback_build_cmd}
+    fallback_test_cmd: ${task:ingest-input:fallback_test_cmd}
+    revise_reason: ${task:tasks-review-merge@prev:revise_reason}
+- id: tasks-review-swe
+  kind: agent
+  version: 4
+  ref: tasks-review
+  depends_on_all:
+  - tasks-author
+  input:
+    tasks: ${task:tasks-author:tasks}
+    num_tasks: ${task:tasks-author:num_tasks}
+    reviewer_role: You are a principal software engineer reviewing for correctness, maintainability, API
+      design, error handling, and operational safety.
+- id: tasks-review-d1
+  kind: agent
+  version: 4
+  ref: tasks-review
+  depends_on_all:
+  - tasks-author
+  input:
+    tasks: ${task:tasks-author:tasks}
+    num_tasks: ${task:tasks-author:num_tasks}
+    reviewer_role: ${task:ingest-input:reviewer_role_d1}
+- id: tasks-review-d2
+  kind: agent
+  version: 4
+  ref: tasks-review
+  depends_on_all:
+  - tasks-author
+  input:
+    tasks: ${task:tasks-author:tasks}
+    num_tasks: ${task:tasks-author:num_tasks}
+    reviewer_role: ${task:ingest-input:reviewer_role_d2}
+- id: tasks-review-merge
+  kind: tool
+  version: 5
+  depends_on_all:
+  - tasks-review-swe
+  - tasks-author
+  - tasks-review-d1
+  - tasks-review-d2
+  input:
+    decision_swe: ${task:tasks-review-swe:decision}
+    revise_reason_swe: ${task:tasks-review-swe:revise_reason}
+    role_swe: You are a principal software engineer reviewing for correctness, maintainability, API design,
+      error handling, and operational safety.
+    decision_d1: ${task:tasks-review-d1:decision}
+    revise_reason_d1: ${task:tasks-review-d1:revise_reason}
+    role_d1: ${task:ingest-input:reviewer_role_d1}
+    num_tasks: ${task:tasks-author:num_tasks}
+    decision_d2: ${task:tasks-review-d2:decision}
+    revise_reason_d2: ${task:tasks-review-d2:revise_reason}
+    role_d2: ${task:ingest-input:reviewer_role_d2}
+- id: workspace-guard
+  kind: tool
+  version: 1
+  depends_on_all:
+  - tasks-review-merge
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    feature_slug: ${task:ingest-input:feature_slug}
+- id: branch-gate
+  kind: human
+  version: 1
+  depends_on_all:
+  - workspace-guard
+  input:
+    dirty: ${task:workspace-guard:dirty}
+    status_tail: ${task:workspace-guard:status_tail}
+    current_branch: ${task:workspace-guard:current_branch}
+    proposed_branch: ${task:workspace-guard:proposed_branch}
+- id: branch-create
+  kind: tool
+  version: 1
+  depends_on_all:
+  - branch-gate
+  input:
+    decision: ${task:branch-gate:decision}
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    proposed_branch: ${task:workspace-guard:proposed_branch}
+- id: pool-draw
+  kind: tool
+  version: 1
+  depends_on_all:
+  - branch-create
+  input:
+    tasks: ${task:tasks-author:tasks}
+    prev: ${task:pool-advance@prev}
+- id: impl-round
+  kind: agent
+  version: 2
+  ref: coding
+  depends_on_all:
+  - pool-draw
+  input:
+    task: ${task:pool-draw:current_task}
+    cursor: ${task:pool-draw:cursor}
+    total: ${task:pool-draw:total}
+    prior_diffs: ${task:pool-advance@prev:prior_diffs_summary}
+    build_system: ${task:ingest-input:build_system}
+    installed_skills: ${task:ingest-input:build_installed_skills}
+    fallback_build_cmd: ${task:ingest-input:fallback_build_cmd}
+    fallback_test_cmd: ${task:ingest-input:fallback_test_cmd}
+    workspace_abs: ${task:ingest-input:workspace_abs}
+- id: pool-advance
+  kind: tool
+  version: 1
+  depends_on_all:
+  - impl-round
+  input:
+    cursor: ${task:pool-draw:cursor}
+    total: ${task:pool-draw:total}
+    current_task: ${task:pool-draw:current_task}
+    applied: ${task:impl-round:applied}
+    error: ${task:impl-round:error}
+    diff: ${task:impl-round:diff}
+    files_changed: ${task:impl-round:files_changed}
+    notes: ${task:impl-round:notes}
+    cmds_used: ${task:impl-round:cmds_used}
+    prev: ${task:pool-advance@prev}
+    retry_budget: '2'
+    on_task_fail: skip
+- id: verify-tests
+  kind: tool
+  version: 1
+  depends_on_all:
+  - pool-advance
+  input:
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    build_system: ${task:ingest-input:test_system}
+    installed_skills: ${task:ingest-input:test_installed_skills}
+    fallback_test_cmd: ${task:ingest-input:fallback_test_cmd}
+- id: review-diffs-swe
+  kind: agent
+  version: 4
+  ref: review-diffs
+  depends_on_all:
+  - verify-tests
+  input:
+    verify_test_cmd_used: ${task:verify-tests:test_cmd_used}
+    verify_exit_code: ${task:verify-tests:exit_code}
+    verify_passed: ${task:verify-tests:passed}
+    verify_stdout_tail: ${task:verify-tests:stdout_tail}
+    verify_stderr_tail: ${task:verify-tests:stderr_tail}
+    build_system: ${task:ingest-input:build_system}
+    installed_skills: ${task:ingest-input:build_installed_skills}
+    reviewer_role: You are a principal software engineer reviewing for correctness, maintainability, API
+      design, error handling, and operational safety.
+    diff_bundle: ${task:pool-advance:diff_bundle}
+    failed_task_ids: ${task:pool-advance:failed_task_ids}
+    cmds_bundle: ${task:pool-advance:cmds_bundle}
+- id: review-diffs-d1
+  kind: agent
+  version: 4
+  ref: review-diffs
+  depends_on_all:
+  - verify-tests
+  input:
+    verify_test_cmd_used: ${task:verify-tests:test_cmd_used}
+    verify_exit_code: ${task:verify-tests:exit_code}
+    verify_passed: ${task:verify-tests:passed}
+    verify_stdout_tail: ${task:verify-tests:stdout_tail}
+    verify_stderr_tail: ${task:verify-tests:stderr_tail}
+    build_system: ${task:ingest-input:build_system}
+    installed_skills: ${task:ingest-input:build_installed_skills}
+    reviewer_role: ${task:ingest-input:reviewer_role_d1}
+    diff_bundle: ${task:pool-advance:diff_bundle}
+    failed_task_ids: ${task:pool-advance:failed_task_ids}
+    cmds_bundle: ${task:pool-advance:cmds_bundle}
+- id: review-diffs-d2
+  kind: agent
+  version: 4
+  ref: review-diffs
+  depends_on_all:
+  - verify-tests
+  input:
+    verify_test_cmd_used: ${task:verify-tests:test_cmd_used}
+    verify_exit_code: ${task:verify-tests:exit_code}
+    verify_passed: ${task:verify-tests:passed}
+    verify_stdout_tail: ${task:verify-tests:stdout_tail}
+    verify_stderr_tail: ${task:verify-tests:stderr_tail}
+    build_system: ${task:ingest-input:build_system}
+    installed_skills: ${task:ingest-input:build_installed_skills}
+    reviewer_role: ${task:ingest-input:reviewer_role_d2}
+    diff_bundle: ${task:pool-advance:diff_bundle}
+    failed_task_ids: ${task:pool-advance:failed_task_ids}
+    cmds_bundle: ${task:pool-advance:cmds_bundle}
+- id: review-diffs-merge
+  kind: tool
+  version: 3
+  depends_on_all:
+  - review-diffs-swe
+  - review-diffs-d1
+  - review-diffs-d2
+  input:
+    verdict_swe: ${task:review-diffs-swe:verdict}
+    findings_swe: ${task:review-diffs-swe:findings}
+    summary_swe: ${task:review-diffs-swe:summary}
+    role_swe: You are a principal software engineer reviewing for correctness, maintainability, API design,
+      error handling, and operational safety.
+    verdict_d1: ${task:review-diffs-d1:verdict}
+    findings_d1: ${task:review-diffs-d1:findings}
+    summary_d1: ${task:review-diffs-d1:summary}
+    role_d1: ${task:ingest-input:reviewer_role_d1}
+    verdict_d2: ${task:review-diffs-d2:verdict}
+    findings_d2: ${task:review-diffs-d2:findings}
+    summary_d2: ${task:review-diffs-d2:summary}
+    role_d2: ${task:ingest-input:reviewer_role_d2}
+- id: review-fix
+  kind: agent
+  version: 1
+  depends_on_all:
+  - review-diffs-merge
+  input:
+    findings: ${task:review-diffs-merge:findings}
+    summary: ${task:review-diffs-merge:summary}
+    workspace_abs: ${task:ingest-input:workspace_abs}
+    build_system: ${task:ingest-input:build_system}
+    installed_skills: ${task:ingest-input:build_installed_skills}
+    fallback_build_cmd: ${task:ingest-input:fallback_build_cmd}
+    fallback_test_cmd: ${task:ingest-input:fallback_test_cmd}
+    verify_test_cmd_used: ${task:verify-tests:test_cmd_used}
+- id: final-gate
+  kind: human
+  version: 4
+  depends_on_all:
+  - review-fix
+  input:
+    verdict: ${task:review-diffs-merge:verdict}
+    verify_stdout_tail: ${task:verify-tests:stdout_tail}
+    verify_stderr_tail: ${task:verify-tests:stderr_tail}
+    diff_bundle: ${task:pool-advance:diff_bundle}
+    failed_task_ids: ${task:pool-advance:failed_task_ids}
+    applied_count: ${task:pool-advance:applied_count}
+- id: publish-output
+  kind: tool
+  version: 1
+  depends_on_all:
+  - final-gate
+  input:
+    branch: ${task:branch-create:branch}
+    total_tasks: ${task:tasks-author:num_tasks}
+    applied_count: ${task:pool-advance:applied_count}
+    failed_task_ids: ${task:pool-advance:failed_task_ids}
+    diff_bundle: ${task:pool-advance:diff_bundle}
+    tasks_verdict: ${task:tasks-review-merge:decision}
+    diffs_verdict: ${task:review-diffs-merge:verdict}
+    review_summary: ${task:review-diffs-merge:summary}
+    verify_passed: ${task:verify-tests:passed}
+    final_decision: ${task:final-gate:decision}
+    final_note: ${task:final-gate:note}
+latches:
+- task: tasks-review-merge
+  header: tasks-author
+  fuel: 5
+  while_: ${task:tasks-review-merge:decision} == 'revise'
+- task: pool-advance
+  header: pool-draw
+  fuel: 200
+  while_: ${task:pool-advance:remaining} > `0`
+- task: review-fix
+  header: verify-tests
+  fuel: 5
+  while_: ${task:review-fix:verdict} != 'approved'

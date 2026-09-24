@@ -31,7 +31,7 @@ output:
     proposed_branch:
       type: string
       description: |
-        Proposed feature branch name: `project-feature/<feature_slug>`
+        Proposed feature branch name: `feature/<feature_slug>`
         truncated to 60 chars. branch-create uniquifies it against
         existing branches.
   required: [dirty, status_tail, current_branch, proposed_branch]

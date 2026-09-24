@@ -56,7 +56,7 @@ def workspace_guard(inp: WorkspaceGuardInput) -> WorkspaceGuardOutput:
         current_branch = "DETACHED"
 
     slug = (inp.feature_slug or "feature").strip("-") or "feature"
-    proposed = f"project-feature/{slug}"[:_MAX_BRANCH_LEN].rstrip("-/")
+    proposed = f"feature/{slug}"[:_MAX_BRANCH_LEN].rstrip("-/")
 
     return WorkspaceGuardOutput(
         dirty=bool(porcelain),
