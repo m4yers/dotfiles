@@ -8,13 +8,23 @@ so they load on demand rather than on every live-doc activation (including
 
 `$LOOM runtime next` yields ready agent tasks with their `prompt_path` already
 rendered from the task's materialised `input.yaml`. For each entry, dispatch via
-the `subagent` MCP tool with `role: trusted` (grants file-read/write access,
-plus builder-mcp for ingestion-stage fetches).
+the `subagent_trusted-aws` tool (grants file-read/write access, plus builder-mcp
+for ingestion-stage fetches).
 
 The sub-agent's `prompt_template` should instruct it to `fs_read` the
 `prompt_path` and follow it. The agent writes its output to the `output_path`
 from the same entry (or via `$LOOM output add`). After dispatch returns, call
 `$LOOM runtime complete "$LD_WD" "<task-address>"`.
+
+### Orchestrator is `trusted-aws`
+
+Kiro hides the active profile from its own `subagent_*` list, so a session
+running as `trusted-aws` has no `subagent_trusted-aws` tool (log line
+`[KiroAgent] Using custom agent profile: trusted-aws`). In that case the
+orchestrator runs the entry inline: `fs_read` the `prompt_path`, follow it with
+its own tools (`tool_load builder-mcp::ReadInternalWebsites` for fetches), write
+`output_path` via `$LOOM output add`, then `complete`. Never fall back to
+`subagent_trusted` — it has no builder-mcp and the fetch fails.
 
 Dispatch independent entries in parallel via the `subagent` `stages` array with
 no `depends_on`. Think hard about the instruction's intent before emitting any

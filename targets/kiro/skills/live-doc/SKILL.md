@@ -26,6 +26,8 @@ verifies the round-trip, and commits the vault.
 | `trusted-aws` agent | carries builder-mcp (incl. `ReadInternalWebsites`) for ingestion fetches |
 
 The `trusted-aws` sub-agent lives at `~/.kiro/agents/trusted-aws.json`.
+If the session itself runs as `trusted-aws`, agent tasks run inline
+(see Rule 3).
 
 ## Parameters
 
@@ -134,7 +136,13 @@ the task DAG (legend: ○ tool · ◆ agent · ▣ human · ↻ loop).
 3. Dispatch every `kind: agent` entry via the `trusted-aws`
    sub-agent (`~/.kiro/agents/trusted-aws.json`) — it carries
    builder-mcp (including `ReadInternalWebsites`) that `run-ingestion`
-   needs for Midway-authenticated fetches.
+   needs for Midway-authenticated fetches. Kiro never exposes the
+   active agent profile to itself as a `subagent_*` tool, so when
+   the orchestrator IS `trusted-aws` (no `subagent_trusted-aws`
+   tool, but `builder-mcp::ReadInternalWebsites` is loadable), run
+   the entry inline: `fs_read` its `prompt_path`, follow it with the
+   session's own tools, then `complete` it. Do NOT substitute
+   `subagent_trusted` (no builder-mcp) or report BLOCKED.
 4. Independent agent entries in one `ready` batch MUST be dispatched
    in parallel, because serial dispatch drops loomv2's concurrency
    guarantee and inflates end-to-end latency for no gain.
