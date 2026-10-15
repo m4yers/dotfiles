@@ -1,9 +1,76 @@
 {
-  "name" : "trusted",
-  "description" : "Subagent with pre-trusted tools for code analysis and general development",
-  "model" : "claude-opus-4.7",
-  "resources" : [ "file://~/.kiro/steering/**/*.md", "skill://~/.kiro/skills/**/SKILL.md" ],
-  "tools" : [ "fs_read", "ls", "fs_write", "execute_bash", "grep", "glob", "code", "use_aws", "introspect", "use_subagent", "web_fetch", "web_search" ],
-  "allowedTools" : [ "fs_read", "ls", "fs_write", "execute_bash", "grep", "glob", "code", "use_aws", "introspect", "use_subagent", "web_fetch", "web_search" ],
-  "mcpServers" : { }
+  "name": "trusted",
+  "description": "Subagent with pre-trusted tools for code analysis and general development",
+  "model": "claude-opus-4.7",
+  "resources": [
+    "file://~/.kiro/steering/**/*.md",
+    "skill://~/.kiro/skills/**/SKILL.md"
+  ],
+  "tools": [
+    "code",
+    "glob",
+    "grep",
+    "introspect",
+    "ls",
+    "read",
+    "shell",
+    "subagent",
+    "use_aws",
+    "web",
+    "web_fetch",
+    "web_search",
+    "write"
+  ],
+  "allowedTools": [
+    "fs_read",
+    "ls",
+    "fs_write",
+    "execute_bash",
+    "grep",
+    "glob",
+    "code",
+    "use_aws",
+    "introspect",
+    "use_subagent",
+    "web_fetch",
+    "web_search"
+  ],
+  "mcpServers": {},
+  "permissions": {
+    "rules": [
+      {
+        "capability": "fs_read",
+        "effect": "allow"
+      },
+      {
+        "capability": "fs_write",
+        "effect": "allow"
+      },
+      {
+        "capability": "shell",
+        "effect": "allow"
+      },
+      {
+        "capability": "subagent",
+        "effect": "allow"
+      },
+      {
+        "capability": "web_fetch",
+        "effect": "allow"
+      },
+      {
+        "capability": "web_search",
+        "effect": "allow"
+      },
+      {
+        "capability": "skill",
+        "effect": "allow"
+      }
+    ]
+  },
+  "kiroUpgrade": {
+    "revision": 2,
+    "fingerprint": "sha256:c6956ded4964d9a364e3143378b1f751ef1a2c0b92fc5f37a5185458cce8fc9b",
+    "source": "sha256:8af053d8363c3b1d05c9e902e08c1df9cbe54bfefba41cfe807905c81fb9e5f8"
+  }
 }

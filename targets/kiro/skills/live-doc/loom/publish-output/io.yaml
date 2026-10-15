@@ -1,0 +1,30 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    vault_path: {type: string}
+    ingestion_runs:
+      type: array
+      items: {type: object}
+    inference_runs:
+      type: array
+      items: {type: object}
+    presentation_runs:
+      type: array
+      items: {type: object}
+    commit_sha: {type: string}
+  required:
+    - vault_path
+    - ingestion_runs
+    - inference_runs
+    - presentation_runs
+    - commit_sha
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    vault_path: {type: string}
+    scripts_run: {type: integer}
+    commit_sha: {type: string}
+  required: [vault_path, scripts_run, commit_sha]

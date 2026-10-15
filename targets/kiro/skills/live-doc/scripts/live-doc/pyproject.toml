@@ -1,0 +1,8 @@
+[project]
+name = "live-doc"
+version = "0.1.0"
+description = "live-doc skill: scaffold and refresh live docs."
+requires-python = ">=3.11"
+dependencies = [
+    "pyyaml>=6",
+]

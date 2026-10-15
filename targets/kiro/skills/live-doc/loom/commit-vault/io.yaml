@@ -1,0 +1,15 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    vault_path: {type: string}
+    name: {type: string}
+  required: [vault_path, name]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    commit_sha: {type: string}
+    message: {type: string}
+  required: [commit_sha, message]
