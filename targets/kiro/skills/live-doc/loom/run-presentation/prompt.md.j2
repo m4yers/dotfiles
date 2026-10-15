@@ -26,7 +26,14 @@ For each presentation instruction:
    name of the subsection the stdout feeds, e.g.
    `Milestone-PreProdIssues`). Unless the instruction asks for a
    file under `data_dir`, the stdout IS the Result subsection body.
-4. Run it:
+4. Markdown tables MUST be column-aligned so they read in plain
+   text: pad every cell to its column's widest value (text
+   left-aligned, numbers right-aligned), and size the separator
+   dashes to the column width (`|-------|------:|`). A script that
+   emits unpadded `| a | b |` rows is mismatched — patch it. Use
+   `df.to_markdown()` (needs `tabulate>=0.9,<0.10` in the PEP 723
+   deps) or a small padding helper.
+5. Run it:
 
    ```bash
    cd {{ input.data_dir }}

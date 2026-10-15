@@ -166,6 +166,12 @@ the task DAG (legend: ○ tool · ◆ agent · ▣ human · ↻ loop).
    completed task and report BLOCKED with the last ready batch,
    because an unbounded loop hides a stuck plan instead of
    surfacing it for human triage.
+9. Presentation scripts MUST emit column-aligned markdown tables
+   (cells padded to the column width, numbers right-aligned,
+   separator dashes sized to the column) because the Result is
+   read as plain text in the editor and unpadded `| a | b |` rows
+   are unreadable there. An unpadded table counts as a mismatched
+   script and is patched on refresh.
 
 ## Completion
 

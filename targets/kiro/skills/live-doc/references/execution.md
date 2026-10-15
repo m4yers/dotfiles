@@ -36,6 +36,25 @@ and the write-result agent copies that stdout verbatim into the matching
 `data_dir` and leave stdout empty when its instruction explicitly asks for a
 file (rare).
 
+Markdown tables in that stdout MUST be column-aligned (see SKILL.md Rule 9).
+Two accepted ways:
+
+```python
+# dependencies = ["pandas>=2.2,<2.3", "numpy>=1.26,<2.3", "tabulate>=0.9,<0.10"]
+print(df.to_markdown(index=False, tablefmt="github", numalign="right"))
+```
+
+or pad by hand when a dependency is overkill:
+
+```python
+w = [max(len(str(c)) for c in col) for col in zip(header, *rows)]
+fmt = lambda r: "| " + " | ".join(str(c).rjust(n) if isinstance(c, int)
+                                   else str(c).ljust(n)
+                                   for c, n in zip(r, w)) + " |"
+print(fmt(header)); print("|" + "|".join("-" * (n + 2) for n in w) + "|")
+for r in rows: print(fmt(r))
+```
+
 ## Prudent regeneration
 
 The stage agents MUST keep existing Appendix scripts as-is when they still match
