@@ -10,7 +10,8 @@ Create and refresh live docs — vault markdown files with four sections (a
 free-form intro, `# Instructions` in three fixed stages, `# Result`, and
 `# Appendix` of uv scripts). Create scaffolds a new doc and opens it in the
 editor; refresh is a 10-task loom pipeline that re-executes each Appendix
-script, writes the output into Result, re-embeds the scripts in Appendix,
+script, writes the refresh timestamp and presentation outputs into Result
+(nothing else), re-embeds the scripts in Appendix,
 verifies the round-trip, and commits the vault.
 
 ## Dependencies
@@ -148,8 +149,9 @@ the task DAG (legend: ○ tool · ◆ agent · ▣ human · ↻ loop).
    for the uv/python/pandas pins and `cwd=data_dir` rule, and
    `references/manual-steps.md` for MCP-fetch handling
    (ingestion only).
-7. Instruction typos the stage agents notice are flagged in the
-   Result header prose; they MUST NOT be silently corrected in the
+7. Instruction typos or ambiguities the stage agents notice are
+   reported to the user in the final chat summary, never written
+   into the doc; they MUST NOT be silently corrected in the
    generated scripts because silent corrections hide the input
    defect and the next refresh regenerates the same wrong script.
 8. The Step 3 loop MUST stop after 10 iterations without a newly

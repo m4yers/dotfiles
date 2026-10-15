@@ -1,14 +1,8 @@
-version: 1
+version: 2
 input:
   type: object
   additionalProperties: false
   properties:
-    ingestion_runs:
-      type: array
-      items: {type: object}
-    inference_runs:
-      type: array
-      items: {type: object}
     presentation_runs:
       type: array
       description: >-
@@ -29,60 +23,16 @@ input:
           result_heading: {type: string}
         required: [name, exit_code, stdout, stderr, duration_s,
                    output_paths, result_heading]
-    prev_result_header: {type: string}
-    prev_result_subsections:
-      type: array
-      items:
-        type: object
-        additionalProperties: false
-        properties:
-          heading: {type: string}
-          body: {type: string}
-        required: [heading, body]
-    instructions:
-      type: object
-      additionalProperties: false
-      properties:
-        ingestion: {type: string}
-        inference: {type: string}
-        presentation: {type: string}
-      required: [ingestion, inference, presentation]
-    run_order:
-      type: object
-      additionalProperties: false
-      properties:
-        ingestion:
-          type: array
-          items: {type: string}
-        inference:
-          type: array
-          items: {type: string}
-        presentation:
-          type: array
-          items: {type: string}
-      required: [ingestion, inference, presentation]
     __loom: {}
     __task: {}
-  required:
-    - ingestion_runs
-    - inference_runs
-    - presentation_runs
-    - prev_result_header
-    - prev_result_subsections
-    - instructions
-    - run_order
-    - __loom
-    - __task
+  required: [presentation_runs, __loom, __task]
 output:
   type: object
   additionalProperties: false
   properties:
     header:
       type: string
-      description: >-
-        `Last refresh: <UTC ts>` line plus a one-paragraph summary
-        with deltas against prev_result_* and any surfaced
-        instruction typos.
+      description: "`Last refresh: <UTC ts> UTC.` — the only header content."
     subsections:
       type: array
       items:

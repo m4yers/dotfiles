@@ -37,17 +37,11 @@ tasks:
       run_order: "${task:load-doc:run_order.presentation}"
       data_dir: "${task:ingest-input:data_dir}"
   - id: write-result
-    kind: agent
-    version: 1
+    kind: tool
+    version: 2
     depends_on_all: [run-presentation]
     input:
-      ingestion_runs: "${task:run-ingestion:runs}"
-      inference_runs: "${task:run-inference:runs}"
       presentation_runs: "${task:run-presentation:runs}"
-      prev_result_header: "${task:load-doc:prev_result_header}"
-      prev_result_subsections: "${task:load-doc:prev_result_subsections}"
-      instructions: "${task:load-doc:instructions}"
-      run_order: "${task:load-doc:run_order}"
   - id: assemble-doc
     kind: tool
     version: 1

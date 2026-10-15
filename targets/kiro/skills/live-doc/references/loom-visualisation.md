@@ -10,7 +10,7 @@ PLAN  live-doc  ·  10 tasks
 ○  09 commit-vault
 ○  08 verify-roundtrip
 ○  07 assemble-doc
-◆  06 write-result
+○  06 write-result
 ◆  05 run-presentation
 ◆  04 run-inference
 ◆  03 run-ingestion

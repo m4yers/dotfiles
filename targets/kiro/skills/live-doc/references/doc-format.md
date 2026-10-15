@@ -12,10 +12,11 @@ A live doc is a vault markdown file with four H1 sections in a fixed order:
 
    Instructions MAY reference external sources (Quip, SIM, wikis) and
    may be terse. They are the input the stage agents read.
-3. **`# Result`** — refresh output: a `Last refresh: <UTC ts>` line,
-   a one-paragraph summary with row counts and deltas against the
-   previous refresh, then one `## <heading>` subsection per
-   presentation instruction (mostly stdout verbatim).
+3. **`# Result`** — refresh output: a `Last refresh: <UTC ts> UTC.`
+   line, then one `## <heading>` subsection per presentation
+   instruction (stdout verbatim). No explanatory paragraphs: anything
+   worth saying about the data belongs in a presentation output or
+   in the chat summary, not in the doc.
 4. **`# Appendix`** — the three fixed H2 subsections mirror the ones
    under `# Instructions`. Each stage subsection contains a numbered
    run order, then one `### <script-name>` block per script with a
