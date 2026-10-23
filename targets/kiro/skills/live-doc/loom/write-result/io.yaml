@@ -1,0 +1,45 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    presentation_runs:
+      type: array
+      description: >-
+        Presentation stage `runs`; each entry carries
+        `result_heading` and `stdout`.
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name: {type: string}
+          exit_code: {type: integer}
+          stdout: {type: string}
+          stderr: {type: string}
+          duration_s: {type: number}
+          output_paths:
+            type: array
+            items: {type: string}
+          result_heading: {type: string}
+        required: [name, exit_code, stdout, stderr, duration_s,
+                   output_paths, result_heading]
+    __loom: {}
+    __task: {}
+  required: [presentation_runs, __loom, __task]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    header:
+      type: string
+      description: "`Last refresh: <UTC ts> UTC.` — the only header content."
+    subsections:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          heading: {type: string}
+          body: {type: string}
+        required: [heading, body]
+  required: [header, subsections]

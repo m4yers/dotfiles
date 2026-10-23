@@ -1,0 +1,53 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    vault_path: {type: string}
+    scripts_ingestion: {$ref: '#/$defs/script_list'}
+    scripts_inference: {$ref: '#/$defs/script_list'}
+    scripts_presentation: {$ref: '#/$defs/script_list'}
+    run_order_ingestion: {$ref: '#/$defs/str_list'}
+    run_order_inference: {$ref: '#/$defs/str_list'}
+    run_order_presentation: {$ref: '#/$defs/str_list'}
+    result_subsections:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          heading: {type: string}
+          body: {type: string}
+        required: [heading, body]
+  required:
+    - vault_path
+    - scripts_ingestion
+    - scripts_inference
+    - scripts_presentation
+    - run_order_ingestion
+    - run_order_inference
+    - run_order_presentation
+    - result_subsections
+  $defs:
+    script_list:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name: {type: string}
+          description: {type: string}
+          source: {type: string}
+          run_argv:
+            type: array
+            items: {type: string}
+        required: [name, description, source, run_argv]
+    str_list:
+      type: array
+      items: {type: string}
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    ok: {type: boolean}
+  required: [ok]

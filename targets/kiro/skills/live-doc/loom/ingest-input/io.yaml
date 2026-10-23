@@ -1,0 +1,25 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+      description: Doc name derived from the filename (`live-<name>.md`).
+    vault_path:
+      type: string
+      description: Absolute path to the existing live doc.
+    __loom: {}
+  required: [name, vault_path]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    name: {type: string}
+    vault_path: {type: string}
+    data_dir:
+      type: string
+      description: >-
+        Workdir-local directory under ${__loom.workdir}/data/ where
+        all stage scripts and intermediates live.
+  required: [name, vault_path, data_dir]

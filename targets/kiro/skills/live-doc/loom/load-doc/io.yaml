@@ -1,0 +1,67 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    vault_path: {type: string}
+  required: [vault_path]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    intro: {type: string}
+    instructions:
+      type: object
+      additionalProperties: false
+      properties:
+        ingestion: {type: string}
+        inference: {type: string}
+        presentation: {type: string}
+      required: [ingestion, inference, presentation]
+    prev_result_header: {type: string}
+    prev_result_subsections:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          heading: {type: string}
+          body: {type: string}
+        required: [heading, body]
+    appendix_scripts:
+      type: object
+      additionalProperties: false
+      properties:
+        ingestion: {$ref: '#/$defs/script_list'}
+        inference: {$ref: '#/$defs/script_list'}
+        presentation: {$ref: '#/$defs/script_list'}
+      required: [ingestion, inference, presentation]
+    run_order:
+      type: object
+      additionalProperties: false
+      properties:
+        ingestion: {$ref: '#/$defs/str_list'}
+        inference: {$ref: '#/$defs/str_list'}
+        presentation: {$ref: '#/$defs/str_list'}
+      required: [ingestion, inference, presentation]
+  required:
+    - intro
+    - instructions
+    - prev_result_header
+    - prev_result_subsections
+    - appendix_scripts
+    - run_order
+  $defs:
+    script_list:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name: {type: string}
+          description: {type: string}
+          source: {type: string}
+        required: [name, description, source]
+    str_list:
+      type: array
+      items: {type: string}

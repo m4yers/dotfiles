@@ -6,84 +6,81 @@ description: Editor operations in the tiling EDITOR pane. Use when any skill nee
 
 # editor
 
-Opaque editor for the tiling EDITOR pane. Callers use
-commands without knowing the underlying implementation.
+Opaque editor API for the tiling EDITOR pane, built on the tiling skill. Callers
+invoke named commands to open files, show diffs, and manage tabs without knowing
+the underlying implementation.
 
-Script: `~/.kiro/skills/home/editor/scripts/editor.py`
+Callers MUST call `reset` before starting a new review or workflow so stale tabs
+from previous sessions do not persist.
 
-Run via:
+## Invocation
+
 ```bash
-uv run --python 3.12 \
-  --project ~/.kiro/skills/home/editor/scripts \
-  python ~/.kiro/skills/home/editor/scripts/editor.py \
-  <command> [args]
+EDITOR=~/.kiro/skills/home/editor/scripts/run-editor.sh
+$EDITOR <command> [args]
 ```
-
-## Dependencies
-
-- `~/.kiro/skills/home/tiling/SKILL.md` — pane management
 
 ## API
 
-| Command                  | Effect                              |
-|--------------------------|-------------------------------------|
-| `reset`                  | Clear all tabs, buffers, splits     |
-| `show diff <file> <ref>` | Side-by-side diff (reuses tab)     |
-| `show file <file>`       | Open file (reuses tab)              |
-| `show only <file>`       | Reset editor and show single file   |
-| `list tabs`              | List open tabs as JSON              |
+| Command     | Args           | Effect                            |
+|-------------|----------------|-----------------------------------|
+| `reset`     | (none)         | Clear all tabs, buffers, splits   |
+| `show diff` | `<file> <ref>` | Side-by-side diff against a ref   |
+| `show file` | `<file>`       | Open file (reuses tab)            |
+| `show only` | `<file>`       | Reset editor and show single file |
+| `list tabs` | (none)         | List open tabs as JSON            |
 
 ## Commands
 
 ### reset
 
-Clear all tabs, splits, and buffers. Returns the editor
-to a clean single-buffer state.
+Clear all tabs, splits, and buffers. Returns the editor to a clean single-buffer
+state so a new workflow starts without leftover tabs.
 
 ```bash
-~/.kiro/skills/home/editor/scripts/run-editor.sh reset
+$EDITOR reset
 ```
 
 ### show diff
 
-Open a file with a side-by-side diff against a ref
-(branch, tag, or revision like `HEAD`, `HEAD~1`, `rc`).
+Show a side-by-side diff of a file against a ref (a branch, tag, or revision
+like `HEAD`, `HEAD~1`, or `rc`).
 
 ```bash
-~/.kiro/skills/home/editor/scripts/run-editor.sh show diff src/main.cpp rc
-~/.kiro/skills/home/editor/scripts/run-editor.sh show diff src/query.cpp HEAD~1
+$EDITOR show diff src/main.cpp rc
+$EDITOR show diff src/query.cpp HEAD~1
 ```
 
-Each call reuses the tab if the file is already open,
-otherwise opens a new tab.
+`<file>` may be a directory, in which case every changed file under it is
+shown. The pane stays on the diff; `n` / `N` move between files, `q` closes it.
 
 ### show file
 
-Open a file in a tab. Reuses existing tab if the file
-is already open.
+Open a file in a tab. Reuses an existing tab when the file is already open;
+otherwise opens the file in a new tab.
 
 ```bash
-~/.kiro/skills/home/editor/scripts/run-editor.sh show file src/main.cpp
+$EDITOR show file src/main.cpp
 ```
 
 ### show only
 
-Reset the editor and show a single file. Equivalent to
-`reset` followed by `show file`.
+Reset the editor and show a single file in it. Equivalent to running `reset` and
+then `show file` back-to-back.
 
 ```bash
-~/.kiro/skills/home/editor/scripts/run-editor.sh show only src/main.cpp
+$EDITOR show only src/main.cpp
 ```
 
 ### list tabs
 
-List all open tabs with their splits and file names.
+List all open tabs with their splits and open file names.
 
 ```bash
-~/.kiro/skills/home/editor/scripts/run-editor.sh list tabs
+$EDITOR list tabs
 ```
 
-Returns JSON array of tabs:
+Returns a JSON array of tabs with the open panes in each tab:
 
 ```json
 [
@@ -98,19 +95,17 @@ Returns JSON array of tabs:
 
 ## Rules
 
-- MUST call `reset` before starting a new review or
-  workflow to avoid stale tabs from a previous session.
-- MUST NOT send raw keystrokes to the EDITOR pane because
-  it bypasses the command API and breaks tab tracking.
+- MUST NOT send raw keystrokes to the EDITOR pane because it bypasses the
+  command API and breaks tab tracking.
 
 ## Completion
 
-| Status               | Criteria                            |
-|----------------------|-------------------------------------|
-| `DONE`               | File or diff shown in editor        |
-| `DONE_WITH_CONCERNS` | Editor opened but diff unavailable  |
-| `BLOCKED`            | Standard layout not set up          |
-| `NEEDS_CONTEXT`      | No file specified to open           |
+| Status               | Criteria                           |
+|----------------------|------------------------------------|
+| `DONE`               | File or diff shown in editor       |
+| `DONE_WITH_CONCERNS` | Editor opened but diff unavailable |
+| `BLOCKED`            | Standard layout not set up         |
+| `NEEDS_CONTEXT`      | No file specified to open          |
 
 - You MUST stop after 3 failed editor operations and report
   status BLOCKED with what was tried.

@@ -34,3 +34,5 @@
 [user]
 	email = artyomgo@amazon.com
 	name = artyom
+[include]
+	path = ~/dotfiles/targets/delta/gitconfig

@@ -1,0 +1,63 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    instructions:
+      type: string
+      description: Full `## Data ingestion` body (markdown).
+    appendix_scripts:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name: {type: string}
+          description: {type: string}
+          source: {type: string}
+        required: [name, description, source]
+    run_order:
+      type: array
+      items: {type: string}
+    data_dir: {type: string}
+    __loom: {}
+    __task: {}
+  required: [instructions, appendix_scripts, run_order, data_dir,
+             __loom, __task]
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    scripts:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name: {type: string}
+          description: {type: string}
+          source: {type: string}
+          run_argv:
+            type: array
+            items: {type: string}
+        required: [name, description, source, run_argv]
+    run_order:
+      type: array
+      items: {type: string}
+    runs:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          name: {type: string}
+          exit_code: {type: integer}
+          stdout: {type: string}
+          stderr: {type: string}
+          duration_s: {type: number}
+          output_paths:
+            type: array
+            items: {type: string}
+        required: [name, exit_code, stdout, stderr, duration_s,
+                   output_paths]
+  required: [scripts, run_order, runs]

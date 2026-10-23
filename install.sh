@@ -39,11 +39,11 @@ setup_home() {
   bootstrap
 
   if is_linux; then
-    declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger" "scripts" "markdown")
+    declare -a targets=("repos" "bash" "git" "delta" "tmux" "vim" "ranger" "scripts" "markdown")
   fi
 
   if is_mac; then
-    declare -a targets=("repos" "bash" "git" "tmux" "vim" "ranger" "iterm" "scripts" "markdown")
+    declare -a targets=("repos" "bash" "git" "delta" "tmux" "vim" "ranger" "iterm" "scripts" "markdown")
   fi
 
   # kiro installs the generic skills/steering/agents used on any machine.

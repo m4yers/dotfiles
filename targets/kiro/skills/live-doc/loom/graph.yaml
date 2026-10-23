@@ -1,0 +1,90 @@
+tasks:
+  - id: ingest-input
+    kind: tool
+    version: 1
+  - id: load-doc
+    kind: tool
+    version: 1
+    depends_on_all: [ingest-input]
+    input:
+      vault_path: "${task:ingest-input:vault_path}"
+  - id: run-ingestion
+    kind: agent
+    version: 1
+    depends_on_all: [load-doc]
+    input:
+      instructions: "${task:load-doc:instructions.ingestion}"
+      appendix_scripts: "${task:load-doc:appendix_scripts.ingestion}"
+      run_order: "${task:load-doc:run_order.ingestion}"
+      data_dir: "${task:ingest-input:data_dir}"
+  - id: run-inference
+    kind: agent
+    version: 1
+    depends_on_all: [run-ingestion]
+    input:
+      instructions: "${task:load-doc:instructions.inference}"
+      appendix_scripts: "${task:load-doc:appendix_scripts.inference}"
+      run_order: "${task:load-doc:run_order.inference}"
+      ingestion_outputs: "${task:run-ingestion:runs}"
+      data_dir: "${task:ingest-input:data_dir}"
+  - id: run-presentation
+    kind: agent
+    version: 1
+    depends_on_all: [run-inference]
+    input:
+      instructions: "${task:load-doc:instructions.presentation}"
+      appendix_scripts: "${task:load-doc:appendix_scripts.presentation}"
+      run_order: "${task:load-doc:run_order.presentation}"
+      data_dir: "${task:ingest-input:data_dir}"
+  - id: write-result
+    kind: tool
+    version: 2
+    depends_on_all: [run-presentation]
+    input:
+      presentation_runs: "${task:run-presentation:runs}"
+  - id: assemble-doc
+    kind: tool
+    version: 1
+    depends_on_all: [write-result]
+    input:
+      intro: "${task:load-doc:intro}"
+      instructions: "${task:load-doc:instructions}"
+      result_header: "${task:write-result:header}"
+      result_subsections: "${task:write-result:subsections}"
+      scripts_ingestion: "${task:run-ingestion:scripts}"
+      scripts_inference: "${task:run-inference:scripts}"
+      scripts_presentation: "${task:run-presentation:scripts}"
+      run_order_ingestion: "${task:run-ingestion:run_order}"
+      run_order_inference: "${task:run-inference:run_order}"
+      run_order_presentation: "${task:run-presentation:run_order}"
+      vault_path: "${task:ingest-input:vault_path}"
+  - id: verify-roundtrip
+    kind: tool
+    version: 1
+    depends_on_all: [assemble-doc]
+    input:
+      vault_path: "${task:assemble-doc:vault_path}"
+      scripts_ingestion: "${task:run-ingestion:scripts}"
+      scripts_inference: "${task:run-inference:scripts}"
+      scripts_presentation: "${task:run-presentation:scripts}"
+      run_order_ingestion: "${task:run-ingestion:run_order}"
+      run_order_inference: "${task:run-inference:run_order}"
+      run_order_presentation: "${task:run-presentation:run_order}"
+      result_subsections: "${task:write-result:subsections}"
+  - id: commit-vault
+    kind: tool
+    version: 1
+    depends_on_all: [verify-roundtrip]
+    input:
+      vault_path: "${task:ingest-input:vault_path}"
+      name: "${task:ingest-input:name}"
+  - id: publish-output
+    kind: tool
+    version: 1
+    depends_on_all: [commit-vault]
+    input:
+      vault_path: "${task:ingest-input:vault_path}"
+      ingestion_runs: "${task:run-ingestion:runs}"
+      inference_runs: "${task:run-inference:runs}"
+      presentation_runs: "${task:run-presentation:runs}"
+      commit_sha: "${task:commit-vault:commit_sha}"
