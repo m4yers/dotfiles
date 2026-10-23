@@ -1,31 +1,81 @@
 #!/usr/bin/env python3
 """Editor commands for the EDITOR pane.
 
-Wraps vim — callers don't need to know the implementation.
+Wraps vim for file views and tabs. Diffs are shown via
+`delta` — `cmd_show_diff` runs `git diff` in the pane's
+shell and delta pages the output; callers don't need to
+know either implementation.
 
-Usage: editor.py <command> [args]
+Usage: run-editor.sh <command> [args]
 
 Commands:
     reset                    Clear all tabs and buffers
-    show diff <file> <ref>   Side-by-side diff against ref
+    show diff <file> <ref>   Side-by-side diff via delta
     show file <file>         Open file in a new tab
     show tabs                List open tabs and files
 """
 import argparse
+import os
 import sys
 import time
 from pathlib import Path
 
-# Import tiling manager internals
-sys.path.insert(0, str(Path.home() / ".kiro/skills/home/tiling/scripts"))
-import importlib
-tm = importlib.import_module("tmux-tiling-manager")
+import libtmux
+
+
+# Custom tmux binary — matches the tiling skill which
+# drives the same tmux server.
+TMUX_BIN = "tmux"
+
+
+# Pager processes that the EDITOR pane may host instead
+# of vim (notably after `show diff`, which leaves delta
+# running). `ensure_vim` and `cmd_reset` dismiss them
+# with `q` before driving vim. tmux reports the pane's
+# foreground process as `git` while git is paging through
+# delta → less, so `git` must be treated as a pager too.
+PAGER_COMMANDS = {"git", "less", "delta"}
+
+
+def _server():
+    """Create a libtmux Server using the custom tmux binary."""
+    return libtmux.Server(tmux_bin=TMUX_BIN)
+
+
+def _current_pane_id():
+    """Return the pane ID of the calling process via TMUX_PANE."""
+    pane_id = os.environ.get("TMUX_PANE")
+    if not pane_id:
+        print("not inside tmux", file=sys.stderr)
+        sys.exit(1)
+    return pane_id
+
+
+def _find_pane(s, pane_id):
+    """Look up a pane by ID. Exits with error if not found."""
+    p = s.panes.get(pane_id=pane_id, default=None)
+    if not p:
+        print(f"pane {pane_id} not found", file=sys.stderr)
+        sys.exit(1)
+    return p
+
+
+def dismiss_pager(pane):
+    """Send `q` to exit a pager (less/delta) in the pane.
+
+    No-op if the pane is not currently running a pager.
+    Gives the pager a brief moment to exit so a following
+    check of `pane_current_command` sees the shell.
+    """
+    if pane.pane_current_command in PAGER_COMMANDS:
+        pane.send_keys("q", enter=False)
+        time.sleep(0.3)  # delta/less needs ~250ms to tear down
 
 
 def resolve_editor():
     """Get the EDITOR pane ID from layout check."""
-    s = tm.server()
-    kiro = tm.find_pane(s, tm.current_pane_id())
+    s = _server()
+    kiro = _find_pane(s, _current_pane_id())
     panes = kiro.window.panes
     if len(panes) != 2:
         print(f"layout not set up ({len(panes)} panes)", file=sys.stderr)
@@ -39,10 +89,15 @@ def resolve_editor():
 
 
 def ensure_vim(pane):
-    """Start vim in the pane if not already running."""
+    """Start vim in the pane if not already running.
+
+    Dismisses any running delta/less pager first so the
+    pane is back at its shell before vim is launched.
+    """
+    dismiss_pager(pane)
     if pane.pane_current_command != "vim":
         pane.send_keys("vim -n --cmd 'set shortmess=aoOtTWICF'")
-        time.sleep(0.5)
+        time.sleep(0.5)  # vim startup + initial redraw
 
 
 def vcmd(pane, cmd, silent=True):
@@ -53,20 +108,26 @@ def vcmd(pane, cmd, silent=True):
     for commands whose output is needed (e.g. :redir).
     """
     pane.send_keys("Escape", enter=False)
-    time.sleep(0.1)
+    time.sleep(0.1)  # Escape → normal mode settle
     if silent and not cmd.lstrip(":").startswith("silent"):
         cmd = f":silent! {cmd.lstrip(':')}"
     pane.send_keys(cmd)
 
 
 def cmd_reset(args):
-    """Clear all tabs, splits, and buffers."""
+    """Clear all tabs, splits, and buffers.
+
+    Also dismisses any delta/less pager left over from a
+    previous `show diff` so the pane returns to a clean
+    state regardless of what was running in it.
+    """
     pane = resolve_editor()
+    dismiss_pager(pane)
     if pane.pane_current_command == "vim":
         vcmd(pane, ":tabonly")
-        time.sleep(0.1)
+        time.sleep(0.1)  # let :tabonly complete before :only
         vcmd(pane, ":only")
-        time.sleep(0.1)
+        time.sleep(0.1)  # let :only complete before buffer wipe
         vcmd(pane, ":enew | only | %bdelete")
 
 
@@ -75,7 +136,7 @@ def _is_clean_vim(pane):
     import tempfile
     tmp = tempfile.mktemp(suffix=".txt")
     vcmd(pane, f":redir! > {tmp} | silent tabs | redir END", silent=False)
-    time.sleep(0.2)
+    time.sleep(0.2)  # :redir flush to tempfile
     try:
         out = Path(tmp).read_text().strip()
         lines = [l for l in out.splitlines() if l.strip()]
@@ -121,34 +182,44 @@ def _open_or_reuse(pane, vim_new_tab_cmd, vim_reuse_cmd, filename):
 
 
 def cmd_show_diff(args):
-    """Open file with side-by-side diff against ref.
+    """Show a side-by-side diff of a file against a ref.
 
-    Reuses existing tab if the file is already open.
-    Uses current tab if vim is clean (no files open).
+    Leaves vim (if running) and runs
+    `git -C <repo> diff <ref> -- <file>` in the pane's
+    shell. Delta pages the output with syntax
+    highlighting and side-by-side layout (configured via
+    the user's gitconfig). The pane is left in the
+    delta/less pager; navigate with `n`/`N` and quit
+    with `q`. The next vim-driven command relaunches vim
+    via `ensure_vim`.
     """
+    import shlex
     import subprocess
     pane = resolve_editor()
-    ensure_vim(pane)
-    # Fugitive needs vim cwd inside the git repo
+    # If a previous diff is still on screen, dismiss it
+    # before touching vim so pane state is well-defined.
+    dismiss_pager(pane)
+    # Delta runs in the pane's shell, so vim must step
+    # aside. :qa! discards any open tabs.
+    if pane.pane_current_command == "vim":
+        vcmd(pane, ":qa!")
+        time.sleep(0.3)  # vim :qa! → shell prompt
+    # Resolve symlinks (e.g. ~/.kiro/skills → dotfiles) so
+    # the pathspec is inside the repo git reports; a
+    # directory pathspec diffs every file under it.
+    target = Path(args.file).resolve()
     try:
         repo = subprocess.check_output(
-            ["git", "-C", str(Path(args.file).resolve().parent),
+            ["git", "-C", str(target.parent),
              "rev-parse", "--show-toplevel"],
             text=True).strip()
-        vcmd(pane, f":cd {repo}")
-        time.sleep(0.1)
     except subprocess.CalledProcessError:
-        pass  # not in a git repo — let fugitive fail naturally
-    fn_esc = _vim_str_escape(args.file)
-    new_cmd = (
-        f":execute 'tabnew ' . fnameescape('{fn_esc}') "
-        f"| Gvdiffsplit {args.ref}"
+        print("not in a git repo", file=sys.stderr)
+        sys.exit(1)
+    pane.send_keys(
+        f"git -C {shlex.quote(repo)} diff "
+        f"{shlex.quote(args.ref)} -- {shlex.quote(str(target))}"
     )
-    reuse_cmd = (
-        f":execute 'edit ' . fnameescape('{fn_esc}') "
-        f"| only | Gvdiffsplit {args.ref}"
-    )
-    _open_or_reuse(pane, new_cmd, reuse_cmd, args.file)
 
 
 def cmd_show_file(args):
@@ -170,7 +241,7 @@ def cmd_show_file(args):
 def cmd_show_only(args):
     """Reset editor and show a single file."""
     cmd_reset(args)
-    time.sleep(0.1)
+    time.sleep(0.1)  # let %bdelete settle before relaunching vim
     cmd_show_file(args)
 
 
@@ -183,12 +254,10 @@ def cmd_list_tabs(args):
     import json
     import tempfile
     pane = resolve_editor()
-    if pane.pane_current_command != "vim":
-        print("editor not running", file=sys.stderr)
-        sys.exit(1)
+    ensure_vim(pane)
     tmp = tempfile.mktemp(suffix=".txt")
     vcmd(pane, f":redir! > {tmp} | silent tabs | redir END", silent=False)
-    time.sleep(0.3)
+    time.sleep(0.3)  # :redir flush to tempfile
     try:
         raw = Path(tmp).read_text().strip()
     except FileNotFoundError:

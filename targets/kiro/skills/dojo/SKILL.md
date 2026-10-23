@@ -93,11 +93,13 @@ Human tasks are conversational. Read the rendered prompt at `prompt_path`,
 follow its instructions, and write structured YAML to `output_path` against the
 schema. Then call `$DOJO complete "$DOJO_WD" "<id>"`.
 
-For gates that show files (e.g., `design-review`, `final-review`), use the
-editor:
+For gates that show files, use the editor. `design-review` shows the rendered
+plan; `final-review` shows the resulting change as a diff of the skill directory
+against `HEAD`:
 
 ```bash
-$EDITOR show file <path>
+$EDITOR show file <path>              # design-review
+$EDITOR show diff <skill_dir> HEAD    # final-review
 ```
 
 STOP and wait for the user. The user can accept, edit, or decline. Capture their

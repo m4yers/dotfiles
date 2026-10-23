@@ -37,8 +37,13 @@ Show the user the final state and let them accept or decline.
    - Skill location and files written/modified.
    - Findings counts from the audit and whether the fix pass
      applied them.
-2. Open the new (or updated) skill's SKILL.md in the editor
-   for inspection.
+2. Show the final change in the editor as a diff of the skill
+   directory against `HEAD`:
+   ```bash
+   $EDITOR show diff <skill_dir> HEAD
+   ```
+   For a freshly created skill use
+   `$EDITOR show file <skill_dir>/SKILL.md` instead.
 3. STOP and wait for the user. They accept → DONE; decline →
    BLOCKED with their reason.
 

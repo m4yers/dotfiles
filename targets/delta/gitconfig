@@ -1,0 +1,35 @@
+# delta — syntax-highlighting pager for git diff/show/log.
+# Pulled into ~/.gitconfig via include.path by targets/delta/install.sh.
+
+[core]
+	pager = delta
+
+[interactive]
+	diffFilter = delta --color-only
+
+[delta]
+	features = gruvbox
+	navigate = true
+	line-numbers = true
+	side-by-side = true
+	hyperlinks = false
+
+# gruvbox-dark syntax, with diff backgrounds toned to the same palette.
+# Foreground stays `syntax` on changed lines so code highlighting
+# survives; the add/remove signal is carried by the background and the
+# line-number colours.
+[delta "gruvbox"]
+	syntax-theme = gruvbox-dark
+	minus-style = syntax "#4a2320"
+	minus-non-emph-style = syntax "#4a2320"
+	minus-emph-style = syntax "#7a2f2a"
+	plus-style = syntax "#2f4420"
+	plus-non-emph-style = syntax "#2f4420"
+	plus-emph-style = syntax "#4f6a2a"
+	line-numbers-minus-style = "#fb4934"
+	line-numbers-plus-style = "#b8bb26"
+	line-numbers-zero-style = "#7c6f64"
+	hunk-header-style = file line-number syntax
+	hunk-header-decoration-style = "#504945" box
+	file-style = "#fabd2f"
+	file-decoration-style = "#fabd2f" ul
