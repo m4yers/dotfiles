@@ -6,9 +6,10 @@ description: Tiling window manager. Exposes a script API for creating panes, sen
 
 # tiling
 
-Pane-centric tiling manager. All commands operate on panes
-within the current window — no window concept is exposed
-to callers. Panes are identified by stable IDs (`%NNN`).
+Pane-centric tiling manager. Layout, pane, and activity
+commands operate on panes within the current window; the
+`query` group is server-wide. Panes are identified by
+stable IDs (`%NNN`).
 
 The standard layout defines two named panes:
 - `KIRO` — the kiro-cli pane (agent)
@@ -47,6 +48,12 @@ The standard layout defines two named panes:
 | Command | Args    | Output |
 |---------|---------|--------|
 | `set`   | `LABEL` | —      |
+
+### query
+
+| Command | Args                              | Output               |
+|---------|-----------------------------------|----------------------|
+| `panes` | `[--filter-cmd CMD] [--capture N]` | JSON pane records   |
 
 ## Commands
 
@@ -168,6 +175,29 @@ this when starting work so the user sees what's active.
 ```
 
 - `LABEL` — activity description (positional)
+
+### query panes
+
+List panes across ALL sessions on the server. Unlike
+`pane list`, this is not scoped to the current window —
+use it to find agent panes fleet-wide (e.g. over ssh).
+
+```bash
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh query panes --filter-cmd kiro
+~/.kiro/skills/home/tiling/scripts/run-ttm.sh query panes --filter-cmd kiro --capture 100
+```
+
+- `--filter-cmd CMD` — only panes whose current command
+  equals CMD
+- `--capture N` — include the last N visible lines per pane
+
+Output: JSON array (valid YAML), one record per pane:
+
+```json
+[{"session": "main", "window_index": 1, "window_name": "cr-rebase",
+  "pane_id": "%12", "pane_pid": 4711,
+  "pane_current_command": "kiro", "capture": ["..."]}]
+```
 
 ## Defaults
 

@@ -2,7 +2,8 @@
 """Tmux tiling manager CLI for kiro-cli skills.
 
 Pane-centric API — no window concept exposed to callers.
-All commands operate on panes within the current window.
+Layout/pane/activity commands operate on panes within the
+current window; the query group is server-wide.
 
 Uses a custom tmux binary at ~/lib/tmux-3.2a/tmux.
 
@@ -13,11 +14,13 @@ Groups:
     layout    build, check, reset
     pane      split, write, read, list, kill, resize
     activity  set
+    query     panes
 
 Dependencies:
     libtmux >= 0.55.0 (managed via pyproject.toml + uv)
 """
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -250,6 +253,42 @@ def cmd_reset(args):
             p.kill()
 
 
+def cmd_query_panes(args):
+    """List panes across ALL sessions on the server.
+
+    Args:
+        --filter-cmd CMD:  Only panes whose current command
+                           equals CMD (e.g. kiro).
+        --capture N:       Include the last N visible lines
+                           of each matching pane.
+
+    Output: JSON array (valid YAML) of records with keys
+    session, window_index, window_name, pane_id, pane_pid,
+    pane_current_command, and optionally capture.
+    """
+    s = server()
+    records = []
+    for sess in s.sessions:
+        for w in sess.windows:
+            for p in w.panes:
+                cmd = p.pane_current_command
+                if args.filter_cmd and cmd != args.filter_cmd:
+                    continue
+                rec = {
+                    "session": sess.session_name,
+                    "window_index": int(w.window_index),
+                    "window_name": w.window_name,
+                    "pane_id": p.pane_id,
+                    "pane_pid": int(p.pane_pid),
+                    "pane_current_command": cmd,
+                }
+                if args.capture:
+                    rec["capture"] = p.capture_pane()[-args.capture:]
+                records.append(rec)
+    json.dump(records, sys.stdout, ensure_ascii=False, indent=2)
+    sys.stdout.write("\n")
+
+
 def main():
     p = argparse.ArgumentParser(
         prog="tmux-tiling-manager",
@@ -321,6 +360,20 @@ def main():
     sa = activity_sub.add_parser("set", help="Set activity label")
     sa.add_argument("label", help="activity description")
 
+    # --- query ---
+    query = group.add_parser("query", help="Server-wide queries")
+    query_sub = query.add_subparsers(dest="command", required=True)
+
+    qp = query_sub.add_parser(
+        "panes", help="List panes across all sessions",
+        description="List panes across ALL sessions as JSON records "
+                    "(session, window_index, window_name, pane_id, "
+                    "pane_pid, pane_current_command).")
+    qp.add_argument("--filter-cmd", dest="filter_cmd", default=None,
+                    help="only panes running this command (e.g. kiro)")
+    qp.add_argument("--capture", dest="capture", type=int, default=0,
+                    help="include last N visible lines per pane")
+
     args = p.parse_args()
     dispatch = {
         ("layout", "build"): cmd_build,
@@ -333,6 +386,7 @@ def main():
         ("pane", "kill"): cmd_kill,
         ("pane", "resize"): cmd_resize,
         ("activity", "set"): cmd_set_activity,
+        ("query", "panes"): cmd_query_panes,
     }
     dispatch[(args.group, args.command)](args)
 
