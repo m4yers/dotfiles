@@ -28,11 +28,16 @@ def _git(vault_root: Path, *args: str) -> str:
 
 
 def _vault_root(path: Path) -> Path:
-    out = subprocess.run(
+    result = subprocess.run(
         ["git", "-C", str(path.parent), "rev-parse", "--show-toplevel"],
-        check=True, capture_output=True, text=True,
+        check=False, capture_output=True, text=True,
     )
-    return Path(out.stdout.strip())
+    if result.returncode != 0:
+        raise VaultCommitError(
+            f"git rev-parse --show-toplevel failed in {path.parent}: "
+            f"{result.stderr.strip()}"
+        )
+    return Path(result.stdout.strip())
 
 
 def commit(path: Path, message: str) -> str:

@@ -11,23 +11,22 @@ free-form intro, `# Instructions` in three fixed stages, `# Result`, and
 `# Appendix` of uv scripts). Create scaffolds a new doc and opens it in the
 editor; refresh is a 10-task loom pipeline that re-executes each Appendix
 script, writes the refresh timestamp and presentation outputs into Result
-(nothing else), re-embeds the scripts in Appendix,
-verifies the round-trip, and commits the vault.
+(nothing else), re-embeds the scripts in Appendix, verifies the round-trip,
+and commits the vault.
 
 ## Dependencies
 
-| Name                | Purpose                                                 |
-|---------------------|---------------------------------------------------------|
-| `loomv2`            | DAG task-execution library driving the refresh pipeline |
-| `template`          | renders the create-time doc scaffold                    |
-| `editor`            | opens the scaffolded doc after create                   |
-| `tiling`            | pane layout and activity tracking                       |
-| `secure-llm`        | security frame for agent prompts (external input is untrusted) |
+| Name                | Purpose                                                                  |
+|---------------------|--------------------------------------------------------------------------|
+| `loomv2`            | DAG task-execution library driving the refresh pipeline                  |
+| `template`          | renders the create-time doc scaffold                                     |
+| `editor`            | opens the scaffolded doc after create                                    |
+| `tiling`            | pane layout and activity tracking                                        |
+| `secure-llm`        | security frame for agent prompts (external input is untrusted)           |
 | `trusted-aws` agent | carries builder-mcp (incl. `ReadInternalWebsites`) for ingestion fetches |
 
-The `trusted-aws` sub-agent lives at `~/.kiro/agents/trusted-aws.json`.
-If the session itself runs as `trusted-aws`, agent tasks run inline
-(see Rule 3).
+The `trusted-aws` sub-agent lives at `~/.kiro/agents/trusted-aws.json`. If the
+session itself runs as `trusted-aws`, agent tasks run inline (see Rule 2).
 
 ## Parameters
 
@@ -94,8 +93,14 @@ Workflow finishes after Step 1 when `op=create`.
    ```bash
    LD_WD=$($LIVEDOC ingest --path "$LD_PATH")
    ```
-3. If `ingest` fails: NEEDS_CONTEXT.
-4. On success, proceed to Step 3.
+   `ingest` also runs the cross-reference preflight (see Rule 9)
+   before seeding the loom plan.
+3. If `ingest` exits non-zero, branch on the exit code:
+   - **2** → BLOCKED. Forward the cross-reference report (printed
+     to stderr by `ingest`) to the operator; do NOT cascade-refresh
+     the referenced docs.
+   - **any other non-zero** → NEEDS_CONTEXT.
+4. On a clean preflight, proceed to Step 3.
 
 ### Step 3: Drive the loop (op=refresh)
 
@@ -120,58 +125,62 @@ Workflow finishes after Step 1 when `op=create`.
    $TILING activity set "live-doc(refresh:<name>): Done"
    ```
 
-## Plan visualisation
-
-See [references/loom-visualisation.md](references/loom-visualisation.md) for
-the task DAG (legend: ○ tool · ◆ agent · ▣ human · ↻ loop).
-
 ## Rules
 
 1. Capture `op` and `path` into `LD_OP` and `LD_PATH` at the start
    of the workflow (before Step 1), and keep both quoted on every
    reference.
-2. For `op=refresh`, Step 2's `ingest` call seeds the loom entry
-   task with `name` (derived from the filename) and `vault_path`
-   and prints the workdir; Step 3 drives the pipeline to completion.
-3. Dispatch every `kind: agent` entry via the `trusted-aws`
+2. Dispatch every `kind: agent` entry via the `trusted-aws`
    sub-agent (`~/.kiro/agents/trusted-aws.json`) — it carries
    builder-mcp (including `ReadInternalWebsites`) that `run-ingestion`
-   needs for Midway-authenticated fetches. Kiro never exposes the
-   active agent profile to itself as a `subagent_*` tool, so when
-   the orchestrator IS `trusted-aws` (no `subagent_trusted-aws`
-   tool, but `builder-mcp::ReadInternalWebsites` is loadable), run
-   the entry inline: `fs_read` its `prompt_path`, follow it with the
-   session's own tools, then `complete` it. Do NOT substitute
-   `subagent_trusted` (no builder-mcp) or report BLOCKED.
-4. Independent agent entries in one `ready` batch MUST be dispatched
+   needs for Midway-authenticated fetches. See
+   [references/helpers.md](references/helpers.md) for the inline
+   fallback when the orchestrator itself runs as `trusted-aws`.
+3. Independent agent entries in one `ready` batch MUST be dispatched
    in parallel, because serial dispatch drops loomv2's concurrency
    guarantee and inflates end-to-end latency for no gain.
-5. The three Appendix H2 subsections (`## Data ingestion` /
+4. The three Appendix H2 subsections (`## Data ingestion` /
    `## Data inference` / `## Data presentation`) are parser-enforced
    in order. Docs that need inference-after-presentation or a second
    inference pass MUST be split into multiple live docs because the
    parser raises `BadDocShapeError` otherwise. See
    `references/doc-format.md`.
-6. Scripts regenerate ONLY when missing, mismatched, or buggy —
+5. Scripts regenerate ONLY when missing, mismatched, or buggy —
    never regenerate just because. See `references/execution.md`
    for the uv/python/pandas pins and `cwd=data_dir` rule, and
    `references/manual-steps.md` for MCP-fetch handling
    (ingestion only).
-7. Instruction typos or ambiguities the stage agents notice are
+6. Instruction typos or ambiguities the stage agents notice are
    reported to the user in the final chat summary, never written
    into the doc; they MUST NOT be silently corrected in the
    generated scripts because silent corrections hide the input
    defect and the next refresh regenerates the same wrong script.
-8. The Step 3 loop MUST stop after 10 iterations without a newly
+7. The Step 3 loop MUST stop after 10 iterations without a newly
    completed task and report BLOCKED with the last ready batch,
    because an unbounded loop hides a stuck plan instead of
    surfacing it for human triage.
-9. Presentation scripts MUST emit column-aligned markdown tables
+8. Presentation scripts MUST emit column-aligned markdown tables
    (cells padded to the column width, numbers right-aligned,
    separator dashes sized to the column) because the Result is
    read as plain text in the editor and unpadded `| a | b |` rows
    are unreadable there. An unpadded table counts as a mismatched
    script and is patched on refresh.
+9. On `op=refresh`, `ingest` runs a cross-reference preflight
+   BEFORE `loom runtime init` seeds the plan: any `live-<name>.md`
+   token with a name other than the doc's own (anywhere in the
+   raw text, including fenced Appendix blocks) blocks the refresh
+   with exit code 2 and a stderr report of each occurrence (H1
+   section + line number). The host MUST report BLOCKED with that
+   report and MUST NOT auto-refresh the referenced docs, because
+   the operator decides which referenced doc (if any) to refresh
+   first and starting the loop would run Appendix scripts against
+   stale referenced data. Self-references do not trip the guard,
+   and `op=create` is unaffected.
+
+## Plan visualisation
+
+See [references/loom-visualisation.md](references/loom-visualisation.md) for
+the task DAG (legend: ○ tool · ◆ agent · ▣ human · ↻ loop).
 
 ## Completion
 
@@ -180,7 +189,7 @@ the task DAG (legend: ○ tool · ◆ agent · ▣ human · ↻ loop).
 | DONE (create)      | scaffold opened       | shim produced shell   | fails if file exists  |
 | DONE (refresh)     | roundtrip + sha ok    | Appendix regenerated  | verify on committed   |
 | DONE_WITH_CONCERNS | pipeline + warnings   | retro warranted       | warnings inline       |
-| BLOCKED            | runtime errored/stuck | human decision needed | batch + addr reported |
+| BLOCKED            | runtime stuck / xref  | human decision needed | report + batch & addr |
 | NEEDS_CONTEXT      | ingest rejected input | invocation malformed  | ingest preflight      |
 
 Row glossary (long form of the compact columns above):
@@ -195,9 +204,12 @@ Row glossary (long form of the compact columns above):
   stage agents emitted non-blocking warnings; warnings are reported
   inline per task so they cannot be silently dropped.
 - **BLOCKED.** `$LOOM runtime next` or `complete` errored, the Step
-  3 loop hit its iteration cap, or `verify-roundtrip` failed before
-  `commit-vault`; the last ready batch and the failing task address
-  are reported.
+  3 loop hit its iteration cap, `verify-roundtrip` failed before
+  `commit-vault`, or `ingest` detected cross-references to other
+  live docs (exit code 2); runtime failures report the last ready
+  batch and the failing task address, while the cross-reference
+  case prints a stderr report of each referenced doc with its H1
+  section and line number.
 - **NEEDS_CONTEXT.** `ingest` rejected the inputs — missing path,
   not a regular file, filename does not match `live-<name>.md`, or
   the vault root is not a git repo; the script enforces these
