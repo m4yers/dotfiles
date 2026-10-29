@@ -7,10 +7,13 @@ alias dot-delta-aliases="vim $HOME/dotfiles/targets/delta/bashrc.aliases.sh"
 
 # Review a commit as one continuous side-by-side diff; -W expands each
 # hunk to its enclosing function. Default: HEAD.
-alias grv="git show -W --stat -p"
+alias delta-commit="git show -W --stat -p"
 
 # Same, but changes only (no context).
-alias grv0="git show -U0 --stat -p"
+alias delta-commit0="git show -U0 --stat -p"
 
 # Same, whole file around every change.
-alias grvf="git show -U99999 --stat -p"
+alias delta-commit999="git show -U99999 --stat -p"
+
+# Review uncommitted changes (staged + unstaged) against HEAD.
+alias delta-uncommitted="git diff -W --stat -p HEAD"
