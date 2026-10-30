@@ -18,8 +18,17 @@ with `role: trusted` (grants file-read/write access).
 The sub-agent's `prompt_template` should instruct it to `fs_read` the
 `prompt_path` and follow it. The agent writes its output to the
 `output_path` from the same entry (or via
-`${{ prefix }}_{{ shim }} output add`). After dispatch returns, call
+`${{ prefix }}_{{ shim }} output add`).
+
+Completing the task is a SEPARATE tool turn, never the same parallel
+batch as the dispatch: wait for the sub-agent result, `fs_read` the
+`output_path` and confirm it is non-empty, then call
 `${{ prefix }}_{{ shim }} runtime complete "${{ prefix }}_WD" "<task-address>"`.
+`complete` reads whatever output exists at call time — for a loop-body
+task it falls back to the previous round — so a batched `complete`
+races the sub-agent, marks the task done on stale data, and the next
+`runtime next` fails on an unresolvable `@prev` reference.
 
 Dispatch independent entries in parallel via the `subagent` `stages`
-array with no `depends_on`.
+array with no `depends_on`; complete them afterwards, one `complete`
+per returned result.

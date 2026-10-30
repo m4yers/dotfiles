@@ -13,7 +13,8 @@
 Human tasks are conversational. Read the rendered prompt at
 `message_path`, follow its instructions, and write structured YAML to
 `output_path` against the task's `io.yaml/output` schema (use
-`${{ prefix }}_{{ shim }} output add` for validated writes). Then call
+`${{ prefix }}_{{ shim }} output add` for validated writes). Then, in a
+separate tool turn after the write has succeeded, call
 `${{ prefix }}_{{ shim }} runtime complete "${{ prefix }}_WD" "<task-address>"`.
 
 For gates that show files, use the editor:
