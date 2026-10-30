@@ -11,7 +11,8 @@ Output schema (YAML written to stdout on success)::
     topic_count:           int      # number of `## <title>` topic blocks
     topics:                list     # one entry per topic, in file order
                                     #   (empty list `[]` when topic_count==0):
-      - title:             str      # topic H2 title
+      - label:             str      # `T<n>`, 1-based file position
+        title:             str      # bare topic title (no `T<n>: ` prefix)
         status:            str      # `in-progress` | `done`
         subsection_count:  int      # number of `### <heading>` subsections
     last_incomplete_topic: str|null # title of the last in-progress topic,
@@ -27,7 +28,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from live_journal.journal_io import BadJournalShapeError, parse
+from live_journal.journal_io import BadJournalShapeError, parse, topic_label
 
 SKILLS_ROOT = Path.home() / ".kiro" / "skills"
 EDITOR_SH = SKILLS_ROOT / "home" / "editor" / "scripts" / "run-editor.sh"
@@ -87,8 +88,9 @@ def run(path: str) -> None:
         lines.append("topics: []")
     else:
         lines.append("topics:")
-        for t in parsed.topics:
-            lines.append(f"  - title: {json.dumps(t.title)}")
+        for i, t in enumerate(parsed.topics):
+            lines.append(f"  - label: {topic_label(i)}")
+            lines.append(f"    title: {json.dumps(t.title)}")
             lines.append(f"    status: {t.status}")
             lines.append(f"    subsection_count: {len(t.subsections)}")
     lines.append(

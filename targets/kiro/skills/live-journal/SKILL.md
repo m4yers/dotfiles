@@ -7,10 +7,11 @@ description: Creates or opens a live journal — an interactive markdown journal
 # Live Journal
 
 A live journal is a vault markdown file the agent writes to while working with
-the operator: one H2 per topic, H3 sub-sections for substantive results, a
-`Status:` line per topic, and a trailing `## Appendix` for scripts used. The
-shim owns the file format: every structural edit goes through it and each edit
-commits the vault.
+the operator: one H2 per topic, numbered `## T1: <title>`, `## T2: <title>`,
+... by file position, H3 sub-sections for substantive results, a `Status:`
+line per topic, and a trailing `## Appendix` for scripts used. The shim owns
+the file format: every structural edit goes through it and each edit commits
+the vault.
 
 ## Dependencies
 
@@ -35,6 +36,9 @@ LJ_EDITOR=~/.kiro/skills/home/editor/scripts/run-editor.sh
 ```
 
 Caller state: `LJ_OP`, `LJ_PATH`, `LJ_TOPIC` (title of the current topic).
+`--title` / `--topic` accept either the bare title or the `T<n>` label; pass
+the bare title to `topic add` (the shim assigns the number). Refer to topics
+as `T<n>` when talking to the operator.
 
 ## Workflow
 
@@ -58,7 +62,7 @@ $LJ_TILING activity set "live-journal($LJ_OP:$LJ_PATH): Create or open"
   editor. Proceed to Step 4.
 - `op=open`: `LJ_SUMMARY=$($LJ open --path "$LJ_PATH")`. The shim opens the
   file and prints a YAML summary (`topic_count`, `topics[]` with
-  `title`/`status`/`subsection_count`, `last_incomplete_topic`,
+  `label`/`title`/`status`/`subsection_count`, `last_incomplete_topic`,
   `appendix_script_count`). Proceed to Step 3.
 
 Non-zero exit → NEEDS_CONTEXT.
@@ -73,7 +77,7 @@ $LJ_TILING activity set "live-journal($LJ_OP:$LJ_PATH): Summarise"
 
 1. From `LJ_SUMMARY` and the journal text, tell the operator briefly what the
    journal is about, how many topics it has, which are `done` and which are
-   `in-progress`.
+   `in-progress`, referring to them by `T<n>` label.
 2. If `last_incomplete_topic` is set, ask whether to continue from it, then
    STOP and wait. On yes, set `LJ_TOPIC` to that title.
 
@@ -112,8 +116,9 @@ Repeat until the operator closes the journal.
 
 ## Rules
 
-1. Headings, status lines, and Appendix entries MUST be edited only through
-   the shim; the agent authors prose inside sub-section bodies only.
+1. Headings, status lines, topic numbers, and Appendix entries MUST be edited
+   only through the shim; the agent authors prose inside sub-section bodies
+   only.
 2. The agent MUST NOT open a new topic without an explicit operator cue,
    because topic boundaries are the operator's decision.
 3. The agent MUST NOT run `git` against the vault, because the shim already

@@ -7,6 +7,12 @@ write), and a reserved trailing `## Appendix` H2 whose body is zero
 or more `### <script-name>` entries each followed by a fenced source
 block.
 
+Topic H2s are serialised as `## T<n>: <title>` with `n` the 1-based
+position in the file. The number is derived on every `assemble`, never
+stored: `parse` strips a leading `T<n>: ` so :attr:`Topic.title` is
+always the bare title, and :func:`find_topic` accepts either the bare
+title or the `T<n>` label.
+
 `BadJournalShapeError` is raised on duplicate H1, missing H1,
 misplaced `## Appendix`, missing or out-of-range `Status:` line, or
 an unclosed Appendix fence. Heading detection is suspended inside
@@ -24,8 +30,21 @@ H2_RE = re.compile(r"^##\s+(.+?)\s*$")
 H3_RE = re.compile(r"^###\s+(.+?)\s*$")
 FENCE_RE = re.compile(r"^```")
 STATUS_RE = re.compile(r"^Status:\s*(in-progress|done)\s*$")
+TOPIC_NUM_RE = re.compile(r"^T(\d+):\s+(.+?)\s*$")
+TOPIC_LABEL_RE = re.compile(r"^T(\d+)$")
 
 APPENDIX_TITLE = "Appendix"
+
+
+def topic_label(index: int) -> str:
+    """`T<n>` label for the 0-based topic position `index`."""
+    return f"T{index + 1}"
+
+
+def strip_topic_label(title: str) -> str:
+    """Return the bare title, dropping a leading `T<n>: ` if present."""
+    m = TOPIC_NUM_RE.match(title)
+    return m.group(2) if m else title
 
 
 class BadJournalShapeError(ValueError):
@@ -190,7 +209,9 @@ def parse(text: str) -> ParsedJournal:
     for i, (title, lineno) in enumerate(h2_positions[:-1]):
         start = lineno + 1
         end = h2_positions[i + 1][1]
-        topics.append(_parse_topic(title, lines[start:end]))
+        topics.append(
+            _parse_topic(strip_topic_label(title), lines[start:end])
+        )
 
     app_start = h2_positions[-1][1] + 1
     appendix_scripts = _parse_appendix(lines[app_start:])
@@ -205,8 +226,8 @@ def parse(text: str) -> ParsedJournal:
 
 def assemble(parsed: ParsedJournal) -> str:
     out: List[str] = [f"# {parsed.h1_name}", ""]
-    for topic in parsed.topics:
-        out.append(f"## {topic.title}")
+    for i, topic in enumerate(parsed.topics):
+        out.append(f"## {topic_label(i)}: {topic.title}")
         out.append(f"Status: {topic.status}")
         for sub in topic.subsections:
             out.append("")
@@ -227,8 +248,16 @@ def assemble(parsed: ParsedJournal) -> str:
 # ----------------------------------------------------------- lookups
 
 def find_topic(parsed: ParsedJournal, title: str) -> Optional[Topic]:
+    """Look up a topic by bare title, `T<n>` label, or `T<n>: <title>`."""
+    m = TOPIC_LABEL_RE.match(title)
+    if m:
+        index = int(m.group(1)) - 1
+        if 0 <= index < len(parsed.topics):
+            return parsed.topics[index]
+        return None
+    bare = strip_topic_label(title)
     for topic in parsed.topics:
-        if topic.title == title:
+        if topic.title == bare:
             return topic
     return None
 
