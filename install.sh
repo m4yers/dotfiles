@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# Exit on any error
 set -e
 
 ROOT=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
