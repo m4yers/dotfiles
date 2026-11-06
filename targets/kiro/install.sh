@@ -12,6 +12,9 @@ install() {
   log "Installing uv (Python package manager)"
   curl -LsSf https://astral.sh/uv/install.sh | sh
 
+  log "Wiping ~/.kiro"
+  rm -rf ~/.kiro
+
   log "Creating ~/.kiro"
   mkdir -p ~/.kiro
 

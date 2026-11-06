@@ -35,6 +35,16 @@ is_centos() {
   fi
 }
 
+is_x86() {
+  local arch=`uname -m`
+  test $arch == 'x86_64' -o $arch == 'amd64'
+}
+
+is_arm() {
+  local arch=`uname -m`
+  test $arch == 'aarch64' -o $arch == 'arm64'
+}
+
 get_target_folder() {
   local target_dir=$( cd "$( dirname "$0" )" && pwd )
   echo $(dirname "$target_dir")

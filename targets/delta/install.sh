@@ -13,7 +13,9 @@ install_mac() {
 }
 
 install_ubuntu() {
-  local deb="git-delta_${DELTA_VERSION}_amd64.deb"
+  local arch
+  if is_arm; then arch="arm64"; else arch="amd64"; fi
+  local deb="git-delta_${DELTA_VERSION}_${arch}.deb"
   local url="https://github.com/dandavison/delta/releases/download"
   url="$url/$DELTA_VERSION/$deb"
   local tmp=$(mktemp -d)
@@ -22,10 +24,16 @@ install_ubuntu() {
   rm -rf "$tmp"
 }
 
-# No yum package on Amazon Linux / CentOS; install the static musl
-# build into ~/.local/bin (on PATH via the bash target).
+# No yum package on Amazon Linux / CentOS; install the prebuilt binary
+# into ~/.local/bin (on PATH via the bash target). x86 gets the static
+# musl build; there is no musl build for arm64, so it gets the gnu one.
 install_centos() {
-  local triple="x86_64-unknown-linux-musl"
+  local triple
+  if is_arm; then
+    triple="aarch64-unknown-linux-gnu"
+  else
+    triple="x86_64-unknown-linux-musl"
+  fi
   local name="delta-${DELTA_VERSION}-${triple}"
   local url="https://github.com/dandavison/delta/releases/download"
   url="$url/$DELTA_VERSION/$name.tar.gz"

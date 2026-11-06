@@ -36,3 +36,4 @@
 	name = artyom
 [include]
 	path = ~/dotfiles/targets/delta/gitconfig
+	path = ~/local/home/artyomgo/dotfiles/targets/delta/gitconfig

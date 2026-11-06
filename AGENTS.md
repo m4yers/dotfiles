@@ -68,7 +68,8 @@ After `dotfiles-create.py`, register the target in the repo's root
   `apt`/`is_ubuntu`, `yum`/`is_centos`.
 - Run the review checklist on any target you add or change.
 - Installers mutate `$HOME` (root `install.sh` overwrites `~/.bashrc`,
-  `ln -s -f` replaces files). Ask before running any installer.
+  `targets/kiro/install.sh` wipes `~/.kiro`, `ln -s -f` replaces files).
+  Ask before running any installer.
 - `shared.sh` belongs to this repo; extensions must not copy it.
 - `targets/kiro/` is symlinked into `~/.kiro`; edits there are live. Kiro
   skill authoring is handled by the `dojo` skill, not this repo's docs.

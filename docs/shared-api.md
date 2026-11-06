@@ -12,6 +12,13 @@ all target install scripts.
 | `is_ubuntu`   | Ubuntu (ID=ubuntu)         |
 | `is_centos`   | Amazon Linux or CentOS     |
 
+## Architecture Detection
+
+| Function  | Returns true when          |
+|-----------|----------------------------|
+| `is_x86`  | `uname -m` x86_64 or amd64 |
+| `is_arm`  | `uname -m` aarch64 or arm64|
+
 ## Path Resolution
 
 | Function            | Returns                          |
