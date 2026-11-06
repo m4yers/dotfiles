@@ -40,6 +40,8 @@ targets/kiro/           Kiro skills/steering/agents/settings, linked into ~/.kir
   extension repos, common `bashrc.*.sh` files.
 - `docs/review-checks.md` — checklist for reviewing a target
   or the whole repo.
+- `docs/todo.md` — open work items; add to it instead of leaving
+  `TODO` comments in code, remove entries when done.
 
 Read the relevant reference before writing or reviewing a target.
 
@@ -58,6 +60,22 @@ python3 scripts/dotfiles-review.py <target|all>       # kiro-cli review using re
 
 After `dotfiles-create.py`, register the target in the repo's root
 `install.sh` array, otherwise it is never installed.
+
+## Session start: todo summary
+
+On reading this file, before doing anything else, collect open todos from
+every repo in the family and print a summary. Do this once per session.
+
+1. Repos: `~/dotfiles` plus every `~/dotfiles-*` (`ls -d ~/dotfiles-*`).
+2. For each repo, read `docs/todo.md` if present and count unchecked
+   `- [ ]` items. Then grep the repo for `TODO` and `FIXME` comments,
+   skipping `.git/`, `.venv/`, and `site-packages/`.
+3. Print one block per repo: repo name, open `docs/todo.md` items, and
+   code markers not yet tracked in `docs/todo.md` as `path:line: text`.
+   Say `no todos` for a repo with none.
+
+Keep the summary to the items themselves, no commentary. Do not edit
+`docs/todo.md` or fix any item unless asked.
 
 ## Rules
 
