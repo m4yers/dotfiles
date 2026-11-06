@@ -8,9 +8,9 @@ install_mac() {
   brew install bash
 
   log "Bash completion"
-  brew install bash-completion2
+  brew install bash-completion@2
   bash_section "Bash completion"
-  bash_export_source "$(brew --prefix bash-completion2)/etc/profile.d/bash_completion.sh"
+  bash_export_source "$(brew --prefix bash-completion@2)/etc/profile.d/bash_completion.sh"
 }
 
 install_ubuntu() {
