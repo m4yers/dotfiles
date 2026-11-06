@@ -9,7 +9,6 @@ install_mac() {
 
 }
 
-# depends-on: brew, bash, python
 install() {
   local this=$(get_source)
 

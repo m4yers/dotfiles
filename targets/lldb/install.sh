@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# depends-on: git
 install_voltron() {
   VOLTRON=$DEPENDENCIES/voltron
   if test -d $VOLTRON; then

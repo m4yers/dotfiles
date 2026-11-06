@@ -20,7 +20,6 @@ install_centos() {
   sudo apt install git-clang-format
 }
 
-# depends-on: repos, bash
 install() {
   local this=$(get_source)
 

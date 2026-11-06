@@ -51,7 +51,6 @@ git_include() {
   fi
 }
 
-# depends-on: bash, git
 install() {
   local this=$(get_source)
 

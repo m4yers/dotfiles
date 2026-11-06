@@ -3,7 +3,6 @@
 ROOT=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )/../.." &> /dev/null && pwd )
 source $ROOT/scripts/shared.sh
 
-# depends-on: repos, bash
 install() {
   sudo apt install ranger
 

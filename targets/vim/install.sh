@@ -19,7 +19,6 @@ install_centos() {
 }
 
 # TODO ditch UltiSnips in favour of just loading files
-# depends-on: repos, bash
 install() {
   local this=$(get_source)
   if is_mac; then

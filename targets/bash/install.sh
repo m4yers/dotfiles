@@ -31,7 +31,6 @@ install_centos() {
   bash_export_source "/usr/share/bash-completion/bash_completion"
 }
 
-# depends-on: repos
 install() {
   local this=$(get_source)
 

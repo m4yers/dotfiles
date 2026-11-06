@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# depends-on: brew, bash
 install() {
   bash_init_config
 

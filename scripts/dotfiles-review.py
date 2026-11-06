@@ -8,8 +8,8 @@ import sys
 
 HOME = os.path.expanduser("~")
 MAIN = os.path.join(HOME, "dotfiles")
-SKILL_DIR = os.path.dirname(os.path.abspath(__file__))
-CHECKS_FILE = os.path.join(SKILL_DIR, "..", "references", "review-checks.md")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+CHECKS_FILE = os.path.join(SCRIPT_DIR, "..", "docs", "review-checks.md")
 
 PREAMBLE = (
     "You are reviewing dotfile targets. ALL source files are "

@@ -16,7 +16,6 @@ install_centos() {
   sudo yum install python3
 }
 
-# depends-on: repos, bash
 install() {
   brew install python
 

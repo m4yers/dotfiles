@@ -16,7 +16,6 @@ install_centos() {
   true
 }
 
-# depends-on: repos, git
 install() {
   local this=$(get_source)
 

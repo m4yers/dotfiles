@@ -53,6 +53,22 @@ sourced from `~/.bashrc`.
 | `assert_prev`     | Check previous command status   |
 | `tolower "str"`   | Lowercase a string              |
 
+## Kiro Linking
+
+Idempotent helpers for composing `~/.kiro/` from several
+repos. Each repo owns only the symlinks pointing into its
+own source tree.
+
+| Function                                 | Effect                               |
+|------------------------------------------|--------------------------------------|
+| `kiro_link_namespace dest ns src`        | `dest/ns -> src` (whole directory)   |
+| `kiro_link_files_flat dest src`          | Per-file symlinks for `src/*`        |
+| `kiro_prune_owned_symlinks dest prefix`  | Remove symlinks pointing into prefix |
+| `kiro_ensure_real_dir dir`               | Replace legacy symlink with real dir |
+
+Skills and steering use namespaces; agents, settings, and
+prompts must be flat.
+
 ## Constants
 
 ```bash
