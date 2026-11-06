@@ -5,6 +5,9 @@ file they concern. Remove the line when the work lands.
 
 ## Installer
 
+- [ ] Differentiate home and work installs properly: add `is_home` /
+  `is_work` to `scripts/shared.sh` so target installers know which
+  profile they run under, instead of inferring it from OS or hostname.
 - [ ] `install.sh` `bash_init`: back up the existing `~/.bashrc` before
   overwriting it, and replace the `cat > $BASHRC` hack.
 - [ ] `targets/tmux/install.sh` `install_centos`: build tmux from source
