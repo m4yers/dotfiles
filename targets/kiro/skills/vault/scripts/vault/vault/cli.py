@@ -179,7 +179,7 @@ def cli_obsidian_move(
     dst: Annotated[str, typer.Argument(
         help="Vault-relative destination path.")],
 ) -> None:
-    """Move via Obsidian URL scheme (rewrites wikilinks)."""
+    """Move via the Obsidian CLI (rewrites wikilinks)."""
     try:
         emit(obsidian_mod.move(src, dst))
     except (FileNotFoundError, RuntimeError) as e:
@@ -192,7 +192,7 @@ def cli_obsidian_rename(
     new_name: Annotated[str, typer.Argument(
         help="New filename (keep extension).")],
 ) -> None:
-    """Rename via Obsidian URL scheme (rewrites wikilinks)."""
+    """Rename via the Obsidian CLI (rewrites wikilinks)."""
     try:
         emit(obsidian_mod.rename(src, new_name))
     except (FileNotFoundError, RuntimeError) as e:
@@ -203,7 +203,7 @@ def cli_obsidian_delete(
     path: Annotated[str, typer.Argument(
         help="Vault-relative path to delete.")],
 ) -> None:
-    """Delete via Obsidian URL scheme (removes wikilinks)."""
+    """Delete via the Obsidian CLI (moves the note to the trash)."""
     try:
         emit(obsidian_mod.delete(path))
     except (FileNotFoundError, RuntimeError) as e:
@@ -214,7 +214,7 @@ def cli_obsidian_delete(
 
 
 obsidian_app = typer.Typer(
-    help="Obsidian URL-scheme move / rename / delete.",
+    help="Obsidian CLI move / rename / delete.",
     no_args_is_help=True,
 )
 obsidian_app.command("move")(cli_obsidian_move)

@@ -1,8 +1,8 @@
-"""Wrapper for the Obsidian URL-scheme CLI.
+"""Wrapper for the Obsidian CLI.
 
-The app must be running. The URL scheme makes Obsidian rewrite
-wikilinks across the vault when a note is moved, renamed, or
-deleted — raw ``mv`` does not.
+The app must be running. Moving, renaming, or deleting through
+Obsidian makes it rewrite wikilinks across the vault — raw ``mv``
+does not.
 
 Public surface::
 
@@ -10,18 +10,17 @@ Public surface::
     rename(src, new_name)
     delete(path)
 
-All three raise ``RuntimeError`` if the app is not running or the
-operation times out. The shim deliberately does NOT fall back to
-raw ``mv``/``rm`` on timeout, because a filesystem fallback would
-leave every wikilink pointing at the old path (see SKILL.md rule
-1 and ``references/vault-rules.md`` — move/rename/delete).
+All three raise ``RuntimeError`` if the app is not running, the CLI
+reports an error, or the operation times out. The shim deliberately
+does NOT fall back to raw ``mv``/``rm`` on failure, because a
+filesystem fallback would leave every wikilink pointing at the old
+path (see SKILL.md rule 1 and the vault-root ``AGENTS.md``).
 """
 from __future__ import annotations
 
 import subprocess
 import time
 from pathlib import Path
-from urllib.parse import quote
 
 from vault.config import (
     OBSIDIAN_CLI,
@@ -33,9 +32,20 @@ from vault.diff_fm import diff_fm
 from vault.pages import abs_path, parse
 
 
-# Vault name = the leaf directory of VAULT_ROOT. Obsidian URL
-# schemes identify a vault by its display name.
+# Vault name = the leaf directory of VAULT_ROOT. The CLI's
+# ``vault=<name>`` option identifies a vault by its display name.
 _VAULT_NAME = VAULT_ROOT.name
+
+# The CLI prints these on every call regardless of the command; they
+# carry no result and are dropped from returned output and errors.
+_CLI_NOISE = (
+    "Loading updated app package",
+    "Your Obsidian installer is out of date",
+)
+
+# The CLI exits 0 even when a command fails; failures are reported
+# as output lines with these prefixes.
+_CLI_ERROR_PREFIXES = ("Error:", "Vault not found")
 
 
 def _obsidian_running() -> bool:
@@ -54,27 +64,38 @@ def _obsidian_running() -> bool:
     return result.returncode == 0
 
 
-def _invoke_url(url: str) -> None:
-    """Hand the URL to Obsidian.
+def _run_cli(*args: str) -> str:
+    """Run one Obsidian CLI command against this vault.
 
-    The app registers itself as the handler for ``obsidian://``
-    URLs. On macOS, ``open "<url>"`` is the universal way to invoke
-    a URL handler without caring which bundle receives it.
+    ``args`` are the command and its ``key=value`` options, passed as
+    separate argv entries so values with spaces need no quoting.
+    Returns the command's output without the CLI's banner lines.
     """
+    cmd = [str(OBSIDIAN_CLI), f"vault={_VAULT_NAME}", *args]
     try:
-        subprocess.run(
-            ["open", url],
-            # 5s is a generous ceiling for open(1) to hand the URL
-            # to launchd and return. The actual Obsidian-side work
-            # (rewriting wikilinks) is observed via the filesystem
-            # polling loop below, not via this call.
-            check=True, timeout=5,
-            capture_output=True, text=True,
+        result = subprocess.run(
+            cmd, capture_output=True, text=True,
+            timeout=OBSIDIAN_OP_TIMEOUT_S, check=False,
         )
-    except subprocess.CalledProcessError as e:
+    except subprocess.TimeoutExpired as e:
         raise RuntimeError(
-            f"open failed for {url!r}: {e.stderr.strip() or e}"
-        ) from e
+            f"obsidian {args[0]} did not return within "
+            f"{OBSIDIAN_OP_TIMEOUT_S}s; wikilinks were NOT "
+            f"rewritten.") from e
+    except OSError as e:
+        raise RuntimeError(f"cannot run {OBSIDIAN_CLI}: {e}") from e
+
+    lines = [
+        line for line in (result.stdout + result.stderr).splitlines()
+        if line.strip() and not any(n in line for n in _CLI_NOISE)
+    ]
+    output = "\n".join(lines)
+    if result.returncode != 0 or any(
+            line.startswith(_CLI_ERROR_PREFIXES) for line in lines):
+        raise RuntimeError(
+            f"obsidian {' '.join(args)} failed: "
+            f"{output or f'exit {result.returncode}'}")
+    return output
 
 
 def _wait_until(predicate, timeout_s: float, poll_s: float) -> bool:
@@ -120,7 +141,8 @@ def _diff_after(vault_path: str, baseline: dict) -> dict:
 
 
 def _timeout_error(op: str, src: str, dst: str | None = None) -> RuntimeError:
-    """Build the uniform timeout error raised by every op.
+    """Build the uniform error raised when the CLI returned but the
+    filesystem never reflected the operation.
 
     We deliberately do not fall back to a raw filesystem move/delete
     on timeout: raw ``mv``/``rm`` does not rewrite wikilinks, and a
@@ -128,24 +150,17 @@ def _timeout_error(op: str, src: str, dst: str | None = None) -> RuntimeError:
     """
     where = f"{src} -> {dst}" if dst else src
     return RuntimeError(
-        f"obsidian {op} timed out after {OBSIDIAN_OP_TIMEOUT_S}s "
-        f"({where}); wikilinks were NOT rewritten. Ensure the "
-        f"Obsidian app is running and the adv-uri plugin is "
-        f"installed, then retry.")
+        f"obsidian {op} did not land on disk within "
+        f"{OBSIDIAN_OP_TIMEOUT_S}s ({where}); wikilinks were NOT "
+        f"rewritten. Ensure the Obsidian app is running, then retry.")
 
 
 # ── move ────────────────────────────────────────────────
 
 
-def move(src: str, dst: str) -> dict:
-    """Move ``src`` → ``dst`` through Obsidian (rewrites
-    wikilinks).
-
-    Both paths are vault-relative. Returns an envelope with the
-    final path and the pre/post frontmatter diff. Raises
-    ``RuntimeError`` on timeout rather than falling back to raw
-    filesystem move.
-    """
+def _move(op: str, src: str, dst: str) -> dict:
+    """Shared body of ``move`` and ``rename``: the CLI's ``move``
+    command takes a full destination path, which covers both."""
     _require_running()
 
     src_abs = abs_path(src)
@@ -154,14 +169,7 @@ def move(src: str, dst: str) -> dict:
 
     baseline = _capture_baseline(src)
 
-    url = (
-        f"obsidian://advanced-uri"
-        f"?vault={quote(_VAULT_NAME)}"
-        f"&filepath={quote(src)}"
-        f"&filepath2={quote(dst)}"
-        f"&commandid=file-explorer%3Amove-file"
-    )
-    _invoke_url(url)
+    _run_cli("move", f"path={src}", f"to={dst}")
 
     dst_abs = abs_path(dst)
     settled = _wait_until(
@@ -171,15 +179,27 @@ def move(src: str, dst: str) -> dict:
     )
 
     if not settled:
-        raise _timeout_error("move", src, dst)
+        raise _timeout_error(op, src, dst)
 
     return {
-        "op":               "move",
+        "op":               op,
         "src":              src,
         "dst":              dst,
         "obsidian_rewrote": True,
         "fm_diff":          _diff_after(dst, baseline),
     }
+
+
+def move(src: str, dst: str) -> dict:
+    """Move ``src`` → ``dst`` through Obsidian (rewrites
+    wikilinks).
+
+    Both paths are vault-relative. Returns an envelope with the
+    final path and the pre/post frontmatter diff. Raises
+    ``RuntimeError`` on failure rather than falling back to raw
+    filesystem move.
+    """
+    return _move("move", src, dst)
 
 
 # ── rename ──────────────────────────────────────────────
@@ -188,54 +208,19 @@ def move(src: str, dst: str) -> dict:
 def rename(src: str, new_name: str) -> dict:
     """Rename ``src`` to ``new_name`` within the same folder.
 
-    Raises ``RuntimeError`` on timeout rather than falling back to
+    Raises ``RuntimeError`` on failure rather than falling back to
     raw filesystem rename.
     """
-    _require_running()
-
-    src_abs = abs_path(src)
-    if not src_abs.exists():
-        raise FileNotFoundError(src)
-
-    baseline = _capture_baseline(src)
-    dst_rel = str(Path(src).with_name(new_name))
-
-    url = (
-        f"obsidian://advanced-uri"
-        f"?vault={quote(_VAULT_NAME)}"
-        f"&filepath={quote(src)}"
-        f"&filename={quote(new_name)}"
-        f"&commandid=file-explorer%3Arename-file"
-    )
-    _invoke_url(url)
-
-    dst_abs = abs_path(dst_rel)
-    settled = _wait_until(
-        lambda: dst_abs.exists() and not src_abs.exists(),
-        OBSIDIAN_OP_TIMEOUT_S,
-        OBSIDIAN_POLL_INTERVAL_S,
-    )
-
-    if not settled:
-        raise _timeout_error("rename", src, dst_rel)
-
-    return {
-        "op":               "rename",
-        "src":              src,
-        "dst":              dst_rel,
-        "obsidian_rewrote": True,
-        "fm_diff":          _diff_after(dst_rel, baseline),
-    }
+    return _move("rename", src, str(Path(src).with_name(new_name)))
 
 
 # ── delete ──────────────────────────────────────────────
 
 
 def delete(path: str) -> dict:
-    """Delete ``path`` through Obsidian (removes wikilinks and
-    frontmatter refs across the vault).
+    """Delete ``path`` through Obsidian. The note goes to the trash.
 
-    Raises ``RuntimeError`` on timeout rather than falling back to
+    Raises ``RuntimeError`` on failure rather than falling back to
     raw filesystem delete.
     """
     _require_running()
@@ -244,13 +229,7 @@ def delete(path: str) -> dict:
     if not p_abs.exists():
         raise FileNotFoundError(path)
 
-    url = (
-        f"obsidian://advanced-uri"
-        f"?vault={quote(_VAULT_NAME)}"
-        f"&filepath={quote(path)}"
-        f"&commandid=app%3Adelete-file"
-    )
-    _invoke_url(url)
+    _run_cli("delete", f"path={path}")
 
     settled = _wait_until(
         lambda: not p_abs.exists(),

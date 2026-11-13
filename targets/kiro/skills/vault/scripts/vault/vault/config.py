@@ -96,10 +96,10 @@ OBSIDIAN_CLI = Path(
     "/Applications/Obsidian.app/Contents/MacOS/Obsidian"
 )
 
-# Max seconds to wait for the obsidian app to apply a URL-scheme
-# move/rename/delete to the filesystem. 10s covers a cold cache; if
-# obsidian is not running the wait will time out and surface a
-# clear error.
+# Max seconds to wait for an obsidian CLI move/rename/delete, both
+# for the CLI call to return and for the result to land on the
+# filesystem. 10s covers a cold cache; if obsidian is not running
+# the wait will time out and surface a clear error.
 OBSIDIAN_OP_TIMEOUT_S = 10
 
 # How often to re-stat the vault during a wait loop.
