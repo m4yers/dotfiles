@@ -1,4 +1,4 @@
-"""YouTube handler — transcript + thumbnail acquisition.
+"""YouTube handler — transcript acquisition.
 
 yt-dlp drives both the metadata pull and the subtitle download.
 Manual subtitles are tried first, with auto-generated as fallback.
@@ -7,7 +7,6 @@ the source.md is human-readable.
 """
 from __future__ import annotations
 
-import contextlib
 import datetime
 import io
 import json
@@ -52,7 +51,7 @@ _TITLE_KEYWORDS_LECTURE = ("lecture", "class ", "course", "seminar")
 
 @safe_handler("youtube")
 def handle_youtube(url: str, wd: Path) -> dict:
-    """Download transcript and thumbnail, emit source.md."""
+    """Download transcript, emit source.md."""
     meta = _fetch_meta(url)
     channel = meta.get("channel") or meta.get("uploader") or "unknown"
     title = meta.get("title") or "untitled"
@@ -68,10 +67,6 @@ def handle_youtube(url: str, wd: Path) -> dict:
     body = _build_source_md(url, meta, transcript)
 
     dest_abs.write_text(body, encoding="utf-8")
-
-    # Thumbnail to .assets/
-    assets_dir = dest_abs.parent / f"{basename}.assets"
-    _fetch_thumbnail(url, assets_dir, wd)
 
     (wd / "meta.json").write_text(json.dumps(meta, indent=2))
 
@@ -194,28 +189,6 @@ def _fetch_transcript(url: str, wd: Path) -> str:
         "no subtitles or auto-subs available",
         {"url": url},
     )
-
-
-def _fetch_thumbnail(url: str, assets_dir: Path, wd: Path) -> None:
-    """Download the video thumbnail into assets_dir. Non-fatal on
-    failure — the rest of the handler proceeds without it."""
-    assets_dir.mkdir(parents=True, exist_ok=True)
-    opts = {
-        "quiet": True,
-        "no_warnings": True,
-        "noprogress": True,
-        "skip_download": True,
-        "writethumbnail": True,
-        "outtmpl": str(assets_dir / "thumbnail.%(ext)s"),
-        "socket_timeout": YTDLP_SOCKET_TIMEOUT,
-        "postprocessors": [{
-            "key": "FFmpegThumbnailsConvertor",
-            "format": "jpg",
-        }],
-    }
-    with contextlib.suppress(Exception):
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            ydl.download([url])
 
 
 # ── VTT → anchored text ────────────────────────────────
