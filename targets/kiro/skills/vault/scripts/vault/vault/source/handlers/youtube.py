@@ -150,18 +150,27 @@ def _fetch_transcript(url: str, wd: Path) -> str:
     sub_path.mkdir(exist_ok=True)
     outtmpl = str(sub_path / "%(id)s.%(ext)s")
 
-    # Try manual subs first, then auto-subs as fallback.
+    # Try manual subs first, then auto-subs as fallback. Among auto
+    # tracks, the ``-orig`` one is the speech recognition of the
+    # original audio; other ``en`` auto tracks can be machine
+    # translations with garbled, repeated phrases. Requesting it
+    # alone first also keeps the number of subtitle requests low,
+    # which matters because YouTube rate-limits them (HTTP 429).
     attempts = [
-        {"writesubtitles": True,  "writeautomaticsub": False},
-        {"writesubtitles": False, "writeautomaticsub": True},
+        ({"writesubtitles": True,  "writeautomaticsub": False},
+         ["en.*", "en"]),
+        ({"writesubtitles": False, "writeautomaticsub": True},
+         [r"en.*-orig"]),
+        ({"writesubtitles": False, "writeautomaticsub": True},
+         ["en.*", "en"]),
     ]
-    for flags in attempts:
+    for flags, langs in attempts:
         opts = {
             "quiet": True,
             "no_warnings": True,
             "noprogress": True,
             "skip_download": True,
-            "subtitleslangs": ["en.*", "en"],
+            "subtitleslangs": langs,
             "subtitlesformat": "vtt",
             "outtmpl": outtmpl,
             "socket_timeout": YTDLP_SOCKET_TIMEOUT,
@@ -175,7 +184,7 @@ def _fetch_transcript(url: str, wd: Path) -> str:
             # only raise SOURCE_UNAVAILABLE if both manual and auto
             # fail.
             continue
-        vtts = list(sub_path.glob("*.vtt"))
+        vtts = sorted(sub_path.glob("*.vtt"))
         if vtts:
             return _vtt_to_anchored_text(
                 vtts[0].read_text(encoding="utf-8"))
@@ -222,10 +231,22 @@ def _vtt_to_anchored_text(vtt: str) -> str:
     separators. We then walk the cues in order and emit a [MM:SS]
     anchor each time a cue starts ``ANCHOR_EVERY_SECONDS`` past the
     previous anchor.
+
+    YouTube auto-captions use rolling cues: each cue repeats the
+    previous cue's last line above the new one. Lines already
+    present in the previous cue are dropped so every line is emitted
+    once; cues without overlap (manual subtitles) pass through
+    unchanged.
     """
     out: list[str] = []
     last_mark = -1
+    prev_lines: set[str] = set()
     for cap in webvtt.read_buffer(io.StringIO(vtt)):
+        lines = [l.strip() for l in cap.text.split("\n") if l.strip()]
+        new_lines = [l for l in lines if l not in prev_lines]
+        prev_lines = set(lines)
+        if not new_lines:
+            continue
         total_s = int(cap.start_in_seconds)
         bucket = total_s // ANCHOR_EVERY_SECONDS
         if bucket != last_mark // ANCHOR_EVERY_SECONDS:
@@ -234,7 +255,7 @@ def _vtt_to_anchored_text(vtt: str) -> str:
             last_mark = total_s
         # cue text may be multi-line; collapse to a single space
         # run so the anchored paragraph reads cleanly.
-        out.append(cap.text.replace("\n", " ").strip() + " ")
+        out.append(" ".join(new_lines) + " ")
     return "".join(out).strip()
 
 
