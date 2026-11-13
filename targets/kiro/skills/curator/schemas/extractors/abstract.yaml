@@ -1,7 +1,0 @@
-type: object
-required:
-- abstract
-properties:
-  abstract:
-    type: string
-    minLength: 50

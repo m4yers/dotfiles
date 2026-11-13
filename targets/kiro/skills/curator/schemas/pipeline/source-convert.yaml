@@ -1,5 +1,0 @@
-type: object
-required: [converted_path]
-properties:
-  converted_path: {type: string}
-  metadata: {type: object}

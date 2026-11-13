@@ -1,7 +1,0 @@
-type: object
-required:
-- setting
-properties:
-  setting:
-    type: string
-    minLength: 50

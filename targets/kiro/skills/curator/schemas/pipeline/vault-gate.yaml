@@ -1,4 +1,0 @@
-type: object
-required: [proceed]
-properties:
-  proceed: {type: boolean}
