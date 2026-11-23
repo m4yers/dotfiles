@@ -76,8 +76,10 @@ task ordering, predicate evaluation, schema validation, and persistence.
 ## Helper: Dispatch agent task
 
 `$DOJO next` yields ready agent tasks with their `prompt_path` already
-rendered. For each id, dispatch via the `subagent` MCP tool with `role: trusted`
-(grants file-read/write access).
+rendered. If the batch holds exactly one agent task, run it inline: `fs_read`
+the `prompt_path`, follow it, write the `output_path`. Otherwise dispatch each
+id via the `subagent` MCP tool with `role: trusted` (grants file-read/write
+access).
 
 The sub-agent's `prompt_template` should instruct it to `fs_read` the
 `prompt_path` and follow it. The agent writes its output to the `output_path`
@@ -107,9 +109,11 @@ decision and any edits in the output file before completing the task.
 
 ## Rules
 
-1. The orchestrator MUST dispatch `agent` tasks via `subagent` — never inline as
-   part of its own thinking. The subagent has the focused prompt and isolated
-   context.
+1. When a `next` batch holds more than one `agent` task, the orchestrator MUST
+   dispatch each via `subagent` — never inline as part of its own thinking.
+   Each subagent gets the focused prompt and an isolated context. When the
+   batch holds exactly one `agent` task, the orchestrator MAY run it inline:
+   `fs_read` the `prompt_path`, follow it, write the `output_path`.
 2. Human gates MUST be human-driven. Auto-completing them removes the user's
    veto.
 3. A failed task aborts the entire run. Loom's `next()` raises `RunAborted`; the
