@@ -61,11 +61,20 @@ properties:
         description:
           type: string
           description: |
-            What the task does. For workflow-type designs, this
-            is rendered as a per-task section, so 3-5 sentences
-            for keystone tasks (algorithmic core) and 1-2 for
-            boilerplate (parallel fan-outs, near-identical
-            comparators).
+            What the task does, in 1-2 sentences at the logical
+            level: what it consumes, what it produces, the one
+            decision it makes. No engine wiring (ref / when /
+            skip_output / @prev) and no downstream-consumer lists.
+            For ref-instanced fan-outs the first instance carries
+            the description; later instances carry a one-line
+            pointer to it.
+        ref:
+          type: string
+          description: |
+            Optional. Shared task folder name when this entry is
+            one instance of a ref-instanced fan-out (loomv2
+            task_entry.ref). The renderer collapses consecutive
+            entries with the same ref into one row.
         depends_on:
           type: array
           items: {type: string}
@@ -116,7 +125,10 @@ properties:
           description: 1-line description of what the subcommand does
   rationale:
     type: string
-    description: why this design fits the skill's purpose
+    description: |
+      Why this design fits the skill's purpose, in at most ~5
+      sentences or bullets: decisions made and alternatives
+      rejected, nothing else.
   decision:
     type: string
     enum: [accept, revise]

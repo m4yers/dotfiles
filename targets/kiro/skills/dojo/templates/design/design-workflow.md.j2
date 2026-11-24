@@ -14,13 +14,17 @@ the four design fields that matter are:
 - `cli_surface` — subcommands the main shim exposes
   (typically `ingest`, `next`, `complete`, plus any
   `pipeline <name>` helpers that tool tasks invoke).
-- `tasks` — every loom task in dispatch order. Keystone
-  tasks (the algorithmic core) get 3-5 sentence descriptions
-  covering inputs, outputs, schema, and downstream
-  consumption. Boilerplate tasks (parallel fan-outs,
-  near-identical comparators) get 1-2 sentences.
-- `rationale` — tradeoffs you considered and rejected
-  (DAG shape, fan-out factor, determinism, package layout).
+- `tasks` — every loom task in dispatch order. Each
+  description is 1-2 sentences at the logical level: what it
+  consumes, what it produces, the one decision it makes. Do
+  not restate engine wiring (ref / when / skip_output /
+  @prev) or list downstream consumers. For a ref-instanced
+  fan-out set `ref` on every instance, write the description
+  on the first instance only, and give later instances a
+  one-line pointer ("instance N of <first-id>").
+- `rationale` — at most ~5 sentences or bullets: decisions
+  made (DAG shape, fan-out factor, determinism, package
+  layout) and alternatives rejected. Nothing else.
 
 `sections` may stay empty — the workflow skill template
 supplies standard SKILL.md sections.
@@ -34,30 +38,38 @@ The writer validates after every assignment.
 LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
 WD={{ run.workdir }}
 
-$LOOM output init "$WD" --task design
+$LOOM output init "$WD" --task design-author
 
-$LOOM output add "$WD" --task design \
+$LOOM output add "$WD" --task design-author \
     --set frontmatter.name=demo \
     --set frontmatter.type=workflow \
     --set 'frontmatter.description=...' \
-    --set 'files[].path=scripts/demo.sh' \
-    --set 'files[-1].purpose=Loom shim.' \
-    --set 'files[-1].content_outline=...' \
-    --set 'cli_surface[].command=ingest' \
-    --set 'cli_surface[-1].args=<args>' \
-    --set 'cli_surface[-1].description=Initialise the loom workdir.' \
-    --set 'cli_surface[].command=next' \
-    --set 'cli_surface[-1].args=<workdir>' \
-    --set 'cli_surface[-1].description=Emit ready tasks.' \
-    --set 'tasks[].id=entry' --set 'tasks[-1].kind=agent' \
-    --set 'tasks[-1].depends_on=[]' \
-    --set 'tasks[-1].description=Keystone — reads ... produces ...' \
-    --set 'tasks[].id=fan-out-a' --set 'tasks[-1].kind=agent' \
-    --set 'tasks[-1].depends_on=[entry]' \
-    --set 'tasks[-1].description=...' \
+    --set 'files.0.path=scripts/demo.sh' \
+    --set 'files.0.purpose=Loom shim.' \
+    --set 'files.0.content_outline=...' \
+    --set 'cli_surface.0.command=ingest' \
+    --set 'cli_surface.0.args=<args>' \
+    --set 'cli_surface.0.description=Initialise the loom workdir.' \
+    --set 'cli_surface.1.command=next' \
+    --set 'cli_surface.1.args=<workdir>' \
+    --set 'cli_surface.1.description=Emit ready tasks.' \
+    --set 'tasks.0.id=demo-seed' --set 'tasks.0.kind=tool' \
+    --set 'tasks.0.depends_on=[]' \
+    --set 'tasks.0.description=Reads ... produces ...' \
+    --set 'tasks.1.id=demo-shard-01' --set 'tasks.1.kind=agent' \
+    --set 'tasks.1.ref=demo-shard' \
+    --set 'tasks.1.depends_on=[demo-seed]' \
+    --set 'tasks.1.description=Reviews one shard ... emits findings.' \
+    --set 'tasks.2.id=demo-shard-02' --set 'tasks.2.kind=agent' \
+    --set 'tasks.2.ref=demo-shard' \
+    --set 'tasks.2.depends_on=[demo-seed]' \
+    --set 'tasks.2.description=Instance 2 of demo-shard-01.' \
     --set rationale='DAG shape and fan-out tradeoffs...'
 ```
 
-Syntax: `[]` appends, `[-1]` targets the last appended entry,
-`.` nests. Schema violations exit non-zero with the
+Syntax: arrays use dotted numeric indices (`files.0.path`,
+`tasks.1.id`); `.` nests. The writer validates the whole
+document after every `output add`, so required sibling fields
+(e.g. `id` + `kind` + `description` of one task) MUST land in
+the same call. Schema violations exit non-zero with the
 violating path.
