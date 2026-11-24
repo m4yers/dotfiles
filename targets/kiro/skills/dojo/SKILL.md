@@ -131,12 +131,13 @@ per-operation task DAGs (create, update, review).
 
 ## Completion
 
-| Status               | Criteria                                                              |
-|----------------------|-----------------------------------------------------------------------|
-| `DONE`               | Skill files materialised under ~/.kiro/skills/<category>/<name>/, or review report saved to the workdir. |
-| `DONE_WITH_CONCERNS` | Check sub-agent failed to produce output, or autocheck unavailable.   |
-| `BLOCKED`            | `next`/`complete` errored, plan stuck, or user declined               |
-| `NEEDS_CONTEXT`      | `ingest` rejected the operation                                       |
+| Status               | Criteria                                                                  |
+|----------------------|---------------------------------------------------------------------------|
+| `DONE`               | Skill files written (or review report saved) AND checks report has no     |
+|                      | Error findings AND the user accepted at `final-review`                    |
+| `DONE_WITH_CONCERNS` | Check sub-agent failed to produce output, or autocheck unavailable        |
+| `BLOCKED`            | `next`/`complete` errored, plan stuck, or user declined                   |
+| `NEEDS_CONTEXT`      | `ingest` rejected the operation                                           |
 
 Loom workdirs live under `/tmp/dojo/<skill-name>/` — ephemeral by design, named
 by the skill being created or updated. Re-running

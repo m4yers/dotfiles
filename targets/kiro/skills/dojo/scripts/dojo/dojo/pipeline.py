@@ -60,8 +60,8 @@ def _read_findings(path: Path) -> list[dict]:
         return []
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    except yaml.YAMLError:
-        return []
+    except yaml.YAMLError as exc:
+        fail(f"malformed check output at {path}: {exc}")
     items = data.get("findings", [])
     return items if isinstance(items, list) else []
 

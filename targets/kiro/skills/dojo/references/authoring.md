@@ -48,18 +48,21 @@ Rules for skill authors. Read when creating or updating skills.
 
 ## 2. Categories
 
-1. Skills MUST be placed in one of three categories: `dev/`, `diagnostics/`,
-   `util/`.
-2. `dev/` is for build, test, and development workflows.
-3. `diagnostics/` is for cluster diagnostics, log tools, and root-cause
+1. Skills MUST be placed in one of four categories: `home/`, `dev/`,
+   `diagnostics/`, `util/`.
+2. `home/` is for personal, work-independent Kiro-setup skills (dojo, loom,
+   tiling, editor, retro).
+3. `dev/` is for build, test, and development workflows.
+4. `diagnostics/` is for cluster diagnostics, log tools, and root-cause
    analysis.
-4. `util/` is for meta-skills, vault, retro, and other utilities.
+5. `util/` is for work meta-skills, vault, and other utilities.
 
 Decision guide:
 
+- Personal Kiro tooling with no work dependency → `home/`
 - Builds or tests code → `dev/`
 - Connects to a live cluster, fetches logs, investigates issues → `diagnostics/`
-- Manages the Kiro setup → `util/`
+- Manages the work Kiro setup → `util/`
 
 ## 3. Frontmatter
 
