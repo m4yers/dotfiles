@@ -1,7 +1,7 @@
 {
   "name": "trusted",
   "description": "Subagent with pre-trusted tools for code analysis and general development",
-  "model": "claude-opus-4.7",
+  "model": "claude-opus-5.5",
   "resources": [
     "file://~/.kiro/steering/**/*.md",
     "skill://~/.kiro/skills/*/SKILL.md",
