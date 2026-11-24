@@ -4,7 +4,8 @@
   "model": "claude-opus-4.7",
   "resources": [
     "file://~/.kiro/steering/**/*.md",
-    "skill://~/.kiro/skills/**/SKILL.md"
+    "skill://~/.kiro/skills/*/SKILL.md",
+    "skill://~/.kiro/skills/home/*/SKILL.md"
   ],
   "tools": [
     "code",
@@ -15,7 +16,7 @@
     "read",
     "shell",
     "subagent",
-    "use_aws",
+    "subagent/trusted",    "use_aws",
     "web",
     "web_fetch",
     "web_search",
