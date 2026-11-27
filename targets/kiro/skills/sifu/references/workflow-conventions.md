@@ -141,9 +141,10 @@ $LOOM output add  "$WD" --task <task-address> \
 2. (rule: WFL-6-2, severity: 90) Prompts MUST read the loom CLI and workdir from
    `input.__loom.runtime` and `input.__loom.workdir`, and their own address from
    `input.__task.id`; declare `__loom: {}` / `__task: {}` in `io.yaml`.
-3. (rule: WFL-6-3, severity: 65) Each prompt MUST be terse: H1 naming the task,
-   inputs at the top, a `## Task` section in imperative sentences, and a `##
-   Output` section with the `output init` / `output add` call for its schema.
+3. (rule: WFL-6-3, severity: 65) Each prompt MUST be terse: H1 naming the task
+   (after the security-frame include when WFL-6-5 applies), inputs at the top,
+   a `## Task` section in imperative sentences, and a `## Output` section with
+   the `output init` / `output add` call for its schema.
 4. (rule: WFL-6-4, severity: 85) Prompts MUST NOT contain self-introductions,
    restate schema constraints, or carry meta-asides that do not change the
    action, because each one dilutes the instruction the agent must follow.
@@ -158,8 +159,8 @@ $LOOM output add  "$WD" --task <task-address> \
    `CR_`), because bare names like `WD` clobber each other across skills.
 2. (rule: WFL-7-2, severity: 10) On a prefix collision, append a disambiguator
    (`swim-builder` → `SWB_`).
-3. (rule: WFL-7-3, severity: 10) Script aliases keep bare names matching the
-   target (`$LOOM`, `$TILING`).
+3. (rule: WFL-7-3, severity: 10) Script aliases are named per SCR-3-1: the
+   caller prefix plus the target name (`$SIFU_LOOM`, `$SIFU_TILING`).
 4. (rule: WFL-7-4, severity: 10) Reference files and scripts are exempt; they
    run in their own process.
 

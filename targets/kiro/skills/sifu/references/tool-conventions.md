@@ -78,9 +78,9 @@ authoring rules in `authoring.md`.
 (description)
 ## Dependencies     (optional)
 ## Parameters
+## Rules            (optional)
 ## Steps
 ## Output           (optional)
-## Rules            (optional)
 ## Completion
 ```
 

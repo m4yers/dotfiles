@@ -111,8 +111,9 @@ effectiveness. Supplements `authoring.md`.
    authors SHOULD shorten the skill rather than adding more text, because
    verbosity dilutes signal.
 2. (rule: STY-4-2, severity: 80) Constraints essential to correctness MUST
-   appear at the top of SKILL.md, not buried in later steps, because deeper
-   steps are read less reliably.
+   appear above the step list of SKILL.md, in `## Rules` (workflow, tool) or
+   `## Invariants` (flow), not buried in later steps, because deeper steps are
+   read less reliably.
 3. (rule: STY-4-3, severity: 80) Deterministic validations (file format,
    schema) MUST be enforced by a script, not a natural-language instruction,
    because code is deterministic and language interpretation is not.

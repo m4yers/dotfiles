@@ -21,9 +21,11 @@ when creating or updating skills.
 2. (rule: AUT-1-2, severity: 90) `SKILL.md` MUST exist at the skill root.
 3. (rule: AUT-1-3, severity: 50) Reference docs SHOULD live in `references/`.
    (check: `autochecks/authoring.py:rule_1_3_md_under_references`)
-4. (rule: AUT-1-4, severity: 70) JSON schemas MUST live in top-level `schemas/`,
-   not under `references/`, because producer and consumer code MUST resolve them
-   without crossing directories. (check:
+4. (rule: AUT-1-4, severity: 70) Shapes used by more than one task or script
+   MUST live in top-level `schemas/` and be pulled in via relative `$ref`; a
+   shape used by one task stays inline in that task's `io.yaml`. Schemas MUST
+   NOT live under `references/`, because producer and consumer code MUST
+   resolve them without crossing directories. (check:
    `autochecks/authoring.py:rule_1_4_schemas_top_level`)
 5. (rule: AUT-1-5, severity: 70) Files with placeholders or used as starting
    points (artifact templates, example outputs, stage templates) MUST live under
@@ -46,7 +48,7 @@ when creating or updating skills.
 ~/.kiro/skills/{category}/{skill-name}/
 ├── SKILL.md              # Required — main skill definition
 ├── references/           # Optional — reference docs, guides
-├── schemas/              # Optional — JSON schemas for outputs
+├── schemas/              # Optional — shared schemas ($ref targets)
 ├── templates/            # Optional — fill-in templates
 ├── loom/                 # Workflow — loomv2 graph(s) + task folders
 └── scripts/              # Optional — executable scripts
@@ -112,9 +114,10 @@ description: What it does. Use when [trigger phrases].
 5. (rule: AUT-4-5, severity: 80) `flow` skills MUST be prose steps in SKILL.md
    that the agent MAY adapt, reorder, or extend at the operator's request, with
    no loom graph; see `flow-conventions.md`.
-6. (rule: AUT-4-6, severity: 80) Only `workflow` and `flow` skills SHALL contain
-   numbered steps; a step contains sub-steps that are single indivisible
-   actions.
+6. (rule: AUT-4-6, severity: 80) Only `tool`, `workflow`, and `flow` skills
+   SHALL contain numbered steps; a `tool` step is itself one indivisible
+   action, and a `workflow` or `flow` step contains sub-steps that are single
+   indivisible actions.
 
 | Type        | Examples                 |
 | ----------- | ------------------------ |

@@ -43,20 +43,27 @@ Rules for skill scripts: APIs, oracles, packaging, and contracts.
    not enforce: semantic content, user-facing behaviour, cross-script
    invariants.
 4. (rule: SCR-2-4, severity: 80) Every step that produces output MUST be
-   followed by a verification sub-step that runs the oracle.
+   followed by a verification sub-step that runs the oracle, except a script
+   step whose exit code already enforces the outcome (SCR-2-2). In `tool`
+   skills the oracle is its own numbered step, not a sub-step.
 5. (rule: SCR-2-5, severity: 80) Each oracle sub-step MUST document the command,
    what "pass" looks like (exit 0, specific output), and what "fail" triggers
-   (which sub-step to retry, when to escalate).
+   (which sub-step to retry, when to escalate). In `tool` skills the step
+   documents the command and pass condition, and the fail handling goes in `##
+   Completion` per TOL-3-5.
 
 ## 3. Script Invocation Paths
 
 1. (rule: SCR-3-1, severity: 70) Skills MUST invoke scripts through uppercase
-   env vars whose names match the target script's basename (hyphens →
-   underscores). (check:
+   env vars named after the target: the dependency skill's name for another
+   skill's shim (`TILING`, `LOOM`), or the script basename for a skill-owned
+   script (hyphens → underscores). Workflow and flow SKILL.md files prefix the
+   name with the caller prefix per WFL-7 (`SIFU_TILING`). (check:
    `autochecks/script_conventions.py:rule_3_1_named_aliases`)
 
-2. (rule: SCR-3-2, severity: 70) Each env var MUST be declared once at the top
-   of Step 1 and reused for every invocation. (check:
+2. (rule: SCR-3-2, severity: 70) Each env var MUST be declared once before its
+   first use, at the top of Step 1 in workflow and tool skills or in `##
+   Aliases` in flow skills, and reused for every invocation. (check:
    `autochecks/script_conventions.py:rule_3_2_unique_aliases`)
 
 ```bash

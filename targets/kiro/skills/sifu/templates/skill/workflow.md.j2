@@ -46,6 +46,16 @@ description: {{ description }}
 
 {{ parameters }}
 
+## Rules
+
+1. A `ready` batch with exactly one agent task MAY run inline: read its
+   `prompt_path`, follow it, write the output, then `runtime complete`.
+   Two or more agent tasks MUST go to parallel sub-agents.
+2. Human gates MUST be driven by the user; never auto-complete them.
+3. A failed task aborts the run; report BLOCKED with `error_path`, do not
+   re-run it.
+{{ rules }}
+
 ## Workflow
 
 ### Step 1: Ingest
@@ -83,16 +93,6 @@ description: {{ description }}
 ## Helper: Drive human gate
 
 {% include 'helper-drive-human-gate.md.j2' %}
-
-## Rules
-
-1. A `ready` batch with exactly one agent task MAY run inline: read its
-   `prompt_path`, follow it, write the output, then `runtime complete`.
-   Two or more agent tasks MUST go to parallel sub-agents.
-2. Human gates MUST be driven by the user; never auto-complete them.
-3. A failed task aborts the run; report BLOCKED with `error_path`, do not
-   re-run it.
-{{ rules }}
 {% if plan_visualisation %}
 
 ## Plan visualisation
