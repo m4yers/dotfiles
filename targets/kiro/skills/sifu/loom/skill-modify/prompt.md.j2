@@ -8,10 +8,12 @@
 
 ## Task
 
-1. Apply every Error and Warning finding's `Fix` at its location. Info
+1. Read the report and every cited file in parallel; they are independent.
+   Edits to one file stay sequential.
+2. Apply every Error and Warning finding's `Fix` at its location. Info
    findings: apply only when the fix is one line.
-2. Two findings on one line: apply in severity order, re-read between.
-3. A fix that cannot apply (line gone, conflicts): skip it and record
+3. Two findings on one line: apply in severity order, re-read between.
+4. A fix that cannot apply (line gone, conflicts): skip it and record
    why in that file's `notes`.
 
 Change only what the report names; no refactors, renames, or extras.

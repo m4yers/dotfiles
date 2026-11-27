@@ -5,7 +5,7 @@ from pathlib import Path
 
 import typer
 
-from sifu import loomtasks, report
+from sifu import finalize, loomtasks, report
 from sifu.autochecks.checks import lint_to_findings, lint_to_text
 from sifu.utils import emit
 
@@ -29,6 +29,9 @@ def cli_autochecks(
         print(lint_to_text(sd), end="")
     else:
         emit({"findings": lint_to_findings(sd)})
+
+
+app.command("loom-finalize")(finalize.cli_loom_finalize)
 
 
 report_app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False,

@@ -6,15 +6,15 @@ import re
 from pathlib import Path
 from typing import List
 
-from sifu.autochecks._helpers import ERROR, Finding, WARN, rule
+from sifu.autochecks._helpers import Finding, rule
 
-@rule('references/script-conventions.md:3.2')
+@rule('SCR-3-2')
 def rule_3_2_unique_aliases(
     lines: List[str], filename: str,
 ) -> List[Finding]:
     """Each script-alias env var MUST be declared once per file.
 
-    Rule: references/script-conventions.md:3.2
+    Rule: SCR-3-2
     """
     findings: List[Finding] = []
     in_code = False
@@ -35,7 +35,7 @@ def rule_3_2_unique_aliases(
         name = m.group(1)
         if name in seen:
             findings.append(
-                (WARN, filename, i + 1,
+                (filename, i + 1,
                  f"alias '{name}' declared again "
                  f"(first at line {seen[name]}); "
                  f"declare each alias once and reuse")
@@ -45,14 +45,14 @@ def rule_3_2_unique_aliases(
     return findings
 
 
-@rule('references/script-conventions.md:3.1')
+@rule('SCR-3-1')
 def rule_3_1_named_aliases(
     lines: List[str], filename: str,
 ) -> List[Finding]:
     """Code-block script invocations MUST use named env vars, not
     hardcoded ``~/.kiro/skills/...`` paths.
 
-    Rule: references/script-conventions.md:3.1
+    Rule: SCR-3-1
     """
     findings: List[Finding] = []
     in_code = False
@@ -69,7 +69,7 @@ def rule_3_1_named_aliases(
         if decl_pattern.match(line):
             continue
         findings.append(
-            (ERROR, filename, i + 1,
+            (filename, i + 1,
              "script invocation uses hardcoded "
              "~/.kiro/skills/...; declare a named alias "
              "(e.g. NAME=~/.kiro/skills/.../scripts/foo.sh) "
@@ -79,11 +79,11 @@ def rule_3_1_named_aliases(
     return findings
 
 
-@rule('references/script-conventions.md:4.2')
+@rule('SCR-4-2')
 def rule_4_2_bash_size_limit(skill_dir: Path) -> List[Finding]:
     """Bash scripts >10 code lines MUST be converted to Python.
 
-    Rule: references/script-conventions.md:4.2
+    Rule: SCR-4-2
     """
     findings: List[Finding] = []
     scripts_dir = skill_dir / "scripts"
@@ -102,7 +102,7 @@ def rule_4_2_bash_size_limit(skill_dir: Path) -> List[Finding]:
         ]
         if len(code_lines) > 10:
             findings.append(
-                (WARN, f"scripts/{script.name}", 0,
+                (f"scripts/{script.name}", 0,
                  f"bash script has {len(code_lines)} code lines "
                  f"(max 10) — convert to Python for better "
                  f"argument handling and maintainability")
@@ -110,18 +110,18 @@ def rule_4_2_bash_size_limit(skill_dir: Path) -> List[Finding]:
     return findings
 
 
-@rule('references/script-conventions.md:5.2')
+@rule('SCR-5-2')
 def rule_5_2_pyproject_per_package(skill_dir: Path) -> List[Finding]:
     """``pyproject.toml`` MUST live inside each dep-using package
     under ``scripts/``, not at the ``scripts/`` top level.
 
-    Rule: references/script-conventions.md:5.2
+    Rule: SCR-5-2
     """
     findings: List[Finding] = []
     top_pp = skill_dir / "scripts" / "pyproject.toml"
     if top_pp.exists():
         findings.append(
-            (ERROR, "scripts/pyproject.toml", 0,
+            ("scripts/pyproject.toml", 0,
              "pyproject.toml at scripts/ top level — move it "
              "into the dep-using package directory (one "
              "pyproject per package; see script-conventions.md "

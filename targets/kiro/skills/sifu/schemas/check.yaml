@@ -1,0 +1,28 @@
+# One rule parsed from an annotated conventions reference
+# (references/rule-codes.md). Produced by audit-checks, carried in
+# shards to audit-shard, and looked up by audit-report for severity.
+type: object
+additionalProperties: false
+required: [id, file, code, section, rule, text, keyword, severity, autocheck]
+properties:
+  id:
+    type: string
+    pattern: "^[A-Z]{3}-[0-9]+-[0-9]+$"
+    description: Rule code, e.g. SCR-2-1.
+  file:
+    type: string
+    description: Skill-relative reference path, e.g. references/script-conventions.md.
+  code: {type: string, pattern: "^[A-Z]{3}$"}
+  section: {type: integer, minimum: 1}
+  rule: {type: integer, minimum: 1}
+  text:
+    type: string
+    minLength: 1
+    description: Rule body without the annotation or check back-pointer.
+  keyword:
+    type: string
+    enum: [MUST NOT, MUST, SHOULD, MAY, none]
+  severity: {type: integer, minimum: 0, maximum: 100}
+  autocheck:
+    type: string
+    description: "`<module>.py:<function>` of the lint enforcing it; empty when agent-judged."

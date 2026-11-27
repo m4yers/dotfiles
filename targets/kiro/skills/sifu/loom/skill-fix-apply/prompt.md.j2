@@ -22,7 +22,6 @@ SIFU={{ input.__task.source_folder }}/../../scripts/sifu.sh
 {% endfor %}
 2. Dismiss each of {{ input.dismissed }}:
    `$SIFU report decline '{{ input.report_path }}' <finding_id> --reason '<short>'`.
-3. `$SIFU report open-count '{{ input.report_path }}'` → `open_items`.
 
 Fix and dismiss only what is listed.
 
@@ -33,7 +32,6 @@ LOOM={{ input.__loom.runtime }}
 WD={{ input.__loom.workdir }}
 $LOOM output init "$WD" --task '{{ input.__task.id }}'
 $LOOM output add "$WD" --task '{{ input.__task.id }}' \
-    --set open_items=<N> \
     --set 'files[].path=<abs path>' --set 'files[-1].action=modified'
 ```
 

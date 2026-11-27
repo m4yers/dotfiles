@@ -1,0 +1,58 @@
+# audit-aggregate — loop latch: concatenates the previous wave's findings
+# with this wave's 16 shard outputs.
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    prev_findings:
+      type:
+      - array
+      - 'null'
+      items:
+        $ref: ../../schemas/finding.yaml
+      description: This task's previous wave output; null on wave 1.
+    shard_01_findings: &id001
+      type: array
+      items:
+        $ref: ../../schemas/finding.yaml
+    shard_02_findings: *id001
+    shard_03_findings: *id001
+    shard_04_findings: *id001
+    shard_05_findings: *id001
+    shard_06_findings: *id001
+    shard_07_findings: *id001
+    shard_08_findings: *id001
+    shard_09_findings: *id001
+    shard_10_findings: *id001
+    shard_11_findings: *id001
+    shard_12_findings: *id001
+    shard_13_findings: *id001
+    shard_14_findings: *id001
+    shard_15_findings: *id001
+    shard_16_findings: *id001
+  required:
+  - prev_findings
+  - shard_01_findings
+  - shard_02_findings
+  - shard_03_findings
+  - shard_04_findings
+  - shard_05_findings
+  - shard_06_findings
+  - shard_07_findings
+  - shard_08_findings
+  - shard_09_findings
+  - shard_10_findings
+  - shard_11_findings
+  - shard_12_findings
+  - shard_13_findings
+  - shard_14_findings
+  - shard_15_findings
+  - shard_16_findings
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    findings: *id001
+  required:
+  - findings

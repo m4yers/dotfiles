@@ -8,9 +8,11 @@ description: Creates, updates, or reviews Kiro skills via a loomv2 graph; loomv2
 
 Creates, updates, or reviews a skill by driving one of three loomv2 graphs,
 `loom/graph-<op>.yaml`. Each embeds the `loom-audit/` subgraph: deterministic
-autochecks plus one check agent per conventions reference. Skill types are
-`interface`, `tool`, `workflow` (loomv2, the default for multi-step work),
-`reference`, and `flow` (prose steps that adapt).
+autochecks, then the rules of the conventions references the skill's topics
+select, judged in waves of 16 shards of at most 3 rules each and ranked by rule
+severity and finding confidence ([rule codes](references/rule-codes.md)). Skill
+types are `interface`, `tool`, `workflow` (loomv2, the default for multi-step
+work), `reference`, and `flow` (prose steps that adapt).
 
 ## Dependencies
 
@@ -38,6 +40,14 @@ autochecks plus one check agent per conventions reference. Skill types are
    the diff.
 5. When a design loop runs out of fuel still on `revise`, materialization
    is skipped and the run is BLOCKED.
+6. Agent tasks in one `ready` batch MUST be dispatched in parallel in chunks
+   of at most 8 per `subagent` call, completing each chunk before the next,
+   because larger fan-outs get throttled; a throttled stage never ran and is
+   re-dispatched after a short backoff (30s, 60s, 120s), BLOCKED after 3.
+7. `runtime complete` MUST run in a separate tool turn after the agent or
+   gate has returned, never in the same batch as the dispatch, because
+   `complete` reads whatever output exists and a batched call marks the
+   task done on stale or missing data.
 
 ## Workflow
 
@@ -72,68 +82,55 @@ autochecks plus one check agent per conventions reference. Skill types are
    ```bash
    $SIFU_TILING activity set "sifu($SIFU_OP:$SIFU_NAME): Drive the loop"
    ```
-2. Loop until done:
-   - Run `$SIFU_LOOM runtime next "$SIFU_WD"`.
-     Parse the YAML response (shape: loomv2 `schemas/next.yaml`).
-   - If the command exits non-zero → BLOCKED; stderr carries
-     `{failed_task, error_path}`.
-   - If `done: true` → break.
-   - Otherwise, handle the `ready[]` batch (all entries are
-     `kind: agent|human`; tool tasks already ran inside
-     `runtime next`). Entries in one batch are independent:
-     - Dispatch every `kind: agent` entry in parallel (they are
-       independent; see the agent-dispatch helper).
-     - Drive every `kind: human` entry sequentially after the
-       agent dispatches (see the human-gate helper) — user
-       interaction cannot be parallelized.
-     - After each entry finishes, call
-       `$SIFU_LOOM runtime complete "$SIFU_WD" <task-address>`.
-3. Set tiling activity to Done:
+2. Advance the graph:
+   ```bash
+   $SIFU_LOOM runtime next "$SIFU_WD"
+   ```
+   Parse the YAML response (shape: loomv2 `schemas/next.yaml`). Non-zero
+   exit → BLOCKED; stderr carries `{failed_task, error_path}`. `done: true`
+   → go to sub-step 5.
+3. Handle the `ready[]` batch (`kind: agent|human`; tool tasks already ran
+   inside `runtime next`): dispatch every agent entry per the agent-dispatch
+   helper, then drive every human entry per the human-gate helper.
+4. After each entry has returned, complete it:
+   ```bash
+   $SIFU_LOOM runtime complete "$SIFU_WD" <task-address>
+   ```
+   Pass: it prints `ok`. Non-zero exit → BLOCKED with the task's
+   `schema-error.yaml`. A sub-agent that returned without writing its output
+   is re-dispatched once, then BLOCKED. Repeat from sub-step 2.
+5. Set tiling activity to Done and report the status from
+   `publish-output`'s output per `## Completion`:
    ```bash
    $SIFU_TILING activity set "sifu($SIFU_OP:$SIFU_NAME): Done"
    ```
 
 ## Helper: Dispatch agent task
 
-`$SIFU_LOOM runtime next` yields ready agent tasks with
-their `prompt_path` already rendered from the task's materialised
-`input.yaml`. If the batch holds exactly one agent task, run it inline:
-`fs_read` the `prompt_path`, follow it, write the `output_path`.
-Otherwise dispatch each entry via the `subagent` MCP tool with
-`role: trusted` (grants file-read/write access).
+`$SIFU_LOOM runtime next` yields ready agent entries with `prompt_path` and
+`output_path`. Rules 1 and 6 decide inline versus sub-agents and the chunk
+size. Dispatch via the `subagent` MCP tool with `role: trusted` (grants
+file-read/write access); the `prompt_template` instructs the sub-agent to
+`fs_read` the `prompt_path` and follow it, writing its output only via
+`$SIFU_LOOM output init` then `$SIFU_LOOM output add`, never by hand.
 
-The sub-agent's `prompt_template` should instruct it to `fs_read` the
-`prompt_path` and follow it. The agent writes its output to the
-`output_path` from the same entry (or via
-`$SIFU_LOOM output add`).
-
-Completing the task is a separate tool turn, never the same parallel
-batch as the dispatch: wait for the sub-agent result, `fs_read` the
-`output_path` and confirm it is non-empty, then call
-`$SIFU_LOOM runtime complete "$SIFU_WD" "<task-address>"`.
-
-Dispatch independent entries in parallel via the `subagent` `stages`
-array with no `depends_on`; complete them afterwards, one `complete`
-per returned result.
+Dispatch the entries of one chunk in a single `subagent` `stages` array with
+no `depends_on`; complete them afterwards per Rule 7, one `complete` per
+returned result.
 
 ## Helper: Drive human gate
 
 Human tasks are conversational. Read the rendered prompt at
-`message_path`, follow its instructions, and write structured YAML to
-`output_path` against the task's `io.yaml/output` schema (use
-`$SIFU_LOOM output add` for validated writes). Then, in a
-separate tool turn after the write has succeeded, call
-`$SIFU_LOOM runtime complete "$SIFU_WD" "<task-address>"`.
+`message_path`, follow its instructions, STOP and wait for the user, then
+write their decision and any edits only via `$SIFU_LOOM output init` then
+`$SIFU_LOOM output add`, which validates each assignment against the task's
+`io.yaml/output` schema. Complete the task per Rule 7.
 
 For gates that show files, use the editor:
 
 ```bash
 $SIFU_EDITOR show file <path>
 ```
-
-Stop and wait for the user. The user can accept, edit, or decline.
-Capture their decision and any edits in the output file before
-completing the task.
 
 ## Plan visualisation
 
@@ -142,8 +139,11 @@ Task DAGs per graph, with the legend ○ tool · ◆ agent · ▣ human · ↻ l
 
 ## References
 
-- [Authoring rules](references/authoring.md) — structure, frontmatter,
-  style, completion, triggers.
+- [Rule codes](references/rule-codes.md) — rule codes, severity formula,
+  review bands, topics, finding confidence.
+- [Authoring rules](references/authoring.md) — layout, categories,
+  frontmatter, skill types; [style](references/style.md),
+  [completion](references/completion.md), [triggers](references/triggers.md).
 - [Workflow conventions](references/workflow-conventions.md) — loomv2
   layout, driver, task naming, prompts.
 - [Flow conventions](references/flow-conventions.md) — prose-step

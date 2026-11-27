@@ -13,43 +13,35 @@ import re
 from pathlib import Path
 from typing import List
 
+from sifu import rules
 from sifu.autochecks import (
     authoring,
     flow_conventions,
     interface_conventions,
     reference_conventions,
+    rule_codes,
     script_conventions,
     tool_conventions,
     workflow_conventions,
 )
 from sifu.autochecks._helpers import (
-    ERROR, Finding, INFO, WARN,
-    get_headings, parse_frontmatter, to_finding,
+    Finding, get_headings, parse_frontmatter, to_finding,
 )
 from sifu.utils import SKILLS_ROOT
 
-# Re-exports for backwards compatibility.
-__all__ = [
-    "ERROR", "INFO", "WARN",
-    "Finding", "lint_skill",
-    "lint_to_findings", "lint_to_text",
-]
+__all__ = ["Finding", "lint_skill", "lint_to_findings", "lint_to_text"]
 
 
 # ---------------------------------------------------------------------------
 # Output adapters
 # ---------------------------------------------------------------------------
 
-# Internal severity → findings.yaml schema enum.
-_SEVERITY_MAP = {
-    ERROR: "Error",
-    WARN:  "Warning",
-    INFO:  "Info",
-}
+# Deterministic findings are certain by construction (rule-codes.md §3).
+_LINT_CONFIDENCE = 100
 
 
 def lint_to_findings(skill_dir: Path) -> list[dict]:
-    """Run autochecks and return findings as ``findings.yaml`` dicts."""
+    """Run autochecks and return findings as ``finding.yaml`` dicts."""
     out: list[dict] = []
     for f in lint_skill(skill_dir):
         loc = f"{f.filename}:{f.line}" if f.line > 0 else f.filename
@@ -60,33 +52,34 @@ def lint_to_findings(skill_dir: Path) -> list[dict]:
             "file_line": loc,
             "description": f.message,
             "fix": "Address per sifu conventions.",
-            "severity": _SEVERITY_MAP[f.severity],
+            "check_id": f.code,
+            "severity": rules.severity_of(f.code),
+            "confidence": _LINT_CONFIDENCE,
             "source": "autochecks",
         }
         if f.rule:
             entry["rule_fun"] = f.rule
-        if f.rule_ref:
-            entry["rule_ref"] = f.rule_ref
         out.append(entry)
     return out
 
 
 def lint_to_text(skill_dir: Path) -> str:
-    """Render autocheck findings as legacy human-readable text.
+    """Render autocheck findings as human-readable text.
 
     Used by ``--format text`` and the apply phase to verify fixes.
     """
-    counts = {ERROR: 0, WARN: 0, INFO: 0}
+    counts = {"Error": 0, "Warning": 0, "Info": 0, "": 0}
     lines: list[str] = []
-    for f in lint_skill(skill_dir):
-        counts[f.severity] += 1
-        loc = f"{f.filename}:{f.line}" if f.line > 0 else f.filename
-        rule_tag = f"  [{f.rule}]" if f.rule else ""
-        lines.append(f"  {f.severity:5s}  {loc:30s}  {f.message}{rule_tag}")
+    for f in lint_to_findings(skill_dir):
+        band = rules.band(f["severity"])
+        counts[band] += 1
+        rule_tag = f"  [{f['rule_fun']}]" if f.get("rule_fun") else ""
+        lines.append(f"  {band or 'below':7s} {f['check_id']:9s} "
+                     f"{f['file_line']:30s}  {f['description']}{rule_tag}")
     lines.append("")
     lines.append(
-        f"Summary: {counts[ERROR]} errors, {counts[WARN]} warnings, "
-        f"{counts[INFO]} info"
+        f"Summary: {counts['Error']} errors, {counts['Warning']} warnings, "
+        f"{counts['Info']} info"
     )
     return "\n".join(lines) + "\n"
 
@@ -146,15 +139,14 @@ def lint_skill(skill_dir: Path) -> List[Finding]:
     skill_md = skill_dir / "SKILL.md"
 
     if not skill_md.exists():
-        findings.append((ERROR, "SKILL.md", 0, "SKILL.md not found"))
-        return findings
+        return [Finding("SKILL.md", 0, "SKILL.md not found", code="AUT-1-2")]
 
     text = skill_md.read_text(encoding="utf-8")
     lines = text.splitlines()
 
     # Frontmatter (also checks §3.6 single-line rule via parser).
     fields, fm_findings = parse_frontmatter(lines)
-    findings.extend(fm_findings)
+    findings.extend(to_finding(f)._replace(code="AUT-3-6") for f in fm_findings)
 
     # authoring.md §3 Frontmatter.
     findings.extend(authoring.rule_3_2_name_format(fields))
@@ -168,17 +160,17 @@ def lint_skill(skill_dir: Path) -> List[Finding]:
     findings.extend(authoring.rule_1_6_scripts_directory(skill_dir))
     findings.extend(authoring.rule_5_15_no_orphans(skill_dir))
 
-    # authoring.md §5 Style Guide (applied to SKILL.md).
+    # style.md §1 Style Guide (applied to SKILL.md).
     findings.extend(authoring.rule_5_3_no_readme(skill_dir))
     findings.extend(authoring.rule_5_4_constraints_form(lines, "SKILL.md"))
     findings.extend(authoring.rule_5_7_line_widths(lines, "SKILL.md"))
     findings.extend(authoring.rule_5_9_emphasis_stacking(lines, "SKILL.md"))
 
-    # authoring.md §6 Completion Status.
+    # completion.md §1 Completion Status.
     findings.extend(authoring.rule_6_1_completion_section(lines))
     findings.extend(authoring.rule_6_2_completion_statuses(lines))
 
-    # authoring.md §7 Handle Policy.
+    # style.md §2 Handle Policy.
     findings.extend(authoring.rule_7_1_no_other_aliases(lines, "SKILL.md"))
 
     # script-conventions.md.
@@ -314,6 +306,10 @@ def lint_skill(skill_dir: Path) -> List[Finding]:
         findings.extend(
             authoring.rule_5_12_references_reachable(skill_dir, refs_dir)
         )
+        findings.extend(rule_codes.rule_1_1_file_code(refs_dir))
+        findings.extend(rule_codes.rule_1_2_code_matches_position(refs_dir))
+        findings.extend(rule_codes.rule_1_3_applies_header(refs_dir))
+        findings.extend(rule_codes.rule_2_2_severity_in_range(refs_dir))
 
     # Normalize: promote any plain tuples (parser errors) to Finding.
     findings = [to_finding(f) for f in findings]

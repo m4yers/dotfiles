@@ -2,6 +2,12 @@
 
 Audit: {{ input.errors }} errors, {{ input.warnings }} warnings,
 {{ input.infos }} info — `{{ input.report_path }}`.
+{% if input.overlaps is defined and input.overlaps %}
+Trigger overlaps of the edited description (triggers.md):
+{% for o in input.overlaps %}
+- `{{ o.skill }}` — {{ o.reason }}
+{% endfor %}
+{% endif %}
 
 ## Task
 

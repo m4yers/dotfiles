@@ -20,22 +20,16 @@ class Finding(NamedTuple):
     """One automated finding.
 
     ``rule`` is the check function name (e.g. ``rule_2_2_activity_pattern``)
-    and ``rule_ref`` is the markdown source location of the rule
-    (e.g. ``references/workflow-conventions.md:31``). Both fields default
-    to empty for frontmatter parser errors that have no single backing
-    rule.
+    and ``code`` the rule id it enforces (e.g. ``WFL-2-2``, see
+    references/rule-codes.md). Severity is looked up from the code at
+    output time. Both default to empty for frontmatter parser errors,
+    which checks.py stamps with the frontmatter rule.
     """
-    severity: str
     filename: str
     line: int                # 0 = whole-file
     message: str
     rule: str = ""
-    rule_ref: str = ""
-
-
-ERROR = "ERROR"
-WARN = "WARN"
-INFO = "INFO"
+    code: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -43,12 +37,12 @@ INFO = "INFO"
 # ---------------------------------------------------------------------------
 
 
-def rule(ref: str) -> Callable:
+def rule(code: str) -> Callable:
     """Tag every Finding returned by a rule function with the rule's
-    name (function ``__name__``) and ``ref`` (markdown source link).
+    name (function ``__name__``) and ``code`` (rule id).
 
     Usage:
-        @rule("references/authoring.md:3.2")
+        @rule("AUT-3-2")
         def rule_3_2_name_format(fields): ...
     """
 
@@ -61,7 +55,7 @@ def rule(ref: str) -> Callable:
                 # Promote plain tuples (legacy callers) to Finding.
                 if not isinstance(f, Finding):
                     f = Finding(*f)
-                out.append(f._replace(rule=func.__name__, rule_ref=ref))
+                out.append(f._replace(rule=func.__name__, code=code))
             return out
 
         return wrapper
@@ -93,7 +87,7 @@ TRIGGER_PATTERNS = [
 # Pattern for Amazon-style aliases: @ followed by login-shaped text.
 ALIAS_PATTERN = re.compile(r"@[a-z]{2,}[a-z0-9]{0,}")
 
-# 75 chars: prose minimum-fill threshold per authoring.md §5.8.
+# 75 chars: prose minimum-fill threshold per style.md §1.7.
 MIN_PROSE_FILL = 75
 
 
@@ -114,7 +108,7 @@ def parse_frontmatter(lines: List[str]) -> Tuple[dict, List[Finding]]:
 
     if not lines or lines[0].rstrip() != "---":
         findings.append(
-            (ERROR, "SKILL.md", 1,
+            ("SKILL.md", 1,
              "Missing opening frontmatter delimiter '---'")
         )
         return fields, findings
@@ -127,7 +121,7 @@ def parse_frontmatter(lines: List[str]) -> Tuple[dict, List[Finding]]:
 
     if close_idx is None:
         findings.append(
-            (ERROR, "SKILL.md", 1,
+            ("SKILL.md", 1,
              "Missing closing frontmatter delimiter '---'")
         )
         return fields, findings
@@ -139,7 +133,7 @@ def parse_frontmatter(lines: List[str]) -> Tuple[dict, List[Finding]]:
         # YAML folding violates authoring.md §3.6 (single-line fields).
         if line.rstrip().endswith(">") or line.rstrip().endswith("|"):
             findings.append(
-                (ERROR, "SKILL.md", lineno,
+                ("SKILL.md", lineno,
                  "Frontmatter uses YAML folding — fields must be "
                  "single lines")
             )
@@ -148,7 +142,7 @@ def parse_frontmatter(lines: List[str]) -> Tuple[dict, List[Finding]]:
         # Continuation lines also violate §3.6.
         if line.startswith(" ") and ":" not in line.split("#")[0]:
             findings.append(
-                (ERROR, "SKILL.md", lineno,
+                ("SKILL.md", lineno,
                  "Frontmatter continuation line — fields must be "
                  "single lines")
             )
@@ -159,7 +153,7 @@ def parse_frontmatter(lines: List[str]) -> Tuple[dict, List[Finding]]:
             fields[match.group(1)] = (match.group(2).strip(), lineno)
         else:
             findings.append(
-                (WARN, "SKILL.md", lineno,
+                ("SKILL.md", lineno,
                  f"Unrecognized frontmatter line: {line.rstrip()}")
             )
 

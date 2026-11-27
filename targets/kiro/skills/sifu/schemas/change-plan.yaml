@@ -1,53 +1,13 @@
 # Change plan for an existing skill. Produced by
 # design-author-update, consumed by design-render-update,
-# modify-changes, and the audit-design-update check.
+# modify-changes, and the audit-design-update check. Skill identity
+# and the change request travel on the graph (find-skill,
+# gather-update), not inside the plan.
 type: object
 required:
-- skill
-- change_request
 - change_plan
 additionalProperties: false
 properties:
-  skill:
-    description: 'Identification of the skill being updated. Carried
-
-      verbatim from gather-update so the renderer and the
-
-      materialize step have a stable reference.
-
-      '
-    type: object
-    required:
-    - name
-    - namespace
-    - type
-    - path
-    additionalProperties: false
-    properties:
-      name:
-        type: string
-      namespace:
-        type: string
-      type:
-        type: string
-        enum:
-        - interface
-        - tool
-        - workflow
-        - reference
-        - flow
-      path:
-        type: string
-        description: absolute path to the skill directory
-  change_request:
-    type: string
-    description: 'The user''s free-form description from gather-update,
-
-      passed through unchanged so the reviewer sees what was
-
-      asked alongside the proposed plan.
-
-      '
   change_plan:
     type: object
     required:

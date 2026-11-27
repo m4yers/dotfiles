@@ -1,5 +1,8 @@
 # Tool Skill Conventions
 
+**Code:** TOL
+**Applies:** type:tool
+
 Conventions specific to skills with `type: tool`. These supplement the general
 authoring rules in `authoring.md`.
 
@@ -14,30 +17,33 @@ authoring rules in `authoring.md`.
 
 ## 1. Definition
 
-1. A tool skill MUST be a fixed sequence of numbered steps executed without user
-   interaction or iteration.
-2. A tool has one implicit phase — it runs start to finish.
-3. If the skill needs user input mid-execution or loops back to earlier steps,
-   it is a `workflow`, not a `tool`.
-4. Inputs MUST be gathered before step 1 (from the user's invocation message or
-   from parameters); steps only execute.
+1. (rule: TOL-1-1, severity: 80) A tool skill MUST be a fixed sequence of
+   numbered steps executed without user interaction or iteration.
+2. (rule: TOL-1-2, severity: 10) A tool has one implicit phase — it runs start
+   to finish.
+3. (rule: TOL-1-3, severity: 10) If the skill needs user input mid-execution or
+   loops back to earlier steps, it is a `workflow`, not a `tool`.
+4. (rule: TOL-1-4, severity: 80) Inputs MUST be gathered before step 1 (from the
+   user's invocation message or from parameters); steps only execute.
 
 ## 2. Required Sections
 
-1. A tool skill MUST contain a single `## Steps` section with a numbered list of
-   indivisible actions that run in order without interruption. (check:
+1. (rule: TOL-2-1, severity: 80) A tool skill MUST contain a single `## Steps`
+   section with a numbered list of indivisible actions that run in order without
+   interruption. (check:
    `autochecks/tool_conventions.py:rule_2_1_steps_section`)
 
-2. A tool skill MUST contain a `## Parameters` section listing inputs;
-   parameters MUST either be provided in the user's invocation message or the
-   skill MUST ask for them explicitly. (check:
+2. (rule: TOL-2-2, severity: 80) A tool skill MUST contain a `## Parameters`
+   section listing inputs; parameters MUST either be provided in the user's
+   invocation message or the skill MUST ask for them explicitly. (check:
    `autochecks/tool_conventions.py:rule_2_2_parameters_section`)
 
-3. A tool skill SHOULD contain a `## Dependencies` section before `## Steps`
-   when it depends on other skills or external tools.
+3. (rule: TOL-2-3, severity: 50) A tool skill SHOULD contain a `## Dependencies`
+   section before `## Steps` when it depends on other skills or external tools.
 
-4. A tool skill MAY contain `## Output` (when the tool produces a file or
-   report) and `## Rules` (cross-step constraints) sections.
+4. (rule: TOL-2-4, severity: 20) A tool skill MAY contain `## Output` (when the
+   tool produces a file or report) and `## Rules` (cross-step constraints)
+   sections.
 
 ```markdown
 ## Steps
@@ -55,14 +61,16 @@ authoring rules in `authoring.md`.
 
 ## 3. Step Rules
 
-1. Each step MUST be a single action, not a sub-workflow.
-2. Steps MUST be numbered, not bulleted. (check:
+1. (rule: TOL-3-1, severity: 80) Each step MUST be a single action, not a
+   sub-workflow.
+2. (rule: TOL-3-2, severity: 65) Steps MUST be numbered, not bulleted. (check:
    `autochecks/tool_conventions.py:rule_3_2_steps_numbered`)
-3. Steps MUST NOT branch ("if X then Y else Z"), because conditional logic
-   belongs in a `workflow`.
-4. Steps MAY include code blocks showing the exact command.
-5. Error handling (e.g., "if step 2 fails, report BLOCKED") MUST go in the
-   Completion section, not inline in steps.
+3. (rule: TOL-3-3, severity: 85) Steps MUST NOT branch ("if X then Y else Z"),
+   because conditional logic belongs in a `workflow`.
+4. (rule: TOL-3-4, severity: 20) Steps MAY include code blocks showing the exact
+   command.
+5. (rule: TOL-3-5, severity: 80) Error handling (e.g., "if step 2 fails, report
+   BLOCKED") MUST go in the Completion section, not inline in steps.
 
 ## 4. Section Order
 
@@ -78,21 +86,26 @@ authoring rules in `authoring.md`.
 
 ## 5. Forbidden Shapes
 
-1. Tool skills MUST NOT have multiple phases, because that is a `workflow`.
-2. Tool skills MUST NOT request user interaction mid-execution, because that is
-   a `workflow`.
-3. Tool skills MUST NOT loop or iterate, because that is a `workflow`.
-4. Tool skills MUST NOT contain API tables, because that is an `interface`.
+1. (rule: TOL-5-1, severity: 85) Tool skills MUST NOT have multiple phases,
+   because that is a `workflow`.
+2. (rule: TOL-5-2, severity: 85) Tool skills MUST NOT request user interaction
+   mid-execution, because that is a `workflow`.
+3. (rule: TOL-5-3, severity: 85) Tool skills MUST NOT loop or iterate, because
+   that is a `workflow`.
+4. (rule: TOL-5-4, severity: 85) Tool skills MUST NOT contain API tables,
+   because that is an `interface`. (check:
+   `autochecks/tool_conventions.py:rule_5_no_api_section`)
 
 ## 6. Anti-Gaming Success Criteria
 
-1. Steps with measurable outcomes (exit code zero, file created, schema
-   validates, test passes) MUST include guards that prevent the LLM from
-   satisfying the surface measure without satisfying the intent, because the
-   model can weaken the oracle to make the step succeed.
-2. Each measurable criterion MUST state what it checks (surface measure) and the
-   underlying intent.
-3. Each measurable criterion MUST add a guard that closes the gap, e.g.:
+1. (rule: TOL-6-1, severity: 80) Steps with measurable outcomes (exit code zero,
+   file created, schema validates, test passes) MUST include guards that prevent
+   the LLM from satisfying the surface measure without satisfying the intent,
+   because the model can weaken the oracle to make the step succeed.
+2. (rule: TOL-6-2, severity: 80) Each measurable criterion MUST state what it
+   checks (surface measure) and the underlying intent.
+3. (rule: TOL-6-3, severity: 80) Each measurable criterion MUST add a guard that
+   closes the gap, e.g.:
 
 | Surface measure | Guard                                   |
 | --------------- | --------------------------------------- |

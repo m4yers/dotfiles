@@ -2,8 +2,11 @@
 # AUDIT subgraph, embedded by loom/graph-{create,update,review}.yaml.
 # Entry = ingest-input: locate shape + design_kind (+ design or plan).
 # Exit = publish-output: assembled report.md path and counts.
-# audit-check-* are `ref: audit-check` instances, one per
-# conventions reference; typed ones run only for their skill type.
+# audit-topics -> audit-checks pick the rules (references/rule-codes.md);
+# audit-shard-plan (loop header) fills 16 slots of <=3 checks per wave,
+# audit-shard-01..16 (`ref: audit-shard`) judge one slot each, and
+# audit-aggregate (latch) accumulates findings while has_more.
+# audit-design / audit-design-update run alongside on create / update.
 #   $LOOM validate <skill-root> --graph loom-audit/graph.yaml
 # ============================================================
 tasks:
@@ -16,147 +19,274 @@ tasks:
   depends_on_all: [ingest-input]
   input:
     skill_dir: ${task:ingest-input:skill_dir}
-- id: audit-check-authoring
-  kind: agent
+- id: audit-topics
+  kind: tool
   version: 1
-  ref: audit-check
-  depends_on_all:
-  - ingest-input
-  - audit-autochecks
+  depends_on_all: [ingest-input]
   input:
     skill_dir: ${task:ingest-input:skill_dir}
-    name: ${task:ingest-input:name}
-    category: ${task:ingest-input:category}
     type: ${task:ingest-input:type}
-    conventions: authoring.md
-    lint_findings: ${task:audit-autochecks:findings}
-- id: audit-check-model-awareness
+- id: audit-checks
+  kind: tool
+  version: 1
+  depends_on_all: [audit-topics]
+  input:
+    topics: ${task:audit-topics:topics}
+# Loop header. `prev` is this task's own previous wave (null on wave 1).
+- id: audit-shard-plan
+  kind: tool
+  version: 1
+  depends_on_all: [audit-checks, audit-autochecks]
+  input:
+    checks: ${task:audit-checks:checks}
+    prev: ${task:audit-shard-plan@prev}
+- id: audit-shard-01
   kind: agent
   version: 1
-  ref: audit-check
-  depends_on_all:
-  - ingest-input
-  - audit-autochecks
-  input:
-    skill_dir: ${task:ingest-input:skill_dir}
-    name: ${task:ingest-input:name}
-    category: ${task:ingest-input:category}
-    type: ${task:ingest-input:type}
-    conventions: model-awareness.md
-    lint_findings: ${task:audit-autochecks:findings}
-- id: audit-check-scripts
-  kind: agent
-  version: 1
-  ref: audit-check
-  depends_on_all:
-  - ingest-input
-  - audit-autochecks
-  input:
-    skill_dir: ${task:ingest-input:skill_dir}
-    name: ${task:ingest-input:name}
-    category: ${task:ingest-input:category}
-    type: ${task:ingest-input:type}
-    conventions: script-conventions.md
-    lint_findings: ${task:audit-autochecks:findings}
-- id: audit-check-secure-llm
-  kind: agent
-  version: 1
-  ref: audit-check
-  depends_on_all:
-  - ingest-input
-  - audit-autochecks
-  input:
-    skill_dir: ${task:ingest-input:skill_dir}
-    name: ${task:ingest-input:name}
-    category: ${task:ingest-input:category}
-    type: ${task:ingest-input:type}
-    conventions: secure-llm-conventions.md
-    lint_findings: ${task:audit-autochecks:findings}
-- id: audit-check-interface
-  kind: agent
-  version: 1
-  ref: audit-check
-  depends_on_all:
-  - ingest-input
-  - audit-autochecks
-  input:
-    skill_dir: ${task:ingest-input:skill_dir}
-    name: ${task:ingest-input:name}
-    category: ${task:ingest-input:category}
-    type: ${task:ingest-input:type}
-    conventions: interface-conventions.md
-    lint_findings: ${task:audit-autochecks:findings}
-  when: ${task:ingest-input:type} == 'interface'
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_01.populated}
   skip_output:
     findings: []
-- id: audit-check-tool
-  kind: agent
-  version: 1
-  ref: audit-check
-  depends_on_all:
-  - ingest-input
-  - audit-autochecks
   input:
     skill_dir: ${task:ingest-input:skill_dir}
     name: ${task:ingest-input:name}
-    category: ${task:ingest-input:category}
     type: ${task:ingest-input:type}
-    conventions: tool-conventions.md
+    shard: ${task:audit-shard-plan:shard_01}
     lint_findings: ${task:audit-autochecks:findings}
-  when: ${task:ingest-input:type} == 'tool'
-  skip_output:
-    findings: []
-- id: audit-check-workflow
+- id: audit-shard-02
   kind: agent
   version: 1
-  ref: audit-check
-  depends_on_all:
-  - ingest-input
-  - audit-autochecks
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_02.populated}
+  skip_output:
+    findings: []
   input:
     skill_dir: ${task:ingest-input:skill_dir}
     name: ${task:ingest-input:name}
-    category: ${task:ingest-input:category}
     type: ${task:ingest-input:type}
-    conventions: workflow-conventions.md
+    shard: ${task:audit-shard-plan:shard_02}
     lint_findings: ${task:audit-autochecks:findings}
-  when: ${task:ingest-input:type} == 'workflow'
-  skip_output:
-    findings: []
-- id: audit-check-reference
+- id: audit-shard-03
   kind: agent
   version: 1
-  ref: audit-check
-  depends_on_all:
-  - ingest-input
-  - audit-autochecks
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_03.populated}
+  skip_output:
+    findings: []
   input:
     skill_dir: ${task:ingest-input:skill_dir}
     name: ${task:ingest-input:name}
-    category: ${task:ingest-input:category}
     type: ${task:ingest-input:type}
-    conventions: reference-conventions.md
+    shard: ${task:audit-shard-plan:shard_03}
     lint_findings: ${task:audit-autochecks:findings}
-  when: ${task:ingest-input:type} == 'reference'
-  skip_output:
-    findings: []
-- id: audit-check-flow
+- id: audit-shard-04
   kind: agent
   version: 1
-  ref: audit-check
-  depends_on_all:
-  - ingest-input
-  - audit-autochecks
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_04.populated}
+  skip_output:
+    findings: []
   input:
     skill_dir: ${task:ingest-input:skill_dir}
     name: ${task:ingest-input:name}
-    category: ${task:ingest-input:category}
     type: ${task:ingest-input:type}
-    conventions: flow-conventions.md
+    shard: ${task:audit-shard-plan:shard_04}
     lint_findings: ${task:audit-autochecks:findings}
-  when: ${task:ingest-input:type} == 'flow'
+- id: audit-shard-05
+  kind: agent
+  version: 1
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_05.populated}
   skip_output:
     findings: []
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    type: ${task:ingest-input:type}
+    shard: ${task:audit-shard-plan:shard_05}
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-shard-06
+  kind: agent
+  version: 1
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_06.populated}
+  skip_output:
+    findings: []
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    type: ${task:ingest-input:type}
+    shard: ${task:audit-shard-plan:shard_06}
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-shard-07
+  kind: agent
+  version: 1
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_07.populated}
+  skip_output:
+    findings: []
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    type: ${task:ingest-input:type}
+    shard: ${task:audit-shard-plan:shard_07}
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-shard-08
+  kind: agent
+  version: 1
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_08.populated}
+  skip_output:
+    findings: []
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    type: ${task:ingest-input:type}
+    shard: ${task:audit-shard-plan:shard_08}
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-shard-09
+  kind: agent
+  version: 1
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_09.populated}
+  skip_output:
+    findings: []
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    type: ${task:ingest-input:type}
+    shard: ${task:audit-shard-plan:shard_09}
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-shard-10
+  kind: agent
+  version: 1
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_10.populated}
+  skip_output:
+    findings: []
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    type: ${task:ingest-input:type}
+    shard: ${task:audit-shard-plan:shard_10}
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-shard-11
+  kind: agent
+  version: 1
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_11.populated}
+  skip_output:
+    findings: []
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    type: ${task:ingest-input:type}
+    shard: ${task:audit-shard-plan:shard_11}
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-shard-12
+  kind: agent
+  version: 1
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_12.populated}
+  skip_output:
+    findings: []
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    type: ${task:ingest-input:type}
+    shard: ${task:audit-shard-plan:shard_12}
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-shard-13
+  kind: agent
+  version: 1
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_13.populated}
+  skip_output:
+    findings: []
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    type: ${task:ingest-input:type}
+    shard: ${task:audit-shard-plan:shard_13}
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-shard-14
+  kind: agent
+  version: 1
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_14.populated}
+  skip_output:
+    findings: []
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    type: ${task:ingest-input:type}
+    shard: ${task:audit-shard-plan:shard_14}
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-shard-15
+  kind: agent
+  version: 1
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_15.populated}
+  skip_output:
+    findings: []
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    type: ${task:ingest-input:type}
+    shard: ${task:audit-shard-plan:shard_15}
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-shard-16
+  kind: agent
+  version: 1
+  ref: audit-shard
+  depends_on_all: [audit-shard-plan]
+  when: ${task:audit-shard-plan:shard_16.populated}
+  skip_output:
+    findings: []
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    type: ${task:ingest-input:type}
+    shard: ${task:audit-shard-plan:shard_16}
+    lint_findings: ${task:audit-autochecks:findings}
+# Loop latch. prev_findings is this task's own previous wave (null on wave 1).
+- id: audit-aggregate
+  kind: tool
+  version: 1
+  depends_on_all: [audit-shard-01, audit-shard-02, audit-shard-03, audit-shard-04, audit-shard-05, audit-shard-06, audit-shard-07, audit-shard-08, audit-shard-09, audit-shard-10, audit-shard-11, audit-shard-12, audit-shard-13, audit-shard-14, audit-shard-15, audit-shard-16]
+  input:
+    prev_findings: ${task:audit-aggregate@prev:findings}
+    shard_01_findings: ${task:audit-shard-01:findings}
+    shard_02_findings: ${task:audit-shard-02:findings}
+    shard_03_findings: ${task:audit-shard-03:findings}
+    shard_04_findings: ${task:audit-shard-04:findings}
+    shard_05_findings: ${task:audit-shard-05:findings}
+    shard_06_findings: ${task:audit-shard-06:findings}
+    shard_07_findings: ${task:audit-shard-07:findings}
+    shard_08_findings: ${task:audit-shard-08:findings}
+    shard_09_findings: ${task:audit-shard-09:findings}
+    shard_10_findings: ${task:audit-shard-10:findings}
+    shard_11_findings: ${task:audit-shard-11:findings}
+    shard_12_findings: ${task:audit-shard-12:findings}
+    shard_13_findings: ${task:audit-shard-13:findings}
+    shard_14_findings: ${task:audit-shard-14:findings}
+    shard_15_findings: ${task:audit-shard-15:findings}
+    shard_16_findings: ${task:audit-shard-16:findings}
 - id: audit-design
   kind: agent
   version: 1
@@ -183,21 +313,14 @@ tasks:
   when: ${task:ingest-input:design_kind} == 'update'
   skip_output:
     findings: []
+# Outside the loop: ${task:audit-aggregate:findings} is the final round.
 - id: publish-output
   kind: tool
-  version: 1
+  version: 2
   depends_on_all:
   - ingest-input
   - audit-autochecks
-  - audit-check-authoring
-  - audit-check-model-awareness
-  - audit-check-scripts
-  - audit-check-secure-llm
-  - audit-check-interface
-  - audit-check-tool
-  - audit-check-workflow
-  - audit-check-reference
-  - audit-check-flow
+  - audit-aggregate
   - audit-design
   - audit-design-update
   input:
@@ -206,14 +329,13 @@ tasks:
     category: ${task:ingest-input:category}
     type: ${task:ingest-input:type}
     autochecks: ${task:audit-autochecks:findings}
-    authoring: ${task:audit-check-authoring:findings}
-    model_awareness: ${task:audit-check-model-awareness:findings}
-    scripts: ${task:audit-check-scripts:findings}
-    secure_llm: ${task:audit-check-secure-llm:findings}
-    interface: ${task:audit-check-interface:findings}
-    tool: ${task:audit-check-tool:findings}
-    workflow: ${task:audit-check-workflow:findings}
-    reference: ${task:audit-check-reference:findings}
-    flow: ${task:audit-check-flow:findings}
+    shards: ${task:audit-aggregate:findings}
     design: ${task:audit-design:findings}
     design_update: ${task:audit-design-update:findings}
+latches:
+# 8 waves x 48 checks = 384: a safety cap above the ~220 rules in
+# references/. Normal exit is has_more going false.
+- task: audit-aggregate
+  header: audit-shard-plan
+  fuel: 8
+  while_: ${task:audit-shard-plan:has_more}

@@ -1,4 +1,4 @@
-version: 1
+version: 2
 input:
   type: object
   additionalProperties: false
@@ -22,8 +22,12 @@ output:
     type:
       type: string
       description: Skill type from SKILL.md frontmatter.
+    description:
+      type: string
+      description: SKILL.md frontmatter description, read at call time.
   required:
   - skill_dir
   - name
   - category
   - type
+  - description

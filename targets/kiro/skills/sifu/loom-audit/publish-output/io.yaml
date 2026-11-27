@@ -1,4 +1,4 @@
-version: 1
+version: 2
 input:
   type: object
   additionalProperties: false
@@ -18,15 +18,7 @@ input:
       type: array
       items:
         $ref: ../../schemas/finding.yaml
-    authoring: *id001
-    model_awareness: *id001
-    scripts: *id001
-    secure_llm: *id001
-    interface: *id001
-    tool: *id001
-    workflow: *id001
-    reference: *id001
-    flow: *id001
+    shards: *id001
     design: *id001
     design_update: *id001
     __loom: {}
@@ -36,15 +28,7 @@ input:
   - category
   - type
   - autochecks
-  - authoring
-  - model_awareness
-  - scripts
-  - secure_llm
-  - interface
-  - tool
-  - workflow
-  - reference
-  - flow
+  - shards
   - design
   - design_update
   - __loom

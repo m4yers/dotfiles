@@ -1,3 +1,5 @@
+# audit-shard — judges up to 3 checks against the skill; instanced as
+# audit-shard-01..16 by graph.yaml.
 version: 1
 input:
   type: object
@@ -8,15 +10,11 @@ input:
       description: Absolute skill directory.
     name:
       type: string
-    category:
-      type: string
-      description: First namespace component, e.g. home, aws.
     type:
       type: string
       description: Skill type from SKILL.md frontmatter.
-    conventions:
-      type: string
-      description: Reference file (under references/) holding the rules to apply.
+    shard:
+      $ref: ../../schemas/shard.yaml
     lint_findings: &id001
       type: array
       items:
@@ -26,9 +24,8 @@ input:
   required:
   - skill_dir
   - name
-  - category
   - type
-  - conventions
+  - shard
   - lint_findings
   - __loom
   - __task

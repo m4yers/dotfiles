@@ -19,15 +19,22 @@ def run(inp: dict) -> dict:
     report_path = Path(inp["report_path"])
     if not report_path.is_file():
         fail(f"report missing at {report_path}")
-    if EDITOR_SH.is_file():
+    # Display is best-effort; every failure mode is reported so the gate
+    # knows whether the user saw the report.
+    if not EDITOR_SH.is_file():
+        print(f"warning: editor script missing at {EDITOR_SH}; report not "
+              "shown", file=sys.stderr)
+    else:
         try:
-            subprocess.run(
+            res = subprocess.run(
                 [str(EDITOR_SH), "show", "file", str(report_path)],
                 timeout=_EDITOR_TIMEOUT, check=False,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                capture_output=True, text=True,
             )
+            if res.returncode != 0:
+                print(f"warning: editor exited {res.returncode}: "
+                      f"{res.stderr.strip()[-400:]}", file=sys.stderr)
         except (OSError, subprocess.TimeoutExpired) as exc:
-            # Display is best-effort; warn and keep the loop going.
             print(f"warning: editor display failed: {exc}", file=sys.stderr)
     counts = report_mod.count_findings(report_path)
     return {

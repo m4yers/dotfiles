@@ -1,23 +1,36 @@
-# One audit finding. Emitted by audit-autochecks and every
-# audit-check-* task; assembled into report.md by the audit
-# subgraph's publish-output.
+# One audit finding. Emitted by audit-autochecks, every audit-shard
+# instance and the design-drift checks; merged, banded and sorted into
+# report.md by the audit subgraph's publish-output.
 type: object
 additionalProperties: false
-required: [title, file_line, description, fix, severity]
+required: [title, file_line, description, fix, check_id, severity, confidence]
 properties:
   title: {type: string, minLength: 1}
   file_line:
     type: string
-    description: "`<path>:<line>`, or `<path>` / empty when file-wide"
+    pattern: "^(?!/)[^\\s]*$"
+    description: "Skill-relative `<path>:<line>`, or `<path>` / empty when file-wide; never absolute"
+  also_at:
+    type: array
+    items: {type: string}
+    description: Other `<path>:<line>` sites of the same finding; set by the merge.
   description: {type: string, minLength: 1}
   fix: {type: string, minLength: 1}
-  severity:
+  check_id:
     type: string
-    enum: [Error, Warning, Info]
+    pattern: "^[A-Z]{3}-[0-9]+-[0-9]+$"
+    description: Rule code (references/rule-codes.md), DSN-1-n for design drift.
+  severity:
+    type: integer
+    minimum: 0
+    maximum: 100
+    description: The rule's severity, carried through unchanged.
+  confidence:
+    type: integer
+    minimum: 70
+    maximum: 100
+    description: Evidence strength per rule-codes.md §5; autochecks emit 100.
   source: {type: string}
   rule_fun:
     type: string
     description: Autocheck function that produced the finding.
-  rule_ref:
-    type: string
-    description: "`references/<file>.md:<rule>` link to the rule source."

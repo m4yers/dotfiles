@@ -1,0 +1,87 @@
+# audit-shard-plan — loop header: resumes at the previous wave's offset
+# and fills 16 slots of up to 3 checks, one reference file per slot.
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    checks:
+      type: array
+      items:
+        $ref: ../../schemas/check.yaml
+    prev:
+      type:
+      - object
+      - 'null'
+      description: Previous wave output of this task; null on wave 1.
+  required:
+  - checks
+  - prev
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    shard_01:
+      $ref: ../../schemas/shard.yaml
+    shard_02:
+      $ref: ../../schemas/shard.yaml
+    shard_03:
+      $ref: ../../schemas/shard.yaml
+    shard_04:
+      $ref: ../../schemas/shard.yaml
+    shard_05:
+      $ref: ../../schemas/shard.yaml
+    shard_06:
+      $ref: ../../schemas/shard.yaml
+    shard_07:
+      $ref: ../../schemas/shard.yaml
+    shard_08:
+      $ref: ../../schemas/shard.yaml
+    shard_09:
+      $ref: ../../schemas/shard.yaml
+    shard_10:
+      $ref: ../../schemas/shard.yaml
+    shard_11:
+      $ref: ../../schemas/shard.yaml
+    shard_12:
+      $ref: ../../schemas/shard.yaml
+    shard_13:
+      $ref: ../../schemas/shard.yaml
+    shard_14:
+      $ref: ../../schemas/shard.yaml
+    shard_15:
+      $ref: ../../schemas/shard.yaml
+    shard_16:
+      $ref: ../../schemas/shard.yaml
+    next_offset:
+      type: integer
+      minimum: 0
+    has_more:
+      type: boolean
+    wave:
+      type: integer
+      minimum: 1
+    total_checks:
+      type: integer
+      minimum: 0
+  required:
+  - shard_01
+  - shard_02
+  - shard_03
+  - shard_04
+  - shard_05
+  - shard_06
+  - shard_07
+  - shard_08
+  - shard_09
+  - shard_10
+  - shard_11
+  - shard_12
+  - shard_13
+  - shard_14
+  - shard_15
+  - shard_16
+  - next_offset
+  - has_more
+  - wave
+  - total_checks

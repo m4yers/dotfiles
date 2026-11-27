@@ -105,7 +105,7 @@ tasks:
   when: ${task:design-accept:decision} == 'accept'
 - id: find-skill
   kind: tool
-  version: 1
+  version: 2
   depends_on_all:
   - ingest-input
   - skill-materialize
@@ -137,7 +137,7 @@ tasks:
     warnings: ${task:audit-core:warnings}
 - id: final-review
   kind: human
-  version: 1
+  version: 2
   depends_on_all:
   - skill-modify
   - audit-core

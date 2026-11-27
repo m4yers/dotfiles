@@ -5,7 +5,7 @@
 # skill-modify, final-review, publish-output. Keep their wiring
 # in sync across graph-create/update/review, then validate:
 #   $LOOM validate <skill-root> --graph <abs>/loom/graph-update.yaml
-# find -> gather -> change-plan loop (design-accept-update latch, fuel 5) -> modify-changes -> audit -> modify -> final-review.
+# find -> gather -> change-plan loop (design-accept-update latch, fuel 5) -> modify-changes -> check-overlaps + audit -> modify -> final-review.
 # ============================================================
 tasks:
 - id: ingest-input
@@ -13,7 +13,7 @@ tasks:
   version: 1
 - id: find-skill
   kind: tool
-  version: 1
+  version: 2
   depends_on_all:
   - ingest-input
   input:
@@ -42,11 +42,16 @@ tasks:
     revise_reason: ${task:design-accept-update@prev:revise_reason}
 - id: design-render-update
   kind: tool
-  version: 1
+  version: 2
   depends_on_all:
   - design-author-update
   input:
     plan: ${task:design-author-update:plan}
+    name: ${task:find-skill:name}
+    category: ${task:find-skill:category}
+    type: ${task:find-skill:type}
+    skill_dir: ${task:find-skill:skill_dir}
+    description: ${task:gather-update:description}
 - id: design-review-update
   kind: human
   version: 1
@@ -75,6 +80,23 @@ tasks:
     type: ${task:find-skill:type}
     plan: ${task:design-accept-update:plan}
   when: ${task:design-accept-update:decision} == 'accept'
+- id: find-skill-updated
+  kind: tool
+  version: 2
+  ref: find-skill
+  depends_on_all:
+  - ingest-input
+  - modify-changes
+  input:
+    name: ${task:ingest-input:name}
+- id: check-overlaps
+  kind: tool
+  version: 1
+  depends_on_all:
+  - find-skill-updated
+  input:
+    name: ${task:find-skill-updated:name}
+    description: ${task:find-skill-updated:description}
 - id: audit-core
   kind: subgraph
   version: 1
@@ -102,16 +124,18 @@ tasks:
     warnings: ${task:audit-core:warnings}
 - id: final-review
   kind: human
-  version: 1
+  version: 2
   depends_on_all:
   - skill-modify
   - audit-core
+  - check-overlaps
   input:
     skill_dir: ${task:audit-core:skill_dir}
     report_path: ${task:audit-core:report_path}
     errors: ${task:audit-core:errors}
     warnings: ${task:audit-core:warnings}
     infos: ${task:audit-core:infos}
+    overlaps: ${task:check-overlaps:overlaps}
 - id: publish-output
   kind: tool
   version: 1

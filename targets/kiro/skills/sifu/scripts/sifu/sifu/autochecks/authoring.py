@@ -1,4 +1,5 @@
-"""Automated checks for rules in ``references/authoring.md``.
+"""Automated checks for rules in ``references/authoring.md``,
+``style.md``, ``completion.md`` and ``triggers.md``.
 
 Each function checks one numbered rule. Function name is
 ``rule_<section>_<rule>_<blurb>`` and the docstring carries a
@@ -13,7 +14,7 @@ from pathlib import Path
 from typing import List
 
 from sifu.autochecks._helpers import (
-    ALIAS_PATTERN, ERROR, Finding, MIN_PROSE_FILL, TRIGGER_PATTERNS, VALID_TYPES, WARN, is_prose, rule,
+    ALIAS_PATTERN, Finding, MIN_PROSE_FILL, TRIGGER_PATTERNS, VALID_TYPES, is_prose, rule,
 )
 
 # ---------------------------------------------------------------------------
@@ -21,47 +22,47 @@ from sifu.autochecks._helpers import (
 # ---------------------------------------------------------------------------
 
 
-@rule('references/authoring.md:1.6')
+@rule('AUT-1-6')
 def rule_1_6_scripts_directory(skill_dir: Path) -> List[Finding]:
     """Scripts MUST live under ``scripts/``, not loose at skill root.
 
-    Rule: references/authoring.md:1.6
+    Rule: AUT-1-6
     """
     findings: List[Finding] = []
     for f in skill_dir.iterdir():
         if (f.is_file() and f.suffix in (".py", ".sh", ".bash")
                 and f.name != "SKILL.md"):
             findings.append(
-                (ERROR, f.name, 0,
+                (f.name, 0,
                  f"script '{f.name}' is in skill root — move to scripts/")
             )
     return findings
 
 
-@rule('references/authoring.md:1.3')
+@rule('AUT-1-3')
 def rule_1_3_md_under_references(skill_dir: Path) -> List[Finding]:
     """Reference docs SHOULD live under ``references/``.
 
-    Rule: references/authoring.md:1.3
+    Rule: AUT-1-3
     """
     findings: List[Finding] = []
     for f in skill_dir.iterdir():
         if (f.is_file() and f.suffix == ".md"
                 and f.name != "SKILL.md"):
             findings.append(
-                (WARN, f.name, 0,
+                (f.name, 0,
                  f"markdown file '{f.name}' is in skill root — "
                  f"move to references/")
             )
     return findings
 
 
-@rule('references/authoring.md:1.4')
+@rule('AUT-1-4')
 def rule_1_4_schemas_top_level(skill_dir: Path) -> List[Finding]:
     """JSON/YAML schemas MUST live at top-level ``schemas/``,
     not under ``references/``.
 
-    Rule: references/authoring.md:1.4
+    Rule: AUT-1-4
     """
     findings: List[Finding] = []
     refs_dir = skill_dir / "references"
@@ -70,22 +71,22 @@ def rule_1_4_schemas_top_level(skill_dir: Path) -> List[Finding]:
     for f in refs_dir.rglob("*"):
         if f.is_file() and f.suffix in (".yaml", ".yml", ".json"):
             findings.append(
-                (ERROR, f"references/{f.relative_to(refs_dir)}", 0,
+                (f"references/{f.relative_to(refs_dir)}", 0,
                  f"schema file '{f.name}' under references/ — "
                  f"move to top-level schemas/")
             )
     return findings
 
 
-@rule('references/authoring.md:5.3')
+@rule('STY-1-3')
 def rule_5_3_no_readme(skill_dir: Path) -> List[Finding]:
     """Skills MUST NOT have a README.md.
 
-    Rule: references/authoring.md:5.3
+    Rule: STY-1-3
     """
     if (skill_dir / "README.md").exists():
         return [
-            (ERROR, "README.md", 0,
+            ("README.md", 0,
              "skills MUST NOT have a README.md — "
              "SKILL.md is the single source of truth")
         ]
@@ -97,83 +98,83 @@ def rule_5_3_no_readme(skill_dir: Path) -> List[Finding]:
 # ---------------------------------------------------------------------------
 
 
-@rule('references/authoring.md:3.2')
+@rule('AUT-3-2')
 def rule_3_2_name_format(fields: dict) -> List[Finding]:
     """``name`` MUST be 1-64 chars, lowercase letters/digits/hyphens.
 
-    Rule: references/authoring.md:3.2
+    Rule: AUT-3-2
     """
     findings: List[Finding] = []
     if "name" not in fields:
         findings.append(
-            (ERROR, "SKILL.md", 0, "Missing 'name' field in frontmatter")
+            ("SKILL.md", 0, "Missing 'name' field in frontmatter")
         )
         return findings
     name, lineno = fields["name"]
     if not re.match(r"^[a-z][a-z0-9-]{0,63}$", name):
         findings.append(
-            (ERROR, "SKILL.md", lineno,
+            ("SKILL.md", lineno,
              f"name '{name}' invalid — must be 1-64 chars, "
              f"lowercase letters/digits/hyphens, start with letter")
         )
     return findings
 
 
-@rule('references/authoring.md:3.3')
+@rule('AUT-3-3')
 def rule_3_3_type_values(fields: dict) -> List[Finding]:
     """``type`` MUST be one of interface | tool | workflow | reference | flow.
 
-    Rule: references/authoring.md:3.3
+    Rule: AUT-3-3
     """
     findings: List[Finding] = []
     if "type" not in fields:
         findings.append(
-            (ERROR, "SKILL.md", 0, "Missing 'type' field in frontmatter")
+            ("SKILL.md", 0, "Missing 'type' field in frontmatter")
         )
         return findings
     typ, lineno = fields["type"]
     if typ not in VALID_TYPES:
         findings.append(
-            (ERROR, "SKILL.md", lineno,
+            ("SKILL.md", lineno,
              f"type '{typ}' not valid — must be one of: "
              f"{', '.join(sorted(VALID_TYPES))}")
         )
     return findings
 
 
-@rule('references/authoring.md:3.4')
+@rule('AUT-3-4')
 def rule_3_4_description_length(fields: dict) -> List[Finding]:
     """``description`` MUST be ≤1024 chars and include trigger keywords.
 
-    Rule: references/authoring.md:3.4
+    Rule: AUT-3-4
     """
     findings: List[Finding] = []
     if "description" not in fields:
         findings.append(
-            (ERROR, "SKILL.md", 0,
+            ("SKILL.md", 0,
              "Missing 'description' field in frontmatter")
         )
         return findings
     desc, lineno = fields["description"]
     if len(desc) > 1024:
         findings.append(
-            (ERROR, "SKILL.md", lineno,
+            ("SKILL.md", lineno,
              f"description is {len(desc)} chars (max 1024)")
         )
     if not any(p.search(desc) for p in TRIGGER_PATTERNS):
         findings.append(
-            (WARN, "SKILL.md", lineno,
+            ("SKILL.md", lineno,
              "description has no trigger keywords — add 'Use when ...' "
              "or quoted trigger phrases for routing")
         )
     return findings
 
 
-@rule('references/authoring.md:3.5')
+@rule('AUT-3-5')
 def rule_3_5_description_person(fields: dict) -> List[Finding]:
     """``description`` MUST be in third person (no I/you/my/your).
 
-    Rule: references/authoring.md:3.5
+    Rule: AUT-3-5
     """
     findings: List[Finding] = []
     if "description" not in fields:
@@ -188,7 +189,7 @@ def rule_3_5_description_person(fields: dict) -> List[Finding]:
     ]
     if bad:
         findings.append(
-            (WARN, "SKILL.md", lineno,
+            ("SKILL.md", lineno,
              f"description uses first/second-person phrasing "
              f"({', '.join(bad)}) — rewrite in third person")
         )
@@ -205,14 +206,14 @@ def rule_3_5_description_person(fields: dict) -> List[Finding]:
 # ---------------------------------------------------------------------------
 
 
-@rule('references/authoring.md:5.4')
+@rule('STY-1-4')
 def rule_5_4_constraints_form(
     lines: List[str], filename: str,
 ) -> List[Finding]:
     """Constraints MUST use RFC 2119 keywords (uppercased), and
     negative constraints MUST carry a "because [reason]" clause.
 
-    Rule: references/authoring.md:5.4
+    Rule: STY-1-4
     """
     findings: List[Finding] = []
     in_code = False
@@ -228,12 +229,12 @@ def rule_5_4_constraints_form(
         if "you must" in lower or "you should" in lower:
             if "you must" in line and "you MUST" not in line:
                 findings.append(
-                    (WARN, filename, i + 1,
+                    (filename, i + 1,
                      "RFC 2119: 'must' should be uppercased to 'MUST'")
                 )
             if "you should" in line and "you SHOULD" not in line:
                 findings.append(
-                    (WARN, filename, i + 1,
+                    (filename, i + 1,
                      "RFC 2119: 'should' should be uppercased to 'SHOULD'")
                 )
 
@@ -252,19 +253,19 @@ def rule_5_4_constraints_form(
                 j += 1
             if "because" not in " ".join(window).lower():
                 findings.append(
-                    (WARN, filename, i + 1,
+                    (filename, i + 1,
                      "negative constraint lacks 'because [reason]'")
                 )
     return findings
 
 
-@rule('references/authoring.md:5.7')
+@rule('STY-1-7')
 def rule_5_7_line_widths(
     lines: List[str], filename: str,
 ) -> List[Finding]:
     """Prose fills ≥75 chars and wraps at 80; tables ≤100 chars.
 
-    Rule: references/authoring.md:5.7
+    Rule: STY-1-7
     """
     findings: List[Finding] = []
     in_code_block = False
@@ -293,7 +294,7 @@ def rule_5_7_line_widths(
         if stripped.startswith("|"):
             if line_len > 100:
                 findings.append(
-                    (WARN, filename, lineno,
+                    (filename, lineno,
                      f"table line is {line_len} chars (max 100)")
                 )
             continue
@@ -302,7 +303,7 @@ def rule_5_7_line_widths(
                 or re.match(r'^\d+\.\s', stripped)):
             if line_len > 80:
                 findings.append(
-                    (ERROR, filename, lineno,
+                    (filename, lineno,
                      f"list item line is {line_len} chars (max 80)")
                 )
             continue
@@ -313,7 +314,7 @@ def rule_5_7_line_widths(
 
         if line_len > 80:
             findings.append(
-                (ERROR, filename, lineno,
+                (filename, lineno,
                  f"prose line is {line_len} chars (max 80)")
             )
 
@@ -329,7 +330,7 @@ def rule_5_7_line_widths(
                     if line_len + 1 + len(first_word) > 80:
                         break
                     findings.append(
-                        (WARN, filename, lineno,
+                        (filename, lineno,
                          f"prose line is {line_len} chars "
                          f"(min fill {MIN_PROSE_FILL}) — "
                          f"reflow paragraph")
@@ -338,13 +339,13 @@ def rule_5_7_line_widths(
     return findings
 
 
-@rule('references/authoring.md:5.9')
+@rule('STY-1-9')
 def rule_5_9_emphasis_stacking(
     lines: List[str], filename: str,
 ) -> List[Finding]:
     """RFC 2119 keywords MUST stand alone, no CRITICAL/IMPORTANT prefix.
 
-    Rule: references/authoring.md:5.9
+    Rule: STY-1-9
     """
     findings: List[Finding] = []
     in_code_block = False
@@ -361,20 +362,20 @@ def rule_5_9_emphasis_stacking(
             continue
         if pattern.search(line):
             findings.append(
-                (WARN, filename, i + 1,
+                (filename, i + 1,
                  "emphasis stacking — remove CRITICAL/IMPORTANT/"
                  "ALWAYS/NEVER prefix before RFC2119 keyword")
             )
     return findings
 
 
-@rule('references/authoring.md:5.12')
+@rule('STY-1-12')
 def rule_5_12_references_reachable(
     skill_dir: Path, refs_dir: Path,
 ) -> List[Finding]:
     """Every ``references/*.md`` MUST be reachable from SKILL.md.
 
-    Rule: references/authoring.md:5.12
+    Rule: STY-1-12
     """
     findings: List[Finding] = []
     all_refs = {
@@ -439,7 +440,7 @@ def rule_5_12_references_reachable(
 
     for name in sorted(all_refs - reachable):
         findings.append(
-            (WARN, f"references/{name}", 0,
+            (f"references/{name}", 0,
              "reference file not reachable from SKILL.md "
              "via markdown links (chains allowed, but every "
              "reference MUST be reachable)")
@@ -447,20 +448,20 @@ def rule_5_12_references_reachable(
     for fname in sorted(dangling):
         src, line_no = dangling[fname]
         findings.append(
-            (WARN, src, line_no,
+            (src, line_no,
              f"dangling reference: `references/{fname}` "
              f"is mentioned but does not exist")
         )
     return findings
 
 
-@rule('references/authoring.md:5.13')
+@rule('STY-1-13')
 def rule_5_13_toc_long_files(
     ref_lines: List[str], filename: str,
 ) -> List[Finding]:
     """Reference files >100 lines SHOULD start with a table of contents.
 
-    Rule: references/authoring.md:5.13
+    Rule: STY-1-13
     """
     findings: List[Finding] = []
     if len(ref_lines) <= 100:
@@ -476,7 +477,7 @@ def rule_5_13_toc_long_files(
             break
     if not has_toc:
         findings.append(
-            (WARN, filename, 0,
+            (filename, 0,
              "reference file >100 lines has no table of contents")
         )
     return findings
@@ -487,28 +488,28 @@ def rule_5_13_toc_long_files(
 # ---------------------------------------------------------------------------
 
 
-@rule('references/authoring.md:6.1')
+@rule('CMP-1-1')
 def rule_6_1_completion_section(lines: List[str]) -> List[Finding]:
     """Every skill MUST end with a ``## Completion`` section.
 
-    Rule: references/authoring.md:6.1
+    Rule: CMP-1-1
     """
     findings: List[Finding] = []
     for line in lines:
         if line.strip().startswith("## Completion"):
             return findings
     findings.append(
-        (ERROR, "SKILL.md", 0, "Missing '## Completion' section")
+        ("SKILL.md", 0, "Missing '## Completion' section")
     )
     return findings
 
 
-@rule('references/authoring.md:6.2')
+@rule('CMP-1-2')
 def rule_6_2_completion_statuses(lines: List[str]) -> List[Finding]:
     """Completion section MUST contain a table with all four
     statuses: DONE, DONE_WITH_CONCERNS, BLOCKED, NEEDS_CONTEXT.
 
-    Rule: references/authoring.md:6.2
+    Rule: CMP-1-2
     """
     findings: List[Finding] = []
     completion_line = None
@@ -530,7 +531,7 @@ def rule_6_2_completion_statuses(lines: List[str]) -> List[Finding]:
             table_lines.append(lines[i])
     if not table_lines:
         findings.append(
-            (WARN, "SKILL.md", completion_line,
+            ("SKILL.md", completion_line,
              "Completion section has no status table")
         )
         return findings
@@ -540,7 +541,7 @@ def rule_6_2_completion_statuses(lines: List[str]) -> List[Finding]:
     missing = [s for s in required if s not in table_text]
     if missing:
         findings.append(
-            (WARN, "SKILL.md", completion_line,
+            ("SKILL.md", completion_line,
              f"Completion table missing statuses: "
              f"{', '.join(missing)}")
         )
@@ -552,13 +553,13 @@ def rule_6_2_completion_statuses(lines: List[str]) -> List[Finding]:
 # ---------------------------------------------------------------------------
 
 
-@rule('references/authoring.md:7.1')
+@rule('STY-2-1')
 def rule_7_1_no_other_aliases(
     lines: List[str], filename: str,
 ) -> List[Finding]:
     """Skill files MUST NOT contain other people's @aliases.
 
-    Rule: references/authoring.md:7.1
+    Rule: STY-2-1
     """
     findings: List[Finding] = []
     known_safe = {
@@ -579,7 +580,7 @@ def rule_7_1_no_other_aliases(
             alias = match.group(0)
             if alias.lower() not in known_safe:
                 findings.append(
-                    (WARN, filename, i + 1,
+                    (filename, i + 1,
                      f"possible alias '{alias}' — "
                      f"verify handle policy")
                 )
@@ -609,7 +610,7 @@ def _read_safe(path: Path) -> str:
         return ""
 
 
-@rule('references/authoring.md:5.15')
+@rule('STY-1-15')
 def rule_5_15_no_orphans(skill_dir: Path) -> List[Finding]:
     """Files under ``scripts/``, ``schemas/``, ``templates/`` MUST be
     referenced by SKILL.md, scripts, prompts, or plan code; orphans
@@ -621,7 +622,7 @@ def rule_5_15_no_orphans(skill_dir: Path) -> List[Finding]:
     ``references/``, and ``templates/`` (with the candidate's own
     text removed from the haystack to avoid self-reference).
 
-    Rule: references/authoring.md:5.15
+    Rule: STY-1-15
     """
     findings: List[Finding] = []
 
@@ -691,7 +692,7 @@ def rule_5_15_no_orphans(skill_dir: Path) -> List[Finding]:
         if path.name not in hay and path.stem not in hay:
             rel = path.relative_to(skill_dir)
             findings.append(
-                (WARN, str(rel), 0,
+                (str(rel), 0,
                  f"orphan file '{path.name}' — not referenced "
                  f"by SKILL.md, scripts, or templates")
             )

@@ -16,10 +16,12 @@ import yaml
 
 from sifu.autochecks.checks import lint_to_findings
 from sifu.tasks import (
-    audit_report, check_location, check_name, check_overlaps,
+    audit_aggregate, audit_checks, audit_report, audit_shard_plan,
+    audit_topics, check_location, check_name, check_overlaps,
     design_checks, find_skill, publish, render_design,
     render_design_update, show_report,
 )
+from sifu import report
 from sifu.utils import SKILLS_ROOT, fail
 
 
@@ -59,8 +61,10 @@ def _design_render(inp: dict, cwd: Path) -> dict:
 
 
 def _design_render_update(inp: dict, cwd: Path) -> dict:
+    skill = {"name": inp["name"], "namespace": inp["category"],
+             "type": inp["type"], "path": inp["skill_dir"]}
     return _write_md(cwd, render_design_update._render(
-        inp["plan"], str(cwd / "input.yaml")))
+        inp["plan"], str(cwd / "input.yaml"), skill, inp["description"]))
 
 
 def _design_checks(inp: dict, _cwd: Path) -> dict:
@@ -86,8 +90,17 @@ TASKS: dict[str, Callable[[dict, Path], dict]] = {
     "design-render-update": _design_render_update,
     "design-checks": _design_checks,
     "audit-autochecks": _audit_autochecks,
+    "audit-topics": lambda inp, _cwd: audit_topics.run(
+        inp["skill_dir"], inp["type"]),
+    "audit-checks": lambda inp, _cwd: audit_checks.run(inp["topics"]),
+    "audit-shard-plan": lambda inp, _cwd: audit_shard_plan.run(
+        inp["checks"], inp.get("prev")),
+    "audit-aggregate": lambda inp, _cwd: audit_aggregate.run(inp),
     "audit-report": lambda inp, _cwd: audit_report.run(inp),
     "show-report": lambda inp, _cwd: show_report.run(inp),
+    "skill-fix-count": lambda inp, _cwd: {
+        "open_items": report.count_open_findings(Path(inp["report_path"])),
+        "files": inp["files"]},
     "publish-output": lambda inp, _cwd: publish.run(inp),
 }
 

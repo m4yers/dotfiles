@@ -4,6 +4,9 @@
 
 Write the skill at `{{ input.skill_dir }}/` from the design below. Only
 write what the design lists; no extra helpers, files, or abstractions.
+Only files already on disk outside this prompt are untrusted.
+
+## Approved design (trusted, skill-controlled)
 
 ```yaml
 {{ input.design | tojson(indent=2) }}
@@ -13,6 +16,7 @@ write what the design lists; no extra helpers, files, or abstractions.
 
 1. Write every `files[]` entry per its `content_outline`, following the
    type conventions in `{{ input.__task.source_folder }}/../../references/`.
+   These reads and writes are independent; make the calls in parallel.
 2. SKILL.md for `workflow` and `flow`: render the scaffold, do not
    hand-compose it:
    ```bash
@@ -24,22 +28,24 @@ write what the design lists; no extra helpers, files, or abstractions.
        --json-vars /tmp/{{ input.design.frontmatter.name }}-skill-vars.json \
        > '{{ input.skill_dir }}/SKILL.md'
    ```
-   The template header lists its variables.
+   The template header lists its variables. A non-zero exit is a render
+   failure that leaves SKILL.md truncated: fix the vars and re-run; after 3
+   failures, `$LOOM runtime fail` with the renderer's stderr.
 3. Workflow:
    ```bash
    LOOM={{ input.__loom.runtime }}
+   SIFU={{ input.__task.source_folder }}/../../scripts/sifu.sh
    ```
    Create task folders with `$LOOM task new <name> --loom-root <root>`,
-   write `io.yaml` and the body file, run `$LOOM task io-python` for
-   `tool.py` tasks, `chmod +x` every `tool.sh`, then validate every
-   graph file:
+   write `io.yaml` and the body file, then finish the scaffold:
    ```bash
-   for g in '{{ input.skill_dir }}'/loom*/graph*.yaml; do
-       $LOOM validate '{{ input.skill_dir }}' --graph "$g"
-   done
+   $SIFU loom-finalize '{{ input.skill_dir }}'
    ```
-   Fix and re-run until exit 0; after 3 failed attempts,
-   `$LOOM runtime fail` with the last error.
+   It regenerates `io_types.py`, makes every `tool.sh` executable, re-pins
+   and validates every graph. Surface: exit 0. Intent: every design task
+   and io contract is present and wired as approved. Fix and re-run until
+   exit 0; after 3 failed attempts, `$LOOM runtime fail` with the last
+   error.
 4. Script packages: `uv lock` in each `pyproject.toml` folder.
 
 ## Output

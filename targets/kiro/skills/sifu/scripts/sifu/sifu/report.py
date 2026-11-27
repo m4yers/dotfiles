@@ -13,6 +13,7 @@ from typing import Optional
 
 import typer
 
+from sifu import rules
 from sifu.utils import emit, fail
 
 
@@ -21,7 +22,8 @@ from sifu.utils import emit, fail
 # ---------------------------------------------------------------------------
 
 SECTIONS = ["Errors", "Warnings", "Info"]
-SECTION_FOR_SEVERITY = {
+# Band (rules.band) -> report section.
+SECTION_FOR_BAND = {
     "Error":   "Errors",
     "Warning": "Warnings",
     "Info":    "Info",
@@ -47,6 +49,12 @@ None.
 """
 
 FINDING_RE = re.compile(r"^(\d+)\. \*\*", re.MULTILINE)
+# Lines under a finding head that format_report keeps verbatim: the
+# site line (file: `path:line`, optionally ", also: ...") and the badge line
+# (code: `CODE-s-r`, severity: `N`, confidence: `M`).
+SITE_RE = re.compile(r"^   file: `[^`]+`(, also: .*)?$")
+BADGE_RE = re.compile(
+    r"^   code: `[A-Z]{3}-\d+-\d+`, severity: `\d+`, confidence: `\d+`$")
 FINDING_BLOCK_RE = re.compile(
     r"^(\d+)\. (\*\*.*?)(?=\n\d+\. \*\*|\n## |\Z)",
     re.MULTILINE | re.DOTALL,
@@ -138,23 +146,23 @@ def _codeify_underscore_words(text: str) -> str:
 
 
 def add_finding(
-    path: Path, severity: str, title: str, location: str,
-    description: str, fix: str,
-    rule_ref: str = "",
+    path: Path, severity: int, title: str, location: str,
+    description: str, fix: str, check_id: str, confidence: int,
+    also_at: list[str] | None = None,
 ) -> int:
-    """Append a finding to the section matching `severity`.
+    """Append a finding to the section of its severity band.
 
-    ``rule_ref`` (when provided) is appended after the description
-    as ``(`<path:rule-number>`)`` — a stable link to the rule
-    source in the references markdown.
+    Layout: title head, site line (with ``also_at`` sites), badge line
+    with rule code, severity and confidence, then the description and a
+    ``**Fix:**`` blockquote, separated by blank lines.
 
     Returns the finding's sequential number after renumbering.
-    Raises ValueError if the severity is unknown or the section
-    is missing.
+    Raises ValueError if the severity is below the Info band or the
+    section is missing.
     """
-    section = SECTION_FOR_SEVERITY.get(severity)
+    section = SECTION_FOR_BAND.get(rules.band(severity))
     if section is None:
-        raise ValueError(f"unknown severity: {severity}")
+        raise ValueError(f"severity {severity} is below the review bands")
 
     text = path.read_text(encoding="utf-8")
     rng = _section_range(text, section)
@@ -168,18 +176,20 @@ def add_finding(
     description = _codeify_underscore_words(description)
     fix = _codeify_underscore_words(fix)
 
+    head = f"0. **{title}**\n"
+    lines = [head]
     if location:
-        head = f"0. **{title}** — `{location}`\n"
-    else:
-        head = f"0. **{title}**\n"
-    desc_line = description
-    if rule_ref:
-        desc_line = f"{description} (`{rule_ref}`)"
-    entry = (
-        head
-        + f"   {desc_line}\n"
-        + f"   > {fix}\n"
-    )
+        site = f"   file: `{location}`"
+        if also_at:
+            site += ", also: " + ", ".join(f"`{a}`" for a in also_at)
+        lines.append(site + "\n")
+    lines.append(f"   code: `{check_id}`, severity: `{severity}`, "
+                 f"confidence: `{confidence}`\n")
+    lines.append("\n")
+    lines.append(f"   {description}\n")
+    lines.append("\n")
+    lines.append(f"   > **Fix:** {fix}\n")
+    entry = "".join(lines)
 
     if re.match(r"\nNone\.\n", content):
         content = "\n" + entry + "\n"
@@ -212,7 +222,8 @@ def format_report(path: Path) -> None:
             i += 1
             continue
 
-        if FINDING_RE.match(stripped):
+        if (FINDING_RE.match(stripped) or BADGE_RE.match(stripped)
+                or SITE_RE.match(stripped)):
             out.append(line)
             i += 1
             continue
@@ -365,6 +376,10 @@ def cli_accept(
     """`sifu.sh report accept <report.md> <id> --file <path>...` — mark
     finding fixed and record the changed files on its first line."""
     path = _resolve_report_path(report_path)
+    missing = [f for f in file or [] if not Path(f).is_file()]
+    if missing:
+        fail("recorded fix files do not exist", files=missing,
+             report_path=report_path, finding_id=finding_id)
     try:
         result = _mark(path, finding_id, "accept", reason=None, files=file)
     except LookupError as e:

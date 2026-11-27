@@ -19,7 +19,8 @@ and the dependency lifecycle.
 
 Pipeline:
 
-1. Receive the change plan from ``input.yaml`` (``plan``).
+1. Receive the change plan (``plan``) plus the skill identity and
+   change request from ``input.yaml``.
 2. Group ``change_plan.files[]`` by ``action`` into
    ``files_created`` / ``files_modified`` / ``files_deleted``
    so the template stays declarative.
@@ -82,11 +83,12 @@ def _group_files(files: list[dict]) -> tuple[list, list, list]:
     return created, modified, deleted
 
 
-def _render(payload: dict, canonical_yaml_path: str) -> str:
+def _render(payload: dict, canonical_yaml_path: str, skill: dict,
+            change_request: str) -> str:
     """Render the change-plan YAML via the shared template
-    skill. Writes the template variables to a temp JSON file
-    and shells out to ``render.sh``; captures stdout."""
-    skill = payload.get("skill") or {}
+    skill. ``skill`` and ``change_request`` come from the graph
+    (find-skill, gather-update). Writes the template variables to a
+    temp JSON file and shells out to ``render.sh``; captures stdout."""
     change_plan = payload.get("change_plan") or {}
     files = change_plan.get("files") or []
     created, modified, deleted = _group_files(files)
@@ -98,8 +100,7 @@ def _render(payload: dict, canonical_yaml_path: str) -> str:
             "type":      (skill.get("type") or "").strip(),
             "path":      (skill.get("path") or "").strip(),
         },
-        "change_request":
-            (payload.get("change_request") or "").strip(),
+        "change_request": change_request.strip(),
         "files_created":  created,
         "files_modified": modified,
         "files_deleted":  deleted,

@@ -1,25 +1,31 @@
-"""Deduplicate findings on (file_line, title) match.
+"""Merge findings that cite the same rule at the same file.
 
-Replaces the old deduplicate-findings.py script. Same input/
-output shape as before, but called as a Python function from
-audit_report.run rather than a CLI subprocess.
+The primary is the first-seen finding; the other sites go into
+``also_at`` and the merged confidence is the maximum. Order is
+preserved across the input.
 """
 from __future__ import annotations
 
 from typing import Iterable
 
 
-def deduplicate(findings: Iterable[dict]) -> list[dict]:
-    """Return findings with exact (file_line, title) duplicates removed.
+def _file(file_line: str) -> str:
+    return file_line.rsplit(":", 1)[0] if ":" in file_line else file_line
 
-    First-seen wins. Order is preserved across the input.
-    """
-    seen: set[tuple[str, str]] = set()
+
+def merge(findings: Iterable[dict]) -> list[dict]:
+    groups: dict[tuple[str, str], dict] = {}
     out: list[dict] = []
     for f in findings:
-        key = (f.get("file_line", ""), f.get("title", ""))
-        if key in seen:
+        key = (f.get("check_id", ""), _file(f.get("file_line", "")))
+        primary = groups.get(key)
+        if primary is None:
+            primary = {**f, "also_at": list(f.get("also_at") or [])}
+            groups[key] = primary
+            out.append(primary)
             continue
-        seen.add(key)
-        out.append(f)
+        site = f.get("file_line", "")
+        if site and site != primary["file_line"] and site not in primary["also_at"]:
+            primary["also_at"].append(site)
+        primary["confidence"] = max(primary["confidence"], f["confidence"])
     return out

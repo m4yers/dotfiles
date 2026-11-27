@@ -9,11 +9,11 @@ from pathlib import Path
 import yaml
 from typing import List, Tuple
 
-from sifu.autochecks._helpers import ERROR, Finding, WARN, rule
+from sifu.autochecks._helpers import Finding, rule
 from sifu.utils import SKILLS_ROOT
 
 
-@rule('references/workflow-conventions.md:2.2')
+@rule('WFL-2-2')
 def rule_2_2_activity_pattern(
     lines: List[str],
     headings: List[Tuple[int, int, str]],
@@ -23,7 +23,7 @@ def rule_2_2_activity_pattern(
     The template enforces the pattern; this rule lints hand-edited
     SKILL.md files for conformance.
 
-    Rule: references/workflow-conventions.md:2.2
+    Rule: WFL-2-2
     """
     findings: List[Finding] = []
     step_headings = [
@@ -49,27 +49,27 @@ def rule_2_2_activity_pattern(
                 break
         if not found_activity:
             findings.append(
-                (ERROR, "SKILL.md", ph_lineno,
+                ("SKILL.md", ph_lineno,
                  f"step '{ph_text}' does not start with "
                  f"tiling activity set")
             )
         elif not has_target:
             findings.append(
-                (ERROR, "SKILL.md", ph_lineno,
+                ("SKILL.md", ph_lineno,
                  f"step '{ph_text}' activity label missing "
                  f"target — use \"skill(<target>): Step\"")
             )
     return findings
 
 
-@rule('references/workflow-conventions.md:8.2')
+@rule('WFL-8-2')
 def rule_8_2_max_substeps(
     lines: List[str],
     headings: List[Tuple[int, int, str]],
 ) -> List[Finding]:
     """Each step MUST have at most 5 numbered sub-steps.
 
-    Rule: references/workflow-conventions.md:8.2
+    Rule: WFL-8-2
     """
     findings: List[Finding] = []
     step_headings = [
@@ -96,7 +96,7 @@ def rule_8_2_max_substeps(
                 substep_count += 1
         if substep_count > 5:
             findings.append(
-                (ERROR, "SKILL.md", ph_lineno,
+                ("SKILL.md", ph_lineno,
                  f"step '{ph_text}' has {substep_count} "
                  f"sub-steps (max 5)")
             )
@@ -140,34 +140,34 @@ def _is_legacy_loom(skill_dir: Path) -> bool:
     return False
 
 
-@rule('references/workflow-conventions.md:3.1')
+@rule('WFL-3-1')
 def rule_3_1_loomv2_driver(skill_dir: Path) -> List[Finding]:
     """Workflow skills MUST be driven by a loomv2 graph; legacy
     loom skills SHOULD migrate.
 
-    Rule: references/workflow-conventions.md:3.1
+    Rule: WFL-3-1
     """
     if _graph_files(skill_dir):
         return []
     if _is_legacy_loom(skill_dir):
-        return [(WARN, "SKILL.md", 0,
+        return [("SKILL.md", 0,
                  "workflow driven by legacy loom — migrate to a "
                  "loomv2 `loom/graph.yaml`")]
-    return [(ERROR, "SKILL.md", 0,
+    return [("SKILL.md", 0,
              "workflow skill has no loomv2 graph (`loom*/graph*.yaml`)"
              " — use `type: flow` for prose-step workflows")]
 
 
-@rule('references/workflow-conventions.md:3.4')
+@rule('WFL-3-4')
 def rule_3_4_graphs_validate(skill_dir: Path) -> List[Finding]:
     """Every graph file MUST pass `$LOOM validate`.
 
-    Rule: references/workflow-conventions.md:3.4
+    Rule: WFL-3-4
     """
     findings: List[Finding] = []
     graphs = _graph_files(skill_dir)
     if graphs and not LOOM_SH.is_file():
-        return [(WARN, "SKILL.md", 0,
+        return [("SKILL.md", 0,
                  f"loomv2 CLI not found at {LOOM_SH} — graphs not validated")]
     for graph in graphs:
         rel = str(graph.relative_to(skill_dir))
@@ -179,22 +179,22 @@ def rule_3_4_graphs_validate(skill_dir: Path) -> List[Finding]:
                 timeout=_VALIDATE_TIMEOUT,
             )
         except subprocess.TimeoutExpired:
-            findings.append((ERROR, rel, 0, "`loom validate` timed out"))
+            findings.append((rel, 0, "`loom validate` timed out"))
             continue
         if proc.returncode != 0:
             tail = (proc.stderr or proc.stdout).strip().splitlines()
             msg = tail[-1] if tail else "non-zero exit"
-            findings.append((ERROR, rel, 0, f"`loom validate` failed: {msg}"))
+            findings.append((rel, 0, f"`loom validate` failed: {msg}"))
     return findings
 
 
-@rule('references/workflow-conventions.md:4.1')
+@rule('WFL-4-1')
 def rule_4_1_task_folder_alignment(skill_dir: Path) -> List[Finding]:
     """Every task folder MUST back a graph entry (id or `ref`),
     carry `io.yaml`, and carry exactly the body file its kind
     needs; task ids MUST be domain-prefixed kebab.
 
-    Rule: references/workflow-conventions.md:4.1
+    Rule: WFL-4-1
     """
     findings: List[Finding] = []
     roots: dict = {}
@@ -202,7 +202,7 @@ def rule_4_1_task_folder_alignment(skill_dir: Path) -> List[Finding]:
         try:
             data = yaml.safe_load(graph.read_text(encoding="utf-8")) or {}
         except yaml.YAMLError as exc:
-            findings.append((ERROR, str(graph.relative_to(skill_dir)), 0,
+            findings.append((str(graph.relative_to(skill_dir)), 0,
                              f"graph is not valid YAML: {exc}"))
             continue
         used = roots.setdefault(graph.parent, set())
@@ -213,7 +213,7 @@ def rule_4_1_task_folder_alignment(skill_dir: Path) -> List[Finding]:
                 continue
             if tid not in ("ingest-input", "publish-output") and \
                     not TASK_ID.match(tid):
-                findings.append((WARN, str(graph.relative_to(skill_dir)), 0,
+                findings.append((str(graph.relative_to(skill_dir)), 0,
                                  f"task id '{tid}' is not domain-prefixed "
                                  f"kebab"))
             used.add(entry.get("ref") or tid)
@@ -223,29 +223,29 @@ def rule_4_1_task_folder_alignment(skill_dir: Path) -> List[Finding]:
                 continue
             rel = str(folder.relative_to(skill_dir))
             if folder.name not in used:
-                findings.append((WARN, rel, 0,
+                findings.append((rel, 0,
                                  f"task folder '{folder.name}' is not "
                                  f"used by any graph"))
             if not (folder / "io.yaml").is_file():
-                findings.append((ERROR, rel, 0,
+                findings.append((rel, 0,
                                  "task folder has no io.yaml"))
             bodies = [b for names in _BODY_FILES.values() for b in names
                       if (folder / b).is_file()]
             if len(bodies) != 1:
-                findings.append((ERROR, rel, 0,
+                findings.append((rel, 0,
                                  f"task folder must hold exactly one body "
                                  f"file, found {bodies or 'none'}"))
     return findings
 
 
-@rule('references/workflow-conventions.md:8.1')
+@rule('WFL-8-1')
 def rule_8_1_descriptive_step_name(
     headings: List[Tuple[int, int, str]],
 ) -> List[Finding]:
     """Each step MUST have a descriptive name after the number
     (e.g., "Step 1: Setup & Checkout"), not just "Step 1".
 
-    Rule: references/workflow-conventions.md:8.1
+    Rule: WFL-8-1
     """
     findings: List[Finding] = []
     step_re = re.compile(r"^(?:Step\s+)?(\d+)(?::\s*(.+))?\s*$")
@@ -258,7 +258,7 @@ def rule_8_1_descriptive_step_name(
         name = (m.group(2) or "").strip()
         if not name:
             findings.append(
-                (ERROR, "SKILL.md", ph_lineno,
+                ("SKILL.md", ph_lineno,
                  f"step heading '{text}' has no descriptive name "
                  f"after the number")
             )

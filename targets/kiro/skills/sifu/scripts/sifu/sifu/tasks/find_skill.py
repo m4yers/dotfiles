@@ -5,7 +5,7 @@
 - `_resolve_named(name)` returns one landscape entry plus
   `skill_dir` (== path) and `category` (first namespace component).
   Fails if the name is not found or ambiguous.
-- `run(name)` returns `{skill_dir, name, category, type}`, the
+- `run(name)` returns `{skill_dir, name, category, type, description}`, the
   `loom/find-skill/io.yaml` output.
 
 Note: ~/.kiro/skills is a directory of symlinks (each
@@ -94,8 +94,21 @@ def _resolve_named(name: str) -> dict:
     return match
 
 
+def _extract_description(skill_md: Path) -> str:
+    """Read `description:` from SKILL.md frontmatter; '' if missing."""
+    if not skill_md.is_file():
+        return ""
+    fields, _ = parse_frontmatter(
+        skill_md.read_text(encoding="utf-8").splitlines())
+    return fields["description"][0] if "description" in fields else ""
+
+
 def run(name: str) -> dict:
-    """Resolve `name`; return `{skill_dir, name, category, type}`."""
+    """Resolve `name`; return `{skill_dir, name, category, type,
+    description}`. Read at call time, so a second instance after an
+    edit sees the edited frontmatter."""
     match = _resolve_named(name)
     return {"skill_dir": match["skill_dir"], "name": match["name"],
-            "category": match["category"], "type": match["type"]}
+            "category": match["category"], "type": match["type"],
+            "description": _extract_description(
+                Path(match["skill_dir"]) / "SKILL.md")}

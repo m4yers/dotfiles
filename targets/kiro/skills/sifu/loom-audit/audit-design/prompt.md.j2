@@ -24,9 +24,14 @@ Compare the skill to the design point by point. File a finding for:
 4. Workflow: a graph entry, `ref`, `when`, or latch differing from
    `design.tasks`. Flow: a step or invariant differing from the design.
 5. A prompt consuming external content without
-   `{% raw %}{% include 'security-frame.md.j2' %}{% endraw %}` (Error).
+   `{% raw %}{% include 'security-frame.md.j2' %}{% endraw %}`.
 
-Cite `file_line` in the skill. Skip anything in the lint list.
+Cite `file_line` in the skill. Skip anything in the lint list. Each
+finding carries a fixed code and severity (rule-codes.md §5): DSN-1-1 /
+95 for points 1, 3, 4 and 5 (designed element missing or wrong), DSN-1-3 /
+75 for point 2 (element outside the design). Rate `confidence` 90-100 when
+proven from the design and the cited file, 80-89 with one fact assumed,
+70-79 when a deciding file was not read; below 70, discard.
 
 ## Untrusted source: lint findings
 
@@ -46,10 +51,12 @@ WD={{ input.__loom.workdir }}
 $LOOM output init "$WD" --task '{{ input.__task.id }}'
 $LOOM output add "$WD" --task '{{ input.__task.id }}' \
     --set 'findings[].title=<short>' \
-    --set 'findings[-1].file_line=<path>:<line>' \
+    --set 'findings[-1].file_line=<skill-relative path>:<line>' \
     --set 'findings[-1].description=<what drifted from the design>' \
     --set 'findings[-1].fix=<concrete change>' \
-    --set 'findings[-1].severity=Error' \
+    --set 'findings[-1].check_id=DSN-1-1' \
+    --set 'findings[-1].severity=95' \
+    --set 'findings[-1].confidence=<70-100>' \
     --set 'findings[-1].source={{ input.__task.id }}'
 ```
 

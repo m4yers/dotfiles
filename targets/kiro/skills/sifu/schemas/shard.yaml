@@ -1,0 +1,15 @@
+# Up to 3 checks from one reference file for one audit-shard agent.
+# Emitted as shard_01..shard_16 by audit-shard-plan.
+type: object
+additionalProperties: false
+required: [populated, file, checks]
+properties:
+  populated: {type: boolean}
+  file:
+    type: string
+    description: Reference the checks come from; "" for an empty slot.
+  checks:
+    type: array
+    maxItems: 3
+    items:
+      $ref: check.yaml
