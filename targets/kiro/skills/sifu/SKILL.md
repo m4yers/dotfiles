@@ -1,7 +1,7 @@
 ---
 name: sifu
 type: workflow
-description: Creates, updates, or reviews Kiro skills via a loomv2 graph; loomv2 successor to dojo. New workflow skills default to loomv2, with a `flow` type for adaptable prose-step workflows. Use when user says "sifu", "sifu create", "sifu update", "sifu review". Do NOT use for legacy loom skill authoring unless asked — use dojo instead.
+description: Creates, updates, or reviews Kiro skills via a loomv2 graph; loomv2 successor to dojo. New workflow skills default to loomv2, with a `flow` type for adaptable prose-step workflows. Use when user says "sifu", "sifu create", "sifu update", "sifu review". Do NOT use for legacy loom skill authoring unless asked — use dojo instead. Do NOT use for applying queued session learnings from ~/.kiro/retro/pending/ — use retro instead.
 ---
 
 # Sifu

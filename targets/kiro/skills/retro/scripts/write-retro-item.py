@@ -8,13 +8,24 @@ Usage:
 
 Arguments:
   --dir        Directory to write the JSON file into
-  --area       skill|steering|vault|prompt
+  --area       skill|steering|prompt
   --action     new|update
   --severity   high|medium|low
   --title      Short description
   --detail     What happened and what should change
   --evidence   Relevant conversation context
   --target     Optional short name for the target
+
+Output:
+  Writes DIR/<YYYYmmdd-HHMMSS-ffffff>.json, a JSON object with these keys:
+    area      str       skill|steering|prompt
+    action    str       new|update
+    severity  str       high|medium|low
+    target    str|null  value of --target, null when omitted
+    title     str       value of --title
+    detail    str       value of --detail
+    evidence  str       value of --evidence
+  Prints the written file path on stdout.
 """
 import argparse
 import json
@@ -22,13 +33,15 @@ import os
 import sys
 from datetime import datetime
 
-AREAS = {"skill", "steering", "vault", "prompt"}
+AREAS = {"skill", "steering", "prompt"}
 ACTIONS = {"new", "update"}
 SEVERITIES = {"high", "medium", "low"}
 
 
 def main():
-    p = argparse.ArgumentParser(description="Write a retro JSON item.")
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     p.add_argument("--dir", required=True, help="Target directory")
     p.add_argument("--area", required=True, choices=sorted(AREAS))
     p.add_argument("--action", required=True, choices=sorted(ACTIONS))

@@ -1,7 +1,7 @@
 ---
 name: dojo
 type: workflow
-description: Creates, updates, or reviews skills for the Kiro CLI setup. Use when user says "create skill", "new skill", "improve skill", "update skill", "review skill", "audit skill", or wants to build, modify, or audit a skill.
+description: Creates, updates, or reviews skills for the Kiro CLI setup. Use when user says "create skill", "new skill", "improve skill", "update skill", "review skill", "audit skill", or wants to build, modify, or audit a skill. Do NOT use for applying queued session learnings from ~/.kiro/retro/pending/ — use retro instead.
 ---
 
 # Dojo
