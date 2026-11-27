@@ -7,6 +7,7 @@ downloaded as-is with a basename derived from the URL.
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from urllib.parse import urlparse
@@ -51,17 +52,26 @@ def handle_pdf(url: str, wd: Path) -> dict:
     dest_abs = abs_path(dest_rel)
     dest_abs.parent.mkdir(parents=True, exist_ok=True)
 
-    with httpx.stream(
-        "GET",
-        pdf_url,
-        follow_redirects=True,
-        timeout=HTTP_TIMEOUT_PDF,
-        headers={"User-Agent": "vault/0.1"},
-    ) as r:
-        r.raise_for_status()
-        with open(dest_abs, "wb") as f:
-            for chunk in r.iter_bytes():
-                f.write(chunk)
+    # Stream into a temp sibling and rename on success so an
+    # interrupted download never leaves a partial PDF that a later
+    # fetch would reuse as valid.
+    tmp_abs = dest_abs.with_name(dest_abs.name + ".part")
+    try:
+        with httpx.stream(
+            "GET",
+            pdf_url,
+            follow_redirects=True,
+            timeout=HTTP_TIMEOUT_PDF,
+            headers={"User-Agent": "vault/0.1"},
+        ) as r:
+            r.raise_for_status()
+            with open(tmp_abs, "wb") as f:
+                for chunk in r.iter_bytes():
+                    f.write(chunk)
+        os.replace(tmp_abs, dest_abs)
+    except BaseException:
+        tmp_abs.unlink(missing_ok=True)
+        raise
 
     # Record meta.
     meta = {"origin_url": url, "resolved_pdf_url": pdf_url,

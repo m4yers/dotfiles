@@ -3,12 +3,11 @@ parse/serialize, scope checks.
 
 The only functional difference from a plain filesystem write is:
 
-- The zettel-dir exception is NOT gated by this shim; the
-  orchestrator MUST verify the user named a zettel before
-  calling ``save`` on a zettel path (see SKILL.md Constraints and
-  ``references/vault-rules.md``). The scope check here only blocks
-  source binaries and ``*.assets/`` subtrees.
-- ``list_md`` kept identical.
+- The zettel dir is blocked unless the caller passes
+  ``allow_zettel=True`` (``vault write --zettel``), which the
+  orchestrator does only when the user named a zettel. Source
+  binaries and ``*.assets/`` subtrees are always blocked.
+- ``list_md`` raises on an unknown folder instead of returning ``[]``.
 - New helper ``read`` returns ``{frontmatter, body}`` for
   ``notes.read``.
 """
@@ -33,7 +32,7 @@ from vault.config import (
 def abs_path(vault_path: str) -> Path:
     """Resolve a vault-relative path to absolute. Raises on escape."""
     p = (VAULT_ROOT / vault_path).resolve()
-    if not str(p).startswith(str(VAULT_ROOT)):
+    if not p.is_relative_to(VAULT_ROOT):
         raise ValueError(f"path escapes vault: {vault_path}")
     return p
 
@@ -44,37 +43,42 @@ def rel_path(abs_p: Path) -> str:
     return str(abs_p.relative_to(VAULT_ROOT))
 
 
-def _is_writable(vault_path: str) -> bool:
+def _is_writable(vault_path: str, allow_zettel: bool = False) -> bool:
     """True if the agent is allowed to write this path. Private —
     callers go through ``require_writable``.
 
-    The zettel folder is NOT blocked here; the gate is procedural
-    (the orchestrator verifies the user named a zettel in
-    the request before invoking ``save``). This shim only blocks
-    source binaries and ``*.assets/`` subtrees, which are
-    immutable regardless of caller.
+    Checks run on the normalised vault-relative path
+    (``rel_path(abs_path(vault_path))``) so ``..`` segments cannot
+    sidestep the prefix rules, and suffixes compare case-
+    insensitively. The zettel folder is writable only with
+    ``allow_zettel=True`` (``vault write --zettel``, passed when the
+    user named a zettel in the request). Source binaries and
+    ``*.assets/`` subtrees are immutable regardless of caller.
     """
+    norm = rel_path(abs_path(vault_path))
+    lower = norm.lower()
+
     # Source binaries are immutable even under writable source folders.
-    if any(vault_path.endswith(suf) for suf in BINARY_SUFFIXES):
+    if lower.endswith(tuple(s.lower() for s in BINARY_SUFFIXES)):
         return False
 
     # ``*.assets/`` folders (sibling to a source note) are immutable;
     # the agent never edits them directly. Detect by looking for a
-    # ``.assets/`` segment in the path.
-    if ".assets/" in vault_path or vault_path.endswith(".assets"):
+    # ``.assets`` segment in the path.
+    if ".assets/" in lower or lower.endswith(".assets"):
         return False
 
-    # Zettels are writable via the procedural gate.
-    if vault_path.startswith(ZETTEL_DIR + "/") or vault_path == ZETTEL_DIR:
-        return True
+    # Zettels are writable only behind the explicit --zettel flag.
+    if norm.startswith(ZETTEL_DIR + "/") or norm == ZETTEL_DIR:
+        return allow_zettel
 
-    return any(vault_path.startswith(pre + "/") or vault_path == pre
+    return any(norm.startswith(pre + "/") or norm == pre
                  for pre in WRITABLE_PREFIXES)
 
 
-def require_writable(vault_path: str):
+def require_writable(vault_path: str, allow_zettel: bool = False):
     """Raise ``PermissionError`` if the agent may not write here."""
-    if not _is_writable(vault_path):
+    if not _is_writable(vault_path, allow_zettel=allow_zettel):
         raise PermissionError(
             f"path not writable by vault: {vault_path}")
 
@@ -132,9 +136,10 @@ def serialize(frontmatter: dict, body: str) -> str:
 # ── page-level CRUD ─────────────────────────────────────
 
 
-def save(vault_path: str, frontmatter: dict, body: str):
+def save(vault_path: str, frontmatter: dict, body: str,
+         allow_zettel: bool = False):
     """Write a page to disk. Enforces write policy."""
-    require_writable(vault_path)
+    require_writable(vault_path, allow_zettel=allow_zettel)
     p = abs_path(vault_path)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(serialize(frontmatter, body), encoding="utf-8")
@@ -153,10 +158,11 @@ def read(vault_path: str) -> tuple[dict, str]:
 
 def list_md(folder: str) -> list[Path]:
     """List all .md files directly under a vault folder (not
-    recursive)."""
+    recursive). Raises ``ValueError`` when the folder does not
+    exist, so a typo is not mistaken for an empty folder."""
     d = abs_path(folder)
     if not d.is_dir():
-        return []
+        raise ValueError(f"unknown vault folder: {folder}")
     return sorted(d.glob("*.md"))
 
 

@@ -11,6 +11,7 @@ import hashlib
 import json
 import mimetypes
 import re
+import sys
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
@@ -109,12 +110,23 @@ def handle_html(url: str, wd: Path) -> dict:
         {"origin_url": url, "final_url": final_url,
          "images": image_log}, indent=2))
 
+    failed_urls = list(dict.fromkeys(
+        e["url"] for e in image_log if e["status"] == "failed"))
+    if failed_urls:
+        print(f"warning: {len(failed_urls)} image download(s) failed "
+              f"for {final_url}: {', '.join(failed_urls)}",
+              file=sys.stderr)
+
     return {
         "path":         dest_rel,
         "type":         "article",
         "content_type": "article",
         "basename":     basename,
         "http_headers": http_headers,
+        "image_failures": {
+            "count": len(failed_urls),
+            "urls":  failed_urls,
+        },
     }
 
 

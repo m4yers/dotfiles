@@ -11,7 +11,9 @@ input:
       - review
     name:
       type: string
-      pattern: ^[a-z][a-z0-9-]*$
+      description: Kebab-case skill name, optionally prefixed with its
+        namespace (`home/vault`) to disambiguate installed skills.
+      pattern: ^([a-z][a-z0-9-]*/)*[a-z][a-z0-9-]*$
   required:
   - op
   - name

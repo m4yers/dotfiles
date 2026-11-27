@@ -4,6 +4,7 @@
   namespace, path, type}]}` for every installed skill.
 - `_resolve_named(name)` returns one landscape entry plus
   `skill_dir` (== path) and `category` (first namespace component).
+  `name` may be namespace-qualified (`home/vault`) to disambiguate.
   Fails if the name is not found or ambiguous.
 - `run(name)` returns `{skill_dir, name, category, type, description}`, the
   `loom/find-skill/io.yaml` output.
@@ -72,9 +73,15 @@ def _scan_landscape() -> dict:
 
 
 def _resolve_named(name: str) -> dict:
-    """Resolve a single skill by name; cascade-fail if 0/>1."""
+    """Resolve a single skill by name; cascade-fail if 0/>1.
+
+    `name` may carry a namespace prefix (`home/vault`, `util/vault`)
+    that must match the tail of the skill's namespace."""
     landscape = _scan_landscape()
-    matches = [s for s in landscape["skills"] if s["name"] == name]
+    prefix, _, base = name.rpartition("/")
+    matches = [s for s in landscape["skills"] if s["name"] == base
+               and (not prefix or s["namespace"] == prefix
+                    or s["namespace"].endswith("/" + prefix))]
     if not matches:
         fail(f"skill '{name}' not found", name=name)
     if len(matches) > 1:
@@ -82,7 +89,8 @@ def _resolve_named(name: str) -> dict:
             f"  {m['namespace']}/{m['name']} → {m['path']}"
             for m in matches
         )
-        fail(f"skill '{name}' is ambiguous:\n{listing}",
+        fail(f"skill '{name}' is ambiguous, qualify it with its "
+             f"namespace:\n{listing}",
              name=name, candidates=len(matches))
     match = dict(matches[0])
     # Canonical locate-shape fields consumed by the audit core

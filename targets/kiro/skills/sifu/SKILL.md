@@ -25,7 +25,8 @@ work), `reference`, and `flow` (prose steps that adapt).
 
 - **operation** (required): `create`, `update`, or `review`.
 - **name** (required): kebab-case skill name; for `update` and `review`
-  an installed skill.
+  an installed skill, namespace-qualified (`home/vault`) when the bare
+  name matches more than one installed skill.
 
 ## Rules
 

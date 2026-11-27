@@ -3,7 +3,7 @@ list / search``.
 
 The ``write`` path is the user-facing one: dry-run returns the
 diff the orchestrator shows at the preview gate; a live call runs
-``pages.save`` and emits a baseline-vs-current frontmatter diff so
+``pages.save`` and emits a written-vs-on-disk frontmatter diff so
 Obsidian rewrites (leading-zero loss, quoting shifts) surface at
 the write moment.
 """
@@ -60,29 +60,27 @@ def _unified_diff(a: str, b: str, path: str) -> str:
 
 
 def write(vault_path: str, frontmatter: dict, body: str,
-           dry_run: bool = False) -> dict:
+           dry_run: bool = False, allow_zettel: bool = False) -> dict:
     """Create or modify a page.
 
     ``dry_run=True`` returns the diff without touching disk — the
     preview the orchestrator shows the user.
 
-    On a live write of an existing page, the returned envelope
-    includes a ``fm_diff`` block captured by ``diff_fm`` against the
-    pre-write frontmatter so Obsidian rewrites surface immediately.
+    On a live write, the returned envelope includes a ``fm_diff``
+    block captured by ``diff_fm`` against the frontmatter just
+    written, so ``changed: true`` means the on-disk frontmatter
+    differs from what was written (an unintended rewrite).
 
-    The zettel exception (``20 ZETTELKASTEN/``) is enforced
-    procedurally by the orchestrator, not by this shim.
+    ``20 ZETTELKASTEN/`` is writable only with ``allow_zettel=True``.
     """
-    require_writable(vault_path)
+    require_writable(vault_path, allow_zettel=allow_zettel)
 
     p = abs_path(vault_path)
     exists = p.exists()
 
     before_text = ""
-    before_fm: dict = {}
     if exists:
         before_text = p.read_text(encoding="utf-8")
-        before_fm, _ = parse(before_text)
 
     after_text = serialize(frontmatter, body)
     diff = _unified_diff(before_text, after_text, vault_path)
@@ -97,24 +95,35 @@ def write(vault_path: str, frontmatter: dict, body: str,
             "diff":    diff,
         }
 
-    save(vault_path, frontmatter, body)
+    save(vault_path, frontmatter, body, allow_zettel=allow_zettel)
 
-    envelope: dict = {
+    return {
         "op":      op,
         "path":    vault_path,
         "dry_run": False,
         "diff":    diff,
+        "fm_diff": diff_fm(vault_path, baseline=frontmatter),
     }
-    if exists:
-        envelope["fm_diff"] = diff_fm(vault_path, baseline=before_fm)
-    return envelope
 
 
 # ── list ────────────────────────────────────────────────
 
 
 def list_folder(folder: str) -> list[dict]:
-    """List .md files directly under a vault folder."""
+    """List .md files directly under a vault folder.
+
+    Raises ``ValueError`` when ``folder`` is not a directory in the
+    vault (via ``pages.list_md``). Returns::
+
+        [
+          {
+            name: <file stem, i.e. the note title>,
+            path: <vault-relative path incl. .md>,
+            size: <file size in bytes>,
+          },
+          ...
+        ]
+    """
     out = []
     for p in list_md(folder):
         st = p.stat()
@@ -135,67 +144,93 @@ def _rg_available() -> bool:
 
 def search(query: str, folders: list[str] | None = None,
             max_results: int = VAULT_SEARCH_MAX_RESULTS) -> list[dict]:
-    """Full-text search across one or more top-level vault folders.
+    """Full-text literal search across one or more top-level vault
+    folders.
 
-    Uses ``ripgrep`` when available (fast + respects .gitignore).
-    Falls back to a plain Python scan when ``rg`` is missing so the
-    skill still works on a fresh host.
+    Uses ``ripgrep`` (``-F``) when available; falls back to
+    ``grep -rniF --include=*.md`` so both paths match the query as a
+    case-insensitive literal string.
 
     ``folders`` defaults to every writable + synthesis + zettel
-    folder (see ``DEFAULT_SEARCH_FOLDERS``). ``max_results`` is
-    capped by ``VAULT_SEARCH_MAX_RESULTS`` (see config.py for the
-    rationale).
+    folder (see ``DEFAULT_SEARCH_FOLDERS``); default folders missing
+    on disk are skipped, but an explicitly named folder that does
+    not exist raises ``ValueError``. ``max_results`` is clamped to
+    ``VAULT_SEARCH_MAX_RESULTS`` (see config.py for the rationale)
+    and must be at least 1.
+    Raises ``RuntimeError`` when the search tool errors or times out.
     """
+    if max_results < 1:
+        raise ValueError("max_results must be at least 1")
+    max_results = min(max_results, VAULT_SEARCH_MAX_RESULTS)
+
+    explicit = bool(folders)
     folders = list(folders) if folders else list(DEFAULT_SEARCH_FOLDERS)
 
-    # Resolve each folder absolutely; skip ones that do not exist
-    # (freshly-created vaults may be missing a folder or two).
     search_dirs: list[Path] = []
+    unknown: list[str] = []
     for f in folders:
         p = abs_path(f)
         if p.is_dir():
             search_dirs.append(p)
+        elif explicit:
+            unknown.append(f)
+    if unknown:
+        raise ValueError(
+            f"unknown vault folder(s): {', '.join(unknown)}")
 
     if not search_dirs:
         return []
 
     if _rg_available():
-        return _rg_search(query, search_dirs, max_results)
-    return _python_search(query, search_dirs, max_results)
+        cmd = [
+            "rg",
+            "--no-heading",
+            "--line-number",
+            "--with-filename",
+            "--color", "never",
+            "--max-count", str(max_results),
+            "--glob", "*.md",
+            "--ignore-case",
+            "--fixed-strings",
+            "--",
+            query,
+        ]
+    else:
+        cmd = [
+            "grep",
+            "-rniF",
+            "--include=*.md",
+            "-m", str(max_results),
+            "--",
+            query,
+        ]
+    return _run_search(cmd + [str(d) for d in search_dirs], max_results)
 
 
-def _rg_search(query: str, search_dirs: list[Path],
-                max_results: int) -> list[dict]:
-    """ripgrep driver. Emits ``[{path, line, excerpt}]``."""
-    cmd = [
-        "rg",
-        "--no-messages",
-        "--no-heading",
-        "--line-number",
-        "--color", "never",
-        "--max-count", str(max_results),
-        "--glob", "*.md",
-        "--ignore-case",
-        "--",
-        query,
-    ] + [str(d) for d in search_dirs]
-
+def _run_search(cmd: list[str], max_results: int) -> list[dict]:
+    """Run rg/grep and parse ``path:line:excerpt`` lines into
+    ``[{path, line, excerpt}]``. Exit code 1 means no matches;
+    2 (or any other non-zero) is an error surfaced with stderr."""
     try:
         result = subprocess.run(
             cmd, capture_output=True, text=True,
-            # See VAULT_SEARCH_RG_TIMEOUT_S in config.py — 30s is
-            # the vault-scan budget before we fall back to the
-            # Python scanner, which keeps results flowing on a
-            # degraded host rather than failing the whole op.
+            # See VAULT_SEARCH_RG_TIMEOUT_S in config.py.
             timeout=VAULT_SEARCH_RG_TIMEOUT_S,
             check=False,
         )
-    except (OSError, subprocess.TimeoutExpired):
-        return _python_search(query, search_dirs, max_results)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(
+            f"{cmd[0]} timed out after {VAULT_SEARCH_RG_TIMEOUT_S}s")
+    except OSError as e:
+        raise RuntimeError(f"{cmd[0]} failed to start: {e}")
+    if result.returncode not in (0, 1):
+        raise RuntimeError(
+            f"{cmd[0]} exited {result.returncode}: "
+            f"{result.stderr.strip()}")
 
     out: list[dict] = []
     for line in result.stdout.splitlines():
-        # ripgrep output: path:line:excerpt
+        # rg / grep output: path:line:excerpt
         parts = line.split(":", 2)
         if len(parts) < 3:
             continue
@@ -215,31 +250,4 @@ def _rg_search(query: str, search_dirs: list[Path],
         })
         if len(out) >= max_results:
             break
-    return out
-
-
-def _python_search(query: str, search_dirs: list[Path],
-                    max_results: int) -> list[dict]:
-    """Pure-python fallback for hosts without ripgrep."""
-    needle = query.lower()
-    out: list[dict] = []
-    for d in search_dirs:
-        for p in d.rglob("*.md"):
-            try:
-                text = p.read_text(encoding="utf-8")
-            except OSError:
-                continue
-            for i, line in enumerate(text.splitlines(), start=1):
-                if needle in line.lower():
-                    try:
-                        rel = rel_path(p)
-                    except ValueError:
-                        break
-                    out.append({
-                        "path":    rel,
-                        "line":    i,
-                        "excerpt": line.strip(),
-                    })
-                    if len(out) >= max_results:
-                        return out
     return out
