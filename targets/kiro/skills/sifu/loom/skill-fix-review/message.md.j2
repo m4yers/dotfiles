@@ -1,0 +1,24 @@
+# Pick fixes — `{{ input.report_path }}`
+
+`show-report` opened the report in the editor. Findings marked ✅ (fixed)
+or ⏩ (dismissed) are closed.
+
+## Task
+
+1. Walk the user through the open findings.
+2. For each, capture either a fix `instruction` or a dismissal.
+3. Stop and wait for the user's choices, then record them. Findings left
+   in neither list stay open and come back next pass.
+
+## Output
+
+```bash
+LOOM={{ input.__loom.runtime }}
+WD={{ input.__loom.workdir }}
+$LOOM output init "$WD" --task '{{ input.__task.id }}'
+$LOOM output add "$WD" --task '{{ input.__task.id }}' \
+    --set 'fixes[].finding_id=3' --set 'fixes[-1].instruction=<how>' \
+    --set-json 'dismissed=[12, 18]'
+```
+
+Empty lists: `--set-json 'fixes=[]'`, `--set-json 'dismissed=[]'`.

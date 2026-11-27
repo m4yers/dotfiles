@@ -1,0 +1,51 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    skill_dir:
+      type: string
+    report_path:
+      type: string
+    fixes:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          finding_id:
+            type: integer
+            minimum: 1
+          instruction:
+            type: string
+        required:
+        - finding_id
+        - instruction
+    dismissed:
+      type: array
+      items:
+        type: integer
+        minimum: 1
+    __loom: {}
+    __task: {}
+  required:
+  - skill_dir
+  - report_path
+  - fixes
+  - dismissed
+  - __loom
+  - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    open_items:
+      type: integer
+      minimum: 0
+    files:
+      type: array
+      items:
+        $ref: ../../schemas/file-change.yaml
+  required:
+  - open_items
+  - files

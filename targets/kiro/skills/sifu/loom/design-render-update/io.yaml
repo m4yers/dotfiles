@@ -1,0 +1,17 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    plan:
+      $ref: ../../schemas/change-plan.yaml
+  required:
+  - plan
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    report_path:
+      type: string
+  required:
+  - report_path

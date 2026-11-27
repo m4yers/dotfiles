@@ -1,0 +1,29 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+  required:
+  - name
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    skill_dir:
+      type: string
+      description: Absolute skill directory.
+    name:
+      type: string
+    category:
+      type: string
+      description: First namespace component, e.g. home, aws.
+    type:
+      type: string
+      description: Skill type from SKILL.md frontmatter.
+  required:
+  - skill_dir
+  - name
+  - category
+  - type

@@ -1,0 +1,23 @@
+# Review the change plan
+
+## Task
+
+1. Show the rendered design:
+   ```bash
+   ~/.kiro/skills/home/editor/scripts/run-editor.sh show file '{{ input.report_path }}'
+   ```
+2. Stop and wait for the user's decision, then record it:
+   - **accept** — apply the plan.
+   - **revise** — capture the user's feedback verbatim; design-author-update reruns.
+   - **decline** — abandon: `{{ input.__loom.runtime }} runtime fail "{{ input.__loom.workdir }}" '{{ input.__task.id }}' --message '<reason>'`.
+
+## Output
+
+```bash
+LOOM={{ input.__loom.runtime }}
+WD={{ input.__loom.workdir }}
+$LOOM output init "$WD" --task '{{ input.__task.id }}'
+$LOOM output add "$WD" --task '{{ input.__task.id }}' \
+    --set decision=accept --set revise_reason=''
+# or: --set decision=revise --set 'revise_reason=<user feedback>'
+```

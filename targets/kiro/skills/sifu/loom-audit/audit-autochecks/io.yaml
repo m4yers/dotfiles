@@ -1,0 +1,19 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    skill_dir:
+      type: string
+  required:
+  - skill_dir
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    findings:
+      type: array
+      items:
+        $ref: ../../schemas/finding.yaml
+  required:
+  - findings

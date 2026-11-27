@@ -1,0 +1,15 @@
+# One file touched by an agent task (skill-materialize,
+# modify-changes, skill-modify, skill-fix-apply).
+type: object
+additionalProperties: false
+required: [path, action]
+properties:
+  path:
+    type: string
+    description: absolute path on disk
+  action:
+    type: string
+    enum: [created, modified, deleted, unchanged]
+  notes:
+    type: string
+    description: optional per-file notes (e.g. skipped finding)

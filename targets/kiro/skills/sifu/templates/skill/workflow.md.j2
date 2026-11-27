@@ -1,0 +1,114 @@
+{# SKILL.md scaffold for a loomv2 `type: workflow` skill.
+
+   Render with the template skill, adding this folder and
+   ~/.kiro/skills/home/loomv2/templates as --include-dir so the
+   loomv2 host partials resolve.
+
+   Variables:
+     name, description  — frontmatter (description carries triggers)
+     title              — H1
+     intro              — 1-3 sentences
+     prefix             — shell prefix, e.g. "PD"
+     shim               — always "LOOM" (loomv2 partials read it)
+     skill_name         — kebab name for tiling labels
+     location           — namespace under ~/.kiro/skills/, e.g. "home"
+     target             — tiling label placeholder, e.g. "<op>"
+     dependencies       — markdown bullets
+     parameters         — markdown bullets
+     caller_vars        — bash lines setting caller state (e.g. PD_OP=...)
+     graph_arg          — e.g. '--graph "graph-$PD_OP.yaml"' or ""
+     set_assignments    — entry seeds, e.g. '--set name="$PD_NAME"'
+     rules              — numbered list (skill-specific; the inline
+                          dispatch rule is always rule 1)
+     completion         — table body rows, one per status
+     plan_visualisation — "" or non-empty to link
+                          references/plan-topology.md
+     references         — "" or markdown bullets linking references/*.md
+#}
+---
+name: {{ name }}
+type: workflow
+description: {{ description }}
+---
+
+# {{ title }}
+
+{{ intro }}
+
+## Dependencies
+
+- `loomv2` — graph execution.
+- `tiling` — activity tracking.
+- `editor` — file and diff display at human gates.
+{{ dependencies }}
+
+## Parameters
+
+{{ parameters }}
+
+## Workflow
+
+### Step 1: Ingest
+
+1. Set tiling activity:
+   ```bash
+   {{ prefix }}_TILING=~/.kiro/skills/home/tiling/scripts/run-ttm.sh
+   ${{ prefix }}_TILING activity set "{{ skill_name }}({{ target }}): Ingest"
+   ```
+2. Set up aliases, caller state, and the tiling layout:
+   ```bash
+   {{ prefix }}_SKILLS=~/.kiro/skills
+   {{ prefix }}_ROOT=${{ prefix }}_SKILLS/{{ location }}/{{ skill_name }}
+   {{ prefix }}_{{ shim }}=${{ prefix }}_SKILLS/home/loomv2/scripts/loom.sh
+   {{ prefix }}_EDITOR=${{ prefix }}_SKILLS/home/editor/scripts/run-editor.sh
+{{ caller_vars | indent(3, first=True) }}
+   eval "$(${{ prefix }}_TILING layout build)"
+   ```
+3. Init the run (auto workdir under `/tmp/{{ skill_name }}/`):
+   ```bash
+   {{ prefix }}_WD=$(${{ prefix }}_{{ shim }} runtime init \
+       --loom-root "${{ prefix }}_ROOT/loom"{% if graph_arg %} {{ graph_arg }}{% endif %} \
+       {{ set_assignments }})
+   ```
+4. If `runtime init` fails: NEEDS_CONTEXT. On success: proceed to Step 2.
+
+### Step 2: Drive the loop
+
+{% include 'step-drive-loop.md.j2' %}
+
+## Helper: Dispatch agent task
+
+{% include 'helper-dispatch-agent.md.j2' %}
+
+## Helper: Drive human gate
+
+{% include 'helper-drive-human-gate.md.j2' %}
+
+## Rules
+
+1. A `ready` batch with exactly one agent task MAY run inline: read its
+   `prompt_path`, follow it, write the output, then `runtime complete`.
+   Two or more agent tasks MUST go to parallel sub-agents.
+2. Human gates MUST be driven by the user; never auto-complete them.
+3. A failed task aborts the run; report BLOCKED with `error_path`, do not
+   re-run it.
+{{ rules }}
+{% if plan_visualisation %}
+
+## Plan visualisation
+
+Task DAGs per graph, with the legend ○ tool · ◆ agent · ▣ human · ↻ loop:
+[references/plan-topology.md](references/plan-topology.md).
+{% endif %}
+{% if references %}
+
+## References
+
+{{ references }}
+{% endif %}
+
+## Completion
+
+| Status               | Criteria                                                   |
+|----------------------|------------------------------------------------------------|
+{{ completion }}

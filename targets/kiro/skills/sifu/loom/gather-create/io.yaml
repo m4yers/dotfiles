@@ -1,0 +1,38 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+    __loom: {}
+    __task: {}
+  required:
+  - name
+  - __loom
+  - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    location:
+      type: string
+      description: Namespace path under ~/.kiro/skills/.
+    type:
+      type: string
+      enum:
+      - interface
+      - tool
+      - workflow
+      - reference
+      - flow
+    description:
+      type: string
+      maxLength: 1024
+    purpose:
+      type: string
+  required:
+  - location
+  - type
+  - description
+  - purpose

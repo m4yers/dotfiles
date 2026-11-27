@@ -1,0 +1,79 @@
+{#-
+Renders the `design-author-update` YAML payload as a
+human-readable markdown report for the `design-review-update`
+human gate.
+
+Caller (the `render-design-update` Python tool) is expected
+to pre-group `change_plan.files[]` by `action` and pass them
+as `files_created`, `files_modified`, `files_deleted` so the
+template stays declarative.
+
+Required variables (StrictUndefined — all must be provided,
+empty list / empty string are fine):
+
+  skill.name              str
+  skill.namespace         str
+  skill.type              str
+  skill.path              str
+  change_request          str  (user's free-form description)
+  files_created           list[{path, summary, rationale?}]
+  files_modified          list[{path, summary, rationale?}]
+  files_deleted           list[{path, summary, rationale?}]
+  open_questions          list[str]
+  rationale               str
+  canonical_yaml_path     str  (for the footer pointer)
+-#}
+# Update: `{{ skill.name }}` ({{ skill.type }})
+
+> Skill at `{{ skill.path }}` (namespace: `{{ skill.namespace }}`)
+
+## Change request
+
+{{ change_request | trim }}
+
+{% macro file_block(files, heading, empty_msg) -%}
+### {{ heading }}
+
+{% if files -%}
+{% for f in files -%}
+- **`{{ f.path }}`** — {{ f.summary | trim | replace('\n', ' ') }}
+{%- if 'rationale' in f and f.rationale %}
+  _{{ f.rationale | trim | replace('\n', ' ') }}_
+{%- endif %}
+{% endfor -%}
+{% else -%}
+_{{ empty_msg }}_
+{%- endif %}
+{%- endmacro %}
+
+## Files affected
+
+{{ file_block(files_created,  'Created',  'No new files.') }}
+{{ file_block(files_modified, 'Modified', 'No edits to existing files.') }}
+{{ file_block(files_deleted,  'Deleted',  'No removals.') }}
+
+{% if open_questions -%}
+## Open questions
+
+The author wants confirmation on the following before
+materialization. Address each in your review feedback if you
+choose `revise`.
+
+{% for q in open_questions -%}
+- {{ q | trim | replace('\n', ' ') }}
+{% endfor %}
+{%- endif %}
+
+{% if rationale | trim -%}
+## Rationale
+
+{{ rationale | trim }}
+{%- endif %}
+
+---
+
+The canonical edit target is the design YAML at
+`{{ canonical_yaml_path }}`. Edits round-trip through the
+review gate — `accept` copies the (possibly hand-tweaked)
+YAML into the gate output; `revise` loops back to
+`design-author-update` with your free-text feedback.

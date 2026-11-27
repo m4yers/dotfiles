@@ -1,0 +1,28 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    report_path:
+      type: string
+    __loom: {}
+    __task: {}
+  required:
+  - report_path
+  - __loom
+  - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    decision:
+      type: string
+      enum:
+      - accept
+      - revise
+    revise_reason:
+      type: string
+      description: User feedback on revise; empty string on accept.
+  required:
+  - decision
+  - revise_reason

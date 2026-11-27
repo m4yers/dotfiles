@@ -1,0 +1,23 @@
+# One audit finding. Emitted by audit-autochecks and every
+# audit-check-* task; assembled into report.md by the audit
+# subgraph's publish-output.
+type: object
+additionalProperties: false
+required: [title, file_line, description, fix, severity]
+properties:
+  title: {type: string, minLength: 1}
+  file_line:
+    type: string
+    description: "`<path>:<line>`, or `<path>` / empty when file-wide"
+  description: {type: string, minLength: 1}
+  fix: {type: string, minLength: 1}
+  severity:
+    type: string
+    enum: [Error, Warning, Info]
+  source: {type: string}
+  rule_fun:
+    type: string
+    description: Autocheck function that produced the finding.
+  rule_ref:
+    type: string
+    description: "`references/<file>.md:<rule>` link to the rule source."

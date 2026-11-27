@@ -1,0 +1,56 @@
+{% include 'security-frame.md.j2' %}
+
+# Materialize the approved design — `{{ input.__task.id }}`
+
+Write the skill at `{{ input.skill_dir }}/` from the design below. Only
+write what the design lists; no extra helpers, files, or abstractions.
+
+```yaml
+{{ input.design | tojson(indent=2) }}
+```
+
+## Task
+
+1. Write every `files[]` entry per its `content_outline`, following the
+   type conventions in `{{ input.__task.source_folder }}/../../references/`.
+2. SKILL.md for `workflow` and `flow`: render the scaffold, do not
+   hand-compose it:
+   ```bash
+   SIFU_TPL={{ input.__task.source_folder }}/../../templates/skill
+   ~/.kiro/skills/home/template/scripts/render.sh \
+       --template "$SIFU_TPL/<type>.md.j2" \
+       --include-dir "$SIFU_TPL" \
+       --include-dir ~/.kiro/skills/home/loomv2/templates \
+       --json-vars /tmp/{{ input.design.frontmatter.name }}-skill-vars.json \
+       > '{{ input.skill_dir }}/SKILL.md'
+   ```
+   The template header lists its variables.
+3. Workflow:
+   ```bash
+   LOOM={{ input.__loom.runtime }}
+   ```
+   Create task folders with `$LOOM task new <name> --loom-root <root>`,
+   write `io.yaml` and the body file, run `$LOOM task io-python` for
+   `tool.py` tasks, `chmod +x` every `tool.sh`, then validate every
+   graph file:
+   ```bash
+   for g in '{{ input.skill_dir }}'/loom*/graph*.yaml; do
+       $LOOM validate '{{ input.skill_dir }}' --graph "$g"
+   done
+   ```
+   Fix and re-run until exit 0; after 3 failed attempts,
+   `$LOOM runtime fail` with the last error.
+4. Script packages: `uv lock` in each `pyproject.toml` folder.
+
+## Output
+
+```bash
+LOOM={{ input.__loom.runtime }}
+WD={{ input.__loom.workdir }}
+$LOOM output init "$WD" --task '{{ input.__task.id }}'
+$LOOM output add "$WD" --task '{{ input.__task.id }}' \
+    --set 'files[].path={{ input.skill_dir }}/SKILL.md' \
+    --set 'files[-1].action=created'
+```
+
+One `files[]` entry per file written.

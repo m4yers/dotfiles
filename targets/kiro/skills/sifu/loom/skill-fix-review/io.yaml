@@ -1,0 +1,39 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    report_path:
+      type: string
+    __loom: {}
+    __task: {}
+  required:
+  - report_path
+  - __loom
+  - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    fixes:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          finding_id:
+            type: integer
+            minimum: 1
+          instruction:
+            type: string
+        required:
+        - finding_id
+        - instruction
+    dismissed:
+      type: array
+      items:
+        type: integer
+        minimum: 1
+  required:
+  - fixes
+  - dismissed

@@ -1,0 +1,186 @@
+# Skill design: proposed frontmatter, SKILL.md sections, files,
+# loomv2 tasks, CLI surface, and rationale. Produced by
+# design-author, consumed by design-render, design-checks,
+# skill-materialize, and the audit-design check.
+type: object
+required:
+- frontmatter
+- sections
+- files
+- rationale
+additionalProperties: false
+properties:
+  frontmatter:
+    type: object
+    required:
+    - name
+    - type
+    - description
+    properties:
+      name:
+        type: string
+      type:
+        type: string
+        enum:
+        - interface
+        - tool
+        - workflow
+        - reference
+        - flow
+      description:
+        type: string
+        maxLength: 1024
+    additionalProperties: false
+  sections:
+    description: SKILL.md section outline
+    type: array
+    items:
+      type: object
+      required:
+      - heading
+      - outline
+      properties:
+        heading:
+          type: string
+          description: section heading text without the leading
+        outline:
+          type: string
+          description: what the section will contain
+      additionalProperties: false
+  files:
+    description: non-SKILL.md files (references/, scripts/, etc.)
+    type: array
+    items:
+      type: object
+      required:
+      - path
+      - purpose
+      - content_outline
+      properties:
+        path:
+          type: string
+          description: path relative to the skill directory
+        purpose:
+          type: string
+        content_outline:
+          type: string
+      additionalProperties: false
+  tasks:
+    description: Loomv2 graph tasks for workflow-type skills; omitted for other
+      types.
+    type: array
+    items:
+      type: object
+      required:
+      - id
+      - kind
+      - description
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: kebab-case task id (graph entry id)
+        kind:
+          type: string
+          enum:
+          - agent
+          - human
+          - tool
+        description:
+          type: string
+          description: 'What the task does, in 1-2 sentences at the logical
+
+            level: what it consumes, what it produces, the one
+
+            decision it makes. No engine wiring (ref / when /
+
+            skip_output / @prev) and no downstream-consumer lists.
+
+            For ref-instanced fan-outs the first instance carries
+
+            the description; later instances carry a one-line
+
+            pointer to it.
+
+            '
+        ref:
+          type: string
+          description: 'Optional. Shared task folder name when this entry is
+
+            one instance of a ref-instanced fan-out (loomv2
+
+            task_entry.ref). The renderer collapses consecutive
+
+            entries with the same ref into one row.
+
+            '
+        depends_on:
+          type: array
+          items:
+            type: string
+          description: task ids this task depends on (empty for entry tasks)
+        when:
+          type: string
+          description: 'loom when-predicate; the task is skipped when it
+
+            evaluates false (e.g. "${task:cherry-pick:num_conflicts} > 0").
+
+            '
+        latch:
+          type: object
+          description: 'loom loop latch. When present, the task is a loop latch;
+
+            the back-edge runs from this task to `header`. At least
+
+            one of fuel/while is required by loom (not enforced here).
+
+            '
+          required:
+          - header
+          additionalProperties: false
+          properties:
+            header:
+              type: string
+              description: back-edge target task id (the loop header)
+            fuel:
+              type: integer
+              description: max iterations; countdown decremented each round
+            while:
+              type: string
+              description: loom predicate; the loop continues while it is true
+  cli_surface:
+    description: 'Optional. For tool/workflow skills with a main shim
+
+      script, list the subcommands the shim exposes. The
+
+      design renderer presents this as the skill''s API
+
+      contract.
+
+      '
+    type: array
+    items:
+      type: object
+      required:
+      - command
+      - description
+      additionalProperties: false
+      properties:
+        command:
+          type: string
+          description: subcommand name (e.g. "ingest", "next")
+        args:
+          type: string
+          description: optional argv signature like "<workdir> [--task ID]"
+        description:
+          type: string
+          description: 1-line description of what the subcommand does
+  rationale:
+    type: string
+    description: 'Why this design fits the skill''s purpose, in at most ~5
+
+      sentences or bullets: decisions made and alternatives
+
+      rejected, nothing else.
+
+      '

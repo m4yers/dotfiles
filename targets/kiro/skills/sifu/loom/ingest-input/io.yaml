@@ -1,0 +1,28 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    op:
+      type: string
+      enum:
+      - create
+      - update
+      - review
+    name:
+      type: string
+      pattern: ^[a-z][a-z0-9-]*$
+  required:
+  - op
+  - name
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    op:
+      type: string
+    name:
+      type: string
+  required:
+  - op
+  - name

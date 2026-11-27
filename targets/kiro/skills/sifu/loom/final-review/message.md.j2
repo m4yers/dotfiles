@@ -1,0 +1,25 @@
+# Final review — `{{ input.skill_dir }}`
+
+Audit: {{ input.errors }} errors, {{ input.warnings }} warnings,
+{{ input.infos }} info — `{{ input.report_path }}`.
+
+## Task
+
+1. Show the change:
+   ```bash
+   EDITOR_SH=~/.kiro/skills/home/editor/scripts/run-editor.sh
+   $EDITOR_SH show diff '{{ input.skill_dir }}' HEAD
+   ```
+   For an untracked (new) skill use `$EDITOR_SH show file '{{ input.skill_dir }}/SKILL.md'`.
+2. Stop and wait for the user to accept or decline; record the decision.
+
+## Output
+
+```bash
+LOOM={{ input.__loom.runtime }}
+WD={{ input.__loom.workdir }}
+$LOOM output init "$WD" --task '{{ input.__task.id }}'
+$LOOM output add "$WD" --task '{{ input.__task.id }}' \
+    --set decision=accept --set notes=''
+# or: --set decision=decline --set 'notes=<reason>'
+```

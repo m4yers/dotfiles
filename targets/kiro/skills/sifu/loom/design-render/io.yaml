@@ -1,0 +1,17 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    design:
+      $ref: ../../schemas/design.yaml
+  required:
+  - design
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    report_path:
+      type: string
+  required:
+  - report_path

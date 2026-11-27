@@ -1,0 +1,219 @@
+# ============================================================
+# AUDIT subgraph, embedded by loom/graph-{create,update,review}.yaml.
+# Entry = ingest-input: locate shape + design_kind (+ design or plan).
+# Exit = publish-output: assembled report.md path and counts.
+# audit-check-* are `ref: audit-check` instances, one per
+# conventions reference; typed ones run only for their skill type.
+#   $LOOM validate <skill-root> --graph loom-audit/graph.yaml
+# ============================================================
+tasks:
+- id: ingest-input
+  kind: tool
+  version: 1
+- id: audit-autochecks
+  kind: tool
+  version: 1
+  depends_on_all: [ingest-input]
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+- id: audit-check-authoring
+  kind: agent
+  version: 1
+  ref: audit-check
+  depends_on_all:
+  - ingest-input
+  - audit-autochecks
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    category: ${task:ingest-input:category}
+    type: ${task:ingest-input:type}
+    conventions: authoring.md
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-check-model-awareness
+  kind: agent
+  version: 1
+  ref: audit-check
+  depends_on_all:
+  - ingest-input
+  - audit-autochecks
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    category: ${task:ingest-input:category}
+    type: ${task:ingest-input:type}
+    conventions: model-awareness.md
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-check-scripts
+  kind: agent
+  version: 1
+  ref: audit-check
+  depends_on_all:
+  - ingest-input
+  - audit-autochecks
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    category: ${task:ingest-input:category}
+    type: ${task:ingest-input:type}
+    conventions: script-conventions.md
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-check-secure-llm
+  kind: agent
+  version: 1
+  ref: audit-check
+  depends_on_all:
+  - ingest-input
+  - audit-autochecks
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    category: ${task:ingest-input:category}
+    type: ${task:ingest-input:type}
+    conventions: secure-llm-conventions.md
+    lint_findings: ${task:audit-autochecks:findings}
+- id: audit-check-interface
+  kind: agent
+  version: 1
+  ref: audit-check
+  depends_on_all:
+  - ingest-input
+  - audit-autochecks
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    category: ${task:ingest-input:category}
+    type: ${task:ingest-input:type}
+    conventions: interface-conventions.md
+    lint_findings: ${task:audit-autochecks:findings}
+  when: ${task:ingest-input:type} == 'interface'
+  skip_output:
+    findings: []
+- id: audit-check-tool
+  kind: agent
+  version: 1
+  ref: audit-check
+  depends_on_all:
+  - ingest-input
+  - audit-autochecks
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    category: ${task:ingest-input:category}
+    type: ${task:ingest-input:type}
+    conventions: tool-conventions.md
+    lint_findings: ${task:audit-autochecks:findings}
+  when: ${task:ingest-input:type} == 'tool'
+  skip_output:
+    findings: []
+- id: audit-check-workflow
+  kind: agent
+  version: 1
+  ref: audit-check
+  depends_on_all:
+  - ingest-input
+  - audit-autochecks
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    category: ${task:ingest-input:category}
+    type: ${task:ingest-input:type}
+    conventions: workflow-conventions.md
+    lint_findings: ${task:audit-autochecks:findings}
+  when: ${task:ingest-input:type} == 'workflow'
+  skip_output:
+    findings: []
+- id: audit-check-reference
+  kind: agent
+  version: 1
+  ref: audit-check
+  depends_on_all:
+  - ingest-input
+  - audit-autochecks
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    category: ${task:ingest-input:category}
+    type: ${task:ingest-input:type}
+    conventions: reference-conventions.md
+    lint_findings: ${task:audit-autochecks:findings}
+  when: ${task:ingest-input:type} == 'reference'
+  skip_output:
+    findings: []
+- id: audit-check-flow
+  kind: agent
+  version: 1
+  ref: audit-check
+  depends_on_all:
+  - ingest-input
+  - audit-autochecks
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    category: ${task:ingest-input:category}
+    type: ${task:ingest-input:type}
+    conventions: flow-conventions.md
+    lint_findings: ${task:audit-autochecks:findings}
+  when: ${task:ingest-input:type} == 'flow'
+  skip_output:
+    findings: []
+- id: audit-design
+  kind: agent
+  version: 1
+  depends_on_all:
+  - ingest-input
+  - audit-autochecks
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    design: ${task:ingest-input:design}
+    lint_findings: ${task:audit-autochecks:findings}
+  when: ${task:ingest-input:design_kind} == 'create'
+  skip_output:
+    findings: []
+- id: audit-design-update
+  kind: agent
+  version: 1
+  depends_on_all:
+  - ingest-input
+  - audit-autochecks
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    plan: ${task:ingest-input:plan}
+    lint_findings: ${task:audit-autochecks:findings}
+  when: ${task:ingest-input:design_kind} == 'update'
+  skip_output:
+    findings: []
+- id: publish-output
+  kind: tool
+  version: 1
+  depends_on_all:
+  - ingest-input
+  - audit-autochecks
+  - audit-check-authoring
+  - audit-check-model-awareness
+  - audit-check-scripts
+  - audit-check-secure-llm
+  - audit-check-interface
+  - audit-check-tool
+  - audit-check-workflow
+  - audit-check-reference
+  - audit-check-flow
+  - audit-design
+  - audit-design-update
+  input:
+    skill_dir: ${task:ingest-input:skill_dir}
+    name: ${task:ingest-input:name}
+    category: ${task:ingest-input:category}
+    type: ${task:ingest-input:type}
+    autochecks: ${task:audit-autochecks:findings}
+    authoring: ${task:audit-check-authoring:findings}
+    model_awareness: ${task:audit-check-model-awareness:findings}
+    scripts: ${task:audit-check-scripts:findings}
+    secure_llm: ${task:audit-check-secure-llm:findings}
+    interface: ${task:audit-check-interface:findings}
+    tool: ${task:audit-check-tool:findings}
+    workflow: ${task:audit-check-workflow:findings}
+    reference: ${task:audit-check-reference:findings}
+    flow: ${task:audit-check-flow:findings}
+    design: ${task:audit-design:findings}
+    design_update: ${task:audit-design-update:findings}

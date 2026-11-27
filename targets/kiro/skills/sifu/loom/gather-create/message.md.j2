@@ -1,0 +1,31 @@
+# Gather metadata for `{{ input.name }}`
+
+## Task
+
+1. Ask the user for each field below. Suggest values from what they
+   already said.
+2. Stop and wait for the user's answers, then record them.
+
+## Fields
+
+- **location** — namespace under `~/.kiro/skills/`; list choices with
+  `ls -1d ~/.kiro/skills/*/ ~/.kiro/skills/*/*/`.
+- **type** — `interface`, `tool`, `workflow`, `reference`, or `flow`.
+  Default to `workflow` (loomv2 graph) for multi-step work needing
+  resumability, fan-out, or validated handoffs; `flow` for prose steps
+  the agent adapts while running (e.g. live-journal).
+- **description** — third person, one line, trigger phrases in quotes.
+- **purpose** — what the skill does and when; free-form.
+
+## Output
+
+```bash
+LOOM={{ input.__loom.runtime }}
+WD={{ input.__loom.workdir }}
+$LOOM output init "$WD" --task '{{ input.__task.id }}'
+$LOOM output add "$WD" --task '{{ input.__task.id }}' \
+    --set location=home \
+    --set type=workflow \
+    --set 'description=<one line with "trigger" phrases>' \
+    --set 'purpose=<free-form>'
+```

@@ -1,0 +1,58 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    op:
+      type: string
+    name:
+      type: string
+    skill_dir:
+      type: string
+    report_path:
+      type: string
+    decision:
+      type: string
+    notes:
+      type: string
+    files_primary: &id001
+      type: array
+      items:
+        $ref: ../../schemas/file-change.yaml
+    files_fixes: *id001
+  required:
+  - op
+  - name
+  - skill_dir
+  - report_path
+  - decision
+  - notes
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    status:
+      type: string
+      enum:
+      - DONE
+      - DONE_WITH_CONCERNS
+      - BLOCKED
+    op:
+      type: string
+    skill_dir:
+      type: string
+    report_path:
+      type: string
+    files_written:
+      type: array
+      items:
+        type: string
+    notes:
+      type: string
+  required:
+  - status
+  - op
+  - skill_dir
+  - report_path
+  - files_written
+  - notes

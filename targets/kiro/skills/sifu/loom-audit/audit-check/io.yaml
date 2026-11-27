@@ -1,0 +1,41 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    skill_dir:
+      type: string
+      description: Absolute skill directory.
+    name:
+      type: string
+    category:
+      type: string
+      description: First namespace component, e.g. home, aws.
+    type:
+      type: string
+      description: Skill type from SKILL.md frontmatter.
+    conventions:
+      type: string
+      description: Reference file (under references/) holding the rules to apply.
+    lint_findings: &id001
+      type: array
+      items:
+        $ref: ../../schemas/finding.yaml
+    __loom: {}
+    __task: {}
+  required:
+  - skill_dir
+  - name
+  - category
+  - type
+  - conventions
+  - lint_findings
+  - __loom
+  - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    findings: *id001
+  required:
+  - findings

@@ -1,0 +1,28 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+    skill_dir:
+      type: string
+    type:
+      type: string
+    __loom: {}
+    __task: {}
+  required:
+  - name
+  - skill_dir
+  - type
+  - __loom
+  - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    description:
+      type: string
+      description: The change the user wants, in their words.
+  required:
+  - description
