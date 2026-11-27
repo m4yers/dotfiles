@@ -61,8 +61,8 @@ def _design_render(inp: dict, cwd: Path) -> dict:
 
 
 def _design_render_update(inp: dict, cwd: Path) -> dict:
-    skill = {"name": inp["name"], "namespace": inp["category"],
-             "type": inp["type"], "path": inp["skill_dir"]}
+    skill = {"name": inp["name"], "category": inp["category"],
+             "type": inp["type"], "skill_dir": inp["skill_dir"]}
     return _write_md(cwd, render_design_update._render(
         inp["plan"], str(cwd / "input.yaml"), skill, inp["description"]))
 

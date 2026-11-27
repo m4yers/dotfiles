@@ -96,9 +96,9 @@ def _render(payload: dict, canonical_yaml_path: str, skill: dict,
     vars_ = {
         "skill": {
             "name":      (skill.get("name") or "").strip(),
-            "namespace": (skill.get("namespace") or "").strip(),
+            "category":  (skill.get("category") or "").strip(),
             "type":      (skill.get("type") or "").strip(),
-            "path":      (skill.get("path") or "").strip(),
+            "skill_dir": (skill.get("skill_dir") or "").strip(),
         },
         "change_request": change_request.strip(),
         "files_created":  created,

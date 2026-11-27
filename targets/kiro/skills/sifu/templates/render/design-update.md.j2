@@ -12,9 +12,9 @@ Required variables (StrictUndefined — all must be provided,
 empty list / empty string are fine):
 
   skill.name              str
-  skill.namespace         str
+  skill.category          str
   skill.type              str
-  skill.path              str
+  skill.skill_dir         str
   change_request          str  (user's free-form description)
   files_created           list[{path, summary, rationale?}]
   files_modified          list[{path, summary, rationale?}]
@@ -25,7 +25,7 @@ empty list / empty string are fine):
 -#}
 # Update: `{{ skill.name }}` ({{ skill.type }})
 
-> Skill at `{{ skill.path }}` (namespace: `{{ skill.namespace }}`)
+> Skill at `{{ skill.skill_dir }}` (category: `{{ skill.category }}`)
 
 ## Change request
 
