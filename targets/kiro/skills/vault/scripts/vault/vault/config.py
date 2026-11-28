@@ -33,6 +33,7 @@ PEOPLE_DIR    = "13 PEOPLE"
 MODELS_DIR    = "14 MODELS"
 ZETTEL_DIR    = "20 ZETTELKASTEN"
 SYNTHESIS_DIR = "21 WIKI"
+PROJECTS_DIR  = "30 PROJECTS"
 
 
 # Vault scope — what the agent may create / modify directly.
@@ -51,6 +52,7 @@ WRITABLE_PREFIXES = (
     PEOPLE_DIR,
     MODELS_DIR,
     SYNTHESIS_DIR,
+    PROJECTS_DIR,
 )
 
 # Paths under SOURCES that must remain binary / immutable. The
@@ -71,6 +73,7 @@ FOLDERS = {
     "models":   MODELS_DIR,
     "zettels":  ZETTEL_DIR,
     "wiki":     SYNTHESIS_DIR,
+    "projects": PROJECTS_DIR,
 }
 
 
