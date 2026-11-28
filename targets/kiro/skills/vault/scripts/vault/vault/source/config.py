@@ -6,6 +6,9 @@ import only what they need; this file has no internal imports.
 """
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 
 # ── HTTP timeouts (seconds) ─────────────────────────────
 #
@@ -29,6 +32,17 @@ IMG_HASH_PREFIX = 8
 # filesystem row and covers most paper titles without chopping a
 # word.
 ARXIV_SHORT_TITLE_MAX = 60
+
+
+# ── fetch/convert cache ─────────────────────────────────
+
+# Where ``source fetch`` persists its envelope and ``source convert``
+# writes ``source.md``, keyed by the artifact's absolute vault path.
+# Outside the vault because the vault forbids scratch files; outside
+# /tmp because convert may run days after fetch and must still find
+# the recorded http_headers. Override with ``VAULT_SOURCE_CACHE``.
+SOURCE_CACHE_DIR = Path(os.path.expanduser(
+    os.environ.get("VAULT_SOURCE_CACHE", "~/.cache/vault/source")))
 
 
 # ── yt-dlp ──────────────────────────────────────────────

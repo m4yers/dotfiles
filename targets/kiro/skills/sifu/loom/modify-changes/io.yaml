@@ -1,0 +1,29 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    skill_dir:
+      type: string
+    type:
+      type: string
+    plan:
+      $ref: ../../schemas/change-plan.yaml
+    __loom: {}
+    __task: {}
+  required:
+  - skill_dir
+  - type
+  - plan
+  - __loom
+  - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    files:
+      type: array
+      items:
+        $ref: ../../schemas/file-change.yaml
+  required:
+  - files

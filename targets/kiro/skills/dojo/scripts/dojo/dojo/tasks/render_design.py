@@ -129,26 +129,32 @@ def _render(design: dict) -> str:
         if sections:
             lines.append("")
 
-    # Tasks — workflow skills get one section per task with the
-    # full description (descriptions can be 3-5 sentences for
-    # keystone tasks and warrant more space than a table cell).
-    # Other types render a compact table when tasks are present.
+    # Tasks — one compact entry per task for every skill type,
+    # rendered as a wrapping bullet list (not a table) for the same
+    # mdformat reason as the CLI surface above. Consecutive tasks
+    # sharing a `ref` (instances of one task folder) collapse into
+    # a single entry so a 32-way fan-out reads as one line.
     tasks = design.get("tasks") or []
     if tasks:
+        heading = "## Tasks" if is_workflow else "## Tasks (loom DAG)"
+        lines.append(heading)
+        lines.append("")
+        for group in _group_by_ref(tasks):
+            first = group[0]
+            head = f"`{(first.get('id') or '').strip()}`"
+            if len(group) > 1:
+                last = (group[-1].get("id") or "").strip()
+                ref = (first.get("ref") or "").strip()
+                head += f"..`{last}` (x{len(group)}, ref `{ref}`)"
+            kind = (first.get("kind") or "").strip()
+            deps = ", ".join(d for d in (first.get("depends_on") or [])
+                             if d)
+            deps_part = f" · deps: {deps}" if deps else ""
+            desc = _first_paragraph(
+                (first.get("description") or "").strip())
+            lines.append(f"- {head} ({kind}){deps_part} — {desc}")
+        lines.append("")
         if is_workflow:
-            lines.append("## Tasks")
-            lines.append("")
-            for i, t in enumerate(tasks, start=1):
-                tid = (t.get("id") or "").strip()
-                kind = (t.get("kind") or "").strip()
-                deps = ", ".join(d for d in (t.get("depends_on") or [])
-                                 if d) or "—"
-                desc = (t.get("description") or "").strip()
-                lines.append(
-                    f"### {i}. `{tid}` ({kind})  ·  deps: {deps}")
-                lines.append("")
-                lines.append(desc)
-                lines.append("")
             # Synthesise a loom-visualise diagram from tasks[].
             diagram = _visualise_tasks(name, tasks)
             if diagram:
@@ -158,19 +164,6 @@ def _render(design: dict) -> str:
                 lines.append(diagram.rstrip())
                 lines.append("```")
                 lines.append("")
-        else:
-            lines.append("## Tasks (loom DAG)")
-            lines.append("")
-            lines.append("| # | id | kind | depends on | description |")
-            lines.append("|---|---|---|---|---|")
-            for i, t in enumerate(tasks, start=1):
-                tid = (t.get("id") or "").strip()
-                kind = (t.get("kind") or "").strip()
-                deps = ", ".join(d for d in (t.get("depends_on") or [])
-                                 if d) or "—"
-                desc = _first_paragraph((t.get("description") or "").strip())
-                lines.append(f"| {i} | `{tid}` | {kind} | {deps} | {desc} |")
-            lines.append("")
 
     # Per-file overview: path + 1-line purpose only.
     lines.append("## Files (purpose)")
@@ -240,6 +233,20 @@ def _visualise_tasks(plan_name: str, tasks: list[dict]) -> str:
     except Exception:
         # Visualisation is best-effort; fall back to no diagram.
         return ""
+
+
+def _group_by_ref(tasks: list[dict]) -> list[list[dict]]:
+    """Group consecutive tasks that share a non-empty `ref` (instances
+    of one task folder). Tasks without `ref` form singleton groups."""
+    groups: list[list[dict]] = []
+    for t in tasks:
+        ref = (t.get("ref") or "").strip()
+        if (groups and ref
+                and (groups[-1][0].get("ref") or "").strip() == ref):
+            groups[-1].append(t)
+        else:
+            groups.append([t])
+    return groups
 
 
 def _first_paragraph(text: str) -> str:

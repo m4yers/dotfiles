@@ -1,0 +1,79 @@
+{# SKILL.md scaffold for a `type: flow` skill (prose steps, no loom).
+
+   Variables:
+     name, description — frontmatter (description carries triggers)
+     title             — H1
+     intro             — 1-3 sentences
+     prefix            — shell prefix, e.g. "LJ"
+     skill_name        — kebab name for tiling labels
+     target            — tiling label placeholder, e.g. "<name>"
+     dependencies      — markdown bullets
+     parameters        — markdown bullets
+     aliases           — bash lines (`<PREFIX>_<SCRIPT>=...`), one per script
+     invariants        — numbered list of rules that hold across adaptations
+     steps             — list of {name, goal, substeps}; substeps is a
+                         markdown numbered list (≤ 5 items)
+     rules             — numbered list (may be empty)
+     completion        — table body rows, one per status
+#}
+---
+name: {{ name }}
+type: flow
+description: {{ description }}
+---
+
+# {{ title }}
+
+{{ intro }}
+
+## Dependencies
+
+- `tiling` — activity tracking.
+{{ dependencies }}
+
+## Parameters
+
+{{ parameters }}
+
+## Aliases
+
+```bash
+{{ prefix }}_TILING=~/.kiro/skills/home/tiling/scripts/run-ttm.sh
+{{ aliases }}
+```
+
+## Invariants
+
+These hold whatever path the flow takes.
+
+{{ invariants }}
+
+## Workflow
+
+The steps below are the default path. The operator MAY redirect at any
+point: skip, repeat, reorder, or add a step. Announce each change in one
+line before acting, and confirm first when it would break an invariant.
+{% for s in steps %}
+
+### Step {{ loop.index }}: {{ s.name }}
+
+Goal: {{ s.goal }}
+
+```bash
+${{ prefix }}_TILING activity set "{{ skill_name }}({{ target }}): {{ s.name }}"
+```
+
+{{ s.substeps }}
+{% endfor %}
+{% if rules %}
+
+## Rules
+
+{{ rules }}
+{% endif %}
+
+## Completion
+
+| Status               | Criteria                                                   |
+|----------------------|------------------------------------------------------------|
+{{ completion }}

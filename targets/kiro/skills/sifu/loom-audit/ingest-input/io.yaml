@@ -1,0 +1,48 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties: &id002
+    skill_dir:
+      type: string
+      description: Absolute skill directory.
+    name:
+      type: string
+    category:
+      type: string
+      description: First namespace component, e.g. home, aws.
+    type:
+      type: string
+      description: Skill type from SKILL.md frontmatter.
+    design_kind:
+      type: string
+      enum:
+      - create
+      - update
+      - none
+    design:
+      type: &id001
+      - object
+      - 'null'
+      description: Validated upstream (schemas/design.yaml or schemas/change-plan.yaml);
+        absent when not auditing a design.
+    plan:
+      type: *id001
+      description: Validated upstream (schemas/design.yaml or schemas/change-plan.yaml);
+        absent when not auditing a design.
+  required:
+  - skill_dir
+  - name
+  - category
+  - type
+  - design_kind
+output:
+  type: object
+  additionalProperties: false
+  properties: *id002
+  required:
+  - skill_dir
+  - name
+  - category
+  - type
+  - design_kind

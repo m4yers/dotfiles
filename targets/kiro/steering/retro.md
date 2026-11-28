@@ -64,12 +64,3 @@ After writing, append at the very end of your response:
 
 Do NOT implement the change in the same response. The retro captures intent;
 acting happens when the user runs `retro`.
-
-## Formatting
-
-Retro items that modify skill files MUST follow the conventions in
-`~/.kiro/skills/home/dojo/references/conventions.md` (80-char prose, aligned
-tables, single-line frontmatter).
-
-When running `retro` and showing `retro-table.sh` output, show it once,
-as-is. Do not reformat it as a markdown table.

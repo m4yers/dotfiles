@@ -1,0 +1,31 @@
+# skill-fix-count — fix-loop latch: counts the findings still open in
+# report.md (deterministic, replaces the agent-reported count) and
+# carries the applied files out of the loop.
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    report_path:
+      type: string
+    files:
+      type: array
+      items:
+        $ref: ../../schemas/file-change.yaml
+  required:
+  - report_path
+  - files
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    open_items:
+      type: integer
+      minimum: 0
+    files:
+      type: array
+      items:
+        $ref: ../../schemas/file-change.yaml
+  required:
+  - open_items
+  - files

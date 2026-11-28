@@ -1,0 +1,172 @@
+# ============================================================
+# sifu CREATE pipeline. One of three op graphs sharing the
+# task folders under loom/; all embed the audit subgraph
+# (../loom-audit). Shared folders: ingest-input, find-skill,
+# skill-modify, final-review, publish-output. Keep their wiring
+# in sync across graph-create/update/review, then validate:
+#   $LOOM validate <skill-root> --graph <abs>/loom/graph-create.yaml
+# gather -> checks -> design loop (design-accept latch, fuel 5) -> materialize -> audit -> modify -> final-review.
+# ============================================================
+tasks:
+- id: ingest-input
+  kind: tool
+  version: 1
+- id: gather-create
+  kind: human
+  version: 1
+  depends_on_all:
+  - ingest-input
+  input:
+    name: ${task:ingest-input:name}
+- id: check-name
+  kind: tool
+  version: 1
+  depends_on_all:
+  - ingest-input
+  - gather-create
+  input:
+    name: ${task:ingest-input:name}
+- id: check-location
+  kind: tool
+  version: 1
+  depends_on_all:
+  - ingest-input
+  - gather-create
+  input:
+    name: ${task:ingest-input:name}
+    location: ${task:gather-create:location}
+- id: check-overlaps
+  kind: tool
+  version: 1
+  depends_on_all:
+  - ingest-input
+  - gather-create
+  input:
+    name: ${task:ingest-input:name}
+    description: ${task:gather-create:description}
+- id: design-author
+  kind: agent
+  version: 1
+  depends_on_all:
+  - ingest-input
+  - gather-create
+  - check-name
+  - check-location
+  - check-overlaps
+  input:
+    name: ${task:ingest-input:name}
+    location: ${task:gather-create:location}
+    type: ${task:gather-create:type}
+    description: ${task:gather-create:description}
+    purpose: ${task:gather-create:purpose}
+    overlaps: ${task:check-overlaps:overlaps}
+    revise_reason: ${task:design-accept@prev:revise_reason}
+- id: design-render
+  kind: tool
+  version: 1
+  depends_on_all:
+  - design-author
+  input:
+    design: ${task:design-author:design}
+- id: design-checks
+  kind: tool
+  version: 1
+  depends_on_all:
+  - design-author
+  input:
+    design: ${task:design-author:design}
+- id: design-review
+  kind: human
+  version: 1
+  depends_on_all:
+  - design-render
+  - design-checks
+  input:
+    report_path: ${task:design-render:report_path}
+- id: design-accept
+  kind: tool
+  version: 1
+  depends_on_all:
+  - design-author
+  - design-review
+  input:
+    design: ${task:design-author:design}
+    decision: ${task:design-review:decision}
+    revise_reason: ${task:design-review:revise_reason}
+- id: skill-materialize
+  kind: agent
+  version: 1
+  depends_on_all:
+  - design-accept
+  - check-location
+  input:
+    design: ${task:design-accept:design}
+    skill_dir: ${task:check-location:skill_dir}
+  when: ${task:design-accept:decision} == 'accept'
+- id: find-skill
+  kind: tool
+  version: 2
+  depends_on_all:
+  - ingest-input
+  - skill-materialize
+  input:
+    name: ${task:ingest-input:name}
+- id: audit-core
+  kind: subgraph
+  version: 1
+  depends_on_all:
+  - find-skill
+  - design-accept
+  input:
+    skill_dir: ${task:find-skill:skill_dir}
+    name: ${task:find-skill:name}
+    category: ${task:find-skill:category}
+    type: ${task:find-skill:type}
+    design_kind: create
+    design: ${task:design-accept:design}
+  root: ../loom-audit
+- id: skill-modify
+  kind: agent
+  version: 1
+  depends_on_all:
+  - audit-core
+  input:
+    skill_dir: ${task:audit-core:skill_dir}
+    report_path: ${task:audit-core:report_path}
+    errors: ${task:audit-core:errors}
+    warnings: ${task:audit-core:warnings}
+- id: final-review
+  kind: human
+  version: 2
+  depends_on_all:
+  - skill-modify
+  - audit-core
+  input:
+    skill_dir: ${task:audit-core:skill_dir}
+    report_path: ${task:audit-core:report_path}
+    errors: ${task:audit-core:errors}
+    warnings: ${task:audit-core:warnings}
+    infos: ${task:audit-core:infos}
+- id: publish-output
+  kind: tool
+  version: 1
+  depends_on_all:
+  - ingest-input
+  - audit-core
+  - skill-materialize
+  - skill-modify
+  - final-review
+  input:
+    op: ${task:ingest-input:op}
+    name: ${task:ingest-input:name}
+    skill_dir: ${task:audit-core:skill_dir}
+    report_path: ${task:audit-core:report_path}
+    decision: ${task:final-review:decision}
+    notes: ${task:final-review:notes}
+    files_primary: ${task:skill-materialize:files}
+    files_fixes: ${task:skill-modify:files}
+latches:
+- task: design-accept
+  header: design-author
+  fuel: 5
+  while_: ${task:design-accept:decision} == 'revise'

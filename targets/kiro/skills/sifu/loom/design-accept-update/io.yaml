@@ -1,0 +1,26 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties: &id001
+    plan:
+      $ref: ../../schemas/change-plan.yaml
+    decision:
+      type: string
+      enum:
+      - accept
+      - revise
+    revise_reason:
+      type: string
+  required:
+  - plan
+  - decision
+  - revise_reason
+output:
+  type: object
+  additionalProperties: false
+  properties: *id001
+  required:
+  - plan
+  - decision
+  - revise_reason

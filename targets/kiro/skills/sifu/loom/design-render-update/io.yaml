@@ -1,0 +1,34 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    plan:
+      $ref: ../../schemas/change-plan.yaml
+    name:
+      type: string
+    category:
+      type: string
+      description: First namespace component, e.g. home, aws.
+    type:
+      type: string
+    skill_dir:
+      type: string
+    description:
+      type: string
+      description: The change request from gather-update.
+  required:
+  - plan
+  - name
+  - category
+  - type
+  - skill_dir
+  - description
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    report_path:
+      type: string
+  required:
+  - report_path

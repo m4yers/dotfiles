@@ -1,0 +1,42 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    skill_dir:
+      type: string
+      description: Absolute skill directory.
+    name:
+      type: string
+    category:
+      type: string
+      description: First namespace component, e.g. home, aws.
+    type:
+      type: string
+      description: Skill type from SKILL.md frontmatter.
+    description:
+      type: string
+    revise_reason:
+      type:
+      - string
+      - 'null'
+      description: Previous gate round's feedback; null on the first round.
+    __loom: {}
+    __task: {}
+  required:
+  - skill_dir
+  - name
+  - category
+  - type
+  - description
+  - revise_reason
+  - __loom
+  - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    plan:
+      $ref: ../../schemas/change-plan.yaml
+  required:
+  - plan

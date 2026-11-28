@@ -1,0 +1,30 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    op:
+      type: string
+      enum:
+      - create
+      - update
+      - review
+    name:
+      type: string
+      description: Kebab-case skill name, optionally prefixed with its
+        namespace (`home/vault`) to disambiguate installed skills.
+      pattern: ^([a-z][a-z0-9-]*/)*[a-z][a-z0-9-]*$
+  required:
+  - op
+  - name
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    op:
+      type: string
+    name:
+      type: string
+  required:
+  - op
+  - name

@@ -1,0 +1,88 @@
+# ============================================================
+# sifu REVIEW pipeline. One of three op graphs sharing the
+# task folders under loom/; all embed the audit subgraph
+# (../loom-audit). Shared folders: ingest-input, find-skill,
+# skill-modify, final-review, publish-output. Keep their wiring
+# in sync across graph-create/update/review, then validate:
+#   $LOOM validate <skill-root> --graph <abs>/loom/graph-review.yaml
+# find -> audit -> fix loop (show-report..skill-fix-count, fuel 10) -> publish.
+# ============================================================
+tasks:
+- id: ingest-input
+  kind: tool
+  version: 1
+- id: find-skill
+  kind: tool
+  version: 2
+  depends_on_all:
+  - ingest-input
+  input:
+    name: ${task:ingest-input:name}
+- id: audit-core
+  kind: subgraph
+  version: 1
+  depends_on_all:
+  - find-skill
+  input:
+    skill_dir: ${task:find-skill:skill_dir}
+    name: ${task:find-skill:name}
+    category: ${task:find-skill:category}
+    type: ${task:find-skill:type}
+    design_kind: none
+  root: ../loom-audit
+- id: show-report
+  kind: tool
+  version: 1
+  depends_on_all:
+  - audit-core
+  input:
+    report_path: ${task:audit-core:report_path}
+    skill_dir: ${task:audit-core:skill_dir}
+- id: skill-fix-review
+  kind: human
+  version: 1
+  depends_on_all:
+  - show-report
+  input:
+    report_path: ${task:show-report:report_path}
+- id: skill-fix-apply
+  kind: agent
+  version: 2
+  depends_on_all:
+  - show-report
+  - skill-fix-review
+  input:
+    skill_dir: ${task:show-report:skill_dir}
+    report_path: ${task:show-report:report_path}
+    fixes: ${task:skill-fix-review:fixes}
+    dismissed: ${task:skill-fix-review:dismissed}
+# Loop latch: deterministic open count from report.md.
+- id: skill-fix-count
+  kind: tool
+  version: 1
+  depends_on_all:
+  - skill-fix-apply
+  input:
+    report_path: ${task:show-report:report_path}
+    files: ${task:skill-fix-apply:files}
+- id: publish-output
+  kind: tool
+  version: 1
+  depends_on_all:
+  - ingest-input
+  - audit-core
+  - skill-fix-count
+  input:
+    op: ${task:ingest-input:op}
+    name: ${task:ingest-input:name}
+    skill_dir: ${task:audit-core:skill_dir}
+    report_path: ${task:audit-core:report_path}
+    decision: accept
+    notes: ''
+    files_primary: ${task:skill-fix-count:files}
+    files_fixes: ${task:skill-fix-count:files}
+latches:
+- task: skill-fix-count
+  header: show-report
+  fuel: 10
+  while_: ${task:skill-fix-count:open_items} > `0`

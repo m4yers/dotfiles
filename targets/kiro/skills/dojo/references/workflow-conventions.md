@@ -46,7 +46,8 @@ general authoring rules in `authoring.md`.
 1. Workflow skills MUST use `loom` to drive execution; see
    `~/.kiro/skills/home/loom/SKILL.md` for its API and usage.
 2. The orchestrator's per-step responsibility is bounded to: running `next` to
-   obtain ready tasks, dispatching `agent` tasks via the `subagent` MCP tool,
+   obtain ready tasks, dispatching `agent` tasks via the `subagent` MCP tool
+   (or running a lone `agent` task inline when the batch holds exactly one),
    driving `human` gates conversationally, and calling `complete` when each task
    body finishes.
 3. Skills MUST NOT reimplement task ordering, predicate evaluation, schema

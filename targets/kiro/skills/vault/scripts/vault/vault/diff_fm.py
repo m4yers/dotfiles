@@ -7,18 +7,34 @@ rewrites so the agent can warn or abort.
 """
 from __future__ import annotations
 
-from pathlib import Path
+import datetime
 
 from vault.pages import abs_path, parse
 
 
-def diff_fm(vault_path: str,
-             baseline: dict | None = None) -> dict:
+def _normalize(value):
+    """Render dates as ISO strings, recursively.
+
+    ``yaml.safe_load`` turns ``2024-01-01`` into a ``date`` while a
+    JSON or re-emitted baseline may carry the same value as a
+    string. Normalising both sides keeps a round-trip of the YAML
+    this command emits from reporting spurious modifications.
+    """
+    if isinstance(value, (datetime.date, datetime.datetime)):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {k: _normalize(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_normalize(v) for v in value]
+    return value
+
+
+def diff_fm(vault_path: str, baseline: dict) -> dict:
     """Compare current frontmatter against ``baseline``.
 
-    ``baseline=None`` reads the current frontmatter and returns it
-    as the baseline (``changed=False``) so callers can store it for
-    the next comparison.
+    ``baseline`` is required: the caller captures it before the
+    edit (``vault read``) so the diff can surface Obsidian
+    rewrites. Dates on both sides are normalised to ISO strings.
 
     Returns::
 
@@ -35,16 +51,8 @@ def diff_fm(vault_path: str,
     if not p.exists():
         raise FileNotFoundError(vault_path)
     current, _ = parse(p.read_text(encoding="utf-8"))
-
-    if baseline is None:
-        return {
-            "changed":  False,
-            "baseline": current,
-            "current":  current,
-            "added":    [],
-            "removed":  [],
-            "modified": [],
-        }
+    current = _normalize(current)
+    baseline = _normalize(baseline)
 
     added    = sorted(set(current) - set(baseline))
     removed  = sorted(set(baseline) - set(current))

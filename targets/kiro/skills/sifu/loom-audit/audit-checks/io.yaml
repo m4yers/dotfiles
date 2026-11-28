@@ -1,0 +1,28 @@
+# audit-checks — parses sifu's annotated references into the checks whose
+# Applies meets the topics, dropping autocheck-backed rules and those below
+# the Info band.
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    topics:
+      type: array
+      items:
+        type: string
+  required:
+  - topics
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    checks:
+      type: array
+      items:
+        $ref: ../../schemas/check.yaml
+    total:
+      type: integer
+      minimum: 0
+  required:
+  - checks
+  - total

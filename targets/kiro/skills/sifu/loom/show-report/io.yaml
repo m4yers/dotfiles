@@ -1,0 +1,33 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    report_path:
+      type: string
+    skill_dir:
+      type: string
+  required:
+  - report_path
+  - skill_dir
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    report_path:
+      type: string
+    skill_dir:
+      type: string
+    errors: &id001
+      type: integer
+      minimum: 0
+    warnings: *id001
+    infos: *id001
+    open_items: *id001
+  required:
+  - report_path
+  - skill_dir
+  - errors
+  - warnings
+  - infos
+  - open_items

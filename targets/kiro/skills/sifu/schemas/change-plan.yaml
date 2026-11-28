@@ -1,0 +1,85 @@
+# Change plan for an existing skill. Produced by
+# design-author-update, consumed by design-render-update,
+# modify-changes, and the audit-design-update check. Skill identity
+# and the change request travel on the graph (find-skill,
+# gather-update), not inside the plan.
+type: object
+required:
+- change_plan
+additionalProperties: false
+properties:
+  change_plan:
+    type: object
+    required:
+    - files
+    additionalProperties: false
+    properties:
+      files:
+        description: "Per-file changes. Order is presentational only \u2014\nthe\
+          \ renderer groups by `action` for display.\n"
+        type: array
+        items:
+          type: object
+          required:
+          - path
+          - action
+          - summary
+          additionalProperties: false
+          properties:
+            path:
+              type: string
+              description: 'Path relative to the skill directory. Use
+
+                "SKILL.md" for the top-level skill file.
+
+                '
+            action:
+              type: string
+              enum:
+              - created
+              - modified
+              - deleted
+            summary:
+              type: string
+              description: 'One- to two-sentence summary of what changes
+
+                in this file and why. Rendered verbatim in
+
+                the design-review markdown.
+
+                '
+            rationale:
+              type: string
+              description: 'Optional per-file explanation when the
+
+                summary alone isn''t enough (e.g., the change
+
+                ripples to other files, or there''s a design
+
+                tradeoff worth surfacing). Rendered as
+
+                italics under the file''s bullet.
+
+                '
+            content_outline:
+              type: string
+              description: "Optional. For `created` or `modified` files\nwhere the\
+                \ agent already drafted concrete\ncontent, this carries the draft.\
+                \ Not shown\nin the design-review markdown \u2014 consumed by\n\
+                modify-changes when applying the plan.\n"
+      open_questions:
+        description: 'Questions the author wants the user to resolve
+
+          during review. Empty when the plan is fully
+
+          determined.
+
+          '
+        type: array
+        items:
+          type: string
+      rationale:
+        type: string
+        description: "Overall reasoning for the plan \u2014 why these files,\nwhy\
+          \ these changes, what alternatives were\nconsidered. Optional but recommended\
+          \ for non-\ntrivial updates.\n"

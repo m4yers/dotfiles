@@ -1,0 +1,53 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    skill_dir:
+      type: string
+      description: Absolute skill directory.
+    name:
+      type: string
+    category:
+      type: string
+      description: First namespace component, e.g. home, aws.
+    type:
+      type: string
+      description: Skill type from SKILL.md frontmatter.
+    autochecks: &id001
+      type: array
+      items:
+        $ref: ../../schemas/finding.yaml
+    shards: *id001
+    design: *id001
+    design_update: *id001
+    __loom: {}
+  required:
+  - skill_dir
+  - name
+  - category
+  - type
+  - autochecks
+  - shards
+  - design
+  - design_update
+  - __loom
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    report_path:
+      type: string
+    skill_dir:
+      type: string
+    errors: &id002
+      type: integer
+      minimum: 0
+    warnings: *id002
+    infos: *id002
+  required:
+  - report_path
+  - skill_dir
+  - errors
+  - warnings
+  - infos

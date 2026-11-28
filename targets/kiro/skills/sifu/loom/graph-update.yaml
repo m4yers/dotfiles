@@ -1,0 +1,161 @@
+# ============================================================
+# sifu UPDATE pipeline. One of three op graphs sharing the
+# task folders under loom/; all embed the audit subgraph
+# (../loom-audit). Shared folders: ingest-input, find-skill,
+# skill-modify, final-review, publish-output. Keep their wiring
+# in sync across graph-create/update/review, then validate:
+#   $LOOM validate <skill-root> --graph <abs>/loom/graph-update.yaml
+# find -> gather -> change-plan loop (design-accept-update latch, fuel 5) -> modify-changes -> check-overlaps + audit -> modify -> final-review.
+# ============================================================
+tasks:
+- id: ingest-input
+  kind: tool
+  version: 1
+- id: find-skill
+  kind: tool
+  version: 2
+  depends_on_all:
+  - ingest-input
+  input:
+    name: ${task:ingest-input:name}
+- id: gather-update
+  kind: human
+  version: 1
+  depends_on_all:
+  - find-skill
+  input:
+    name: ${task:find-skill:name}
+    skill_dir: ${task:find-skill:skill_dir}
+    type: ${task:find-skill:type}
+- id: design-author-update
+  kind: agent
+  version: 1
+  depends_on_all:
+  - find-skill
+  - gather-update
+  input:
+    skill_dir: ${task:find-skill:skill_dir}
+    name: ${task:find-skill:name}
+    category: ${task:find-skill:category}
+    type: ${task:find-skill:type}
+    description: ${task:gather-update:description}
+    revise_reason: ${task:design-accept-update@prev:revise_reason}
+- id: design-render-update
+  kind: tool
+  version: 2
+  depends_on_all:
+  - design-author-update
+  input:
+    plan: ${task:design-author-update:plan}
+    name: ${task:find-skill:name}
+    category: ${task:find-skill:category}
+    type: ${task:find-skill:type}
+    skill_dir: ${task:find-skill:skill_dir}
+    description: ${task:gather-update:description}
+- id: design-review-update
+  kind: human
+  version: 1
+  depends_on_all:
+  - design-render-update
+  input:
+    report_path: ${task:design-render-update:report_path}
+- id: design-accept-update
+  kind: tool
+  version: 1
+  depends_on_all:
+  - design-author-update
+  - design-review-update
+  input:
+    plan: ${task:design-author-update:plan}
+    decision: ${task:design-review-update:decision}
+    revise_reason: ${task:design-review-update:revise_reason}
+- id: modify-changes
+  kind: agent
+  version: 1
+  depends_on_all:
+  - find-skill
+  - design-accept-update
+  input:
+    skill_dir: ${task:find-skill:skill_dir}
+    type: ${task:find-skill:type}
+    plan: ${task:design-accept-update:plan}
+  when: ${task:design-accept-update:decision} == 'accept'
+- id: find-skill-updated
+  kind: tool
+  version: 2
+  ref: find-skill
+  depends_on_all:
+  - ingest-input
+  - modify-changes
+  input:
+    name: ${task:ingest-input:name}
+- id: check-overlaps
+  kind: tool
+  version: 1
+  depends_on_all:
+  - find-skill-updated
+  input:
+    name: ${task:find-skill-updated:name}
+    description: ${task:find-skill-updated:description}
+- id: audit-core
+  kind: subgraph
+  version: 1
+  depends_on_all:
+  - find-skill
+  - design-accept-update
+  - modify-changes
+  input:
+    skill_dir: ${task:find-skill:skill_dir}
+    name: ${task:find-skill:name}
+    category: ${task:find-skill:category}
+    type: ${task:find-skill:type}
+    design_kind: update
+    plan: ${task:design-accept-update:plan}
+  root: ../loom-audit
+- id: skill-modify
+  kind: agent
+  version: 1
+  depends_on_all:
+  - audit-core
+  input:
+    skill_dir: ${task:audit-core:skill_dir}
+    report_path: ${task:audit-core:report_path}
+    errors: ${task:audit-core:errors}
+    warnings: ${task:audit-core:warnings}
+- id: final-review
+  kind: human
+  version: 2
+  depends_on_all:
+  - skill-modify
+  - audit-core
+  - check-overlaps
+  input:
+    skill_dir: ${task:audit-core:skill_dir}
+    report_path: ${task:audit-core:report_path}
+    errors: ${task:audit-core:errors}
+    warnings: ${task:audit-core:warnings}
+    infos: ${task:audit-core:infos}
+    overlaps: ${task:check-overlaps:overlaps}
+- id: publish-output
+  kind: tool
+  version: 1
+  depends_on_all:
+  - ingest-input
+  - audit-core
+  - modify-changes
+  - skill-modify
+  - final-review
+  input:
+    op: ${task:ingest-input:op}
+    name: ${task:ingest-input:name}
+    skill_dir: ${task:audit-core:skill_dir}
+    report_path: ${task:audit-core:report_path}
+    decision: ${task:final-review:decision}
+    notes: ${task:final-review:notes}
+    files_primary: ${task:modify-changes:files}
+    files_fixes: ${task:skill-modify:files}
+latches:
+- task: design-accept-update
+  header: design-author-update
+  fuel: 5
+  while_: ${task:design-accept-update:decision} == 'revise'

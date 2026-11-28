@@ -11,8 +11,9 @@
 - `files` — usually empty (rules live in SKILL.md). Append
   only when a rule body is too long for SKILL.md or has
   independent reuse value.
-- `rationale` — rule scope, what to include vs exclude, how
-  prescriptive the language is.
+- `rationale` — at most ~5 sentences or bullets: decisions
+  made (rule scope, include vs exclude, prescriptiveness) and
+  alternatives rejected. Nothing else.
 
 ## Output construction
 
@@ -20,18 +21,21 @@
 LOOM=~/.kiro/skills/home/loom/scripts/loom.sh
 WD={{ run.workdir }}
 
-$LOOM output init "$WD" --task design
+$LOOM output init "$WD" --task design-author
 
-$LOOM output add "$WD" --task design \
+$LOOM output add "$WD" --task design-author \
     --set frontmatter.name=demo \
     --set frontmatter.type=reference \
     --set 'frontmatter.description=...' \
-    --set 'sections[].heading=Required Behaviour' \
-    --set 'sections[-1].outline=...' \
-    --set 'sections[].heading=Forbidden Without Proof' \
-    --set 'sections[-1].outline=...' \
+    --set 'sections.0.heading=Required Behaviour' \
+    --set 'sections.0.outline=...' \
+    --set 'sections.1.heading=Forbidden Without Proof' \
+    --set 'sections.1.outline=...' \
     --set rationale='Rule scope and prescriptiveness tradeoffs...'
 ```
 
-Syntax: `[]` appends, `[-1]` targets the last appended entry,
-`.` nests.
+Syntax: arrays use dotted numeric indices (`files.0.path`,
+`files.1.path`); `.` nests. The writer validates the whole
+document after every `output add`, so required sibling fields
+(e.g. `path` + `purpose` + `content_outline` of one file) MUST
+land in the same call.

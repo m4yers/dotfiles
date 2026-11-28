@@ -1,0 +1,25 @@
+# audit-topics — detects the topics a skill exhibits (rule-codes.md §4).
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    skill_dir:
+      type: string
+      description: Absolute skill directory.
+    type:
+      type: string
+      description: Skill type from SKILL.md frontmatter.
+  required:
+  - skill_dir
+  - type
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    topics:
+      type: array
+      items:
+        type: string
+  required:
+  - topics

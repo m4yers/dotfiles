@@ -42,7 +42,13 @@ VIDEOS_DIR = f"{SOURCES_DIR}/Videos"
 # (duration + category). The goal is a cheap, deterministic default —
 # the classifier task supersedes downstream.
 
-_DURATION_LONG_FORM_S = 40 * 60   # 40 minutes
+# Videos longer than this with no title keyword are classed as
+# podcast/lecture rather than video. 40 min sits above nearly every
+# standalone upload (talks, essays, tutorials run 10-30 min) and
+# below nearly every podcast episode or recorded lecture (45-90 min).
+# Lowering it would tag long tutorials as lectures; raising it would
+# tag short podcast episodes as plain videos.
+_DURATION_LONG_FORM_S = 40 * 60
 _TITLE_KEYWORDS_PODCAST = ("interview", "podcast", "in conversation")
 _TITLE_KEYWORDS_TALK    = ("keynote", " talk", "conference",
                             "tedx", "ted talk")

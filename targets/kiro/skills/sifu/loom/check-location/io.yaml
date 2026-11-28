@@ -1,0 +1,21 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+    location:
+      type: string
+  required:
+  - name
+  - location
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    skill_dir:
+      type: string
+      description: Absolute path the new skill will occupy.
+  required:
+  - skill_dir

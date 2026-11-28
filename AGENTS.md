@@ -91,6 +91,3 @@ Keep the summary to the items themselves, no commentary. Do not edit
 - `shared.sh` belongs to this repo; extensions must not copy it.
 - `targets/kiro/` is symlinked into `~/.kiro`; edits there are live. Kiro
   skill authoring is handled by the `dojo` skill, not this repo's docs.
-- No Node.js tooling. Bash, two-space indent, `#!/usr/bin/env bash`.
-- Commit with `git-kiro-commit [--push]` (or `git-kiro-commit-dotfiles`
-  across all repos). Check `git status` in every `~/dotfiles*`.

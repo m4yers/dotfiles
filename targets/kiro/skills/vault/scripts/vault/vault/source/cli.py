@@ -13,8 +13,9 @@ def cli_fetch(
     url_or_path: Annotated[str, typer.Argument(
         help="URL or local file path to fetch.")],
 ) -> None:
-    """Acquire a source. Writes the artifact into the vault and
-    emits a fetch envelope on stdout."""
+    """Acquire a source. Writes the artifact into the vault, persists
+    the fetch envelope in the source cache for `source convert`, and
+    emits that envelope on stdout (see pipeline.fetch for its keys)."""
     result = fetch(url_or_path)
     emit(result)
     if not result.get("ok", True):
@@ -24,14 +25,14 @@ def cli_fetch(
 def cli_convert(
     path: Annotated[str, typer.Argument(
         help="Vault-relative or absolute path to the source file.")],
-    task_workdir: Annotated[str, typer.Option(
-        "--task-workdir",
-        help="The convert task's subdir; receives source.md sibling.")],
 ) -> None:
-    """Read source, extract metadata, write source.md sibling, emit
-    output.yaml on stdout."""
+    """Read source, extract metadata, write source.md into the source
+    cache, emit output.yaml on stdout. Picks up the http_headers from
+    the persisted fetch envelope when the artifact was fetched through
+    `source fetch`. Fails with "cannot convert <path>: <reason>" for
+    unsupported formats, corrupt PDFs, and PDFs with no text."""
     try:
-        emit_convert(path, task_workdir)
+        emit_convert(path)
     except FileNotFoundError as e:
         fail(f"not found: {e}")
     except ValueError as e:

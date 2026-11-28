@@ -1,0 +1,83 @@
+{% include 'security-frame.md.j2' %}
+
+# Design skill `{{ input.name }}` ({{ input.type }}) — `{{ input.__task.id }}`
+
+- Location: `~/.kiro/skills/{{ input.location }}/{{ input.name }}/`
+- Description: {{ input.description }}
+- Purpose:
+
+```text
+{{ input.purpose }}
+```
+
+{% if input.overlaps %}
+## Untrusted source: trigger overlaps with installed skills
+
+```text
+{% for o in input.overlaps %}
+- {{ o.skill }} — {{ o.reason }}
+{% endfor %}
+```
+{% endif %}
+{% if input.revise_reason %}
+## Revision feedback (address this)
+
+```text
+{{ input.revise_reason }}
+```
+
+Produce a new design that resolves it; do not re-emit the prior one.
+{% endif %}
+
+## Task
+
+1. Think hard about the skill's shape before writing: type fit, files,
+   and for workflows the DAG, loops, and fan-out.
+2. If an overlapping skill could be broadened instead, say so in
+   `rationale` (model-awareness §2.3).
+3. Make routing explicit for every overlap: negative triggers per
+   authoring §9.
+4. Apply the rules below; populate the fields the type guidance names.
+
+## Authoring rules
+
+{% include 'authoring.md' %}
+
+{% include 'style.md' %}
+
+{% include 'completion.md' %}
+
+{% include 'triggers.md' %}
+
+## Model awareness
+
+{% include 'model-awareness.md' %}
+
+## Script conventions
+
+{% include 'script-conventions.md' %}
+
+## Secure-LLM conventions
+
+{% include 'secure-llm-conventions.md' %}
+
+## Type-specific guidance
+
+{% include input.type ~ '-conventions.md' %}
+
+{% include 'design-' ~ input.type ~ '.md' %}
+
+## Output
+
+Assemble the design as JSON matching `schemas/design.yaml`, then write it
+in one call:
+
+```bash
+LOOM={{ input.__loom.runtime }}
+WD={{ input.__loom.workdir }}
+$LOOM output init "$WD" --task '{{ input.__task.id }}'
+$LOOM output add "$WD" --task '{{ input.__task.id }}' \
+    --set-json "design=$(cat /tmp/{{ input.name }}-design.json)"
+```
+
+Write scratch files only under `/tmp/` or the task workdir.

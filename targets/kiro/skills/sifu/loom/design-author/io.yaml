@@ -1,0 +1,59 @@
+version: 1
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+    location:
+      type: string
+    type:
+      type: string
+      enum:
+      - interface
+      - tool
+      - workflow
+      - reference
+      - flow
+    description:
+      type: string
+    purpose:
+      type: string
+    overlaps:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          skill:
+            type: string
+          reason:
+            type: string
+        required:
+        - skill
+        - reason
+    revise_reason:
+      type:
+      - string
+      - 'null'
+      description: Previous gate round's feedback; null on the first round.
+    __loom: {}
+    __task: {}
+  required:
+  - name
+  - location
+  - type
+  - description
+  - purpose
+  - overlaps
+  - revise_reason
+  - __loom
+  - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    design:
+      $ref: ../../schemas/design.yaml
+  required:
+  - design

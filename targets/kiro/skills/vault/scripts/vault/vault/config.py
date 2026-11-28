@@ -14,7 +14,7 @@ from pathlib import Path
 
 _DEFAULT_VAULT_ROOT = "~/Obsidian/MahVault"
 
-# Resolve at import time so abs_path's startswith check is symlink-
+# Resolve at import time so abs_path's containment check is symlink-
 # stable. On hosts where /home is a symlink to /local/home, a lazily-
 # computed VAULT_ROOT would stay /home/... while a resolved child
 # path would be /local/home/..., breaking the escape check.
@@ -39,9 +39,9 @@ PROJECTS_DIR  = "30 PROJECTS"
 # Vault scope — what the agent may create / modify directly.
 #
 # Zettel-dir is intentionally NOT in WRITABLE_PREFIXES; the vault
-# shim admits it only when the orchestrator has verified that
-# the user explicitly named a zettel (see ``_is_writable`` in
-# pages.py — the gate is procedural, not flag-driven).
+# shim admits it only when ``vault write --zettel`` is passed, which
+# the orchestrator does when the user explicitly named a zettel
+# (see ``_is_writable`` in pages.py).
 WRITABLE_PREFIXES = (
     f"{SOURCES_DIR}/Papers",
     f"{SOURCES_DIR}/Books",
@@ -75,6 +75,28 @@ FOLDERS = {
     "wiki":     SYNTHESIS_DIR,
     "projects": PROJECTS_DIR,
 }
+
+
+# ── frontmatter validation ─────────────────────────────
+#
+# Keys ``vault validate`` requires per top-level folder. Every folder
+# needs ``type``; sources also need the provenance keys the fetch
+# handlers write (``origin_url``, ``fetched_at``, ``last_updated``).
+# Extend a row when the folder's AGENTS.md adds a required field;
+# per-operation extras go through ``vault validate --require``.
+REQUIRED_FRONTMATTER = {
+    SOURCES_DIR:   ("type", "origin_url", "fetched_at", "last_updated"),
+    QUOTES_DIR:    ("type",),
+    KEYWORDS_DIR:  ("type",),
+    PEOPLE_DIR:    ("type",),
+    MODELS_DIR:    ("type",),
+    ZETTEL_DIR:    ("type",),
+    SYNTHESIS_DIR: ("type",),
+}
+
+# Frontmatter keys that must hold an ISO ``YYYY-MM-DD`` date when
+# present. Obsidian rewrites dates on save, so validate pins the shape.
+DATE_KEYS = ("published_date", "last_updated", "date")
 
 
 # ── defaults for cross-folder search ──────────────────
@@ -122,9 +144,9 @@ OBSIDIAN_POLL_INTERVAL_S = 0.25
 # with ``--folder`` rather than raise the cap.
 VAULT_SEARCH_MAX_RESULTS = 200
 
-# Timeout for the ripgrep subprocess in notes.search. 30s is chosen
+# Timeout for the rg / grep subprocess in notes.search. 30s is chosen
 # to cover a cold-page-cache scan of a few-thousand-note vault; any
 # vault that does not return within 30s indicates either a runaway
-# query, a stalled filesystem, or an rg bug — the Python fallback
-# takes over on timeout.
+# query, a stalled filesystem, or an rg bug — the search fails with
+# an error on timeout.
 VAULT_SEARCH_RG_TIMEOUT_S = 30

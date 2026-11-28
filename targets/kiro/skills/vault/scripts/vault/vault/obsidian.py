@@ -194,10 +194,20 @@ def move(src: str, dst: str) -> dict:
     """Move ``src`` → ``dst`` through Obsidian (rewrites
     wikilinks).
 
-    Both paths are vault-relative. Returns an envelope with the
-    final path and the pre/post frontmatter diff. Raises
-    ``RuntimeError`` on failure rather than falling back to raw
-    filesystem move.
+    Both paths are vault-relative. Raises ``RuntimeError`` on
+    failure rather than falling back to raw filesystem move.
+    Returns::
+
+        {
+          op:               "move",
+          src:              <vault-relative source path>,
+          dst:              <vault-relative destination path>,
+          obsidian_rewrote: True   (the CLI ran; wikilinks rewritten
+                                    by Obsidian, not verified here),
+          fm_diff:          <diff_fm envelope: pre-move frontmatter
+                             vs. frontmatter now at dst; see
+                             vault.diff_fm.diff_fm>,
+        }
     """
     return _move("move", src, dst)
 
@@ -209,7 +219,8 @@ def rename(src: str, new_name: str) -> dict:
     """Rename ``src`` to ``new_name`` within the same folder.
 
     Raises ``RuntimeError`` on failure rather than falling back to
-    raw filesystem rename.
+    raw filesystem rename. Returns the same envelope as ``move``
+    with ``op: "rename"`` and ``dst`` set to the new path.
     """
     return _move("rename", src, str(Path(src).with_name(new_name)))
 
@@ -221,7 +232,15 @@ def delete(path: str) -> dict:
     """Delete ``path`` through Obsidian. The note goes to the trash.
 
     Raises ``RuntimeError`` on failure rather than falling back to
-    raw filesystem delete.
+    raw filesystem delete. Returns::
+
+        {
+          op:               "delete",
+          path:             <vault-relative path removed>,
+          obsidian_rewrote: True,
+        }
+
+    No ``fm_diff``: there is no note left to diff.
     """
     _require_running()
 

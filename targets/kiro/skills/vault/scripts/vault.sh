@@ -5,16 +5,16 @@
 #
 # Usage:
 #   vault.sh agents <folder>...
-#   vault.sh agents <folder>...
 #   vault.sh source fetch <url-or-path>
-#   vault.sh source convert <path> --task-workdir <wd>
+#   vault.sh source convert <path>
 #   vault.sh vault match [--keywords P] [--people P] [--models P]
 #   vault.sh vault read <vault-path>
 #   vault.sh vault write <vault-path> [--frontmatter JSON]
 #                                     [--body-file P] [--dry-run]
 #   vault.sh vault list <folder>
 #   vault.sh vault search <query> [--folder F]...
-#   vault.sh vault diff-fm <vault-path> [--baseline JSON]
+#   vault.sh vault validate <vault-path> [--frontmatter JSON] [--require K]...
+#   vault.sh vault diff-fm <vault-path> --baseline <saved vault read output>
 #   vault.sh vault obsidian move|rename|delete <src> [<dst-or-name>]
 #
 # Run `vault.sh --help` for the full subcommand tree.

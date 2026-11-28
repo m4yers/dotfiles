@@ -1,0 +1,18 @@
+# What should change in `{{ input.name }}`?
+
+Skill: `{{ input.skill_dir }}` (type `{{ input.type }}`).
+
+## Task
+
+1. Ask the user what to change, if their request did not already say.
+2. Stop and wait for the answer, then record it in the user's words.
+
+## Output
+
+```bash
+LOOM={{ input.__loom.runtime }}
+WD={{ input.__loom.workdir }}
+$LOOM output init "$WD" --task '{{ input.__task.id }}'
+$LOOM output add "$WD" --task '{{ input.__task.id }}' \
+    --set 'description=<the change, in the user words>'
+```

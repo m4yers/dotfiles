@@ -1,0 +1,53 @@
+version: 2
+input:
+  type: object
+  additionalProperties: false
+  properties:
+    skill_dir:
+      type: string
+    report_path:
+      type: string
+    errors: &id001
+      type: integer
+      minimum: 0
+    warnings: *id001
+    infos: *id001
+    overlaps:
+      type: array
+      description: Trigger-phrase overlaps of the edited description with other skills (update only).
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          skill:
+            type: string
+          reason:
+            type: string
+        required:
+        - skill
+        - reason
+    __loom: {}
+    __task: {}
+  required:
+  - skill_dir
+  - report_path
+  - errors
+  - warnings
+  - infos
+  - __loom
+  - __task
+output:
+  type: object
+  additionalProperties: false
+  properties:
+    decision:
+      type: string
+      enum:
+      - accept
+      - decline
+    notes:
+      type: string
+      description: User remarks; empty string when none.
+  required:
+  - decision
+  - notes
